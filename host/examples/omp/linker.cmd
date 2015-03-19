@@ -1,0 +1,19 @@
+-cr
+--relocatable
+--no_entry_point
+-o omp.out
+-l"/home/al/workspace_v5_2/OCL/Debug/configPkg/package/cfg/omp_config_pe66.oe66"
+-l"/opt/ti/omp_1_01_02_03_beta/packages/ti/omp/utils/lib/debug/ti.omp.utils.ae66"
+-l"/opt/ti/ipc_1_24_03_32/packages/ti/sdo/ipc/lib/instrumented_e66/ipc/ipc.lib"
+-l"/opt/ti/omp_1_01_02_03_beta/packages/ti/omp/navigator/lib/debug/ti.omp.navigator.ae66"
+-l"/opt/ti/omp_1_01_02_03_beta/packages/ti/omp/navigator/lib/debug/ti.omp.navigatorOsal.ae66"
+-l"/opt/ti/pdk_C6678_1_1_0_2/packages/ti/csl/lib/ti.csl.ae66"
+-l"/opt/ti/pdk_C6678_1_1_0_2/packages/ti/csl/lib/ti.csl.intc.ae66"
+-l"/opt/ti/pdk_C6678_1_1_0_2/packages/ti/drv/cppi/lib/ti.drv.cppi.ae66"
+-l"/opt/ti/pdk_C6678_1_1_0_2/packages/ti/drv/qmss/lib/ti.drv.qmss.ae66"
+-l"/opt/ti/bios_6_33_05_46/packages/ti/sysbios/lib/instrumented_e66/sysbios/sysbios.lib"
+-l"/opt/ti/omp_1_01_02_03_beta/packages/ti/omp/lib/debug/ti.omp.ae66"
+-l"/opt/ti/omp_1_01_02_03_beta/packages/ti/omp/config/sysbios/lib/debug/ti.omp.config.sysbios.ae66"
+-l"/opt/ti/xdctools_3_23_03_53/packages/ti/targets/rts6000/lib/ti.targets.rts6000.ae66"
+-l"/opt/ti/xdctools_3_23_03_53/packages/ti/targets/rts6000/lib/boot.ae66"
+-l"/opt/ti/C6000CGT7.4.0B2/lib/rts6600_elf_mt.lib"

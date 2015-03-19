@@ -1,0 +1,8 @@
+The best way to compile is to use out of src build, like such:
+
+mkdir some/path/build
+cd some/path/build
+cmake /home/user/projects/clover
+make
+
+That should be it. If your Clang is installed to a different location than LLVM, then define CLANG_INCLUDE_DIR and CLANG_LIB_DIR like so: -DCLANG_INCLUDE_DIR=/opt/clang/include -DCLANG_LIB_DIR=/opt/clang/lib

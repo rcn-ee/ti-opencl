@@ -1,0 +1,41 @@
+/**
+ * \mainpage OpenCL 1.1 Software Implementation
+ *
+ * Clover is a project started in June 2011 as a Google Summer of Code project. Its goal is to provide an Open Source OpenCL implementation usable by everyone wanting to use or develop for OpenCL without having to use proprietary drivers or SDKs (like the Intel's one).
+ *
+ * Clover currently only supports running OpenCL programs in software, on the host CPU, but an interface is there to allow future hardware-based execution engines.
+ *
+ * This documentation is meant to be a \b developer \b focused one. The public OpenCL API is thoroughly documented by the Khronos Group at http://www.khronos.org/registry/cl/ . What is documented here is the internal architecture of Clover.
+ *
+ * \section discover Discovering Clover
+ *
+ * Clover is a somewhat big project and this section will explain how to get started with the code.
+ *
+ * \subsection components Components
+ *
+ * Clover is split in several components:
+ *
+ * - \b core The core of OpenCL, implemented in C++ and containing all the logic used by an OpenCL implementation.
+ * - \b api The public OpenCL API. It's a binding exposing the Clover's C++ classes to C applications.
+ * - \b runtime The standard library available to OpenCL programs. An interesting and advanced page speaks about \subpage barrier.
+ *
+ * The following components are also present but currently not documented:
+ *
+ * - \b tests Check-based test-cases
+ * - \b examples Currently one small application playing with clGetXXXInfo functions, thus displaying information about Clover (it can also be used with any compliant OpenCL implementation)
+ *
+ * \subsection flow Flow of execution
+ *
+ * Discovering and reading a source code may be done in an order close to the "execution flow" of an application using this code. For Clover, it means that it's easier to explore the functions when reading them roughly in the order they get called by a client application.
+ *
+ * Here is the recommended order in which to read the functions:
+ *
+ * - A small self-contained API is used to get information about the "Platform", in src/api/api_platform.cpp
+ * - Then, the platform is used to query the devices, in src/api/api_devices.cpp . This is the first API file that uses C++ classes. The hardware abstraction layer used is \c Coal::DeviceInterface. Take a look at the \c Coal::CPUDevice class, implementing this interface, in src/core/cpu/device.cpp .
+ * - The device is then used to create a \c Coal::Context, in src/api/api_context.cpp then src/core/context.cpp .
+ * - When a context is built, one can use it to do many thing. For example, it's possible to create buffer objects. Take a look at \c clCreateBuffer(), and the \c Coal::Buffer and \c Coal::CPUBuffer classes.
+ * - A big part of Clover is dedicated to command queues, implemented in the \c Coal::CommandQueue class. Its special architecture is documented in detail in the \subpage events page.
+ * - There is also the \c Coal::Program class, that compiles OpenCL C code into LLVM IR using \c Coal::Compiler (a simple wrapper around Clang).
+ * - A program contains one or more kernels. Take a look at \c Coal::Kernel for how they are handled.
+ * - \c Coal::Program and \c Coal::Kernel are device-independent classes. They use device-specific classes like \c Coal::CPUProgram and \c Coal::CPUKernel. The former translates LLVM IR instructions into machine code using the LLVM's JIT, the latter is a bit more complex and described in the \subpage llvm page.
+ */

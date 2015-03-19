@@ -1,0 +1,202 @@
+/**
+ * \page llvm Using Clang and LLVM to Launch Kernels
+ *
+ * Unlike OpenGL and its GLSL language, OpenCL uses a subset of C easily implementable with little compiler support.
+ *
+ * It is known that at least Apple and nVidia use Clang and LLVM to compile OpenCL programs. Furthermore, Intel recently released a SDK advertised as using LLVM (with the possibility to also use an in-house JIT).
+ *
+ * This widespread usage of Clang is very good for Clover, as Clang already supports the vast majority of what is needed in order to have a good OpenCL compiler. LLVM is very efficient at using vectors (it isn't used by Apple and Mesa GL for their software acceleration path without reason), and its API is very well done. It takes an average of one or two days to implement of modify something using LLVM in Clover.
+ *
+ * This page explains how Clang and LLVM are used in Clover to compile, manage and launch OpenCL kernels.
+ *
+ * \section compilation Compiling OpenCL C to LLVM IR
+ *
+ * The first step when one wants to launch a program is to compile it. It is done API-wise by the \c clCreateProgramWithSource() and \c clBuildProgram() functions.
+ *
+ * The first function creates a \c Coal::Program object, using \c Coal::Program::loadSources(). You can see at the top of this function a line prepending the OpenCL C standard header to the source being built. This function consists mainly of a concatenation of the strings given (they may be zero-terminated or not).
+ *
+ * Once the \c Coal::Program objects holds the source, \c clBuildProgram() can be used to compile it. It does so by invoking \c Coal::Program::build().
+ *
+ * This big function compiles and links the program, so it will be explained later. The actual compilation job is done by \c Coal::Compiler. It does that in \c Coal::Compiler::compile(), and then keeps the compilation log and options at hand for future use.
+ *
+ * When a program is compiled, the client application can retrieve it by using \c clGetProgramInfo().
+ *
+ * \section linking Linking the program
+ *
+ * The compilation step produced an "unlinked" module, that needs to be linked with the OpenCL C standard library, but only if the device for which the program is being built needs to. It's also possible to load a previously-compiled binary in a \c Coal::Program using \c Coal::Program::loadBinaries(). Doing this also loads an unlinked binary.
+ *
+ * The separation between the unlinked binary and the linked one is the reason for the existence of \c Coal::Program::DeviceDependent::unlinked_binary. The source is compiled to LLVM IR in a module (temporarily stored in linked_module, though it isn't linked yet), that is dumped to unlinked_binary and then linked to form a full executable program.
+ *
+ * So, \c Coal::Program::build() runs its code for every device for which a program must be built. These devices are either given at \c Coal::Program::loadBinaries(), or as arguments to \c Coal::Program::build().
+ *
+ * The first step is to see if the program was loaded with sources. If it's the case, they have to be compiled (see \ref compilation).
+ *
+ * Then, if the device for which the program is being built asks for that \c (\c Coal::DeviceProgram::linkStdLib(), \c Coal::CPUDevice does so), the program is linked with the OpenCL C standard library of Clover. An hardware-accelerated device normally will not want to have stdlib linked, as it's easier to convert LLVM IR to hardware-specific instructions when OpenCL built-ins functions are left in the form "call foo" instead of being inlined with inefficient CPU-centric code.
+ *
+ * After this linking pass, optimization passes are created. The first ones are created by \c Coal::Program itself. They remove all the functions that are not kernels and are not called by a kernel. It allows LLVM to remove all the unused stdlib functions.
+ *
+ * Then, the device is allowed to add more optimization or analysis passes. \c Coal::CPUProgram::createOptimizationPasses() adds standard link-time optimizations, but hardware-accelerated devices could add autovectorizing, lowering, or analysis passes.
+ *
+ * Finally, \c Coal::DeviceProgram::build() is called. It's a no-op function for \c Coal::CPUDevice as it uses directly the module with a LLVM JIT, but hardware devices could use this function to actually compile the program for the target device (LLVM to TGSI transformation for example).
+ *
+ * The program is now built and ready to be usable !
+ *
+ * \section kernels Finding kernels
+ *
+ * Now that the program is built, it's time to get its kernels. The functions declared as kernel in OpenCL C (with the \c __kernel attribute) are registered by Clang using the <em>!opencl.kernels</em> metadata. They are read from the LLVM module by \c Coal::Program::kernelFunctions(). Note that this function is device dependent, as it have to use the LLVM IR generated for the specified device.
+ *
+ * When the kernels are found, \c Coal::Kernel objects can be instantiated. These objects are again device-independent as requested by the OpenCL spec. A \c Coal::Kernel object is mainly a name and a list of device-specific information. There is for instance the \c llvm::Function object that will be called.
+ *
+ * Once the \c Coal::Kernel object is created, \c Coal::Kernel::addFunction() is called for every device for which the \c Coal::Program is built. This function has the responsibility to explore the arguments of the function and to create a list of device-independent \c Coal::Kernel::Arg objects (kernel arguments). For instance, when it sees an argument of type <4 x i32>, it converts it to a \c Coal::Kernel::Arg of kind \c Coal::Kernel::Arg::Int32 and vector dimension 4.
+ *
+ * \section arguments Setting kernel arguments
+ *
+ * The \c Coal::Kernel::Arg objects are interesting. They are an abstraction layer between the host CPU and the device. They also enable \c Coal::Kernel to implement its \c Coal::Kernel::setArg() function, that performs checks on the value given as argument.
+ *
+ * This class also contains semantic information specific to OpenCL. For instance, in LLVM, the address space qualifiers like __global or __local are represented as address spaces (0 = private, etc). \c Coal::Kernel::addFunction() translates these address spaces into \c Coal::Kernel::Arg::File values.
+ *
+ * When the users call \c clSetKernelArg(), the execution flow arrives at \c Coal::Kernel::setArg(). This function puts the correct value in the \c Coal::Kernel::Arg object, and does some checks. It is also his responsibility to recognize \c Coal::Sampler objects.
+ *
+ * Samplers are a bit special as they are pointers to \c Coal::Sampler objects on the host CPU, and plain uint32_t values on the kernel side. This makes their translation from LLVM type to \c Coal::Kernel::Kind a bit difficult, as Clover only sees an LLVM \c i32 type for a sampler and also for a normal \c uint32.
+ *
+ * The trick used in Clover is to store in memory a list of the known samplers. When a \c Coal::Sampler object is created, it is registered in this list. When it is deleted, its index is removed from the list. This in implemented in \c Coal::Object and shared between all the Coal classes. It allows the implementation of functions like \c Coal::Object::isa(), very useful to check that arguments given by the user are sane.
+ *
+ * So, \c Coal::Object::isa() is used to recognize when an argument passed to \c Coal::Kernel::setArg() is in fact a sampler. When it is the case, the pointer to \c Coal::Sampler is replaced by the sampler's "bitfield" representation, using \c Coal::Sampler::bitfield().
+ *
+ * \code
+ *  // Special case for samplers (pointers in C++, uint32 in OpenCL).
+ *  if (size == sizeof(cl_sampler) && arg_size == 4 &&
+ *      (*(Object **)value)->isA(T_Sampler))
+ *  {
+ *      unsigned int bitfield = (*(Sampler **)value)->bitfield();
+ *
+ *      arg.refineKind(Arg::Sampler);
+ *      arg.alloc();
+ *      arg.loadData(&bitfield);
+ *
+ *      return CL_SUCCESS;
+ *  }
+ * \endcode
+ *
+ * This trick is described in more detail at the end of this blog post : http://steckdenis.wordpress.com/2011/08/07/when-easy-is-difficult-and-vice-versa/ .
+ *
+ * \section event Queuing an event
+ *
+ * Once the \c Coal::Kernel object is created and its args set, the client application can call \c clEnqueueTask() or \c clEnqueueNDRangeKernel(). These functions create a \c Coal::KernelEvent object responsible for telling the device to execute the kernel.
+ *
+ * When the event arrives on the device (see \ref events), \c Coal::CPUDevice initializes the LLVM JIT \c (\c Coal::CPUProgram::initJIT()) and then does that in src/core/cpu/worker.cpp :
+ *
+ * \code
+ * KernelEvent *e = (KernelEvent *)event;
+ * CPUKernelEvent *ke = (CPUKernelEvent *)e->deviceData();
+ *
+ * // Take an instance
+ * CPUKernelWorkGroup *instance = ke->takeInstance();
+ * ke = 0;     // Unlocked, don't use anymore
+ *
+ * if (!instance->run())
+ *     errcode = CL_INVALID_PROGRAM_EXECUTABLE;
+ *
+ * delete instance;
+ * \endcode
+ *
+ * The first step is to use \c Coal::Event::deviceData() to get a \c Coal::CPUKernelEvent object. See \c Coal::Event::setDeviceData() and \c Coal::DeviceInterface::initEventDeviceData().
+ *
+ * This \c Coal::CPUKernelEvent holds information about the event needed by \c Coal::CPUDevice.
+ *
+ * \section workgroups Running the work groups
+ *
+ * The next line is interesting : \c Coal::CPUKernelEvent::takeInstance() is called. This function works in pair with \c Coal::CPUKernelEvent::reserve() called from \c Coal::CPUDevice::getEvent().
+ *
+ * A kernel is run in multiple "work groups", that is to say batches of work items. The worker threads (see \ref events) take work-groups one at a time, so there can be multiple work groups of a single kernel running concurrently on a multicore CPU.
+ *
+ * \ref events gives more details about that, but the main principle is that there is a list of events a worker thread can execute. For \c Coal::KernelEvent, a worker thread calls \c Coal::CPUKernelEvent::reserve() to see if there is a work-group available for execution (that is to say if the work groups aren't yet all executed). If there is one available, a mutex is locked and the function returns. Then, the worker thread calls \c Coal::CPUKernelEvent::takeInstance() to actually get the work-group, and runs it through \c Coal::CPUKernelWorkGroup::run().
+ *
+ * \section args Passing arguments to the kernel
+ *
+ * Once the work-group is taken, it is run and must call the kernel function (using the JIT) for every work-item. This is done very simply by getting a function pointer to the kernel using \c llvm::ExecutionEngine::getPointerToFunction(). This function must now be called with the needed arguments.
+ *
+ * The difficult thing is that C++ doesn't allow to give arbitrary arguments to a function. A function can receive arbitrary arguments, using <tt>void foo(int argc, ...)</tt>, but an arbitrary list of arguments cannot be passed like in <tt>foo(va_build(std_vector));</tt>. They must be known at compilation-time.
+ *
+ * The solution used by LLVM is to use a function like <tt>\c llvm::JIT::runFunction(function, vector of args)</tt>. This function internally creates a "stub" function taking zero arguments but calling the target function itself with its arguments passed as constants. That is to say, when we want to call <tt>bar(3, 4);</tt>, a stub is compiled like this :
+ *
+ * \code
+ * void stub() {
+ *     bar(3, 4);
+ * }
+ * \endcode
+ *
+ * This stub is then JITed and run directly :
+ *
+ * \code
+ * void (*stub)() = getPointerToFunction(stub_function);
+ * stub();
+ * \endcode
+ *
+ * LLVM then destroys the stub. This is a waste of time as a stub is slow to generate and JIT compile.
+ *
+ * Clover also uses stubs, and not libffi (for Foreign Function Interface). Libffi is a library allowing to call a function with arguments only known at run-time, but it is too slow (the arguments are re-built for every call) and doesn't fully support vectors (it supports XMM registers, but slowly).
+ *
+ * The solution retained was to mimic the way LLVM does its stub. As a kernel can be run multiple times with different arguments (when the application explicitly does so, or when there are \c __local pointers needing to be reallocated between each work-group), the stub function cannot simply use constants, because rebuilding it for each set of arguments would be too slow.
+ *
+ * So, the Clover's stub takes exactly one parameter: a  \c void* pointer. This pointer contains the actual parameters, carefully aligned by \c Coal::CPUKernel::typeOffset(). The stub itself is built by \c Coal::CPUKernel::callFunction() and is like that :
+ *
+ * \code
+ * void stub(void *args) {
+ *     // We know the args the kernel takes and their types.
+ *     kernel(
+ *         *(int *)args, // For an int argument
+ *         *(float **)((char *)args + 8), // For a float* argument, after the int in args, and aligned to sizeof(void*)
+ *         *(sampler_t *)((char *)args + 16));
+ * }
+ * \endcode
+ *
+ * Each argument is simply built in LLVM IR like this :
+ *
+ * \code
+ * param = load(bitcast(getelementptr(args, offset_in_args) to param_type*))
+ * \endcode
+ *
+ * \section tls Built-ins and Thread Local Storage
+ *
+ * The OpenCL C language provides built-ins that can be called from the kernels. For the most of them, there is no problem: they can either be implemented as LLVM instructions and then compiled for the CPU, or the standard library (src/core/runtime/stdlib.c) provides an implementation.
+ *
+ * But there are cases where information outside the kernel is needed. For example, the \c get_work_dim() builtin takes no argument, but has to return a value dependent of the current \c Coal::KernelEvent being run.
+ *
+ * In order to handle that, a call is made from the kernel to the Clover library. It's made possible by a very handy LLVM function: \c llvm::ExecutionEngine::InstallLazyFunctionCreator() called by \c Coal::CPUProgram::initJIT(). This function allows Clover to register a function that will resolve function names to function addresses. This way, a function called "get_work_dim" in the kernel will be passed to this function creator, that will return a pointer to \c get_work_dim() in src/core/cpu/builtins.cpp.
+ *
+ * \code
+ * void *getBuiltin(const std::string &name)
+ * {
+ *     if (name == "get_global_id")
+ *         return (void *)&get_global_id;
+ *     else if (name == "get_work_dim")
+ *         return (void *)&get_work_dim;
+ *
+ *     return (void *)&unimplemented_stub;
+ * }
+ * \endcode
+ *
+ * It's good, but one problem remains: \c get_work_dim() doesn't take any argument, but has to return an information about the currently-running kernel. Here, the internal structure of \c Coal::CPUDevice has to be taken into account. The device creates one worker thread per CPU core, and each of these worker threads can run only one work-group at a time, but multiple worker threads can run different kernels and work groups concurrently.
+ *
+ * So, the solution retained is a Thread-Local variable. Such a variable is like a global variable (shared among all the classes and functions of a project), but its value is private to the currently-running thread. As a thread always handles only one work-group, a TLS variable is what is needed, and what Clover uses. It's named \ref g_work_group.
+ *
+ * One of these built-ins is particularly interesting, see \ref barrier.
+ *
+ * \section call The call
+ *
+ * Finally, the work-items can be called in sequence. The stub and its kernel function are JITed only once, it's fast :
+ *
+ * \code
+ * do
+ * {
+ *     // Simply call the "call function", it and the builtins will do the rest
+ *     p_kernel_func_addr(p_args);
+ * } while (!p_had_barrier &&
+ *          !incVec(p_work_dim, p_dummy_context.local_id, p_max_local_id));
+ * \endcode
+ *
+ * This code can be found in \c Coal::CPUKernelWorkGroup::run(). The \c incVec() call is there to handle the 3D global and local IDs. It returns true when the vector we are incrementing reaches \c p_max_local_id.
+ *
+ * More explanation of this part can be found on the \ref barrier page.
+ */

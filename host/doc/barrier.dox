@@ -1,0 +1,105 @@
+/**
+ * \page barrier Implementing barriers
+ *
+ * \c barrier() is an OpenCL C built-in function allowing synchronization between the work-items of a work-group. When a work-item encounters a \c barrier(), it must wait for all the other work-items of its work-group to also encounter the same \c barrier() call.
+ *
+ * An example of use-case could be encrypting a buffer. A work-item would be the operation run on a single byte, and work-groups blocks of data that must be processed in chunks. Each work-item will first read its byte, then encrypt it using maybe the next and previous bytes in the work-group. After that, the data must be written back into the buffer, but if the work-item does so, another one could try to read what it have just written (because the work-item reads the next and previous bytes), and that will not be correct.
+ *
+ * So, the work-item first calls \c barrier(), to let the others read their sane data before overwriting it with encrypted data.
+ *
+ * \section workgroups How Clover handles work-groups and work-items
+ *
+ * Before beginning with the explanation of \c barrier(), a first note about how Clover handles the work-groups and work-items.
+ *
+ * A work-group is a set of work-items. In the spec, work-groups can be run in parallel, and their work-items can also be run in parallel. This allows massively parallel GPUs to launch kernels efficiently (they are slower than a CPU but made of thousands of cores). A CPU isn't very parallel, so it makes no sense to have one thread per work-item, it would require up to hundreds of thousands of threads for kernels running on a huge amount of data (for example converting an image from RGB to sRGB, it's the same computation for every pixel, so each pixel can be run in parallel).
+ *
+ * Clover uses another technique: each work-group is run in parallel, but the work-items are run sequentially, one after the other. This allows Clover to be pretty fast for most of the cases, as all the CPU cores are used and no time is lost in thread switch and synchronization primitives. An interesting function here is \c Coal::CPUKernel::guessWorkGroupSize(). It tries to divide the number of work-items by a number the closest possible to the amount of CPU cores, falling back to one work-group if the number of work-items is prime (or not easily divisible, to avoid having 517583527 work-groups of only one work-item).
+ *
+ * In short, the work-items are run sequentially in Clover.
+ *
+ * \section problem The problem
+ *
+ * The problem is that \c barrier() must oblige the current work-item to wait for the others. But as they are run sequentially, a work-item cannot wait for the others as it must have finished for them to be run.
+ *
+ * The solution is to pause the current work-item and to jump into the next. When the next also encounters \c barrier(), it also jumps to the next, and so forth. When the last work-item encounters a \c barrier(), it jumps back to the first one, that can continue its execution past its \c barrier() call.
+ *
+ * \dot
+ * digraph G {
+ *     rankdir=LR;
+ *     w1 [shape=record,label="<f0>work-item 1|<f1>barrier()|<f2>work-item 1"];
+ *     w2 [shape=record,label="<f0>work-item 2|<f1>barrier()|<f2>work-item 2"];
+ *     w3 [shape=record,label="<f0>work-item 3|<f1>barrier()|<f2>work-item 3"];
+ *     w4 [shape=record,label="<f0>work-item 4|<f1>barrier()|<f2>work-item 4"];
+ *
+ *     w1:f1 -> w2:f0 [color=red];
+ *     w2:f1 -> w3:f0 [color=red];
+ *     w3:f1 -> w4:f0 [color=red];
+ *     w4:f1:e -> w1:f2:w [color=red];
+ *
+ *     w1:f2 -> w2:f2 [color=blue];
+ *     w2:f2 -> w3:f2 [color=blue];
+ *     w3:f2 -> w4:f2 [color=blue];
+ * }
+ * \enddot
+ *
+ * This graphs shows a special case: when an item finishes, the next resumes where it left, not at its beginning. This explain why there is a test for barriers in \c Coal::CPUKernelWorkGroup::run() :
+ *
+ * \code
+ * do
+ * {
+ *     p_kernel_func_addr(p_args);
+ * } while (!p_had_barrier &&       // <== here
+ *          !incVec(p_work_dim, p_dummy_context.local_id, p_max_local_id));
+ * \endcode
+ *
+ * \section contexts Technical solution
+ *
+ * Now that the problem is solved on paper, a working solution has to be found. What Clover wants to achieve is stopping a function in the middle of it, and then resuming it.
+ *
+ * Some people may know the \c setjmp() and \c longjmp() functions. They do nearly what is needed but are not considered secure to use for resuming a function (that means that we can \c longjmp() from a function to another, but we cannot then resume the function that called \c longjmp()).
+ *
+ * Another solution is POSIX contexts, managed by the functions \c setcontext(), \c getcontext() and \c swapcontext(). These are what Clover uses. When a \c barrier() call is encountered, the current work-item is saved in its context, and then the next is executed (using \c swapcontext()). This is done in \c Coal::CPUKernelWorkGroup::barrier().
+ *
+ * \section stack The problem of stacks
+ *
+ * In fact, it's a bit more complex than that. The first reason is that Clover doesn't want to slow down kernels not using \c barrier() (the majority), so the \c barrier() overhead in the case this built-in is never called must be as low as possible. Creating a context for each work-item takes time, it's not good.
+ *
+ * Another thing to keep in mind is that a function (and kernels are functions) stores parameters, local variables and temporaries on the stack. If a work-item is halted, its stack mustn't be clobbered by another work-item. So, each work-item must have a separate stack, and these stacks must be created.
+ *
+ * Clovers uses for that \c mmap(), a function that can be used to allocate large chunks of data, way faster than \c malloc() \c (malloc() uses \c mmap() internally, with also a memory pool). Stacks are in fact "large", currently 8 KB (but future version of OpenCL will run an analysis pass to count the maximum amount of data \c alloca'ed() by the kernel and its sub-functions), and each work-item must have its one.
+ *
+ * For kernels designed for \c barrier(), that is to say with a known number of work-items per work-group (usually low), there is no problem. Even 512 work-items take only 4 MB of stack, a single Huge Page on x86, and nothing with regard to the amount of RAM currently found on modern computers.
+ *
+ * But the problem is for kernels not designed for \c barrier(). These ones use higher work-groups, or even let Clover decide how to split the work-items into work-groups (using \c Coal::CPUKernel::guessWorkGroupSize()). For a 1024x1024 image, with one work-item per pixel, and a 4-core CPU, Clover will create work-groups of 262144 work-items ! If each of them must have its own 8KB stack, that means a memory usage of 2 GB !
+ *
+ * So, Clover cannot use independent work-items when \c barrier() is never called. This is achieved by using a tiny dummy context at the beginning of \c Coal::CPUKernelWorkGroup::run(), holding only the data needed by the built-in functions like \c get_global_id(), that is to say the work-item index. Then, a \c while() loop is used to execute the work-items sequentially, incrementing the work-item index of the dummy context at each loop iteration. This makes the whole thing working when no \c barrier() calls are issued, and without any slowdown (maybe about ten CPU cycles, but JITing the caller functions takes way more time than that).
+ *
+ * \section implementation Implementation
+ * 
+ * How is \c barrier() implemented then ? Simple, when the first call to \c barrier() is made, \c Coal::CPUKernelWorkGroup::barrier() begins by allocating memory for the stacks (and puts its pointer in a TLS memory location). This function is also able to reuse the memory allocated by a previous work-group run on the same thread if it is large enough to hold the stacks. This way, it's a bit faster.
+ *
+ * A note about this memory : it doesn't contain only the stacks, but also a \c Coal::CPUKernelWorkGroup::Context structure. This memory is accessed using \c Coal::CPUKernelWorkGroup::getContextAddr() that is given an index and returns a pointer to a \c Coal::CPUKernelWorkGroup::Context. The stack of this context is located just after the Context structure.
+ *
+ * Once the memory is allocated, \c Coal::CPUKernelWorkGroup::barrier() can proceed as if all was normal. It first tries to take the next context, and checks if it is initialized (that is to say its work-item has already begun and is currently halted somewhere in its execution). It's easy to do as \c mmap() zero-initializes the memory. If the work-item isn't yet initialized, it is created and initialized to point to the kernel function, with the correct \c args.
+ *
+ * After the context creation, all that is needed is to swap the contexts, that is to say to save the current context in the memory location, and to jump to the next. If this is the first time \c barrier() is called, the current context is simply the "main context" of the thread, and it gets saved like any other context: \c barrier() successfully achieved to work even when a dummy context is used.
+ *
+ * The context being swapped, the execution can begin or continue in the next work-item.
+ *
+ * \section finishing End of execution
+ *
+ * One thing remains to be done, as pointed out at the end of \ref problem : when a \c barrier() has been encountered and a work-item finishes, we cannot just launch the next, as it has already begun before. So, we need to separately handle the case of a \c barrier() having been called. \c Coal::CPUKernelWorkGroup::run(), if a \c barrier() was called and when the first work-item finishes, doesn't launch the next one but goes directly in another loop.
+ *
+ * This loop simply calls \c swapcontext() for each remaining work-item. The other work-items will each terminate. An interesting property of contexts is used here: when a context finishes its execution, the execution returns to the context that have created it, the context given here in \c Coal::CPUKernelWorkGroup::barrier() :
+ *
+ * \code
+ * Context *main = getContextAddr(0);  // The context not created with makecontext
+ * 
+ * if (next->initialized == 0)
+ * {
+ *     // [...]
+ *     next->context.uc_link = &main->context;  // <== here
+ * \endcode
+ *
+ * That means for clover that when a work-item finishes, the execution flow will return to \c Coal::CPUKernelWorkGroup::run() where it has left, that is to say at the \c swapcontext() call. This allows Clover to simply terminate all the work-items.
+ */ 

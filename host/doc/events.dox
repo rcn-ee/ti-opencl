@@ -1,0 +1,61 @@
+/**
+ * \page events Command Queues, Events and Worker Threads
+ *
+ * Command queues are the core of OpenCL. It's by using them that client applications can ask the OpenCL implementation to actually do things. For example, a function call can be used to create a memory object, but a command queue has to be used in order to write into this object.
+ *
+ * \section overview Overview
+ *
+ * A command queue is an object storing a list of events. In Clover, \c Coal::CommandQueue stores a list of \c Coal::Event objects.
+ *
+ * An event is an action that can be performed. The \c Coal::Event documentation page contains a big inheritance graph, so you can see that there are many events inheriting each other. An event is for instance a write to a memory object, a copy between an image and a buffer, or the execution of an OpenCL kernel.
+ *
+ * There are also events that are called "dummy" in Clover: they do nothing and are simple information for the command queue. They are \c Coal::BarrierEvent, \c Coal::UserEvent, \c Coal::WaitForEventsEvent and \c Coal::MarkerEvent.
+ *
+ * \section queuing Queuing events
+ *
+ * Queuing an event is the action of adding it to a command queue. A queued event will be executed by the command queue when certain conditions are met. A client application queues events by calling \ref src/api/api_enqueue.cpp \c "clEnqueueXXX()", for example \c clEnqueueCopyImageToBuffer(). These function create an object inheriting \c Coal::Event and call \c Coal::CommandQueue::queueEvent().
+ *
+ * In Clover, a \c Coal::Event object doesn't do anything besides checking its arguments. The work is all done in a worker thread, discussed later on this page.
+ *
+ * \section ordering Ordering the events
+ *
+ * Events are meant to be executed on a device. Clovers uses two event queues in order to do that, as there may be several \c Coal::CommandQueue objects for one single \c Coal::DeviceInterface. That means that \c Coal::CommandQueue has to keep a list of its events, and that \c Coal::DeviceInterface must do the same, with a separate list.
+ *
+ * In order to have events executed, the command queue "pushes" events on the device using \c Coal::DeviceInterface::pushEvent().
+ *
+ * \dot
+ * digraph G {
+ *     client [label="Client application"];
+ *     queue1 [label="CommandQueue 1", URL="\ref Coal::CommandQueue"];
+ *     queue2 [label="CommandQueue 2", URL="\ref Coal::CommandQueue"];
+ *     device [label="Device", URL="\ref Coal::DeviceInterface"];
+ *     worker [label="Worker thread", URL="\ref worker()"];
+ *
+ *     client -> queue1 [label="clEnqueueReadImage()", URL="\ref clEnqueueReadImage()"];
+ *     client -> queue2 [label="clEnqueueNDRangeKernel()", URL="\ref clEnqueueNDRangeKernel()"];
+ *     queue1 -> device [label="pushEvent()", URL="\ref Coal::DeviceInterface::pushEvent()"];
+ *     queue2 -> device [label="pushEvent()", URL="\ref Coal::DeviceInterface::pushEvent()"];
+ *     device -> worker [label="getEvent()", URL="\ref Coal::CPUDevice::getEvent()"];
+ * }
+ * \enddot
+ *
+ * The semantics are also different: on the device, the events are unordered. That means that there is no guarantee that an event stored after another in the device's event list will actually be executed after the previous one. This allows worker threads to pick up events without having to check their order: if an event is available, take it and run it.
+ *
+ * On a \c Coal::CommandQueue object, events are ordered. If the queue has the CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE property disabled, it's simple: the queue waits for an event to complete before pushing the next to the device. When this property is enabled, more complex heuristics are used. They are explained in the \c Coal::CommandQueue::pushEventsOnDevice() function documentation.
+ *
+ * Roughly, every time an event completes, the \c Coal::CommandQueue explores its list of events and pushes all of them that meet certain conditions. For example, all the evens they are waiting on must be completed (see \c Coal::Event::waitEvents()), they have not to be already pushed, and they must be before any \c Coal::BarrierEvent() event.
+ *
+ * \section worker Worker threads
+ *
+ * This section is specific to \c Coal::CPUDevice. The only thing a device has to do is to re-implement \c Coal::DeviceInterface::pushEvent(). An hardware-accelerated device can then simply push them to a ring buffer or something like that.
+ *
+ * \c Coal::CPUDevice has to do the ordering and dispatching between CPU cores itself. When a \c Coal::CPUDevice is first instantiated, it creates in \c Coal::CPUDevice::init() one "worker thread" per CPU core detected on the host system.
+ *
+ * These worker threads are a simple loop polling for events to execute. The loop is in the \c worker() function. At each loop, \c Coal::CPUDevice::getEvent() is called. This function blocks until an event is available in the CPU event list, and then returns the first.
+ *
+ * For the vast majority of the events, once they are returned, they are removed from the event list. Doing that ensures that an event gets executed only one time, by one worker thread. \c Coal::KernelEvent objects are different, as a kernel is executed in chunks of work-items called "work groups". Each work-group can be executed in parallel with the others. For these events, the event is not removed from the event list until all the work-groups are executed.
+ *
+ * In fact, \c Coal::CPUKernelEvent::reserve() is called. This function locks a mutex in the \c Coal::CPUKernelEvent object, and returns whether the worker thread is about to run the last work-group of the kernel. If this is the case, the event is removed from the event list. If not, it is kept, and other worker threads will be able to run other work-groups. When the worker thread has its work-group reserved, it calls \c Coal::CPUKernelEvent::takeInstance(). This function unlocks the mutex, allowing the other worker threads to get other work-groups, and returns a \c Coal::CPUKernelWorkGroup object. These objects are described at the end of \ref llvm.
+ *
+ * As said above in this document, the \c Coal::Event objects don't do anything. They are simple device-independent pieces of information, with an optional "device-data" field \c (\c Coal::Event::deviceData()). The actual work is done in \c worker(), in a big switch structure.
+ */
