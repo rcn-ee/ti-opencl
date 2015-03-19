@@ -448,6 +448,8 @@ long double __kernel_tanl(long double, long double, int);
 # else
 #  define DLLEXPORT __declspec(dllexport)
 # endif
+#elif _TMS320C6X
+#define DLLEXPORT __attribute__ ((visibility("protected")))
 #else
 #define DLLEXPORT __attribute__ ((visibility("default")))
 #endif

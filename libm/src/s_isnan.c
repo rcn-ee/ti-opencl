@@ -51,6 +51,7 @@ __isnanf(float f)
 	return (u.bits.exp == 255 && u.bits.man != 0);
 }
 
+#if 0
 DLLEXPORT int
 __isnanl(long double e)
 {
@@ -61,4 +62,5 @@ __isnanl(long double e)
 	return (u.bits.exp == 32767 && (u.bits.manl != 0 || u.bits.manh != 0));
 }
 
+#endif
 __weak_reference(__isnanf, isnanf);

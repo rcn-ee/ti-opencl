@@ -5,7 +5,7 @@
     #define __WIN32__
 #endif
 
-#include <sys/types.h>
+//#include <sys/types.h>
 #include <limits.h>
 #include <stdint.h>
 
@@ -14,7 +14,7 @@
 #define __pure2 
 #endif
 
-#ifdef __WIN32__
+#ifdef __WIN32__ 
 /* Not sure what to do about __pure2 on windows */
 #define __pure2 
 typedef uint8_t               u_int8_t;
@@ -23,5 +23,12 @@ typedef uint32_t              u_int32_t;
 typedef uint64_t              u_int64_t;
 #endif
 
+#ifdef _TMS320C6X
+#define __pure2 
+typedef uint8_t               u_int8_t;
+typedef uint16_t              u_int16_t;
+typedef uint32_t              u_int32_t;
+typedef uint64_t              u_int64_t;
+#endif
 
 #endif

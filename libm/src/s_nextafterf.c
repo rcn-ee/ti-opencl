@@ -33,7 +33,16 @@ nextafterf(float x, float y)
 	if((ix>0x7f800000) ||   /* x is nan */
 	   (iy>0x7f800000))     /* y is nan */
 	   return x+y;
+        
+#if _TMS320C6X
+        /*---------------------------------------------------------------------
+        * The C6x fp compare flushes to zero on subnormals, so compare as 
+        * integers
+        *--------------------------------------------------------------------*/
+	if(_ftoi(x)==_ftoi(y)) return y;		/* x=y, return y */
+#else
 	if(x==y) return y;		/* x=y, return y */
+#endif
 	if(ix==0) {				/* x == 0 */
 	    SET_FLOAT_WORD(x,(hy&0x80000000)|1);/* return +-minsubnormal */
 	    t = x*x;

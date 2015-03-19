@@ -36,6 +36,7 @@
 #include <core/memobject.h>
 
 #include <cstdlib>
+#include <stdio.h>
 
 static inline cl_int queueEvent(Coal::CommandQueue *queue,
                                 Coal::Event *command,
@@ -43,6 +44,41 @@ static inline cl_int queueEvent(Coal::CommandQueue *queue,
                                 cl_bool blocking)
 {
     cl_int rs;
+    Coal::Event *old_event = NULL;
+
+    if (event)
+    {
+#if 0
+        /*---------------------------------------------------------------------
+        * It is up to the user to release events for reuse.  If they do not
+        * they will have a memory leak for old events.  This can impact 
+        * memory performance since the old event memory is likely already warm
+        * in cache.
+        *--------------------------------------------------------------------*/
+        /*---------------------------------------------------------------------
+        * We should also reduce the reference count of the old event, because 
+        * user_app_event is now interested in a different event.
+        *--------------------------------------------------------------------*/
+        old_event = *event;
+        if (old_event != NULL && old_event->isA(Coal::Object::T_Event))
+            clReleaseEvent((cl_event)old_event);
+
+#endif
+        /*---------------------------------------------------------------------
+        * We need to increase reference count before queue->queueEvent(command)
+        * because a user_app_event is interested in the status of command.
+        * Otherwise, if worker thread runs too fast, command becomes COMPLETE
+        * before we get here, command would have been cleaned from queue and
+        * deleted!!! Thus we will be left with a dangling pointer.
+        *--------------------------------------------------------------------*/
+        *event = (cl_event)command;
+        command->reference();
+    }
+
+    /*------------------------------------------------------------------------
+    * Same reason as above. We need to retain command for clWaitForEvents().
+    *-----------------------------------------------------------------------*/
+    if (blocking)  command->reference();
 
     rs = queue->queueEvent(command);
 
@@ -50,12 +86,6 @@ static inline cl_int queueEvent(Coal::CommandQueue *queue,
     {
         delete command;
         return rs;
-    }
-
-    if (event)
-    {
-        *event = (cl_event)command;
-        command->reference();
     }
 
     if (blocking)
@@ -67,6 +97,7 @@ static inline cl_int queueEvent(Coal::CommandQueue *queue,
             delete command;
             return rs;
         }
+        clReleaseEvent((cl_event) command);
     }
 
     return CL_SUCCESS;
@@ -499,7 +530,10 @@ clEnqueueMapBuffer(cl_command_queue command_queue,
     *errcode_ret = queueEvent(command_queue, command, event, blocking_map);
 
     if (*errcode_ret != CL_SUCCESS)
+    {
+        // delete command;   // command already deleted in queueEvent()
         return 0;
+    }
     else
     {
         void *rs = command->ptr();
@@ -722,11 +756,11 @@ clEnqueueMarker(cl_command_queue    command_queue,
 
     // Get the events in command_queue
     unsigned int count;
-    Coal::Event **events = command_queue->events(count);
+    Coal::Event **events = command_queue->events(count, false);
 
     Coal::MarkerEvent *command = new Coal::MarkerEvent(
         (Coal::CommandQueue *)command_queue,
-        count, (const Coal::Event **)events, &rs);
+        count, count == 0 ? NULL : (const Coal::Event **)events, &rs);
 
     if (rs != CL_SUCCESS)
     {
@@ -740,7 +774,7 @@ clEnqueueMarker(cl_command_queue    command_queue,
         events[i]->dereference();
     }
 
-    std::free(events);
+    if (events != NULL)  std::free(events);
 
     return queueEvent(command_queue, command, event, false);
 }

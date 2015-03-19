@@ -19,6 +19,12 @@
 #include "openlibm.h"
 #include "math_private.h"
 
+#if _TMS320C6X
+#define FTZ 1
+#else
+#define FTZ 0
+#endif
+
 static const float huge = 1.0e30;
 
 DLLEXPORT float
@@ -28,6 +34,9 @@ ceilf(float x)
 	u_int32_t i;
 
 	GET_FLOAT_WORD(i0,x);
+#if FTZ
+        if (((i0>>23)&0xFF) == 0) return 0.0f; /* flush Denormalized to zero */
+#endif
 	j0 = ((i0>>23)&0xff)-0x7f;
 	if(j0<23) {
 	    if(j0<0) { 	/* raise inexact if x != 0 */

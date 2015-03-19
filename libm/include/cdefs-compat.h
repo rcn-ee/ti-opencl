@@ -6,7 +6,7 @@
 #endif
 
 #ifndef __WIN32__
-#include "sys/cdefs.h"
+//#include "sys/cdefs.h"
 #else /* __WIN32__ */
 
 #if defined(__cplusplus)
@@ -20,6 +20,18 @@
 #define _SYS_CDEFS_H_
 
 #endif /* __WIN32__ */
+
+#ifdef _TMS320C6X
+#if defined(__cplusplus)
+#define	__BEGIN_DECLS	extern "C" {
+#define	__END_DECLS	}
+#else
+#define	__BEGIN_DECLS
+#define	__END_DECLS
+#endif
+
+#define _SYS_CDEFS_H_
+#endif
 
 
 

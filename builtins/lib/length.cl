@@ -25,22 +25,85 @@
  *   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  *   THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
-#include <clc.h>
+#include "clc.h"
 
 _CLC_OVERLOAD _CLC_DEF float  length(float2 p)
-{return sqrt(p.x*p.x+p.y*p.y);}
+{
+    float r;
+    p = fabs(p);
+    if (p.x > p.y)
+    {
+        r = p.y/p.x;
+        return p.x * sqrt(1+r*r);
+    }
+    else if (p.y != 0)
+    {
+        r = p.x/p.y;
+        return p.y * sqrt(1+r*r);
+    }
+    return 0.0;
+}
+
+_CLC_OVERLOAD _CLC_DEF double  length(double2 p)
+{
+    double r;
+    p = fabs(p);
+    if (p.x > p.y)
+    {
+        r = p.y/p.x;
+        return p.x * sqrt(1+r*r);
+    }
+    else if (p.y != 0)
+    {
+        r = p.x/p.y;
+        return p.y * sqrt(1+r*r);
+    }
+    return 0.0;
+}
 
 _CLC_OVERLOAD _CLC_DEF float  length(float3 p)
-{return sqrt(p.x*p.x+p.y*p.y+p.z*p.z);}
+{
+    p = fabs(p);
+    float max_term = max(p.x, max(p.y, p.z));
+    if (max_term == 0 || isinf(max_term) ) return max_term;
+    if (max_term < 1) return fast_length(p);
+    p /= max_term;
+    return max_term * sqrt((double) dot(p,p));  // improve precision in sqrt
+}
+
+_CLC_OVERLOAD _CLC_DEF double  length(double3 p)
+{
+    p = fabs(p);
+    double max_term = max(p.x, max(p.y, p.z));
+    if (max_term == 0 || isinf(max_term) ) return max_term;
+    if (max_term < 1) return fast_length(p);
+    p /= max_term;
+    return max_term * sqrt(dot(p,p));
+}
 
 _CLC_OVERLOAD _CLC_DEF float  length(float4 p)
-{return sqrt(p.x*p.x+p.y*p.y+p.z*p.z+p.w*p.w);}
+{
+    p = fabs(p);
+    float max_term = max(max(p.x, p.y), max(p.z, p.w));
+    if (max_term == 0 || isinf(max_term) ) return max_term;
+    if (max_term < 1) return fast_length(p);
+    p /= max_term;
+    return max_term * sqrt((double) dot(p,p));  // improve precision in sqrt
+}
 
-_CLC_OVERLOAD _CLC_DEF double length(double2 p)
-{return sqrt(p.x*p.x+p.y*p.y);}
+_CLC_OVERLOAD _CLC_DEF double  length(double4 p)
+{
+    p = fabs(p);
+    double max_term = max(max(p.x, p.y), max(p.z, p.w));
+    if (max_term == 0 || isinf(max_term) ) return max_term;
+    if (max_term < 1) return fast_length(p);
+    p /= max_term;
+    return max_term * sqrt(dot(p,p));
+}
 
-_CLC_OVERLOAD _CLC_DEF double length(double3 p)
-{return sqrt(p.x*p.x+p.y*p.y+p.z*p.z);}
-
-_CLC_OVERLOAD _CLC_DEF double length(double4 p)
-{return sqrt(p.x*p.x+p.y*p.y+p.z*p.z+p.w*p.w);}
+_CLC_OVERLOAD _CLC_DEF float  fast_length(float2 p)  { return sqrt(dot(p,p));}
+_CLC_OVERLOAD _CLC_DEF float  fast_length(float3 p)  { return sqrt(dot(p,p));}
+_CLC_OVERLOAD _CLC_DEF float  fast_length(float4 p)  { return sqrt(dot(p,p));}
+_CLC_OVERLOAD _CLC_DEF double fast_length(double2 p) { return sqrt(dot(p,p));}
+_CLC_OVERLOAD _CLC_DEF double fast_length(double3 p) { return sqrt(dot(p,p));}
+_CLC_OVERLOAD _CLC_DEF double fast_length(double4 p) { return sqrt(dot(p,p));}

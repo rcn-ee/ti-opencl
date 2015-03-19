@@ -411,9 +411,9 @@ TCase *cl_builtins_tcase_create(void)
 {
     TCase *tc = NULL;
     tc = tcase_create("builtins");
-    tcase_add_test(tc, test_sampler);
+    //tcase_add_test(tc, test_sampler);
     tcase_add_test(tc, test_barrier);
-    tcase_add_test(tc, test_image);
+    //tcase_add_test(tc, test_image);
     tcase_add_test(tc, test_builtins);
     return tc;
 }

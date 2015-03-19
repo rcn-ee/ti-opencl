@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011, Denis Steckelmacher <steckdenis@yahoo.fr>
+ * Copyright (c) 2012-2014, Texas Instruments Incorporated - http://www.ti.com/
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,6 +41,7 @@
 
 #include <map>
 #include <list>
+#include <vector>
 
 namespace Coal
 {
@@ -112,6 +114,13 @@ class CommandQueue : public Object
          * \c Coal::DeviceInterface::pushEvent() for each event meeting its push
          * conditions.
          *
+         * \param ready_event is know to be pushable, push events in the
+         * queue till this point, skip the events after this one.
+         *
+         * \param one_event_completed_on_device can be used to differentiate
+         * whether this function is called by worker thread when an event is
+         * completed, or by main thread's queueEvent().
+         *
          * \section conditions Conditions
          *
          * If the command queue has the \c CL_OUT_OF_ORDER_EXEC_MODE_ENABLE
@@ -134,9 +143,17 @@ class CommandQueue : public Object
          *   dependencies are met.
          * - Finally, if the events passes all the tests, it is either pushed on
          *   the device, or simply set to \c Coal::Event::Complete if it's a
-         *   dummy event (see \c Coal::Event::isDummy()).
+         *   dummy event (see \c Coal::Event::isInstantaneous()).
          */
-        void pushEventsOnDevice();
+        void pushEventsOnDevice(Event *ready_event = NULL,
+                                bool one_event_completed_on_device = false);
+
+        /**
+         * \brief Push an event onto p_release_event list
+         *
+         * Later main thread will perform release event action.
+         */
+        void releaseEvent(Event *e);
 
         /**
          * \brief Remove from the event list completed events
@@ -149,6 +166,17 @@ class CommandQueue : public Object
          * would produce crashes.
          */
         void cleanEvents();
+
+        /**
+         * \brief Release events on the released event list
+         *
+         * This function is called periodically to release the events on the
+         * released events list.  This is only performed on the main thread
+         * because deleting/freeing memory from worker thread has caused
+         * weird memory problems on ARM.
+         *
+         */
+        void cleanReleasedEvents();
 
         /**
          * \brief Flush the command queue
@@ -170,15 +198,21 @@ class CommandQueue : public Object
          * \brief Return all the events in the command queue
          * \note Retains all the events
          * \param count number of events in the event queue
+         * \param include_completed_events default to true
          * \return events currently in the event queue
          */
-        Event **events(unsigned int &count);
+        Event **events(unsigned int &count,
+                       bool include_completed_events = true);
 
     private:
         DeviceInterface *p_device;
+        cl_int p_num_events_in_queue;
+        cl_int p_num_events_on_device;
+        cl_int p_num_events_completed;
         cl_command_queue_properties p_properties;
 
         std::list<Event *> p_events;
+        std::list<Event *> p_released_events;
         pthread_mutex_t p_event_list_mutex;
         pthread_cond_t p_event_list_cond;
         bool p_flushed;
@@ -300,7 +334,7 @@ class Event : public Object
          * 
          * \return true if the event is dummy
          */
-        bool isDummy() const;
+        bool isInstantaneous() const;
 
         /**
          * \brief Set the event status
@@ -312,7 +346,7 @@ class Event : public Object
          * \param status new status of the event
          */
         void setStatus(Status status);
-        
+
         /**
          * \brief Set device-specific data
          * \param data device-specific data
@@ -350,14 +384,6 @@ class Event : public Object
          */
         void *deviceData();
 
-		/**
-		 * \brief List of events on which this event depends on
-		 * \param count number of events in the list
-		 * \return list of the events
-		 * \warning the data is not copied, it's a simple pointer to internal data
-		 */
-        const Event **waitEvents(cl_uint &count) const;
-
         /**
          * \brief Add a callback for this event
          * \param command_exec_callback_type status the event must have in order
@@ -386,10 +412,44 @@ class Event : public Object
                              size_t param_value_size,
                              void *param_value,
                              size_t *param_value_size_ret) const;
-    private:
-        cl_uint p_num_events_in_wait_list;
-        const Event **p_event_wait_list;
 
+        /**
+         * \brief Call \c Coal::CommandQueue::pushEventsOnDevice() for each command queue 
+         * in which this event is queued or each queue with an event waiting on this event
+         */
+        void flushQueues();       
+
+
+        /**
+         * \brief Add event to p_dependent_events, which will be notified when
+         * current event completes. If current event is already complete,
+         * no need to add and return false.
+         * \param event the event to be notified
+         */
+        bool addDependentEvent(Event *event);
+
+        /**
+         * \brief Remove event from p_wait_events, which should be waited on
+         * before current event can start. When p_wait_events becomes empty,
+         * return true to indicate that current event is ready to be pushed.
+         * \param event the event to be removed from p_wait_events
+         */
+        bool removeWaitEvent(Event *event);
+
+        /**
+         * \brief Check if there are no more events to wait on before current
+         * event can start.
+         */
+        bool waitEventsAllCompleted();
+
+    private:
+        /**
+         * \brief Helper function for setStatus()
+         * return number of dependent events
+         */
+        int setStatusHelper(Status status);
+
+    private:
         pthread_cond_t p_state_change_cond;
         pthread_mutex_t p_state_mutex;
 
@@ -398,6 +458,11 @@ class Event : public Object
         std::multimap<Status, CallbackData> p_callbacks;
 
         cl_uint p_timing[Max];
+
+        // p_wait_events: I should wait after these events complete
+        // p_dependent_events: when I complete, I should notify these events
+        std::list<const Event *>   p_wait_events;
+        std::vector<Event *> p_dependent_events;
 };
 
 }

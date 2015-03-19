@@ -61,6 +61,7 @@ scalblnf (float x, long n)
 	return (scalbnf(x, in));
 }
 
+#if 0
 DLLEXPORT long double
 scalblnl (long double x, long n)
 {
@@ -75,3 +76,4 @@ scalblnl (long double x, long n)
 	}
 	return (scalbnl(x, (int)n));
 }
+#endif

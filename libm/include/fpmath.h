@@ -59,6 +59,10 @@
 #include <machine/endian.h>
 #endif
 
+#if defined(_TMS320C6X)
+#define _BYTE_ORDER _LITTLE_ENDIAN
+#endif
+
 #ifdef __WIN32__
 #define _LITTLE_ENDIAN 1234
 #define _BIG_ENDIAN    4321

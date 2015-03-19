@@ -37,7 +37,7 @@ START_TEST (test_create_buffer)
     cl_int result;
     char s[] = "Hello, world !";
 
-    ctx = clCreateContextFromType(0, CL_DEVICE_TYPE_CPU, 0, 0, &result);
+    ctx = clCreateContextFromType(0, CL_DEVICE_TYPE_ACCELERATOR, 0, 0, &result);
     fail_if(
         result != CL_SUCCESS,
         "unable to create a valid context"
@@ -103,7 +103,7 @@ START_TEST (test_create_sub_buffer)
     create_info.origin = 7;
     create_info.size = 5;
 
-    ctx = clCreateContextFromType(0, CL_DEVICE_TYPE_CPU, 0, 0, &result);
+    ctx = clCreateContextFromType(0, CL_DEVICE_TYPE_ACCELERATOR, 0, 0, &result);
     fail_if(
         result != CL_SUCCESS,
         "unable to create a valid context"
@@ -194,7 +194,7 @@ START_TEST (test_read_write_subbuf)
     create_info.origin = 7;      // "Hello, [denis] !"
     create_info.size = 5;
 
-    result = clGetDeviceIDs(0, CL_DEVICE_TYPE_CPU, 1, &device, 0);
+    result = clGetDeviceIDs(0, CL_DEVICE_TYPE_ACCELERATOR, 1, &device, 0);
     fail_if(
         result != CL_SUCCESS,
         "cannot get a device"
@@ -299,7 +299,7 @@ START_TEST (test_images)
     fmt.image_channel_data_type = CL_UNORM_INT8;
     fmt.image_channel_order = CL_RGBA;
 
-    ctx = clCreateContextFromType(0, CL_DEVICE_TYPE_CPU, 0, 0, &result);
+    ctx = clCreateContextFromType(0, CL_DEVICE_TYPE_ACCELERATOR, 0, 0, &result);
     fail_if(
         result != CL_SUCCESS,
         "unable to create a valid context"

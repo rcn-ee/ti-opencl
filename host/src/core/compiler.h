@@ -40,6 +40,7 @@
 
 namespace llvm
 {
+    class LLVMContext;
     class MemoryBuffer;
     class Module;
 }
@@ -78,7 +79,8 @@ class Compiler
          * \sa module()
          * \sa log()
          */
-        bool compile(const std::string &options, llvm::MemoryBuffer *source);
+        bool compile(const std::string &options, llvm::MemoryBuffer *source,
+                     llvm::LLVMContext *llvmcontext);
 
         /**
          * \brief Compilation log
@@ -88,6 +90,12 @@ class Compiler
          * \return log
          */
         const std::string &log() const;
+
+        /**
+         * \brief Set options given at \c compile()
+         * \return void
+         */
+        void set_options(const std::string &);
 
         /**
          * \brief Options given at \c compile()
@@ -126,6 +134,10 @@ class Compiler
         std::string p_log, p_options;
         llvm::raw_string_ostream p_log_stream;
         clang::TextDiagnosticPrinter *p_log_printer;
+
+        void add_macrodefs_for_supported_opencl_extensions
+                              (clang::PreprocessorOptions &prep_opts);
+
 };
 
 }

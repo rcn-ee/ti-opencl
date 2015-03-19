@@ -211,30 +211,29 @@ clBuildProgram(cl_program           program,
     if (!pfn_notify && user_data)
         return CL_INVALID_VALUE;
 
+    cl_uint context_num_devices = 0;
+    cl_device_id *context_devices;
+    Coal::Context *context = (Coal::Context *)program->parent();
+    cl_int result;
+
+    result = context->info(CL_CONTEXT_NUM_DEVICES, sizeof(cl_uint),
+                                 &context_num_devices, 0);
+
+    if (result != CL_SUCCESS) return result;
+
+    context_devices =
+        (cl_device_id *)std::malloc(context_num_devices * sizeof(cl_device_id));
+
+    result = context->info(CL_CONTEXT_DEVICES,
+                                 context_num_devices * sizeof(cl_device_id),
+                                 context_devices, 0);
+
+    if (result != CL_SUCCESS) return result;
+
+
     // Check the devices for compliance
     if (num_devices)
     {
-        cl_uint context_num_devices = 0;
-        cl_device_id *context_devices;
-        Coal::Context *context = (Coal::Context *)program->parent();
-        cl_int result;
-
-        result = context->info(CL_CONTEXT_NUM_DEVICES, sizeof(cl_uint),
-                                     &context_num_devices, 0);
-
-        if (result != CL_SUCCESS)
-            return result;
-
-        context_devices =
-            (cl_device_id *)std::malloc(context_num_devices * sizeof(cl_device_id));
-
-        result = context->info(CL_CONTEXT_DEVICES,
-                                     context_num_devices * sizeof(cl_device_id),
-                                     context_devices, 0);
-
-        if (result != CL_SUCCESS)
-            return result;
-
         for (cl_uint i=0; i<num_devices; ++i)
         {
             bool found = false;
@@ -252,9 +251,15 @@ clBuildProgram(cl_program           program,
                 return CL_INVALID_DEVICE;
         }
     }
+    else
+    {
+        num_devices = context_num_devices;
+        device_list = context_devices;
+    }
 
     // We cannot try to build a previously-failed program
-    if (program->state() != Coal::Program::Loaded)
+    if (!(program->state() == Coal::Program::Loaded ||
+          program->state() == Coal::Program::Built  ))
         return CL_INVALID_OPERATION;
 
     // Build program

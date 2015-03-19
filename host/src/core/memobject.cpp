@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011, Denis Steckelmacher <steckdenis@yahoo.fr>
+ * Copyright (c) 2012-2014, Texas Instruments Incorporated - http://www.ti.com/
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,10 +31,12 @@
  * \brief Memory objects
  */
 
+#include "CL/cl_ext.h"
 #include "memobject.h"
 #include "context.h"
 #include "deviceinterface.h"
 #include "propertylist.h"
+#include "events.h"
 
 #include <cstdlib>
 #include <cstring>
@@ -48,12 +51,14 @@ using namespace Coal;
 MemObject::MemObject(Context *ctx, cl_mem_flags flags, void *host_ptr,
                      cl_int *errcode_ret)
 : Object(Object::T_MemObject, ctx), p_num_devices(0), p_flags(flags),
-  p_host_ptr(host_ptr), p_devicebuffers(0), p_dtor_callback(0)
+  p_host_ptr(host_ptr), p_host_ptr_clMalloced(false),
+  p_devicebuffers(0), p_dtor_callback_stack()
 {
     // Check the flags value
     const cl_mem_flags all_flags = CL_MEM_READ_WRITE | CL_MEM_WRITE_ONLY |
                                    CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR |
-                                   CL_MEM_ALLOC_HOST_PTR | CL_MEM_COPY_HOST_PTR;
+                                   CL_MEM_ALLOC_HOST_PTR | CL_MEM_COPY_HOST_PTR
+                                   |CL_MEM_USE_MSMC_TI | CL_MEM_HOST_NO_ACCESS;
 
     if ((flags & ~all_flags) != 0)
     {
@@ -89,8 +94,12 @@ MemObject::MemObject(Context *ctx, cl_mem_flags flags, void *host_ptr,
 
 MemObject::~MemObject()
 {
-    if (p_dtor_callback)
-        p_dtor_callback((cl_mem)this, p_dtor_userdata);
+    while (!p_dtor_callback_stack.empty())
+    {
+        dtor_callback_t callback;
+        if (p_dtor_callback_stack.pop(callback))
+            callback.first((cl_mem)this, callback.second);
+    }
 
     if (p_devicebuffers)
     {
@@ -146,7 +155,9 @@ cl_int MemObject::init()
     // defered to first use, so host_ptr can become invalid. So, copy it in
     // a RAM location and keep it. Also, set a flag telling CPU devices that
     // they don't need to reallocate and re-copy host_ptr
-    if (p_num_devices > 1 && (p_flags & CL_MEM_COPY_HOST_PTR))
+    // SubBuffer should simply reuse Buffer data
+    if (p_num_devices > 1 && (p_flags & CL_MEM_COPY_HOST_PTR)
+                          && type() != SubBuffer)
     {
         void *tmp_hostptr = std::malloc(size());
 
@@ -267,8 +278,7 @@ void MemObject::setDestructorCallback(void (CL_CALLBACK *pfn_notify)
                                                (cl_mem memobj, void *user_data),
                                       void *user_data)
 {
-    p_dtor_callback = pfn_notify;
-    p_dtor_userdata = user_data;
+    p_dtor_callback_stack.push(dtor_callback_t(pfn_notify, user_data));
 }
 
 // HACK for the union
@@ -382,6 +392,10 @@ Buffer::Buffer(Context *ctx, size_t size, void *host_ptr, cl_mem_flags flags,
         *errcode_ret = CL_INVALID_BUFFER_SIZE;
         return;
     }
+
+    // CL_MEM_READ_WRITE is default if not specified {READ,WRITE}_ONLY
+    if (! (flags & (CL_MEM_READ_ONLY | CL_MEM_WRITE_ONLY)))
+        p_flags |= CL_MEM_READ_WRITE;
 }
 
 size_t Buffer::size() const
@@ -394,6 +408,58 @@ MemObject::Type Buffer::type() const
     return MemObject::Buffer;
 }
 
+/*----------------------------------------------------------------------------
+ * mapped_event: MapBufferEvent when the Map is on a Buffer
+ * RETURN: true if successful, false if fail
+ *     Traverse currently mapped event list, check overlapping and if either is
+ *     WRITE, insert into list in the increasing order of offset
+ * TODO: do we need to lock the list for operation???
+ *---------------------------------------------------------------------------*/
+bool Buffer::addMapEvent(BufferEvent *mapped_event)
+{
+    MapBufferEvent *mbe = (MapBufferEvent *) mapped_event;
+    size_t   mbe_offset = mbe->offset();
+    if (mbe->buffer()->type() == SubBuffer)
+        mbe_offset += ((class SubBuffer *) mbe->buffer())->offset();
+
+    std::list<BufferEvent *>::iterator it, it_insert = p_mapped_events.end();
+    for (it = p_mapped_events.begin(); it != p_mapped_events.end(); ++it)
+    {
+        MapBufferEvent *e = (MapBufferEvent *) (*it);
+        size_t   e_offset = e->offset();
+        if (e->buffer()->type() == SubBuffer)
+            e_offset += ((class SubBuffer *) e->buffer())->offset();
+        if (mbe_offset < e_offset) it_insert = it;
+
+        if (   mbe_offset <= e_offset + e->cb() - 1
+            &&   e_offset <= mbe_offset + mbe->cb() - 1)
+            if ((mbe->flags() & CL_MAP_WRITE) ||
+                  (e->flags() & CL_MAP_WRITE))
+                return false;
+    }
+
+    p_mapped_events.insert(it_insert, mapped_event);
+    return true;
+}
+
+/*----------------------------------------------------------------------------
+ * mapped_ptr: mapped pointer from previous MapBuffer/MapImage Event
+ * RETURN: first MappedBufferEvent with same mapped_ptr in the list
+ * TODO: do we need to lock the list for operation???
+ *---------------------------------------------------------------------------*/
+BufferEvent* Buffer::removeMapEvent(void *mapped_ptr)
+{
+    std::list<BufferEvent *>::iterator it;
+    for (it = p_mapped_events.begin(); it != p_mapped_events.end(); ++it)
+    {
+        MapBufferEvent *e = (MapBufferEvent *) (*it);
+        if (e->ptr() != mapped_ptr)  continue;
+        p_mapped_events.erase(it);
+        return e;
+    }
+    return NULL;
+}
+
 /*
  * SubBuffer
  */
@@ -403,6 +469,8 @@ SubBuffer::SubBuffer(class Buffer *parent, size_t offset, size_t size,
 : MemObject((Context *)parent->parent(), flags, 0, errcode_ret), p_offset(offset),
   p_size(size), p_parent(parent)
 {
+    clRetainMemObject((cl_mem) p_parent);
+
     if (size == 0)
     {
         *errcode_ret = CL_INVALID_BUFFER_SIZE;
@@ -440,6 +508,24 @@ SubBuffer::SubBuffer(class Buffer *parent, size_t offset, size_t size,
         *errcode_ret = CL_INVALID_VALUE;
         return;
     }
+
+    if (parent->get_host_ptr_clMalloced())  set_host_ptr_clMalloced();
+
+    // OpenCL 1.2: SubBuffer should inherit some of parent Buffer flags
+    cl_mem_flags parent_rw_flags = parent->flags()
+                 & (CL_MEM_READ_WRITE | CL_MEM_READ_ONLY | CL_MEM_WRITE_ONLY);
+    cl_mem_flags my_rw_flags = p_flags
+                 & (CL_MEM_READ_WRITE | CL_MEM_READ_ONLY | CL_MEM_WRITE_ONLY);
+    // parent be READ_WRITE, subBuffer be READ_ONLY/WRITE_ONLY (Spec allows)
+    if (! my_rw_flags)  p_flags |= parent_rw_flags;
+    cl_mem_flags parent_hostptr_flags = parent->flags()
+       & (CL_MEM_USE_HOST_PTR | CL_MEM_ALLOC_HOST_PTR | CL_MEM_COPY_HOST_PTR);
+    if (parent_hostptr_flags) p_flags |= parent_hostptr_flags;
+}
+
+SubBuffer::~SubBuffer()
+{
+    clReleaseMemObject((cl_mem) p_parent);
 }
 
 size_t SubBuffer::size() const
@@ -454,6 +540,7 @@ MemObject::Type SubBuffer::type() const
 
 bool SubBuffer::allocate(DeviceInterface *device)
 {
+    // SubBuffer always use Buffer's data
     return p_parent->allocate(device);
 }
 
@@ -465,6 +552,16 @@ size_t SubBuffer::offset() const
 Buffer *SubBuffer::parent() const
 {
     return p_parent;
+}
+
+bool SubBuffer::addMapEvent(BufferEvent *mapped_event)
+{
+    return p_parent->addMapEvent(mapped_event);
+}
+
+BufferEvent* SubBuffer::removeMapEvent(void *mapped_ptr)
+{
+    return p_parent->removeMapEvent(mapped_ptr);
 }
 
 /*

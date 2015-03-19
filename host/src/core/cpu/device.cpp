@@ -44,6 +44,7 @@
 #include "../memobject.h"
 #include "../kernel.h"
 #include "../program.h"
+#include "../util.h"
 
 #include <cstring>
 #include <cstdlib>
@@ -55,22 +56,15 @@
 
 using namespace Coal;
 
+#if !defined(DSPC868X)
+#include "../dsp/shmem.h"
+// unsigned arm_speed();
+#endif
+
 CPUDevice::CPUDevice()
 : DeviceInterface(), p_cores(0), p_num_events(0), p_workers(0), p_stop(false),
   p_initialized(false)
 {
-
-}
-
-void CPUDevice::init()
-{
-    if (p_initialized)
-        return;
-
-    // Initialize the locking machinery
-    pthread_cond_init(&p_events_cond, 0);
-    pthread_mutex_init(&p_events_mutex, 0);
-
     // Get info about the system
     p_cores = sysconf(_SC_NPROCESSORS_ONLN);
     p_cpu_mhz = 0.0f;
@@ -91,9 +85,37 @@ void CPUDevice::init()
         {
             std::istringstream ss(value);
             ss >> p_cpu_mhz;
-            break;
         }
+
+        if (key.compare(0, 10, "model name") == 0)
+            p_device_name = value;
+
+        if (key.compare(0, 9, "Processor") == 0)
+            p_device_name = value;
     }
+
+    if (p_cpu_mhz == 0.0f)
+    {
+      std::string file("/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq");
+      std::ifstream fs(file.c_str());
+      if (fs) { fs >> p_cpu_mhz; p_cpu_mhz /= 1000; }
+    }
+
+    if (p_cpu_mhz == 0.0f) p_cpu_mhz = 1000.0;
+
+#if !defined(DSPC868X)
+    // p_cpu_mhz = arm_speed();
+#endif
+}
+
+
+void CPUDevice::init()
+{
+    if (p_initialized) return;
+
+    // Initialize the locking machinery
+    pthread_cond_init(&p_events_cond, 0);
+    pthread_mutex_init(&p_events_mutex, 0);
 
     // Create worker threads
     p_workers = (pthread_t *)std::malloc(numCPUs() * sizeof(pthread_t));
@@ -277,6 +299,16 @@ Event *CPUDevice::getEvent(bool &stop)
     return event;
 }
 
+/******************************************************************************
+* Device's decision about whether CommandQueue should push more events over
+* This number could be tuned (e.g. using ooo example).  Note that p_num_events
+* are in device's queue, but not yet executed.
+******************************************************************************/
+bool CPUDevice::gotEnoughToWorkOn()
+{
+    return p_num_events > 0;
+}
+
 unsigned int CPUDevice::numCPUs() const
 {
     return p_cores;
@@ -379,7 +411,7 @@ cl_int CPUDevice::info(cl_device_info param_name,
             break;
 
         case CL_DEVICE_MAX_CLOCK_FREQUENCY:
-            SIMPLE_ASSIGN(cl_uint, cpuMhz() * 1000000);
+            SIMPLE_ASSIGN(cl_uint, cpuMhz());
             break;
 
         case CL_DEVICE_ADDRESS_BITS:
@@ -394,9 +426,6 @@ cl_int CPUDevice::info(cl_device_info param_name,
             SIMPLE_ASSIGN(cl_uint, 65536);
             break;
 
-        case CL_DEVICE_MAX_MEM_ALLOC_SIZE:
-            SIMPLE_ASSIGN(cl_ulong, 128*1024*1024);
-            break;
 
         case CL_DEVICE_IMAGE2D_MAX_WIDTH:
             SIMPLE_ASSIGN(size_t, 65536);
@@ -440,10 +469,16 @@ cl_int CPUDevice::info(cl_device_info param_name,
 
         case CL_DEVICE_SINGLE_FP_CONFIG:
             // TODO: Check what an x86 SSE engine can support.
+	    // Currently not supporting CL_FP_DENORM
             SIMPLE_ASSIGN(cl_device_fp_config,
-                          CL_FP_DENORM |
-                          CL_FP_INF_NAN |
-                          CL_FP_ROUND_TO_NEAREST);
+                          CL_FP_INF_NAN | CL_FP_ROUND_TO_NEAREST);
+            break;
+
+        case CL_DEVICE_DOUBLE_FP_CONFIG:
+            // TODO: Check what an x86 SSE engine can support.
+	    // Currently not supporting CL_FP_DENORM
+            SIMPLE_ASSIGN(cl_device_fp_config,
+                          CL_FP_INF_NAN | CL_FP_ROUND_TO_NEAREST);
             break;
 
         case CL_DEVICE_GLOBAL_MEM_CACHE_TYPE:
@@ -462,12 +497,21 @@ cl_int CPUDevice::info(cl_device_info param_name,
             break;
 
         case CL_DEVICE_GLOBAL_MEM_SIZE:
-            // TODO: 1 Gio seems to be enough for software acceleration
-            SIMPLE_ASSIGN(cl_ulong, 1*1024*1024*1024);
+            // parse /proc/meminfo to get the value
+            SIMPLE_ASSIGN(cl_ulong, parse_file_line_value("/proc/meminfo",
+                                               "MemTotal:", 512*1024) * 1024);
             break;
 
+        case CL_DEVICE_MAX_MEM_ALLOC_SIZE:
+        case CL_DEVICE_LOCAL_MEM_SIZE:
         case CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE:
+            // TODO: 1 Gio seems to be enough for software acceleration
+
+#if defined(__arm__)
+            SIMPLE_ASSIGN(cl_ulong, 512*1024*1024);
+#else
             SIMPLE_ASSIGN(cl_ulong, 1*1024*1024*1024);
+#endif
             break;
 
         case CL_DEVICE_MAX_CONSTANT_ARGS:
@@ -478,9 +522,6 @@ cl_int CPUDevice::info(cl_device_info param_name,
             SIMPLE_ASSIGN(cl_device_local_mem_type, CL_GLOBAL);
             break;
 
-        case CL_DEVICE_LOCAL_MEM_SIZE:
-            SIMPLE_ASSIGN(cl_ulong, 1*1024*1024*1024);
-            break;
 
         case CL_DEVICE_ERROR_CORRECTION_SUPPORT:
             SIMPLE_ASSIGN(cl_bool, CL_FALSE);
@@ -515,11 +556,12 @@ cl_int CPUDevice::info(cl_device_info param_name,
             break;
 
         case CL_DEVICE_NAME:
-            STRING_ASSIGN("CPU");
+            value_length = p_device_name.size() + 1;
+            value        = const_cast<char*>(p_device_name.c_str());
             break;
 
         case CL_DEVICE_VENDOR:
-            STRING_ASSIGN("Mesa");
+            STRING_ASSIGN("Intel");
             break;
 
         case CL_DRIVER_VERSION:
@@ -531,7 +573,7 @@ cl_int CPUDevice::info(cl_device_info param_name,
             break;
 
         case CL_DEVICE_VERSION:
-            STRING_ASSIGN("OpenCL 1.1 Mesa " COAL_VERSION);
+            STRING_ASSIGN("OpenCL 1.1 " COAL_VERSION);
             break;
 
         case CL_DEVICE_EXTENSIONS:
@@ -540,7 +582,6 @@ cl_int CPUDevice::info(cl_device_info param_name,
                           " cl_khr_local_int32_base_atomics"
                           " cl_khr_local_int32_extended_atomics"
                           " cl_khr_byte_addressable_store"
-
                           " cl_khr_fp64"
                           " cl_khr_int64_base_atomics"
                           " cl_khr_int64_extended_atomics")
@@ -606,3 +647,27 @@ cl_int CPUDevice::info(cl_device_info param_name,
 
     return CL_SUCCESS;
 }
+
+#if !defined(DSPC868X)
+#if 0 // /dev/mem is no longer available
+unsigned arm_speed()
+{
+    //return 1000.0;
+    const unsigned TETRIS_PLL = 125000000;
+    const unsigned pagesize = 0x1000;
+
+    shmem_persistent page;
+    page.configure(0x02620000, pagesize);
+    char *host_msmc = (char*)page.map(0x02620000, pagesize);
+    unsigned SECPLLCTL0 = *(unsigned*)(host_msmc + 0x370);
+    unsigned prediv = 1 + (SECPLLCTL0 & 0x3F);
+    unsigned mult   = 1 + ((SECPLLCTL0 >> 6) & 0x1FFF);
+    unsigned output_div = 1 + ((SECPLLCTL0 >> 19) & 0xF);
+    unsigned speed = TETRIS_PLL * mult / prediv / output_div;
+    page.unmap(host_msmc, pagesize);
+
+    return speed / 1000000;
+}
+#endif
+#endif
+

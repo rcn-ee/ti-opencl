@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2013, Texas Instruments Incorporated - http://www.ti.com/
+ * Copyright (c) 2013-2014, Texas Instruments Incorporated - http://www.ti.com/
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -25,19 +25,53 @@
  *   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  *   THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
-#include <clc.h>
+#include "clc.h"
 
-#define EXPAND_SIZES(type) \
-    IMPLEMENTATION(_VEC_TYPE(type,2), type)  \
-    IMPLEMENTATION(_VEC_TYPE(type,3), type)  \
-    IMPLEMENTATION(_VEC_TYPE(type,4), type)  \
-    IMPLEMENTATION(_VEC_TYPE(type,8), type)  \
-    IMPLEMENTATION(_VEC_TYPE(type,16), type) \
+_CLC_OVERLOAD _CLC_DEF float smoothstep(float edge0, float edge1, float x)
+{ 
+    float t = clamp((float)((x-edge0)/(edge1-edge0)), 0.0f, 1.0f);
+    return t * t * (3.0f - 2.0f*t); 
+}
 
-#define IMPLEMENTATION(gentype, sgentype) \
-_CLC_OVERLOAD _CLC_DEF gentype smoothstep(gentype edge0, gentype edge1, gentype x)  \
-    { gentype t = clamp((x-edge0)/(edge1-edge0), 0.0, 1.0); return t*t*(3-2*t); } \
-_CLC_OVERLOAD _CLC_DEF gentype smoothstep(sgentype edge0, sgentype edge1, gentype x) \
-    { gentype t = clamp((x-(gentype)edge0)/((gentype)edge1-(gentype)edge0), 0.0, 1.0); return t*t*(3-2*t); } \
+_CLC_OVERLOAD _CLC_DEF double smoothstep(double edge0, double edge1, double x)
+{ 
+    double t = clamp((double)((x-edge0)/(edge1-edge0)), 0.0, 1.0);
+    return t * t * (3.0 - 2.0*t); 
+}
 
-//_EXPAND_FLOAT_TYPES()
+#define FLOAT_TEMPLATE(N) \
+_CLC_OVERLOAD _CLC_DEF float##N smoothstep(float##N edge0, float##N edge1, float##N x) \
+{\
+    float##N t = clamp((x-edge0)/(edge1-edge0), 0.0f, 1.0f); \
+    return t*t*(3.0f - 2.0f * t); \
+}\
+_CLC_OVERLOAD _CLC_DEF float##N smoothstep(float edge0, float edge1, float##N x) \
+{\
+    float##N t = clamp((x-edge0)/(edge1-edge0), 0.0f, 1.0f); \
+    return t*t*(3.0f - 2.0f * t);\
+}\
+
+
+#define DOUBLE_TEMPLATE(N) \
+_CLC_OVERLOAD _CLC_DEF double##N smoothstep(double##N edge0, double##N edge1, double##N x) \
+{\
+    double##N t = clamp((x-edge0)/(edge1-edge0), 0.0, 1.0); \
+    return t*t*(3.0 - 2.0 * t);\
+}\
+_CLC_OVERLOAD _CLC_DEF double##N smoothstep(double edge0, double edge1, double##N x) \
+{\
+    double##N t = clamp((x-edge0)/(edge1-edge0), 0.0, 1.0); \
+    return t*t*(3.0 - 2.0 * t);\
+}
+
+FLOAT_TEMPLATE(2) 
+FLOAT_TEMPLATE(3) 
+FLOAT_TEMPLATE(4) 
+FLOAT_TEMPLATE(8) 
+FLOAT_TEMPLATE(16) 
+
+DOUBLE_TEMPLATE(2) 
+DOUBLE_TEMPLATE(3) 
+DOUBLE_TEMPLATE(4) 
+DOUBLE_TEMPLATE(8) 
+DOUBLE_TEMPLATE(16) 

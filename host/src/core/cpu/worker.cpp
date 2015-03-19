@@ -96,9 +96,8 @@ void *worker(void *data)
                 data += e->offset();
 
                 if (t == Event::ReadBuffer)
-                    std::memcpy(e->ptr(), data, e->cb());
-                else
-                    std::memcpy(data, e->ptr(), e->cb());
+                     std::memcpy(e->ptr(), data, e->cb());
+                else std::memcpy(data, e->ptr(), e->cb());
 
                 break;
             }
@@ -108,8 +107,8 @@ void *worker(void *data)
                 CPUBuffer *src = (CPUBuffer *)e->source()->deviceBuffer(device);
                 CPUBuffer *dst = (CPUBuffer *)e->destination()->deviceBuffer(device);
 
-                std::memcpy(dst->data(), src->data(), e->cb());
-
+                std::memcpy((char*)dst->data() + e->dst_offset(), 
+                            (char*)src->data() + e->src_offset(), e->cb());
                 break;
             }
             case Event::ReadBufferRect:
@@ -248,23 +247,19 @@ void *worker(void *data)
 
             if (finished)
             {
-                event->setStatus(Event::Complete);
-
+                // an event may be released once it is Complete
                 if (queue_props & CL_QUEUE_PROFILING_ENABLE)
                     event->updateTiming(Event::End);
-
-                // Clean the queue
-                if (queue)
-                    queue->cleanEvents();
+                event->setStatus(Event::Complete);
             }
         }
         else
         {
-            // The event failed
-            event->setStatus((Event::Status)errcode);
-
+            // an event may be released once it is Complete
             if (queue_props & CL_QUEUE_PROFILING_ENABLE)
                     event->updateTiming(Event::End);
+            // The event failed
+            event->setStatus((Event::Status)errcode);
         }
     }
 

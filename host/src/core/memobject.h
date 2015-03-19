@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011, Denis Steckelmacher <steckdenis@yahoo.fr>
+ * Copyright (c) 2012-2014, Texas Instruments Incorporated - http://www.ti.com/
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,6 +35,8 @@
 #define __MEMOBJECT_H__
 
 #include "object.h"
+#include "dsp/u_concurrent_stack.h"
+#include <list>
 
 #include <CL/cl.h>
 
@@ -43,6 +46,7 @@ namespace Coal
 class DeviceBuffer;
 class Context;
 class DeviceInterface;
+class BufferEvent;
 
 /**
  * \brief Base class for all the memory objects
@@ -73,7 +77,7 @@ class MemObject : public Object
          */
         MemObject(Context *ctx, cl_mem_flags flags, void *host_ptr,
                   cl_int *errcode_ret);
-        ~MemObject();
+        virtual ~MemObject();
 
         /**
          * \brief Initialize the memory object
@@ -124,14 +128,27 @@ class MemObject : public Object
                     void *param_value,
                     size_t *param_value_size_ret) const;
 
+        virtual bool            addMapEvent(BufferEvent *mapped_event) { return false; }
+        virtual BufferEvent* removeMapEvent(void *mapped_ptr) { return NULL; }
+
+        void set_host_ptr_clMalloced() {  p_host_ptr_clMalloced = true;  }
+        bool get_host_ptr_clMalloced() {  return p_host_ptr_clMalloced;  }
+
+    protected:
+        cl_mem_flags             p_flags;
+        std::list<BufferEvent *> p_mapped_events;
+
     private:
-        unsigned int p_num_devices, p_devices_to_allocate;
-        cl_mem_flags p_flags;
-        void *p_host_ptr;
+        unsigned int   p_num_devices, p_devices_to_allocate;
+        void          *p_host_ptr;
+        bool           p_host_ptr_clMalloced;
         DeviceBuffer **p_devicebuffers;
 
-        void (CL_CALLBACK *p_dtor_callback)(cl_mem memobj, void *user_data);
-        void *p_dtor_userdata;
+        typedef std::pair<void (CL_CALLBACK *)(cl_mem memobj, void *user_data), void*> dtor_callback_t;
+        concurrent_stack<dtor_callback_t> p_dtor_callback_stack;
+
+        //void (CL_CALLBACK *p_dtor_callback)(cl_mem memobj, void *user_data);
+        //void *p_dtor_userdata;
 };
 
 /**
@@ -153,6 +170,9 @@ class Buffer : public MemObject
 
         size_t size() const; /*!< \brief Size of the buffer, in bytes */
         Type type() const;   /*!< \brief Return that we are a \c Coal::MemObject::Buffer */
+
+        bool            addMapEvent(BufferEvent *mapped_event);
+        BufferEvent* removeMapEvent(void *mapped_ptr);
     private:
         size_t p_size;
 
@@ -174,6 +194,7 @@ class SubBuffer : public MemObject
          */
         SubBuffer(class Buffer *parent, size_t offset, size_t size,
                   cl_mem_flags flags, cl_int *errcode_ret);
+        ~SubBuffer();
 
         size_t size() const;                    /*!< \brief Size */
         Type type() const;                      /*!< \brief Return that we are a \c Coal::MemObject::SubBuffer */
@@ -182,6 +203,8 @@ class SubBuffer : public MemObject
         size_t offset() const;                  /*!< \brief Offset in bytes */
         class Buffer *parent() const;           /*!< \brief Parent \c Coal::Buffer */
 
+        bool            addMapEvent(BufferEvent *mapped_event);
+        BufferEvent* removeMapEvent(void *mapped_ptr);
     private:
         size_t p_offset, p_size;
         class Buffer *p_parent;

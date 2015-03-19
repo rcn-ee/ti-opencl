@@ -1,19 +1,14 @@
-add_custom_command(
-    OUTPUT stdlib.h.embed.h
-    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/embed.py
-            ${CMAKE_CURRENT_BINARY_DIR}/stdlib.h.embed.h
-            ${CMAKE_CURRENT_SOURCE_DIR}/stdlib.h
-            ${CMAKE_CURRENT_BINARY_DIR}/stdlib_def.h
-    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/embed.py
-            ${CMAKE_CURRENT_SOURCE_DIR}/stdlib.h
-            ${CMAKE_CURRENT_BINARY_DIR}/stdlib_def.h)
-
-add_custom_target(generate_stdlib_h DEPENDS
-                  ${CMAKE_CURRENT_BINARY_DIR}/stdlib.h.embed.h)
+# If building for ARM target host then set appropriate clang target
+# Needs to match what's used when using clang to build the kernel
+# See compiler.cpp 
+if (HAWKING_BUILD)
+   set(HOST_TARGET -target spir-unknown-unknown-unknown)
+endif()
 
 add_custom_command(
     OUTPUT stdlib.c.bc
-    COMMAND clang -c -emit-llvm -x cl -O2 -nobuiltininc -nostdinc -fno-builtin
+    COMMAND ${CLANG_EXECUTABLE} -c -emit-llvm -x cl -O2 ${HOST_TARGET} -nostdinc -fno-builtin
+            -I${OCL_BUILTINS_DIR}/include
             ${CMAKE_CURRENT_SOURCE_DIR}/stdlib.c
             -I${CMAKE_CURRENT_BINARY_DIR}
             -o ${CMAKE_CURRENT_BINARY_DIR}/stdlib.c.bc

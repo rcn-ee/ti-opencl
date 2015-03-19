@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011, Denis Steckelmacher <steckdenis@yahoo.fr>
+ * Copyright (c) 2012-2014, Texas Instruments Incorporated - http://www.ti.com/
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,16 +32,22 @@
  */
 
 #include "object.h"
+#include "dsp/u_concurrent_set.h"
 
 using namespace Coal;
 
-static std::list<Object *>& getKnownObjects()
-{
-    //static std::list<Object *> known_objects;
-    extern std::list<Object *> known_objects;
-    return known_objects;
-}
-
+/*-----------------------------------------------------------------------------
+* This static was previously inside the getKnownObjects function in order to
+* delay its construction until first use.  Since we now delay the construction
+* of the platform until first use, we need to make sure that known_objects
+* lifetime is a superset of the the_platform and all opencl objects lifetimes.
+* Therefore we moved the definition of known_objects to global scope which
+* will ensure that it exists before the_platform and should also ensure that
+* it is destroyed after the_platform, since objects are destructed in reverse
+* order of construction.  Both singletons created with new and statics are
+* both placed in the same dtor queue.
+*----------------------------------------------------------------------------*/
+static concurrent_set<Object *> known_objects;
 
 Object::Object(Type type, Object *parent)
 : p_references(1), p_parent(parent), p_type(type), p_release_parent(true)
@@ -49,8 +56,7 @@ Object::Object(Type type, Object *parent)
         parent->reference();
 
     // Add object in the list of known objects
-    getKnownObjects().push_front(this);
-    p_it = getKnownObjects().begin();
+    known_objects.insert(this);
 }
 
 Object::~Object()
@@ -59,18 +65,19 @@ Object::~Object()
         delete p_parent;
 
     // Remove object from the list of known objects
-    getKnownObjects().erase(p_it);
+    known_objects.erase(this);
+    p_type = T_Invalid;
 }
 
 void Object::reference()
 {
-    p_references++;
+    __sync_fetch_and_add(&p_references, 1);
 }
 
 bool Object::dereference()
 {
-    p_references--;
-    return (p_references == 0);
+    unsigned int oldval = __sync_fetch_and_sub(&p_references, 1);
+    return (oldval == 1);
 }
 
 void Object::setReleaseParent (bool release)
@@ -96,19 +103,7 @@ Object::Type Object::type() const
 bool Object::isA(Object::Type type) const
 {
     // Check for null values
-    if (this == 0)
-        return false;
+    if (this == 0) return false;
 
-    // Check that the value isn't garbage or freed pointer
-    std::list<Object *>::const_iterator it = getKnownObjects().begin(),
-                                        e = getKnownObjects().end();
-    while (it != e)
-    {
-        if (*it == this)
-            return this->type() == type;
-
-        ++it;
-    }
-
-    return false;
+    return known_objects.memberp((Object *) this) && type == p_type;
 }

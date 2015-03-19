@@ -1,5 +1,7 @@
 /*
  * Copyright (c) 2011, Denis Steckelmacher <steckdenis@yahoo.fr>
+ * Copyright (c) 2012-2014, Texas Instruments Incorporated - http://www.ti.com/
+ *
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,18 +42,23 @@
 #include <cstdlib>
 #include <ctime>
 #include <iostream>
+#include <stdio.h>
 
 using namespace Coal;
 
-/*
- * CommandQueue
- */
+#define ONLY_MAIN_THREAD_CAN_RELEASE_EVENT	0
+#define OOO_QUEUE_PUSH_EVENTS_THRESHOLD		64
 
+/******************************************************************************
+* CommandQueue::CommandQueue
+******************************************************************************/
 CommandQueue::CommandQueue(Context *ctx,
                            DeviceInterface *device,
                            cl_command_queue_properties properties,
                            cl_int *errcode_ret)
 : Object(Object::T_CommandQueue, ctx), p_device(device),
+  p_num_events_in_queue(0), p_num_events_on_device(0),
+  p_num_events_completed(0),
   p_properties(properties), p_flushed(true)
 {
     // Initialize the locking machinery
@@ -69,13 +76,20 @@ CommandQueue::CommandQueue(Context *ctx,
     *errcode_ret = checkProperties();
 }
 
+/******************************************************************************
+* CommandQueue::~CommandQueue()
+******************************************************************************/
 CommandQueue::~CommandQueue()
 {
+    cleanReleasedEvents();
     // Free the mutex
     pthread_mutex_destroy(&p_event_list_mutex);
     pthread_cond_destroy(&p_event_list_cond);
 }
 
+/******************************************************************************
+* cl_int CommandQueue::info
+******************************************************************************/
 cl_int CommandQueue::info(cl_command_queue_info param_name,
                           size_t param_value_size,
                           void *param_value,
@@ -125,6 +139,9 @@ cl_int CommandQueue::info(cl_command_queue_info param_name,
     return CL_SUCCESS;
 }
 
+/******************************************************************************
+* cl_int CommandQueue::setProperty
+******************************************************************************/
 cl_int CommandQueue::setProperty(cl_command_queue_properties properties,
                                  cl_bool enable,
                                  cl_command_queue_properties *old_properties)
@@ -140,6 +157,9 @@ cl_int CommandQueue::setProperty(cl_command_queue_properties properties,
     return checkProperties();
 }
 
+/******************************************************************************
+* cl_int CommandQueue::checkProperties
+******************************************************************************/
 cl_int CommandQueue::checkProperties() const
 {
     // Check that all the properties are valid
@@ -167,17 +187,18 @@ cl_int CommandQueue::checkProperties() const
     return CL_SUCCESS;
 }
 
+/******************************************************************************
+* void CommandQueue::flush()
+******************************************************************************/
 void CommandQueue::flush()
 {
-    // Wait for the command queue to be in state "flushed".
-    pthread_mutex_lock(&p_event_list_mutex);
-
-    while (!p_flushed)
-        pthread_cond_wait(&p_event_list_cond, &p_event_list_mutex);
-
-    pthread_mutex_unlock(&p_event_list_mutex);
+    pushEventsOnDevice();
+    cleanReleasedEvents();
 }
 
+/******************************************************************************
+* void CommandQueue::finish()
+******************************************************************************/
 void CommandQueue::finish()
 {
     // As pushEventsOnDevice doesn't remove SUCCESS events, we may need
@@ -188,12 +209,17 @@ void CommandQueue::finish()
     // deleted from the command queue, so simply wait for it to become empty.
     pthread_mutex_lock(&p_event_list_mutex);
 
-    while (p_events.size() != 0)
+    while (p_num_events_in_queue != 0)
         pthread_cond_wait(&p_event_list_cond, &p_event_list_mutex);
 
     pthread_mutex_unlock(&p_event_list_mutex);
+
+    cleanReleasedEvents();
 }
 
+/******************************************************************************
+* cl_int CommandQueue::queueEvent(Event *event)
+******************************************************************************/
 cl_int CommandQueue::queueEvent(Event *event)
 {
     // Let the device initialize the event (for instance, a pointer at which
@@ -207,6 +233,7 @@ cl_int CommandQueue::queueEvent(Event *event)
     pthread_mutex_lock(&p_event_list_mutex);
 
     p_events.push_back(event);
+    p_num_events_in_queue += 1;
     p_flushed = false;
 
     pthread_mutex_unlock(&p_event_list_mutex);
@@ -218,12 +245,44 @@ cl_int CommandQueue::queueEvent(Event *event)
     // Explore the list for events we can push on the device
     pushEventsOnDevice();
 
+    cleanReleasedEvents();
+
     return CL_SUCCESS;
 }
 
+/******************************************************************************
+* void CommandQueue::releaseEvent()
+******************************************************************************/
+void CommandQueue::releaseEvent(Event *e)
+{
+#if ONLY_MAIN_THREAD_CAN_RELEASE_EVENT
+    pthread_mutex_lock(&p_event_list_mutex);
+    p_released_events.push_back(e);
+    pthread_mutex_unlock(&p_event_list_mutex);
+#else
+    clReleaseEvent((cl_event) e);
+#endif
+}
+
+/******************************************************************************
+* void CommandQueue::cleanEvents()
+******************************************************************************/
 void CommandQueue::cleanEvents()
 {
+    bool is_inorder = 
+                  (p_properties & CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE) == 0;
+
     pthread_mutex_lock(&p_event_list_mutex);
+
+    // No need to cleanEvents() every time an event finishes, so that we can
+    // save on the event traversal time.  16 is a number that can be tuned 
+    // (e.g. using ooo example).
+    if (p_num_events_completed < 16 && p_num_events_on_device > 0 &&
+        p_num_events_in_queue - p_num_events_completed > 0)
+    {
+        pthread_mutex_unlock(&p_event_list_mutex);
+        return;
+    }
 
     std::list<Event *>::iterator it = p_events.begin(), oldit;
 
@@ -238,8 +297,21 @@ void CommandQueue::cleanEvents()
             oldit = it;
             ++it;
 
+            p_num_events_in_queue -= 1;
+            p_num_events_completed -= 1;
             p_events.erase(oldit);
-            clReleaseEvent((cl_event)event);
+            // put Completed events into another list
+            // let main thread release/delete them
+#if ONLY_MAIN_THREAD_CAN_RELEASE_EVENT
+            p_released_events.push_back(event);
+#else
+            clReleaseEvent((cl_event) event);
+#endif
+        }
+        else if (is_inorder) 
+        {
+            // In Order Queue events are dispatched and completed in Order
+            break;
         }
         else
         {
@@ -248,19 +320,74 @@ void CommandQueue::cleanEvents()
     }
 
     // We have cleared the list, so wake up the sleeping threads
-    if (p_events.size() == 0)
+    if (p_num_events_in_queue == 0)
         pthread_cond_broadcast(&p_event_list_cond);
 
     pthread_mutex_unlock(&p_event_list_mutex);
 
     // Check now if we have to be deleted
     if (references() == 0)
+    {
         delete this;
+    }
 }
 
-void CommandQueue::pushEventsOnDevice()
+/******************************************************************************
+* void CommandQueue::cleanReleasedEvents()
+* !!! Can only be called by the main thread!!! new/delete, malloc/free are not
+* thread safe on ARM, so let main thread handle them SOLELY!
+******************************************************************************/
+void CommandQueue::cleanReleasedEvents()
 {
+#if ONLY_MAIN_THREAD_CAN_RELEASE_EVENT
     pthread_mutex_lock(&p_event_list_mutex);
+
+    while (! p_released_events.empty())
+    {
+        Event *event = p_released_events.front();
+        clReleaseEvent((cl_event)event);
+        p_released_events.pop_front();
+    }
+
+    pthread_mutex_unlock(&p_event_list_mutex);
+#endif
+}
+
+/******************************************************************************
+* void CommandQueue::pushEventsOnDevice()
+* Who is calling this function:
+* (ready_event, one_event_completed_on_device)
+* (not NULL, *    ): worker thread, push till this one ready event
+* (    NULL, true ): worker thread, one completes, push rest on this queue
+* (    NULL, false): main thread, queued a new event, push this queue
+******************************************************************************/
+void CommandQueue::pushEventsOnDevice(Event *ready_event,
+                                      bool one_event_completed_on_device)
+{
+    int non_complete_events_traversed = 0;
+    bool is_ooo = (p_properties & CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE) != 0;
+    bool do_profile = (p_properties & CL_QUEUE_PROFILING_ENABLE) != 0;
+
+    pthread_mutex_lock(&p_event_list_mutex);
+
+    if (one_event_completed_on_device)
+    {
+        p_num_events_on_device -= 1;
+        p_num_events_completed += 1;
+    }
+
+    // No need to push more events on Device if 1) device has already got
+    // enough to work on, and 2) not pushing won't cause starvation of this
+    // commandqueue.  Not pushing can save p_event_list traversal time.
+    // 2 is a QoS number, set to 2 for the time being
+    // imagaine there are multiple commandqueues on same device
+    if(is_ooo && ready_event == NULL &&
+       p_num_events_on_device > 2 && p_device->gotEnoughToWorkOn())
+    {
+        pthread_mutex_unlock(&p_event_list_mutex);
+        return;
+    }
+
     // Explore the events in p_events and push on the device all of them that
     // are :
     //
@@ -270,6 +397,7 @@ void CommandQueue::pushEventsOnDevice()
     //   be pushed
 
     std::list<Event *>::iterator it = p_events.begin();
+    std::list<Event *>::iterator oldit;
     bool first = true;
 
     // We assume that we will flush the command queue (submit all the events)
@@ -284,13 +412,31 @@ void CommandQueue::pushEventsOnDevice()
         // If the event is completed, remove it
         if (event->status() == Event::Complete)
         {
+            event->setReleaseParent(false);
+            oldit = it;
             ++it;
+
+            p_num_events_completed -= 1;
+            p_num_events_in_queue -= 1;
+            p_events.erase(oldit);
+            // put Completed events into another list
+            // let main thread release/delete them
+#if ONLY_MAIN_THREAD_CAN_RELEASE_EVENT
+            p_released_events.push_back(event);
+#else
+            clReleaseEvent((cl_event) event);
+#endif
             continue;
         }
 
+        // If OOO queue threshold is met, skip examining the rest of events
+        if(ready_event == NULL && 
+           non_complete_events_traversed > OOO_QUEUE_PUSH_EVENTS_THRESHOLD)
+            break;
+        non_complete_events_traversed += 1;
+
         // We cannot do out-of-order, so we can only push the first event.
-        if ((p_properties & CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE) == 0 &&
-            !first)
+        if (!is_ooo && !first)
         {
             p_flushed = false; // There are remaining events.
             break;
@@ -312,29 +458,17 @@ void CommandQueue::pushEventsOnDevice()
         // It is either Submitted or Running.
         if (event->status() != Event::Queued)
         {
+            // Intended event is scheduled, skip the rest in queue
+            if (event == ready_event) break;
+
             ++it;
             continue;
         }
 
         // Check that all the waiting-on events of this event are finished
-        cl_uint count;
-        const Event **event_wait_list;
-        bool skip_event = false;
-
-        event_wait_list = event->waitEvents(count);
-
-        for (cl_uint i=0; i<count; ++i)
+        if (! event->waitEventsAllCompleted())
         {
-            if (event_wait_list[i]->status() != Event::Complete)
-            {
-                skip_event = true;
-                p_flushed = false;
-                break;
-            }
-        }
-
-        if (skip_event)
-        {
+            p_flushed = false;
             // If we encounter a WaitForEvents event that is not "finished",
             // don't push events after it.
             if (event->type() == Event::WaitForEvents)
@@ -345,25 +479,37 @@ void CommandQueue::pushEventsOnDevice()
             continue;
         }
 
-        // The event can be pushed, if we need to
-        if (!event->isDummy())
+        if (event->isInstantaneous())
         {
-            if (p_properties & CL_QUEUE_PROFILING_ENABLE)
-                event->updateTiming(Event::Submit);
+            // Remove event from the queue, otherwise, another thread may
+            // come in and try to set the event status to Complete again
+            p_num_events_in_queue -= 1;
+            p_events.erase(it);
+            p_flushed = (p_num_events_in_queue == 0);
+            // Pretend begin pushed to device, to maintain proper counting
+            p_num_events_on_device += 1;
 
-            event->setStatus(Event::Submitted);
-            p_device->pushEvent(event);
-        }
-        else
-        {
             // Set the event as completed. This will call pushEventsOnDevice,
             // again, so release the lock to avoid a deadlock. We also return
             // because the recursive call will continue our work.
+            if (p_flushed)
+                pthread_cond_broadcast(&p_event_list_cond);
             pthread_mutex_unlock(&p_event_list_mutex);
             event->setStatus(Event::Complete);
+            clReleaseEvent((cl_event) event);
             return;
         }
+
+        // The event can be pushed, if we need to
+        if (do_profile) event->updateTiming(Event::Submit);
+
+        event->setStatus(Event::Submitted);
+        p_num_events_on_device += 1;
+        p_device->pushEvent(event);
     }
+
+    if (ready_event != NULL && p_flushed)
+        p_flushed = (p_num_events_in_queue == 0);
 
     if (p_flushed)
         pthread_cond_broadcast(&p_event_list_cond);
@@ -371,14 +517,19 @@ void CommandQueue::pushEventsOnDevice()
     pthread_mutex_unlock(&p_event_list_mutex);
 }
 
-Event **CommandQueue::events(unsigned int &count)
+/******************************************************************************
+* Event **CommandQueue::events(unsigned int &count)
+******************************************************************************/
+Event **CommandQueue::events(unsigned int &count,
+                             bool include_completed_events)
 {
-    Event **result;
+    Event **result = NULL;
 
     pthread_mutex_lock(&p_event_list_mutex);
 
-    count = p_events.size();
-    result = (Event **)std::malloc(count * sizeof(Event *));
+    count = p_num_events_in_queue;
+    if (count > 0)
+        result = (Event **)std::malloc(count * sizeof(Event *));
 
     // Copy each event of the list into result, retaining them
     unsigned int index = 0;
@@ -386,12 +537,23 @@ Event **CommandQueue::events(unsigned int &count)
 
     while (it != p_events.end())
     {
+        if (! include_completed_events)
+        {
+            Event *e = *it;
+            if (e->status() == Event::Complete)
+            {
+                ++it;
+                continue;
+            }
+        }
+
         result[index] = *it;
         result[index]->reference();
 
         ++it;
         ++index;
     }
+    count = index;
 
     // Now result contains an immutable list of events. Even if the events
     // become completed in another thread while result is used, the events
@@ -401,17 +563,15 @@ Event **CommandQueue::events(unsigned int &count)
     return result;
 }
 
-/*
- * Event
- */
-
+/******************************************************************************
+* Event::Event
+******************************************************************************/
 Event::Event(CommandQueue *parent,
              Status status,
              cl_uint num_events_in_wait_list,
              const Event **event_wait_list,
              cl_int *errcode_ret)
 : Object(Object::T_Event, parent),
-  p_num_events_in_wait_list(num_events_in_wait_list), p_event_wait_list(0),
   p_status(status), p_device_data(0)
 {
     // Initialize the locking machinery
@@ -448,31 +608,23 @@ Event::Event(CommandQueue *parent,
         }
     }
 
-    // Allocate a new buffer for the events to wait
-    if (num_events_in_wait_list)
+    if (parent && num_events_in_wait_list > 0)
     {
-        const unsigned int len = num_events_in_wait_list * sizeof(Event *);
-        p_event_wait_list = (const Event **)std::malloc(len);
-
-        if (!p_event_wait_list)
+        pthread_mutex_lock(&p_state_mutex);
+        for (cl_uint i=0; i<num_events_in_wait_list; ++i)
         {
-            *errcode_ret = CL_OUT_OF_HOST_MEMORY;
-            return;
+            // if event_wait_list[i] is already COMPLETE, don't add it!!!
+            Event *wait_event = (Event *) event_wait_list[i];
+            if (wait_event->addDependentEvent((Event *) this))
+                p_wait_events.push_back(wait_event);
         }
-
-        std::memcpy((void *)p_event_wait_list, (void *)event_wait_list, len);
-    }
-
-    // Explore the events we are waiting on and reference them
-    for (cl_uint i=0; i<num_events_in_wait_list; ++i)
-    {
-        clRetainEvent((cl_event)event_wait_list[i]);
-
-        if (event_wait_list[i]->type() == Event::User && parent)
-            ((UserEvent *)event_wait_list[i])->addDependentCommandQueue(parent);
+        pthread_mutex_unlock(&p_state_mutex);
     }
 }
 
+/******************************************************************************
+* void Event::freeDeviceData()
+******************************************************************************/
 void Event::freeDeviceData()
 {
     if (parent() && p_device_data)
@@ -484,19 +636,19 @@ void Event::freeDeviceData()
     }
 }
 
+/******************************************************************************
+* Event::~Event()
+******************************************************************************/
 Event::~Event()
 {
-    for (cl_uint i=0; i<p_num_events_in_wait_list; ++i)
-        clReleaseEvent((cl_event)p_event_wait_list[i]);
-
-    if (p_event_wait_list)
-        std::free((void *)p_event_wait_list);
-
     pthread_mutex_destroy(&p_state_mutex);
     pthread_cond_destroy(&p_state_change_cond);
 }
 
-bool Event::isDummy() const
+/******************************************************************************
+* bool Event::isInstantaneous() 
+******************************************************************************/
+bool Event::isInstantaneous() const
 {
     // A dummy event has nothing to do on an execution device and must be
     // completed directly after being "submitted".
@@ -514,42 +666,137 @@ bool Event::isDummy() const
     }
 }
 
-void Event::setStatus(Status status)
+/******************************************************************************
+* void Event::setStatus
+******************************************************************************/
+int Event::setStatusHelper(Status status)
 {
+    int num_dependent_events;
+    std::list<CallbackData> callbacks;
+
     // TODO: If status < 0, terminate all the events depending on us.
     pthread_mutex_lock(&p_state_mutex);
     p_status = status;
+    num_dependent_events = p_dependent_events.size();
 
     pthread_cond_broadcast(&p_state_change_cond);
 
-    // Call the callbacks
+    // Find and Call the callbacks
     std::multimap<Status, CallbackData>::const_iterator it;
     std::pair<std::multimap<Status, CallbackData>::const_iterator,
               std::multimap<Status, CallbackData>::const_iterator> ret;
-
     ret = p_callbacks.equal_range(status > 0 ? status : Complete);
-
     for (it=ret.first; it!=ret.second; ++it)
-    {
-        const CallbackData &data = (*it).second;
-        data.callback((cl_event)this, p_status, data.user_data);
-    }
+        callbacks.push_back((*it).second);
 
     pthread_mutex_unlock(&p_state_mutex);
 
-    // If the event is completed, inform our parent so it can push other events
-    // to the device.
-    if (parent() && status == Complete)
-        ((CommandQueue *)parent())->pushEventsOnDevice();
-    else if (type() == Event::User)
-        ((UserEvent *)this)->flushQueues();
+    for (std::list<CallbackData>::iterator C = callbacks.begin(),
+                                           E = callbacks.end(); C != E; ++C)
+        (*C).callback((cl_event)this, p_status, (*C).user_data);
+
+    return num_dependent_events;
 }
 
+void Event::setStatus(Status status)
+{
+    if (type() == Event::User || (parent() && status == Complete))
+    {
+        CommandQueue *cq = (CommandQueue *) parent();
+        if (cq != NULL)  clRetainCommandQueue((cl_command_queue) cq);
+        bool already_pushed = false;
+
+        int num_dependent_events = setStatusHelper(status);  
+        /*---------------------------------------------------------------------
+        * From this point on, the event could be dereferenced to 0 and deleted!
+        * Thus we cannot call flushQueues(). Need to save these queues.
+        *--------------------------------------------------------------------*/
+
+        /*---------------------------------------------------------------------
+        * Notify dependent events, remove dependence, and push them if possible
+        *--------------------------------------------------------------------*/
+        for (int i = 0; i < num_dependent_events; i += 1)
+        {
+            Event *d_event = p_dependent_events[i];
+            CommandQueue *q = (CommandQueue *) d_event->parent();
+            if (d_event->removeWaitEvent(this) && q != NULL)  // order!
+            {
+                q->pushEventsOnDevice(d_event, (cq == q));
+                if (cq == q)  already_pushed = true;
+            }
+        }
+
+        /*---------------------------------------------------------------------
+        * Inform our parent to push other events to the device if haven't done
+        * so already.  UserEvent's parent is NULL.
+        *--------------------------------------------------------------------*/
+        if (cq != NULL)
+        {
+            if (!already_pushed)  cq->pushEventsOnDevice(NULL, true);
+            clReleaseCommandQueue((cl_command_queue) cq);
+        }
+    }
+    else
+        setStatusHelper(status);
+}
+
+bool Event::addDependentEvent(Event *event)
+{
+    pthread_mutex_lock(&p_state_mutex);
+    if (p_status == Event::Complete)
+    {
+        pthread_mutex_unlock(&p_state_mutex);
+        return false;
+    }
+
+    p_dependent_events.push_back(event);
+    Object::reference();  // retain this event
+    pthread_mutex_unlock(&p_state_mutex);
+    return true;
+}
+
+bool Event::removeWaitEvent(Event *event)
+{
+    bool empty;
+
+    pthread_mutex_lock(&p_state_mutex);
+    p_wait_events.remove(event);
+    empty = p_wait_events.empty();
+    pthread_mutex_unlock(&p_state_mutex);
+
+    CommandQueue *q = (CommandQueue *) event->parent();
+    if (q != NULL) q->releaseEvent(event);
+    return empty;
+}
+
+bool Event::waitEventsAllCompleted()
+{
+// YUAN TODO: p_wait_events is always shrinking, is lock necessary?
+//            it is a little bit faster without having to lock!!!
+#if 1
+    bool empty;
+
+    pthread_mutex_lock(&p_state_mutex);
+    empty = p_wait_events.empty();
+    pthread_mutex_unlock(&p_state_mutex);
+
+    return empty;
+#else
+    return p_wait_events.empty();
+#endif
+}
+
+/******************************************************************************
+* void Event::setDeviceData
+******************************************************************************/
 void Event::setDeviceData(void *data)
 {
     p_device_data = data;
 }
 
+/******************************************************************************
+* void Event::updateTiming
+******************************************************************************/
 void Event::updateTiming(Timing timing)
 {
     if (timing >= Max)
@@ -578,6 +825,9 @@ void Event::updateTiming(Timing timing)
     pthread_mutex_unlock(&p_state_mutex);
 }
 
+/******************************************************************************
+* Event::Status Event::status() const
+******************************************************************************/
 Event::Status Event::status() const
 {
     // HACK : We need const qualifier but we also need to lock a mutex
@@ -592,6 +842,9 @@ Event::Status Event::status() const
     return ret;
 }
 
+/******************************************************************************
+* void Event::waitForStatus(Status status)
+******************************************************************************/
 void Event::waitForStatus(Status status)
 {
     pthread_mutex_lock(&p_state_mutex);
@@ -604,35 +857,46 @@ void Event::waitForStatus(Status status)
     pthread_mutex_unlock(&p_state_mutex);
 }
 
+/******************************************************************************
+* void *Event::deviceData()
+******************************************************************************/
 void *Event::deviceData()
 {
     return p_device_data;
 }
 
-const Event **Event::waitEvents(cl_uint &count) const
-{
-    count = p_num_events_in_wait_list;
-    return p_event_wait_list;
-}
-
+/******************************************************************************
+* void Event::setCallback
+******************************************************************************/
 void Event::setCallback(cl_int command_exec_callback_type,
                         event_callback callback,
                         void *user_data)
 {
     CallbackData data;
+    bool call_now = false;
 
     data.callback = callback;
     data.user_data = user_data;
 
     pthread_mutex_lock(&p_state_mutex);
 
-    p_callbacks.insert(std::pair<Status, CallbackData>(
-        (Status)command_exec_callback_type,
-        data));
+    /* if event already in or past command_exec_callback_type, call callback */
+    /* cl.h: CL_COMPLETE 0, CL_RUNNING 1, CL_SUBMITTED 2, CL_QUEUED 3 */
+    if (command_exec_callback_type >= p_status)
+        call_now = true;
+    else
+        p_callbacks.insert(std::pair<Status, CallbackData>(
+                                   (Status)command_exec_callback_type, data) );
 
     pthread_mutex_unlock(&p_state_mutex);
+
+    if (call_now)
+        data.callback((cl_event)this, p_status, data.user_data);
 }
 
+/******************************************************************************
+* cl_int Event::info
+******************************************************************************/
 cl_int Event::info(cl_event_info param_name,
                    size_t param_value_size,
                    void *param_value,
@@ -658,7 +922,7 @@ cl_int Event::info(cl_event_info param_name,
         case CL_EVENT_CONTEXT:
             if (parent())
             {
-                SIMPLE_ASSIGN(cl_context, parent()->parent());
+	         SIMPLE_ASSIGN(cl_context, parent()->parent());
             }
             else
             {
@@ -667,13 +931,15 @@ cl_int Event::info(cl_event_info param_name,
                 else
                     SIMPLE_ASSIGN(cl_context, 0);
             }
+            break;
 
         case CL_EVENT_COMMAND_TYPE:
             SIMPLE_ASSIGN(cl_command_type, type());
             break;
 
+        // avoid status() call, if called from callbacks, we deadlock on mutex
         case CL_EVENT_COMMAND_EXECUTION_STATUS:
-            SIMPLE_ASSIGN(cl_int, status());
+            SIMPLE_ASSIGN(cl_int, p_status);
             break;
 
         case CL_EVENT_REFERENCE_COUNT:
@@ -696,6 +962,9 @@ cl_int Event::info(cl_event_info param_name,
     return CL_SUCCESS;
 }
 
+/******************************************************************************
+* cl_int Event::profilingInfo(
+******************************************************************************/
 cl_int Event::profilingInfo(cl_profiling_info param_name,
                             size_t param_value_size,
                             void *param_value,
@@ -718,7 +987,8 @@ cl_int Event::profilingInfo(cl_profiling_info param_name,
     if ((queue_props & CL_QUEUE_PROFILING_ENABLE) == 0)
         return CL_PROFILING_INFO_NOT_AVAILABLE;
 
-    if (status() != Event::Complete)
+    // avoid status() call, if called from callbacks, we deadlock on mutex
+    if (p_status != Event::Complete)
         return CL_PROFILING_INFO_NOT_AVAILABLE;
 
     void *value = 0;
@@ -728,19 +998,19 @@ cl_int Event::profilingInfo(cl_profiling_info param_name,
     switch (param_name)
     {
         case CL_PROFILING_COMMAND_QUEUED:
-            SIMPLE_ASSIGN(cl_ulong, p_timing[Queue]);
+            SIMPLE_ASSIGN(cl_ulong, 1000*p_timing[Queue]);
             break;
 
         case CL_PROFILING_COMMAND_SUBMIT:
-            SIMPLE_ASSIGN(cl_ulong, p_timing[Submit]);
+            SIMPLE_ASSIGN(cl_ulong, 1000*p_timing[Submit]);
             break;
 
         case CL_PROFILING_COMMAND_START:
-            SIMPLE_ASSIGN(cl_ulong, p_timing[Start]);
+            SIMPLE_ASSIGN(cl_ulong, 1000*p_timing[Start]);
             break;
 
         case CL_PROFILING_COMMAND_END:
-            SIMPLE_ASSIGN(cl_ulong, p_timing[End]);
+            SIMPLE_ASSIGN(cl_ulong, 1000*p_timing[End]);
             break;
 
         default:
@@ -758,3 +1028,4 @@ cl_int Event::profilingInfo(cl_profiling_info param_name,
 
     return CL_SUCCESS;
 }
+

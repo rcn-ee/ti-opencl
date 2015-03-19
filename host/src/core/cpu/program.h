@@ -68,8 +68,10 @@ class CPUProgram : public DeviceProgram
         ~CPUProgram();
 
         bool linkStdLib() const;
-        void createOptimizationPasses(llvm::PassManager *manager, bool optimize);
-        bool build(llvm::Module *module);
+        void createOptimizationPasses(llvm::PassManager *manager,
+                                      bool optimize, bool hasBarrier=false);
+        bool build(llvm::Module *module, std::string *binary_str,
+                   char *binary_filename=NULL);
 
         /**
          * \brief Initialize an LLVM JIT

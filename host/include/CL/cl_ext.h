@@ -21,7 +21,7 @@
  * MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
  ******************************************************************************/
 
-/* $Revision: 1.1.1.1 $ on $Date: 2012/04/03 20:36:04 $ */
+/* $Revision: 11928 $ on $Date: 2010-07-13 09:04:56 -0700 (Tue, 13 Jul 2010) $ */
 
 /* cl_ext.h contains OpenCL extensions which don't have external */
 /* (OpenGL, D3D) dependencies.                                   */
@@ -99,7 +99,7 @@ extern void CL_API_ENTRY clLogMessagesToStderrAPPLE(   const char * /* errstr */
 /************************ 
 * cl_khr_icd extension *                                                  
 ************************/
-#define cl_khr_icd 1
+#define cl_khr_icd 0
 
 /* cl_platform_info                                                        */
 #define CL_PLATFORM_ICD_SUFFIX_KHR                  0x0920
@@ -135,6 +135,37 @@ typedef CL_API_ENTRY cl_int (CL_API_CALL *clIcdGetPlatformIDsKHR_fn)(
 * cl_amd_device_attribute_query *
 *********************************/
 #define CL_DEVICE_PROFILING_TIMER_OFFSET_AMD        0x4036
+
+/*********************************
+ * TI extensions
+*********************************/
+#define CL_DEVICE_MSMC_MEM_SIZE_TI                  0x4060
+#define CL_DEVICE_GLOBAL_EXT1_MEM_SIZE_TI           0x4061
+#define CL_DEVICE_GLOBAL_EXT2_MEM_SIZE_TI           0x4062
+
+#define CL_DEVICE_GLOBAL_MEM_MAX_ALLOC_TI           0x4063
+#define CL_DEVICE_GLOBAL_EXT1_MEM_MAX_ALLOC_TI      0x4064
+#define CL_DEVICE_GLOBAL_EXT2_MEM_MAX_ALLOC_TI      0x4065
+#define CL_DEVICE_MSMC_MEM_MAX_ALLOC_TI             0x4066
+#define CL_DEVICE_LOCAL_MEM_MAX_ALLOC_TI            0x4067
+
+/* Following CL_MEM_HOST_* variants backported from OpenCL 1.2 */
+#define CL_MEM_HOST_WRITE_ONLY                      (1 << 7)
+#define CL_MEM_HOST_READ_ONLY                       (1 << 8)
+#define CL_MEM_HOST_NO_ACCESS                       (1 << 9)
+
+#define CL_MEM_USE_MSMC_TI                          (1 << 20)
+
+extern CL_API_ENTRY void*  CL_API_CALL
+__malloc_ddr(size_t size)  CL_EXT_SUFFIX__VERSION_1_1;
+extern CL_API_ENTRY void   CL_API_CALL
+__free_ddr(void* ptr)      CL_EXT_SUFFIX__VERSION_1_1;
+extern CL_API_ENTRY void*  CL_API_CALL
+__malloc_msmc(size_t size) CL_EXT_SUFFIX__VERSION_1_1;
+extern CL_API_ENTRY void   CL_API_CALL
+__free_msmc(void* ptr)     CL_EXT_SUFFIX__VERSION_1_1;
+extern CL_API_ENTRY int    CL_API_CALL
+__is_in_malloced_region(void* ptr) CL_EXT_SUFFIX__VERSION_1_1;
 
 
 #ifdef CL_VERSION_1_1

@@ -72,6 +72,7 @@ __fpclassifyf(float f)
 	}
 }
 
+#if 0
 DLLEXPORT int
 __fpclassifyl(long double e)
 {
@@ -93,5 +94,5 @@ __fpclassifyl(long double e)
 		return FP_SUBNORMAL;
 	}
 }
-
+#endif
 

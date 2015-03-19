@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011, Denis Steckelmacher <steckdenis@yahoo.fr>
+ * Copyright (c) 2012-2014, Texas Instruments Incorporated - http://www.ti.com/
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,6 +34,7 @@
 #include "context.h"
 #include "deviceinterface.h"
 #include "propertylist.h"
+#include "platform.h"
 
 #include <cstring>
 #include <cstdlib>
@@ -55,7 +57,7 @@ Context::Context(const cl_context_properties *properties,
                  cl_int *errcode_ret)
 : Object(Object::T_Context, 0), p_properties(0), p_pfn_notify(pfn_notify),
   p_user_data(user_data), p_devices(0), p_num_devices(0), p_props_len(0),
-  p_platform(0)
+  p_platform(&the_platform::Instance())
 {
     if (!p_pfn_notify)
         p_pfn_notify = &default_pfn_notify;
@@ -110,7 +112,7 @@ Context::Context(const cl_context_properties *properties,
     }
 
     // Verify that the platform is good
-    if (p_platform != 0)
+    if (p_platform != &the_platform::Instance())
     {
         *errcode_ret = CL_INVALID_PLATFORM;
         return;

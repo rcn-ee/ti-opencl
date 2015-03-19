@@ -1,20 +1,57 @@
-include_directories (${Coal_SOURCE_DIR}/include
-                    ${Coal_SOURCE_DIR}/src
-                    ${LLVM_INCLUDE_DIR}
-                    ${CLANG_INCLUDE_DIRS}
-                    ${CMAKE_CURRENT_BINARY_DIR}
-                    ${Coal_SOURCE_DIR}/ocl_load/DLOAD_API
-                    ${Coal_SOURCE_DIR}/ocl_load/DLOAD
-		    $ENV{SDK}/sdk
-		    $ENV{SDK}/sdk/config
-		    $ENV{SDK}/sdk/pciedrv
-		    $ENV{SDK}/sdk/mailBox
-		    $ENV{SDK}/sdk/cmem
-		    $ENV{SDK}/sdk/bufmgr
-		    $ENV{SDK}/sdk/dnldmgr
-                    )
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -fpermissive")
+if (C6678_BUILD)
+  SET (TARGET_INCLUDES
+    ${PROJECT_SOURCE_DIR}/init
+    ${SDK}/sdk
+    ${SDK}/sdk/config
+    ${SDK}/sdk/pciedrv
+    ${SDK}/sdk/cmem
+    ${SDK}/sdk/bufmgr
+    ${SDK}/sdk/mailBox
+    ${SDK}/sdk/dnldmgr )
+# Cross-compiling needs additional paths to find target OS headers 
+# and non-system headers found on the host (BOOST,GL)
+elseif (HAWKING_CROSS_COMPILE)
+  SET (TARGET_INCLUDES 
+    ${CMAKE_FIND_ROOT_PATH} 
+    ${HOST_USR_INCLUDE_PATH}  )
+endif()
+
+
+include_directories (
+    ${PROJECT_SOURCE_DIR}/include
+    ${PROJECT_SOURCE_DIR}/src
+    ${LLVM_INCLUDE_DIR}
+    ${CLANG_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_BINARY_DIR}
+    ${PROJECT_SOURCE_DIR}/src/core/dsp/ocl_load/DLOAD_API
+    ${PROJECT_SOURCE_DIR}/src/core/dsp/ocl_load/DLOAD
+    ${PROJECT_SOURCE_DIR}/src/llvmopencl
+    ${TARGET_INCLUDES}
+    )
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fpermissive")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_FILE_OFFSET_BITS=64")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_PRODUCT_VERSION=${${PROJECT_NAME}_VERSION}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DLLVM_3_3")
+
+# bfd.h has a check to ensure that config.h is included
+# We don't require config.h (autotools) so we bypass this check by defining
+# PACKAGE, and PACKAGE_VERSION 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DPACKAGE=${PROJECT_NAME} -DPACKAGE_VERSION=${${PROJECT_NAME}_VERSION}")
+
+# Toggle below if wanting to build with debug
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -fno-inline -g")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
+
+if (C6678_BUILD)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDSPC868X")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DDSPC868X")
+endif()
+
+if (HAWKING_BUILD)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DULM_ENABLED")
+endif()
 
 configure_file(core/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/core/config.h)
 
@@ -43,6 +80,8 @@ set(COAL_SRC_FILES
     core/sampler.cpp
     core/object.cpp
     core/platform.cpp
+    core/icd.cpp
+    core/util.cpp
 
     core/cpu/buffer.cpp
     core/cpu/device.cpp
@@ -52,23 +91,53 @@ set(COAL_SRC_FILES
     core/cpu/builtins.cpp
     core/cpu/sampler.cpp
 
-    core/dsp/driver.cpp
-    core/dsp/buffer.cpp
-    core/dsp/device.cpp
-    core/dsp/kernel.cpp
-    core/dsp/program.cpp
-    core/dsp/worker.cpp
-
     ${CMAKE_CURRENT_BINARY_DIR}/runtime/stdlib.h.embed.h
     ${CMAKE_CURRENT_BINARY_DIR}/runtime/stdlib.c.bc.embed.h
     ${CMAKE_CURRENT_BINARY_DIR}/runtime/builtins_impl.h
     ${CMAKE_CURRENT_BINARY_DIR}/runtime/builtins_def.h
     ${CMAKE_CURRENT_BINARY_DIR}/runtime/stdlib_impl.h
     ${CMAKE_CURRENT_BINARY_DIR}/runtime/stdlib_def.h
+
+    core/dsp/genfile_cache.cpp
+    core/dsp/program.cpp
+    core/dsp/wga.cpp
+    core/dsp/driver.cpp
+    core/dsp/buffer.cpp
+    core/dsp/device.cpp
+    core/dsp/kernel.cpp
+    core/dsp/worker.cpp
+    core/dsp/mmap_resource.c
+
+    llvmopencl/AllocasToEntry.cc
+    llvmopencl/BarrierBlock.cc
+    llvmopencl/BarrierTailReplication.cc
+    llvmopencl/BreakConstantGEPs.cpp
+    llvmopencl/CanonicalizeBarriers.cc
+    llvmopencl/DebugHelpers.cc
+    llvmopencl/Flatten.cc
+    llvmopencl/GenerateHeader.cc
+    llvmopencl/ImplicitConditionalBarriers.cc
+    llvmopencl/ImplicitLoopBarriers.cc
+    llvmopencl/IsolateRegions.cc
+    llvmopencl/Kernel.cc
+    llvmopencl/LLVMUtils.cc
+    llvmopencl/LoopBarriers.cc
+    llvmopencl/ParallelRegion.cc
+    llvmopencl/PHIsToAllocas.cc
+    llvmopencl/TargetAddressSpaces.cc
+    llvmopencl/VariableUniformityAnalysis.cc
+    llvmopencl/WIVectorize.cc
+    llvmopencl/Workgroup.cc
+    llvmopencl/WorkItemAliasAnalysis.cc
+    llvmopencl/WorkitemHandler.cc
+    llvmopencl/WorkitemHandlerChooser.cc
+    llvmopencl/WorkitemLoops.cc
+    llvmopencl/WorkitemReplication.cc
 )
 
 add_subdirectory(runtime)
 
+set(CMAKE_SHARED_LINKER_FLAGS "-Wl,-Bsymbolic")
 add_library(OpenCL SHARED ${COAL_SRC_FILES})
 
 set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/runtime/stdlib.h.embed.h
@@ -84,12 +153,14 @@ set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/runtime/stdlib_impl.h
 set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/runtime/stdlib_def.h
                             PROPERTIES GENERATED 1)
 
-add_dependencies(OpenCL generate_stdlib_h)
 add_dependencies(OpenCL generate_stdlib_c)
 add_dependencies(OpenCL generate_builtins)
 add_dependencies(OpenCL oclload)
+add_dependencies(OpenCL generate_dsp_builtins)
 
-SET(LIBRARY_OUTPUT_PATH ${Coal_BINARY_DIR}/lib)
+add_subdirectory(core/dsp/ocl_load)
+
+SET(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
 
 SET_TARGET_PROPERTIES(OpenCL PROPERTIES
   VERSION ${${PROJECT_NAME}_VERSION}
@@ -100,24 +171,55 @@ set_source_files_properties(${COAL_SRC_FILES}
         PROPERTIES COMPILE_FLAGS ${LLVM_COMPILE_FLAGS})
 
 set_target_properties(OpenCL PROPERTIES
-  LINK_FLAGS ${LLVM_LDFLAGS}
+  LINK_FLAGS "${LLVM_LDFLAGS}"
   LINK_INTERFACE_LIBRARIES "")
 
-TARGET_LINK_LIBRARIES(OpenCL
+# Dirty platform.cpp to cause re-compile with every build. It contains
+# a compile-time timestamp used as the library build timestamp.
+add_custom_command (TARGET OpenCL PRE_BUILD 
+                 COMMAND touch -c ${CMAKE_CURRENT_SOURCE_DIR}/core/platform.cpp)
+
+set (LIBS
         ${CLANG_LIBS}
         ${LLVM_LIBS_CORE}
         ${LLVM_LIBS_JIT}
-	$ENV{SDK}/sdk/pciedrv/lib/pciedrv.a
-	$ENV{SDK}/sdk/mailBox/host/lib/mailBox.a
-	$ENV{SDK}/sdk/dnldmgr/lib/dnldmgr.a
-	$ENV{SDK}/sdk/cmem/lib/cmem_drv.a
-	$ENV{SDK}/sdk/bufmgr/lib/bufmgr.a
-	${Coal_BINARY_DIR}/lib/liboclload.a
+	${PROJECT_BINARY_DIR}/lib/liboclload.a
         pthread
         rt
         dl
-        ffi
-        pciaccess
 )
 
-install(TARGETS OpenCL LIBRARY DESTINATION $(Coal_BINARY_DIR)/lib)
+
+if (C6678_BUILD)
+  LIST (APPEND LIBS
+	${SDK}/sdk/pciedrv/lib/pciedrv.a
+	${SDK}/sdk/dnldmgr/lib/dnldmgr.a
+	${SDK}/sdk/cmem/lib/cmem_drv.a
+	${SDK}/sdk/bufmgr/lib/bufmgr.a
+	${SDK}/sdk/mailBox/host/lib/mailBox.a
+        pciaccess
+	)
+elseif(HAWKING_BUILD)
+  LIST (APPEND LIBS 
+	 ${LINUX_DEVKIT_ROOT}/usr/lib/libmpmmailbox.so
+         ${LINUX_DEVKIT_ROOT}/usr/lib/libmpmtransport.so
+         ${LINUX_DEVKIT_ROOT}/usr/lib/libmpmclient.so
+         ${LINUX_DEVKIT_ROOT}/usr/lib/libticmem.so
+         ${LINUX_DEVKIT_ROOT}/usr/lib/libtiulm.a )
+         # ${LINUX_DEVKIT_ROOT}/usr/lib/libkeystonemmap.so
+endif()
+
+if (HAWKING_CROSS_COMPILE)
+   SET(FFI_LIB     ${LINUX_DEVKIT_ROOT}/usr/lib/libffi.so.6)
+   SET(BFD_LIB     ${LINUX_DEVKIT_ROOT}/usr/lib/libbfd.so)
+   SET(SQLITE3_LIB ${LINUX_DEVKIT_ROOT}/usr/lib/libsqlite3.so.0)
+else()
+   find_library(FFI_LIB ffi)
+   find_library(BFD_LIB bfd)
+   find_library(SQLITE3_LIB sqlite3)
+endif()
+
+LIST (APPEND LIBS ${FFI_LIB} ${BFD_LIB} ${SQLITE3_LIB})
+
+TARGET_LINK_LIBRARIES(OpenCL ${LIBS})
+install(TARGETS OpenCL LIBRARY DESTINATION /usr/lib ${OCL_FPERMS})

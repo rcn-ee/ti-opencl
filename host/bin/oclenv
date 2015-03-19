@@ -1,0 +1,23 @@
+#!/bin/tcsh
+
+echo -n "\nMachine Name:    "
+uname -n
+
+echo -n "Linux Release:   "
+uname -r
+
+echo -n "Processor Type:  "
+uname -p
+
+echo -n "\nLD_LIBRARY_PATH: "
+printenv LD_LIBRARY_PATH
+
+echo "\nPATH = "
+printenv PATH
+
+echo "\nCmem module: "
+lsmod | grep cmem
+
+echo "\nPCI Devices: "
+lspci -v -d:b005
+

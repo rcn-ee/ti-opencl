@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2013, Texas Instruments Incorporated - http://www.ti.com/
+ * Copyright (c) 2013-2014, Texas Instruments Incorporated - http://www.ti.com/
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -25,7 +25,7 @@
  *   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  *   THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
-#include <clc.h>
+#include "clc.h"
 
 #define EXPAND_SIZES(type) \
     IMPLEMENTATION(_VEC_TYPE(type,3), type)  \

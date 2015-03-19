@@ -25,25 +25,13 @@
  *   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  *   THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
-#include <clc.h>
+#include "dsp.h"
 
-/*-----------------------------------------------------------------------------
-* The C66 intrisic prototype
-*----------------------------------------------------------------------------*/
-unsigned _lmbd(unsigned, unsigned);
-
-#define EXPAND_SIZES(type) \
-_CLC_OVERLOAD _CLC_DEF type##3 clz(type##3 v) \
-{ return (type##3)(_lmbd(1, v.s0), _lmbd(1, v.s1), _lmbd(1, v.s2)); } \
-_CLC_OVERLOAD _CLC_DEF type##4 clz(type##4 v) \
-{ return (type##4)(_lmbd(1, v.s0), _lmbd(1, v.s1), _lmbd(1, v.s2), _lmbd(1, v.s3)); } \
-_CLC_OVERLOAD _CLC_DEF type##8 clz(type##8 v) \
-{ return (type##8)(_lmbd(1, v.s0), _lmbd(1, v.s1), _lmbd(1, v.s2), _lmbd(1, v.s3), \
-                   _lmbd(1, v.s4), _lmbd(1, v.s5), _lmbd(1, v.s6), _lmbd(1, v.s7)); } \
-_CLC_OVERLOAD _CLC_DEF type##16 clz(type##16 v) \
-{ return (type##16)(_lmbd(1, v.s0), _lmbd(1, v.s1), _lmbd(1, v.s2), _lmbd(1, v.s3), \
-                    _lmbd(1, v.s4), _lmbd(1, v.s5), _lmbd(1, v.s6), _lmbd(1, v.s7), \
-                    _lmbd(1, v.s8), _lmbd(1, v.s9), _lmbd(1, v.sa), _lmbd(1, v.sb), \
-                    _lmbd(1, v.sc), _lmbd(1, v.sd), _lmbd(1, v.se), _lmbd(1, v.sf)); } \
-
-_EXPAND_INTEGER_TYPES()
+UNARY_VEC_DEF(char,   char,  clz, clz)
+UNARY_VEC_DEF(uchar,  uchar, clz, clz)
+UNARY_VEC_DEF(short,  short, clz, clz)
+UNARY_VEC_DEF(ushort, ushort,clz, clz)
+UNARY_VEC_DEF(int,    int,   clz, clz)
+UNARY_VEC_DEF(uint,   uint,  clz, clz)
+UNARY_VEC_DEF(long,   long,  clz, clz)
+UNARY_VEC_DEF(ulong,  ulong, clz, clz)

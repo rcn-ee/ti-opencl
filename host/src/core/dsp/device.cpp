@@ -1,7 +1,39 @@
+/******************************************************************************
+ * Copyright (c) 2013-2014, Texas Instruments Incorporated - http://www.ti.com/
+ *   All rights reserved.
+ *
+ *   Redistribution and use in source and binary forms, with or without
+ *   modification, are permitted provided that the following conditions are met:
+ *       * Redistributions of source code must retain the above copyright
+ *         notice, this list of conditions and the following disclaimer.
+ *       * Redistributions in binary form must reproduce the above copyright
+ *         notice, this list of conditions and the following disclaimer in the
+ *         documentation and/or other materials provided with the distribution.
+ *       * Neither the name of Texas Instruments Incorporated nor the
+ *         names of its contributors may be used to endorse or promote products
+ *         derived from this software without specific prior written permission.
+ *
+ *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ *   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+ *   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ *   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ *   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ *   SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ *   INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ *   CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ *   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+ *   THE POSSIBILITY OF SUCH DAMAGE.
+ *****************************************************************************/
+#include "../platform.h"
 #include "device.h"
 #include "buffer.h"
 #include "kernel.h"
 #include "program.h"
+#include <cstdlib>
+#include <algorithm>
+#include <limits.h>
+#include "CL/cl_ext.h"
 
 #include <core/config.h>
 #include "../propertylist.h"
@@ -10,20 +42,23 @@
 #include "../memobject.h"
 #include "../kernel.h"
 #include "../program.h"
+#include "../util.h"
 
-#include "dsp_kernel_defs.h"
 #include "driver.h"
 #include "mailbox.h"
 
+#ifndef DSPC868X
 extern "C"
 {
-    #include "dload_api.h"
+    #include <ti/runtime/mmap/include/mmap_resource.h>
 }
+#endif
 
 #include <cstring>
 #include <cstdlib>
 #include <unistd.h>
 
+#include <algorithm>
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -32,17 +67,60 @@ using namespace Coal;
 
 Mailbox* Mailbox::pInstance = 0;
 
+/******************************************************************************
+* On DSPC868X the mailboxes are remote on the device DDR. On Hawking the 
+* mailboxes are in shared DDR
+******************************************************************************/
+#ifdef DSPC868X
+#define MAILBOX_LOCATION MPM_MAILBOX_MEMORY_LOCATION_REMOTE 
+#else
+#define MAILBOX_LOCATION MPM_MAILBOX_MEMORY_LOCATION_LOCAL 
+
+#include "shmem.h"
+unsigned dsp_speed()
+{
+    const unsigned DSP_PLL = 122880000;
+    const unsigned pagesize = 0x1000;
+
+    shmem_persistent bootcfg_page;
+    shmem_persistent clock_page;
+
+    bootcfg_page.configure(0x02620000, pagesize);
+    clock_page.configure(0x02310000, pagesize);
+
+    char *BOOTCFG_BASE_ADDR = (char*)bootcfg_page.map(0x02620000, pagesize);
+    char *CLOCK_BASE_ADDR   = (char*)clock_page.map(0x02310000, pagesize);
+
+    int MAINPLLCTL0 = (*(int*)(BOOTCFG_BASE_ADDR + 0x350));
+    int MULT        = (*(int*)(CLOCK_BASE_ADDR + 0x110));
+    int OUTDIV      = (*(int*)(CLOCK_BASE_ADDR + 0x108));
+
+    unsigned mult = 1 + ((MULT & 0x3F) | ((MAINPLLCTL0 & 0x7F000) >> 6));
+    unsigned prediv = 1 + (MAINPLLCTL0 & 0x3F);
+    unsigned output_div = 1 + ((OUTDIV >> 19) & 0xF);
+    unsigned speed = DSP_PLL * mult / prediv / output_div;
+
+    bootcfg_page.unmap(BOOTCFG_BASE_ADDR, pagesize);
+    clock_page.unmap(CLOCK_BASE_ADDR, pagesize);
+
+    return speed / 1000000;
+}
+#endif
+
 /*-----------------------------------------------------------------------------
 * Declare our threaded dsp handler function
 *----------------------------------------------------------------------------*/
 void *dsp_worker(void* data);
+void HOSTwait   (unsigned char dsp_id);
 
-#define DDR_START 0x82000000
-#define L2_START  0x00840000
-
-#define DDR_LENGTH 0x3E000000 // 992 M
-#define L2_LENGTH  0x00020000 // 128 K
-
+/*-----------------------------------------------------------------------------
+* If ULM library was not available don't emit ULM trace messages
+*----------------------------------------------------------------------------*/
+#if !defined (ULM_ENABLED)
+#define ulm_put_mem(a,b,c)
+#define ulm_config()
+#define ulm_term()
+#endif
 
 /******************************************************************************
 * DSPDevice::DSPDevice(unsigned char dsp_id)
@@ -51,17 +129,160 @@ DSPDevice::DSPDevice(unsigned char dsp_id)
     : DeviceInterface   (), 
       p_cores           (8), 
       p_num_events      (0), 
-      p_dsp_mhz         (1024), // 1.00 GHz
+      p_dsp_mhz         (1000), // 1.00 GHz
       p_worker          (0), 
       p_rx_mbox         (0), 
       p_tx_mbox         (0), 
       p_stop            (false),
       p_initialized     (false), 
       p_dsp_id          (dsp_id), 
-      p_device_ddr_heap ((DSPDevicePtr)0x82000000, 0x3E000000),   // 992 M
-      p_device_l2_heap  ((DSPDevicePtr)0x00840000, 0x00020000),   // 128 K
-      p_dload_handle    (0)
-{ }
+      p_device_msmc_heap(),
+      p_device_ddr_heap1(),
+      p_device_ddr_heap2(),
+      p_device_ddr_heap3(),
+      p_device_l2_heap  (),
+      p_dload_handle    (0),
+      p_complete_pending(),
+      p_mpax_default_res(NULL)
+{ 
+    Driver *driver = Driver::instance();
+
+    void *hdl = driver->reset_and_load(dsp_id);
+
+    p_addr_kernel_config = driver->get_symbol(hdl, "kernel_config_l2");
+    p_addr_local_mem     = driver->get_symbol(hdl, "ocl_local_mem_start");
+    p_addr_mbox_d2h_phys = driver->get_symbol(hdl, "mbox_d2h_phys");
+    p_addr_mbox_h2d_phys = driver->get_symbol(hdl, "mbox_h2d_phys");
+    p_size_local_mem     = driver->get_symbol(hdl, "ocl_local_mem_size");
+    p_size_mbox_d2h      = driver->get_symbol(hdl, "mbox_d2h_size");
+    p_size_mbox_h2d      = driver->get_symbol(hdl, "mbox_h2d_size");
+
+    DSPDevicePtr64 global3 = 0;
+    uint64_t       gsize3  = 0;
+#ifdef DSPC868X
+    p_addr64_global_mem  = driver->get_symbol(hdl, "ocl_global_mem_start");
+    p_size64_global_mem  = driver->get_symbol(hdl, "ocl_global_mem_size");
+    p_addr_msmc_mem      = driver->get_symbol(hdl, "ocl_msmc_mem_start");
+    p_size_msmc_mem      = driver->get_symbol(hdl, "ocl_msmc_mem_size");
+#else
+    /*-------------------------------------------------------------------------
+    * These 4 variables were previously retrieved from the monitor out file.
+    * They are now determined by query of the CMEM system.
+    *------------------------------------------------------------------------*/
+    p_addr64_global_mem = 0;
+    p_size64_global_mem = 0;
+    p_addr_msmc_mem = 0;
+    p_size_msmc_mem = 0;
+    driver->cmem_init(&p_addr64_global_mem, &p_size64_global_mem,
+                      &p_addr_msmc_mem,     &p_size_msmc_mem,
+                      &global3,             &gsize3);
+#endif
+
+    DSPDevicePtr64 global1 = p_addr64_global_mem;
+    DSPDevicePtr64 global2 = 0;
+    uint64_t       gsize1  = p_size64_global_mem;
+    uint64_t       gsize2  = 0;
+    driver->split_ddr_memory(p_addr64_global_mem, p_size64_global_mem,
+                             global1, gsize1, global2, gsize2, gsize3);
+
+    driver->shmem_configure(global1,              gsize1, 0);
+    if (gsize2 > 0) driver->shmem_configure(global2, gsize2, 0);
+    if (gsize3 > 0) driver->shmem_configure(global3, gsize3, 0);
+    driver->shmem_configure(p_addr_msmc_mem,      p_size_msmc_mem, 1);
+    driver->shmem_configure(p_addr_mbox_d2h_phys, p_size_mbox_d2h);
+    driver->shmem_configure(p_addr_mbox_h2d_phys, p_size_mbox_h2d);
+    for (int core=0; core < 8; core++)
+        driver->shmem_configure(((0x10 + core) << 24) + p_addr_local_mem,    
+                                p_size_local_mem);
+
+    driver->free_image_handle(hdl);
+
+    /*-------------------------------------------------------------------------
+    * Setup the DSP heaps for memory allocation
+    *------------------------------------------------------------------------*/
+    p_device_ddr_heap1.configure(global1,          gsize1);
+    p_device_ddr_heap2.configure(global2,          gsize2, true);
+    p_device_ddr_heap3.configure(global3,          gsize3, true);
+    p_device_l2_heap.configure  (p_addr_local_mem, p_size_local_mem);
+    p_device_msmc_heap.configure(p_addr_msmc_mem,  p_size_msmc_mem);
+
+    ulm_config();
+    ulm_put_mem(ULM_MEM_IN_DATA_ONLY,     p_size_msmc_mem >> 16  , 1.0f);
+    ulm_put_mem(ULM_MEM_EX_DATA_ONLY,     (gsize2 + gsize3) >> 16, 1.0f);
+    ulm_put_mem(ULM_MEM_EX_CODE_AND_DATA, gsize1 >> 16           , 1.0f);
+
+    /*-------------------------------------------------------------------------
+    * initialize the mailboxes on the cores, so they can receive an exit cmd
+    *------------------------------------------------------------------------*/
+    Mailbox* mb_instance = Mailbox::instance();
+
+    uint32_t mailboxallocsize     = mpm_mailbox_get_alloc_size();
+
+    p_tx_mbox = (void*)malloc(mailboxallocsize);
+    p_rx_mbox = (void*)malloc(mailboxallocsize);
+
+    mpm_mailbox_config_t mbConfig;
+    mbConfig.mem_size         = p_size_mbox_h2d;
+    mbConfig.max_payload_size = mbox_payload;
+
+#ifdef DSPC868X    // mailbox location is remote
+    mbConfig.mem_start_addr   = (uint32_t) p_addr_mbox_h2d_phys;
+    int tx_status = mb_instance->create(p_tx_mbox,  
+                     MAILBOX_MAKE_DSP_NODE_ID(p_dsp_id, 0),
+                     MAILBOX_LOCATION, 
+                     MPM_MAILBOX_DIRECTION_SEND, &mbConfig);
+#else              // mailbox location is local 
+    mbConfig.mem_start_addr   = (uint32_t)driver->map(this,
+                                        p_addr_mbox_h2d_phys, p_size_mbox_h2d);
+    int tx_status = mb_instance->create(p_tx_mbox,  
+       		     NULL,
+                     MAILBOX_LOCATION, 
+                     MPM_MAILBOX_DIRECTION_SEND, &mbConfig);
+#endif
+
+    mbConfig.mem_size         = p_size_mbox_d2h;
+
+#ifdef DSPC868X    // mailbox location is remote
+    mbConfig.mem_start_addr   = (uint32_t)p_addr_mbox_d2h_phys;
+    int rx_status = mb_instance->create(p_rx_mbox,  
+                     MAILBOX_MAKE_DSP_NODE_ID(p_dsp_id, 0),
+                     MAILBOX_LOCATION, 
+                     MPM_MAILBOX_DIRECTION_RECEIVE, &mbConfig);
+#else              // mailbox location is local 
+    mbConfig.mem_start_addr   = (uint32_t)driver->map(this,
+                                        p_addr_mbox_d2h_phys, p_size_mbox_d2h);
+    int rx_status = mb_instance->create(p_rx_mbox,  
+		     NULL,
+                     MAILBOX_LOCATION, 
+                     MPM_MAILBOX_DIRECTION_RECEIVE, &mbConfig);
+#endif
+
+    tx_status |= mb_instance->open(p_tx_mbox);
+    rx_status |= mb_instance->open(p_rx_mbox);
+
+    if (tx_status != 0 || rx_status != 0)
+       std::cout << "Could not create mailboxes for dsp " 
+                 << p_dsp_id << std::endl;
+
+
+#ifdef DSPC868X
+    char *ghz1 = getenv("TI_OCL_DSP_1_25GHZ");
+    if (ghz1) p_dsp_mhz = 1250;  // 1.25 GHz
+#else
+    mail_to(frequencyMsg);
+
+    int ret = 0;
+    do
+    {
+        while (!mail_query())  ;
+        ret = mail_from();
+    } while (ret == -1);
+
+    p_dsp_mhz = ret;
+
+#endif
+}
+
 
 /******************************************************************************
 * void DSPDevice::init()
@@ -71,26 +292,11 @@ void DSPDevice::init()
     if (p_initialized) return;
 
     /*-------------------------------------------------------------------------
-    * Initialize the locking machinery
+    * Initialize the locking machinery and create worker threads
     *------------------------------------------------------------------------*/
     pthread_cond_init(&p_events_cond, 0);
     pthread_mutex_init(&p_events_mutex, 0);
-
-    /*-------------------------------------------------------------------------
-    * Create worker threads
-    *------------------------------------------------------------------------*/
-    Mailbox* mb_instance = Mailbox::instance();
-
     pthread_create(&p_worker, 0, &dsp_worker, this);
-
-    int node_id = p_dsp_id * numDSPs();
-    mb_instance->init(MAILBOX_NODE_ID_HOST, node_id);
-    mb_instance->init(node_id, MAILBOX_NODE_ID_HOST);
-    p_tx_mbox = mb_instance->create(MAILBOX_NODE_ID_HOST, node_id,0,0,0);
-    p_rx_mbox = mb_instance->create(node_id, MAILBOX_NODE_ID_HOST,0,0,0);
-
-    if (p_tx_mbox == -1 || p_rx_mbox == -1)
-       std::cout << "Could not create mailboxes for dsp " << node_id << std::endl;
 
     p_initialized = true;
 }
@@ -100,22 +306,25 @@ void DSPDevice::init()
 ******************************************************************************/
 DSPDevice::~DSPDevice()
 {
-    if (!p_initialized) return;
-
     /*-------------------------------------------------------------------------
     * Inform the cores on the device to stop listening for commands
     *------------------------------------------------------------------------*/
-    Msg_t msg = {1, {EXIT,0,0}};
-    mail_to(msg);
+    mail_to(exitMsg);
+
+    free (p_tx_mbox);
+    free (p_rx_mbox);
 
     /*-------------------------------------------------------------------------
-    * Reset the cores
+    * Free any ulm resources used.
     *------------------------------------------------------------------------*/
+    ulm_term();
 
     /*-------------------------------------------------------------------------
     * Only need to close the driver for one of the devices
     *------------------------------------------------------------------------*/
     if (p_dsp_id == 0) Driver::instance()->close(); 
+
+    if (!p_initialized) return;
 
     /*-------------------------------------------------------------------------
     * Terminate the workers and wait for them
@@ -131,7 +340,6 @@ DSPDevice::~DSPDevice()
 
     pthread_mutex_destroy(&p_events_mutex);
     pthread_cond_destroy(&p_events_cond);
-
 }
 
 /******************************************************************************
@@ -151,22 +359,40 @@ DeviceProgram *DSPDevice::createDeviceProgram(Program *program)
 ******************************************************************************/
 DeviceKernel *DSPDevice::createDeviceKernel(Kernel *kernel,
                                 llvm::Function *function)
-    { return (DeviceKernel *)new DSPKernel(this, kernel); }
+    { return (DeviceKernel *)new DSPKernel(this, kernel, function); }
 
 /******************************************************************************
 * cl_int DSPDevice::initEventDeviceData(Event *event)
 ******************************************************************************/
 cl_int DSPDevice::initEventDeviceData(Event *event)
 {
+    cl_int ret_code = CL_SUCCESS;
+
     switch (event->type())
     {
         case Event::MapBuffer:
         {
-            MapBufferEvent *e    = (MapBufferEvent*) event;
-            DSPBuffer      *buf  = (DSPBuffer*) e->buffer()->deviceBuffer(this);
-            unsigned char  *data = ((unsigned char*) buf->data()) + e->offset();
+            MapBufferEvent *e = (MapBufferEvent*) event;
 
-            e->setPtr((void *)data);
+            if (e->buffer()->flags() & CL_MEM_USE_HOST_PTR)
+            {
+                e->setPtr((char*)e->buffer()->host_ptr() + e->offset());
+                break;
+            }
+
+            DSPBuffer      *buf  = (DSPBuffer*) e->buffer()->deviceBuffer(this);
+            DSPDevicePtr64  data = buf->data() + e->offset();
+
+            // DO NOT INVALIDATE! Here only initializes host_addr, it cannot
+            // be used before MapBuffer event is scheduled and processed!
+            void* host_addr = Driver::instance()->map(this, data, e->cb(),
+                                                      false, true);
+            e->setPtr(host_addr);
+
+            // (main thread) Retain this event, to be saved in buffer mapped
+            // events, and later to be released by UnmapMemObject()
+            if (host_addr != NULL) clRetainEvent((cl_event) e);
+            else                   ret_code = CL_MAP_FAILURE;
             break;
         }
 
@@ -182,21 +408,26 @@ cl_int DSPDevice::initEventDeviceData(Event *event)
             /*-----------------------------------------------------------------
             * Just in time loading 
             *----------------------------------------------------------------*/
-            if (!prog->is_loaded()) prog->load();
+            if (!prog->is_loaded() && !prog->load()) 
+                return CL_MEM_OBJECT_ALLOCATION_FAILURE;
+
             DSPKernel *dspkernel = (DSPKernel*)e->deviceKernel();
-            dspkernel->preAllocBuffers();
+
+            cl_int ret = dspkernel->preAllocBuffers();
+            if (ret != CL_SUCCESS) return ret;
 
             // ASW TODO do something
 
             // Set device-specific data
             DSPKernelEvent *dsp_e = new DSPKernelEvent(this, e);
+            ret_code = dsp_e->get_ret_code();
             e->setDeviceData((void *)dsp_e);
             break;
         }
         default: break;
     }
 
-    return CL_SUCCESS;
+    return ret_code;
 }
 
 /******************************************************************************
@@ -233,6 +464,9 @@ void DSPDevice::pushEvent(Event *event)
     pthread_mutex_unlock(&p_events_mutex);
 }
 
+bool DSPDevice::stop()           { return p_stop; }
+bool DSPDevice::availableEvent() { return p_num_events > 0; }
+
 /******************************************************************************
 * Event *DSPDevice::getEvent(bool &stop)
 ******************************************************************************/
@@ -263,6 +497,23 @@ Event *DSPDevice::getEvent(bool &stop)
     return event;
 }
 
+void DSPDevice::push_complete_pending(uint32_t idx, Event* const data)
+    { p_complete_pending.push(idx, data); }
+
+bool DSPDevice::get_complete_pending(uint32_t idx, Event*& data)
+    { return p_complete_pending.try_pop(idx, data); }
+
+void DSPDevice::dump_complete_pending() { p_complete_pending.dump(); }
+
+bool DSPDevice::any_complete_pending() { return !p_complete_pending.empty(); }
+
+/******************************************************************************
+* Device's decision about whether CommandQueue should push more events over
+* This number could be tuned (e.g. using ooo example).  Note that p_num_events
+* are in device's queue, but not yet executed.
+******************************************************************************/
+bool DSPDevice::gotEnoughToWorkOn() { return p_num_events > 0; }
+
 /******************************************************************************
 * Getter functions
 ******************************************************************************/
@@ -271,19 +522,6 @@ float         DSPDevice::dspMhz()       const { return p_dsp_mhz; }
 unsigned char DSPDevice::dspID()        const { return p_dsp_id;  }
 DLOAD_HANDLE  DSPDevice::dload_handle() const { return p_dload_handle;  }
 
-static void work_group_aggregate(std::string& test);
-
-/******************************************************************************
-* std::string DSPDevice::sourceTranslation(std::string& source) 
-******************************************************************************/
-std::string DSPDevice::sourceTranslation(std::string& source) 
-{ 
-    std::string srcc(source);
-    std::string marker("/*EOH Marker*/");
-    srcc.replace(srcc.find(marker),marker.length(), dsp_specific_header);
-    work_group_aggregate(srcc);
-    return srcc; 
-}
 
 int DSPDevice::load(const char *filename)
 { 
@@ -296,57 +534,276 @@ int DSPDevice::load(const char *filename)
    FILE *fp = fopen(filename, "rb");
    if (!fp) { printf("can't open OpenCL Program file\n"); exit(1); }
 
+   // for multiple application host threads
+   Lock lock(this);
    int prog_handle = DLOAD_load(p_dload_handle, fp);
+
    fclose(fp);
    return prog_handle;
 }
 
-DSPDevicePtr DSPDevice::malloc_l2(size_t size)  
-    { return p_device_l2_heap.malloc(size); }
+bool DSPDevice::unload(int file_handle)
+{ 
+   if (p_dload_handle)
+   {
+       // for multiple application host threads
+       Lock lock(this);
+       bool retval = DLOAD_unload(p_dload_handle, file_handle);
 
-void DSPDevice::free_l2(DSPDevicePtr addr)       
+       return retval;
+   }
+   return false;
+}
+
+DSPDevicePtr DSPDevice::get_local_scratch(uint32_t &size, uint32_t &block_size)
+{ 
+    uint64_t size64;
+    DSPDevicePtr64 addr64 = p_device_l2_heap.max_block_size(size64, block_size); 
+    size = (uint32_t) size64;
+    return (DSPDevicePtr) addr64;
+}
+
+DSPDevicePtr DSPDevice::malloc_local(size_t size)  
+    { return p_device_l2_heap.malloc(size,true); }
+
+void DSPDevice::free_local(DSPDevicePtr addr)       
     { p_device_l2_heap.free(addr); }
 
-DSPDevicePtr DSPDevice::malloc_code(size_t size)  
-    { return p_device_ddr_heap.malloc(size); }
+DSPDevicePtr DSPDevice::malloc_msmc(size_t size)  
+{ 
+    DSPDevicePtr ret = p_device_msmc_heap.malloc(size,true); 
+    if (ret) dsptop_msmc();
+    return ret;
+}
 
-void DSPDevice::free_code(DSPDevicePtr addr)       
-    { p_device_ddr_heap.free(addr); }
+void DSPDevice::free_msmc(DSPDevicePtr addr)       
+{ 
+    p_device_msmc_heap.free(addr); 
+    dsptop_msmc();
+}
 
-DSPDevicePtr DSPDevice::malloc_ddr(size_t size)  
-    { return p_device_ddr_heap.malloc(size); }
+// TODO: examine the flag, the logic, etc
+#define FRACTION_PERSISTENT_FOR_BUFFER	8
+DSPDevicePtr64 DSPDevice::malloc_global(size_t size, bool prefer_32bit)  
+{ 
+    if (prefer_32bit) 
+    {
+        DSPDevicePtr64 ret = p_device_ddr_heap1.malloc(size, true);
+        if (ret) dsptop_ddr_fixed();
+        return ret;
+    }
 
-void DSPDevice::free_ddr(DSPDevicePtr addr)       
-    { p_device_ddr_heap.free(addr); }
+    DSPDevicePtr64 addr = 0;
+    uint64_t size64 = 0;
+    uint32_t block_size;
+
+    p_device_ddr_heap1.max_block_size(size64, block_size);
+
+    if (size64 / size > FRACTION_PERSISTENT_FOR_BUFFER)
+    {
+        addr = p_device_ddr_heap1.malloc(size, true);
+        if (addr) dsptop_ddr_fixed();
+    }
+    if (!addr)
+    {
+        // addr = Driver::instance()->cmem_ondemand_malloc(size);
+        addr = p_device_ddr_heap2.malloc(size, true);
+        if (addr) dsptop_ddr_extended();
+    }
+    if (!addr)
+    {
+        addr = p_device_ddr_heap3.malloc(size, true);
+        if (addr) dsptop_ddr_extended();
+    }
+    if (!addr)
+    {
+        addr = p_device_ddr_heap1.malloc(size, true); // give it another chance
+        if (addr) dsptop_ddr_fixed();
+    }
+
+    return addr;
+}
+
+void DSPDevice::free_global(DSPDevicePtr64 addr)       
+{
+    if (addr < DSP_36BIT_ADDR)
+    {
+        p_device_ddr_heap1.free(addr); 
+        dsptop_ddr_fixed();
+    }
+    else 
+    {
+        // Driver::instance()->cmem_ondemand_free(addr);
+        if (p_device_ddr_heap2.free(addr) == -1)
+            p_device_ddr_heap3.free(addr);
+        dsptop_ddr_extended();
+    }
+}
+
+void DSPDevice::dsptop_msmc()
+{
+    uint64_t k64block_size = p_device_msmc_heap.size() >> 16;
+    float    pctfree  =  p_device_msmc_heap.available(); 
+             pctfree /=  p_device_msmc_heap.size();
+
+    ulm_put_mem(ULM_MEM_IN_DATA_ONLY, k64block_size, pctfree);
+}
+
+void DSPDevice::dsptop_ddr_fixed()
+{
+    uint64_t k64block_size = p_device_ddr_heap1.size() >> 16;
+    float    pctfree  =  p_device_ddr_heap1.available(); 
+             pctfree /=  p_device_ddr_heap1.size();
+
+    ulm_put_mem(ULM_MEM_EX_CODE_AND_DATA, k64block_size, pctfree);
+}
+
+void DSPDevice::dsptop_ddr_extended()
+{
+    uint64_t ext_size = p_device_ddr_heap2.size() + p_device_ddr_heap3.size();
+    uint64_t k64block_size = ext_size >> 16;
+    float    pctfree  =  p_device_ddr_heap2.available() + p_device_ddr_heap3.available();
+
+    if (ext_size != 0) pctfree /= ext_size;
+    else               pctfree  = 0.0f;
+
+    ulm_put_mem(ULM_MEM_EX_DATA_ONLY, k64block_size, pctfree);
+}
+
+
+void* DSPDevice::clMalloc(size_t size, cl_mem_flags flags)
+{
+    DSPDevicePtr64 phys_addr = 0;
+    void          *host_addr = NULL;
+    bool           use_msmc  = ((flags & CL_MEM_USE_MSMC_TI) != 0);
+
+    if (use_msmc)  phys_addr =   malloc_msmc(size);
+    else           phys_addr = malloc_global(size, false);
+
+    if (phys_addr != 0)
+    {
+        host_addr = Driver::instance()->map(this, phys_addr, size, false, true);
+        if (host_addr)
+        {
+            p_clMalloc_mapping[host_addr] = PhysAddrSizeFlagsTriple(
+                           PhysAddrSizePair(phys_addr, size), flags);
+        }
+        else
+        {
+            if (use_msmc)   free_msmc(phys_addr);
+            else          free_global(phys_addr);
+        }
+    }
+    return host_addr;
+}
+
+void DSPDevice::clFree(void* ptr)
+{
+    clMallocMapping::iterator it = p_clMalloc_mapping.find(ptr);
+    if (it != p_clMalloc_mapping.end())
+    {
+        PhysAddrSizeFlagsTriple phys_a_s_f = (*it).second;
+        DSPDevicePtr64 phys_addr = phys_a_s_f.first.first;
+        size_t         size      = phys_a_s_f.first.second;
+        cl_mem_flags   flags     = phys_a_s_f.second;
+        p_clMalloc_mapping.erase(it);
+        Driver::instance()->unmap(this, ptr, phys_addr, size, false);
+        if (flags & CL_MEM_USE_MSMC_TI)  free_msmc(phys_addr);
+        else                           free_global(phys_addr);
+    }
+    else printf("clFree invalid pointer\n");
+}
+
+// Support query of host ptr in the middle of a clMalloced region
+bool DSPDevice::clMallocQuery(void* ptr, DSPDevicePtr64* p_addr, size_t* p_size)
+{
+    if (p_clMalloc_mapping.empty())  return false;
+
+    clMallocMapping::iterator it = p_clMalloc_mapping.upper_bound(ptr);
+    if (it == p_clMalloc_mapping.begin())  return false;
+
+    // map has bidirectional iterator, so --it is defined, even at end()
+    PhysAddrSizeFlagsTriple phys_a_s_f = (*--it).second;
+    // (ptr >= (*it).first) must hold because of upper_bound() call
+    if (ptr >= (*it).first + phys_a_s_f.first.second)  return false;
+
+    ptrdiff_t offset = ((char *) ptr) - ((char *) (*it).first);
+    if (p_addr)  *p_addr = phys_a_s_f.first.first + offset;
+    if (p_size)  *p_size = phys_a_s_f.first.second - offset;
+    return true;
+}
+
+bool DSPDevice::isInClMallocedRegion(void *ptr)
+{
+    return clMallocQuery(ptr, NULL, NULL);
+}
 
 void DSPDevice::mail_to(Msg_t &msg)
 {
     static unsigned trans_id = 0xC0DE0000;
-    Mailbox::instance()->write(p_tx_mbox, (uint8_t*)&msg, sizeof(Msg_t), trans_id++);
+
+    Lock lock(this);
+    Mailbox::instance()->write(p_tx_mbox, (uint8_t*)&msg, sizeof(Msg_t), 
+                               trans_id++);
 }
 
 bool DSPDevice::mail_query()
 {
-    unsigned read_cnt=0, write_cnt=0;
-    Mailbox::instance()->query(p_rx_mbox, &read_cnt, &write_cnt);
-    return (read_cnt != write_cnt);
+    return Mailbox::instance()->query(p_rx_mbox);
 }
 
 int DSPDevice::mail_from()
 {
     uint32_t size_rx, trans_id_rx;
-    uint32_t rxmsg;
+    Msg_t    rxmsg;
 
-    Mailbox::instance()->read(p_rx_mbox, (uint8_t*)&rxmsg, &size_rx, &trans_id_rx);
-    return rxmsg;
+    Mailbox::instance()->read(p_rx_mbox, (uint8_t*)&rxmsg, &size_rx, 
+                              &trans_id_rx);
+    
+    if (rxmsg.command == ERROR)
+    {
+        printf("%s", rxmsg.u.message);
+        return -1;
+    }
+
+    if (rxmsg.command == PRINT)
+    {
+        printf("[core %c] %s", rxmsg.u.message[0], rxmsg.u.message+1);
+        return -1;
+    }
+
+    return trans_id_rx;
 }
 
-int DSPDevice::dma_write(DSPDevicePtr addr, void* host_addr, size_t size)
+#ifndef DSPC868X
+/******************************************************************************
+* void* DSPDevice::get_mpax_default_res, only need to be computed once
+******************************************************************************/
+void* DSPDevice::get_mpax_default_res()
 {
-    return Driver::instance()->dma_write(dspID(), addr, 
-                                (uint8_t*)host_addr, size);
-}
+    if (p_mpax_default_res == NULL)
+    {
+        p_mpax_default_res = malloc(sizeof(keystone_mmap_resources_t));
+        memset(p_mpax_default_res, 0, sizeof(keystone_mmap_resources_t));
 
+#define NUM_VIRT_HEAPS  2
+        uint32_t xmc_regs[MAX_XMCSES_MPAXS] = {3, 4, 5, 6, 7, 8, 9};
+        uint32_t ses_regs[MAX_XMCSES_MPAXS] = {1, 2, 3, 4, 5, 6, 7};
+        uint32_t heap_base[NUM_VIRT_HEAPS]  = {0xC0000000, 0x80000000};
+        uint32_t heap_size[NUM_VIRT_HEAPS]  = {0x40000000, 0x20000000};
+        for (int i = 0; i < MAX_XMCSES_MPAXS; i++)
+        {
+            xmc_regs[i] = FIRST_FREE_XMC_MPAX + i;
+            ses_regs[i] = FIRST_FREE_SES_MPAX + i;
+        }
+        keystone_mmap_resource_init(MAX_XMCSES_MPAXS, xmc_regs, ses_regs,
+				    NUM_VIRT_HEAPS, heap_base, heap_size,
+                           (keystone_mmap_resources_t *) p_mpax_default_res);
+
+    }
+    return p_mpax_default_res;
+}
+#endif  // #ifndef DSPC868X
 
 /******************************************************************************
 * cl_int DSPDevice::info
@@ -375,6 +832,9 @@ cl_int DSPDevice::info(cl_device_info param_name,
         size_t work_dims[MAX_WORK_DIMS];
     };
 
+    uint64_t  maxblock;
+    uint32_t  dummy;
+
     switch (param_name)
     {
         case CL_DEVICE_TYPE:
@@ -382,7 +842,7 @@ cl_int DSPDevice::info(cl_device_info param_name,
             break;
 
         case CL_DEVICE_VENDOR_ID:
-            SIMPLE_ASSIGN(cl_uint, 0);
+            SIMPLE_ASSIGN(cl_uint, 0); // TODO
             break;
 
         case CL_DEVICE_MAX_COMPUTE_UNITS:
@@ -393,15 +853,20 @@ cl_int DSPDevice::info(cl_device_info param_name,
             SIMPLE_ASSIGN(cl_uint, MAX_WORK_DIMS);
             break;
 
-        case CL_DEVICE_MAX_WORK_GROUP_SIZE:
-            SIMPLE_ASSIGN(size_t, 0xffffffff);
-            break;
+        case CL_DEVICE_MAX_WORK_GROUP_SIZE: {
+	    size_t wgsize = 0x40000000;
+	    char *str_wgsize = getenv("TI_OCL_WG_SIZE_LIMIT");
+	    if (str_wgsize)
+	    {
+	       size_t env_wgsize = atoi(str_wgsize);
+	       if (env_wgsize > 0 && env_wgsize < 0x40000000)
+		  wgsize = env_wgsize;
+	    }
+            SIMPLE_ASSIGN(size_t, wgsize); 
+            break;                           }
 
         case CL_DEVICE_MAX_WORK_ITEM_SIZES:
-            for (int i=0; i<MAX_WORK_DIMS; ++i)
-            {
-                work_dims[i] = 0xffffffff;
-            }
+            for (int i=0; i<MAX_WORK_DIMS; ++i) work_dims[i] = 0x40000000;
             value_length = MAX_WORK_DIMS * sizeof(size_t);
             value        = &work_dims;
             break;
@@ -431,7 +896,7 @@ cl_int DSPDevice::info(cl_device_info param_name,
             break;
 
         case CL_DEVICE_MAX_CLOCK_FREQUENCY:
-            SIMPLE_ASSIGN(cl_uint, dspMhz() * 1000000);
+            SIMPLE_ASSIGN(cl_uint, dspMhz());
             break;
 
         case CL_DEVICE_ADDRESS_BITS:
@@ -446,8 +911,12 @@ cl_int DSPDevice::info(cl_device_info param_name,
             SIMPLE_ASSIGN(cl_uint, 0);          // images not supported
             break;
 
+        /*---------------------------------------------------------------------
+        * Capped at 1GB, primarily because that is the max buffer that can be 
+        * mapped into DSP addr space using mpax.
+        *--------------------------------------------------------------------*/
         case CL_DEVICE_MAX_MEM_ALLOC_SIZE:
-            SIMPLE_ASSIGN(cl_ulong, DDR_LENGTH);
+            SIMPLE_ASSIGN(cl_ulong, std::min(p_device_ddr_heap1.size(), (cl_ulong)1ul << 30)); 
             break;
 
         case CL_DEVICE_IMAGE2D_MAX_WIDTH:
@@ -475,7 +944,7 @@ cl_int DSPDevice::info(cl_device_info param_name,
             break;
 
         case CL_DEVICE_MAX_PARAMETER_SIZE:
-            SIMPLE_ASSIGN(size_t, 1024);       // ASW TODO
+            SIMPLE_ASSIGN(size_t, 1024);
             break;
 
         case CL_DEVICE_MAX_SAMPLERS:
@@ -483,20 +952,24 @@ cl_int DSPDevice::info(cl_device_info param_name,
             break;
 
         case CL_DEVICE_MEM_BASE_ADDR_ALIGN:
-            SIMPLE_ASSIGN(cl_uint, 64);
+            SIMPLE_ASSIGN(cl_uint, 1024);       // 128 byte aligned
             break;
 
         case CL_DEVICE_MIN_DATA_TYPE_ALIGN_SIZE:
-            SIMPLE_ASSIGN(cl_uint, 64);
+            SIMPLE_ASSIGN(cl_uint, 128);
             break;
 
         case CL_DEVICE_SINGLE_FP_CONFIG:
-            // ASW TODO: 
-            SIMPLE_ASSIGN(cl_device_fp_config,
-                          CL_FP_DENORM |
-                          CL_FP_INF_NAN |
-                          CL_FP_ROUND_TO_NEAREST);
+           SIMPLE_ASSIGN(cl_device_fp_config, 
+                    CL_FP_ROUND_TO_NEAREST | CL_FP_ROUND_TO_ZERO |
+                    CL_FP_ROUND_TO_INF | CL_FP_INF_NAN );
             break;
+
+        case CL_DEVICE_DOUBLE_FP_CONFIG:
+            SIMPLE_ASSIGN(cl_device_fp_config,
+                    CL_FP_FMA | CL_FP_ROUND_TO_NEAREST | CL_FP_ROUND_TO_ZERO |
+                    CL_FP_ROUND_TO_INF | CL_FP_INF_NAN | CL_FP_DENORM);
+           break;
 
         case CL_DEVICE_GLOBAL_MEM_CACHE_TYPE:
             SIMPLE_ASSIGN(cl_device_mem_cache_type, CL_READ_WRITE_CACHE);
@@ -507,15 +980,52 @@ cl_int DSPDevice::info(cl_device_info param_name,
             break;
 
         case CL_DEVICE_GLOBAL_MEM_CACHE_SIZE:
-            SIMPLE_ASSIGN(cl_ulong, 256*1024);
+            SIMPLE_ASSIGN(cl_ulong, 128*1024);
             break;
 
         case CL_DEVICE_GLOBAL_MEM_SIZE:
-            SIMPLE_ASSIGN(cl_ulong, DDR_LENGTH);
+            SIMPLE_ASSIGN(cl_ulong, p_device_ddr_heap1.size());
+            break;
+            
+        case CL_DEVICE_GLOBAL_EXT1_MEM_SIZE_TI:
+            SIMPLE_ASSIGN(cl_ulong, p_device_ddr_heap2.size());
+            break;
+
+        case CL_DEVICE_GLOBAL_EXT2_MEM_SIZE_TI:
+            SIMPLE_ASSIGN(cl_ulong, p_device_ddr_heap3.size());
+            break;
+
+        case CL_DEVICE_MSMC_MEM_SIZE_TI:
+            SIMPLE_ASSIGN(cl_ulong, p_device_msmc_heap.size());
+            break;
+
+        case CL_DEVICE_GLOBAL_MEM_MAX_ALLOC_TI:
+            p_device_ddr_heap1.max_block_size(maxblock, dummy);
+            SIMPLE_ASSIGN(cl_ulong, maxblock);
+            break;
+
+        case CL_DEVICE_GLOBAL_EXT1_MEM_MAX_ALLOC_TI:
+            p_device_ddr_heap2.max_block_size(maxblock, dummy);
+            SIMPLE_ASSIGN(cl_ulong, maxblock);
+            break;
+
+        case CL_DEVICE_GLOBAL_EXT2_MEM_MAX_ALLOC_TI:
+            p_device_ddr_heap3.max_block_size(maxblock, dummy);
+            SIMPLE_ASSIGN(cl_ulong, maxblock);
+            break;
+
+        case CL_DEVICE_MSMC_MEM_MAX_ALLOC_TI:
+            p_device_msmc_heap.max_block_size(maxblock, dummy);
+            SIMPLE_ASSIGN(cl_ulong, maxblock);
+            break;
+
+        case CL_DEVICE_LOCAL_MEM_MAX_ALLOC_TI:
+            p_device_l2_heap.max_block_size(maxblock, dummy);
+            SIMPLE_ASSIGN(cl_ulong, maxblock);
             break;
 
         case CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE:
-            SIMPLE_ASSIGN(cl_ulong, DDR_LENGTH);
+            SIMPLE_ASSIGN(cl_ulong, 1<<20);
             break;
 
         case CL_DEVICE_MAX_CONSTANT_ARGS:
@@ -527,16 +1037,22 @@ cl_int DSPDevice::info(cl_device_info param_name,
             break;
 
         case CL_DEVICE_LOCAL_MEM_SIZE:
-            SIMPLE_ASSIGN(cl_ulong, L2_LENGTH);
+            {
+            cl_ulong size = p_device_l2_heap.size();
+            SIMPLE_ASSIGN(cl_ulong, size);
             break;
+            }
 
         case CL_DEVICE_ERROR_CORRECTION_SUPPORT:
-            // ASW TODO - check answer
-            SIMPLE_ASSIGN(cl_bool, CL_FALSE);
+            SIMPLE_ASSIGN(cl_bool, CL_TRUE);
             break;
 
         case CL_DEVICE_HOST_UNIFIED_MEMORY:
+#ifdef DSPC868X
             SIMPLE_ASSIGN(cl_bool, CL_FALSE);
+#else
+            SIMPLE_ASSIGN(cl_bool, CL_TRUE);
+#endif
             break;
 
         case CL_DEVICE_PROFILING_TIMER_RESOLUTION:
@@ -566,8 +1082,7 @@ cl_int DSPDevice::info(cl_device_info param_name,
             break;
 
         case CL_DEVICE_NAME:
-            // ASW TODO add device number suffix
-            STRING_ASSIGN("TMS320C6678 DSP");
+            STRING_ASSIGN("TI Multicore C66 DSP");
             break;
 
         case CL_DEVICE_VENDOR:
@@ -587,12 +1102,27 @@ cl_int DSPDevice::info(cl_device_info param_name,
             break;
 
         case CL_DEVICE_EXTENSIONS:
-            STRING_ASSIGN("cl_khr_byte_addressable_store"
-                          " cl_khr_fp64")
+            if (getenv("TI_OCL_ENABLE_FP64"))
+                STRING_ASSIGN("cl_khr_byte_addressable_store"
+                              " cl_khr_global_int32_base_atomics"
+                              " cl_khr_global_int32_extended_atomics"
+                              " cl_khr_local_int32_base_atomics"
+                              " cl_khr_local_int32_extended_atomics"
+                              " cl_khr_fp64"
+                              " cl_ti_msmc_buffers"
+                              " cl_ti_clmalloc")
+            else
+                STRING_ASSIGN("cl_khr_byte_addressable_store"
+                              " cl_khr_global_int32_base_atomics"
+                              " cl_khr_global_int32_extended_atomics"
+                              " cl_khr_local_int32_base_atomics"
+                              " cl_khr_local_int32_extended_atomics"
+                              " cl_ti_msmc_buffers"
+                              " cl_ti_clmalloc")
             break;
 
         case CL_DEVICE_PLATFORM:
-            SIMPLE_ASSIGN(cl_platform_id, 0);
+            SIMPLE_ASSIGN(cl_platform_id, &the_platform::Instance());
             break;
 
         case CL_DEVICE_PREFERRED_VECTOR_WIDTH_HALF:
@@ -648,133 +1178,15 @@ cl_int DSPDevice::info(cl_device_info param_name,
 }
 
 /******************************************************************************
-* find_next_dim_use
-******************************************************************************/
-static int find_next_dim_use(const std::string& kbody, int& start, int stop)
-{
-    int pos1 = kbody.find("get_global_id", start);
-    int pos2 = kbody.find("get_local_id", start);
-    int pos;
-
-    if      (pos1 == std::string::npos) pos = pos2;
-    else if (pos2 == std::string::npos) pos = pos1;
-    else                                pos = std::min(pos1, pos2);
-
-    if (pos == std::string::npos || pos > stop) return 0;
-
-    pos = kbody.find("(", pos);
-    pos = kbody.find_first_of("012)", pos);
-    start = pos+1;
-
-    switch (kbody.at(pos))
-    {
-        case '0': return 1;
-        case '1': return 2;
-        case '2': return 3;
-        default:  return 0;
-    }
-}
-
-/*-----------------------------------------------------------------------------
-* Search for all get_global_id and get_local_id calls to determine what 
-* dimensionality this kernel is written for.  This will be confused by comments
-* contatining those strings.  ASW TODO
-*----------------------------------------------------------------------------*/
-static int determine_dimensionality(const std::string& kbody, int start, int stop)
-{
-    int dims = 0;
-    int this_dim;
-
-    /*-------------------------------------------------------------------------
-    * Start is passed by reference and is updated as a side effect
-    * by the call to find_next_dim_use
-    *------------------------------------------------------------------------*/
-    while ((this_dim = find_next_dim_use(kbody, start, stop)) != 0)
-        dims = std::max(dims, this_dim);
-
-    return dims;
-}
-
-
-/******************************************************************************
-* static void work_group_aggregate(std::string& test)
-*
-* Find the opening '{' and closing '}' for all kernel functions. Replace the
-* opening '{' with "{LOOPS3" and the clogin '}' with "}}".  This will add the
-* three nested loop structure for work group aggregation.
-******************************************************************************/
-static void work_group_aggregate(std::string& test)
-{
-    const std::string indicator("kernel");
-    int pos0 = 0;
-    int pos1 = 0;
-    int input_size = test.size();
-
-    std::vector<int> kernel_open;
-    std::vector<int> kernel_close;
-
-    /*-------------------------------------------------------------------------
-    * Continue as long as we continue to find the string "kernel"
-    *------------------------------------------------------------------------*/
-    while (pos0 <  input_size &&
-          (pos1 = test.find(indicator, pos0)) != std::string::npos)
-    {
-        int pos2 = test.find("{", pos1 + indicator.size());
-        int nest_level = 1;
-        int pos3 = pos2+1;
-
-        for ( ; nest_level != 0 && pos3 < input_size; ++pos3)
-        {
-            char c = test[pos3];
-
-            if      (c == '{') nest_level++;
-            else if (c == '}') nest_level--;
-        }
-
-        pos0 = pos3;
-
-        /*---------------------------------------------------------------------
-        * pos2 will be the opening brace, pos3 willbe the closing brace
-        *--------------------------------------------------------------------*/
-        if (test[--pos3] == '}')
-        {
-            kernel_open.push_back(pos2);
-            kernel_close.push_back(pos3);
-        }
-    }
-
-    /*-------------------------------------------------------------------------
-    * We cached the positions to replace and we work backwards to prevent a
-    * replacement from invalidating our other found positions.
-    *------------------------------------------------------------------------*/
-    for (int i = kernel_close.size()-1; i >= 0; --i)
-    {
-        int dims = determine_dimensionality(test, kernel_open[i], kernel_close[i]);
-        std::string opening_replacement("{");
-        std::string closing_replacement("}");
-
-        if (dims > 0) closing_replacement = "}}";
-
-        switch (dims)
-        {
-            case 3: opening_replacement = "{LOOPS3{"; break;
-            case 2: opening_replacement = "{LOOPS2{"; break;
-            case 1: opening_replacement = "{LOOPS1{"; break;
-            default: break;
-        }
-
-        test.replace(kernel_close[i], 1, closing_replacement);
-        test.replace(kernel_open[i], 1, opening_replacement);
-    }
-}
-
-
-
-/******************************************************************************
 * Call back functions from the target loader
 ******************************************************************************/
 extern "C"
 {
+
+static bool load_kernels_onchip()
+{
+   return (getenv("TI_OCL_LOAD_KERNELS_ONCHIP") != NULL);
+}
 
 /*****************************************************************************/
 /* DLIF_ALLOCATE() - Return the load address of the segment/section          */
@@ -790,7 +1202,20 @@ BOOL DLIF_allocate(void* client_handle, struct DLOAD_MEMORY_REQUEST *targ_req)
    /*------------------------------------------------------------------------*/
    struct DLOAD_MEMORY_SEGMENT* obj_desc = targ_req->segment;
 
-   uint32_t addr = (uint32_t)device->malloc_code(obj_desc->memsz_in_bytes);
+   uint32_t addr;
+
+   if (obj_desc->target_address >> 20 == 0x008)
+        addr = (uint32_t)device->malloc_local (obj_desc->memsz_in_bytes);
+   else if ((obj_desc->target_address >> 24 == 0x0C) || load_kernels_onchip())
+        addr = (uint32_t)device->malloc_msmc  (obj_desc->memsz_in_bytes);
+   else addr = (uint32_t)device->malloc_global(obj_desc->memsz_in_bytes);
+
+#if DEBUG
+   printf("DLIF_allocate: %d bytes starting at 0x%x (relocated from 0x%x)\n",
+                      obj_desc->memsz_in_bytes, (uint32_t)addr, 
+                      (uint32_t)obj_desc->target_address);
+#endif
+
    obj_desc->target_address = (TARGET_ADDRESS) addr;
 
    /*------------------------------------------------------------------------*/
@@ -806,12 +1231,82 @@ BOOL DLIF_allocate(void* client_handle, struct DLOAD_MEMORY_REQUEST *targ_req)
 BOOL DLIF_release(void* client_handle, struct DLOAD_MEMORY_SEGMENT* ptr)
 {
    DSPDevice* device = (DSPDevice*) client_handle;
-   device->free_code((DSPDevicePtr)ptr->target_address);
 
+   if (ptr->target_address >> 20 == 0x008)
+        device->free_local ((DSPDevicePtr)ptr->target_address);
+   else if ((ptr->target_address >> 24 == 0x0C) || load_kernels_onchip())
+        device->free_msmc  ((DSPDevicePtr)ptr->target_address);
+   else device->free_global((DSPDevicePtr)ptr->target_address);
+
+#if DEBUG
    printf("DLIF_free: %d bytes starting at 0x%x\n",
                       ptr->memsz_in_bytes, (uint32_t)ptr->target_address);
+#endif
 
    return 1;
+}
+
+/*****************************************************************************/
+/* DLIF_WRITE() - Write updated (relocated) segment contents to target       */
+/*      memory.                                                              */
+/*****************************************************************************/
+BOOL DLIF_write(void* client_handle, struct DLOAD_MEMORY_REQUEST* req)
+{
+   struct DLOAD_MEMORY_SEGMENT* obj_desc = req->segment;
+   DSPDevice* device = (DSPDevice*) client_handle;
+   int dsp_id = device->dspID();
+
+   Driver::instance()->write (dsp_id,
+                         (uint32_t)obj_desc->target_address,
+                         (uint8_t*)req->host_address,
+                         obj_desc->memsz_in_bytes);
+
+#if DEBUG
+    printf("DLIF_write (dsp:%d): %d bytes starting at 0x%x\n",
+               dsp_id, obj_desc->memsz_in_bytes, 
+               (uint32_t)obj_desc->target_address);
+#endif
+    
+    extern DSPProgram::segment_list *segments;
+
+    if (segments) segments->push_back
+        (DSPProgram::seg_desc((DSPDevicePtr)obj_desc->target_address, obj_desc->memsz_in_bytes, req->flags));
+
+    return 1;
+}
+
+/******************************************************************************
+* DLIF_LOAD_DEPENDENT() 
+******************************************************************************/
+int DLIF_load_dependent(void* client_handle, const char* so_name)
+{
+   DSPDevice* device = (DSPDevice*) client_handle;
+   FILE* fp = fopen(so_name, "rb");
+   
+   if (!fp)
+   {
+      DLIF_error(DLET_FILE, "Can't open dependent file '%s'.\n", so_name);
+      return 0;
+   }
+
+   int to_ret = DLOAD_load(device->dload_handle(), fp);
+
+   if (!to_ret)  
+       DLIF_error(DLET_MISC, "Failed load of dependent file '%s'.\n", so_name);
+
+   fclose(fp);
+   return to_ret;
+}
+
+/******************************************************************************
+* DLIF_UNLOAD_DEPENDENT() 
+******************************************************************************/
+void DLIF_unload_dependent(void* client_handle, uint32_t file_handle)
+{
+   DSPDevice* device = (DSPDevice*) client_handle;
+   DLOAD_unload(device->dload_handle(), file_handle);
+}
+
 }
 
 void dump_hex(char *addr, int bytes)
@@ -830,35 +1325,5 @@ void dump_hex(char *addr, int bytes)
     }
 }
 
-/*****************************************************************************/
-/* DLIF_WRITE() - Write updated (relocated) segment contents to target       */
-/*      memory.                                                              */
-/*****************************************************************************/
-BOOL DLIF_write(void* client_handle, struct DLOAD_MEMORY_REQUEST* req)
-{
-   struct DLOAD_MEMORY_SEGMENT* obj_desc = req->segment;
-   DSPDevice* device = (DSPDevice*) client_handle;
-   int dsp_id = device->dspID();
 
-   Driver::instance()->dma_write (dsp_id,
-                         (uint32_t)obj_desc->target_address,
-                         (uint8_t*)req->host_address,
-                         obj_desc->memsz_in_bytes);
 
-#if DEBUG
-    printf("DLIF_write (dsp:%d): %d bytes starting at 0x%x\n",
-               dsp_id, obj_desc->memsz_in_bytes, 
-               (uint32_t)obj_desc->target_address);
-
-    dump_hex((char*)req->host_address, obj_desc->memsz_in_bytes);
-#endif
-    
-    extern DSPProgram::segment_list *segments;
-
-    if (segments) segments->push_back
-        (DSPProgram::seg_desc((DSPDevicePtr)obj_desc->target_address, obj_desc->memsz_in_bytes));
-
-    return 1;
-}
-
-}

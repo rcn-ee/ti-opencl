@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011, Denis Steckelmacher <steckdenis@yahoo.fr>
+ * Copyright (c) 2012-2014, Texas Instruments Incorporated - http://www.ti.com/
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -54,6 +55,8 @@ BufferEvent::BufferEvent(CommandQueue *parent,
 : Event(parent, Queued, num_events_in_wait_list, event_wait_list, errcode_ret),
   p_buffer(buffer)
 {
+    clRetainMemObject((cl_mem) p_buffer);
+
     if (*errcode_ret != CL_SUCCESS) return;
 
     // Correct buffer
@@ -97,6 +100,11 @@ BufferEvent::BufferEvent(CommandQueue *parent,
     }
 }
 
+BufferEvent::~BufferEvent()
+{
+    clReleaseMemObject((cl_mem) p_buffer);
+}
+
 MemObject *BufferEvent::buffer() const
 {
     return p_buffer;
@@ -118,9 +126,7 @@ bool BufferEvent::isSubBufferAligned(const MemObject *buffer,
         return false;
 
     size_t mask = 0;
-
-    for (cl_uint i=0; i<align; ++i)
-        mask = 1 | (mask << 1);
+    if (align != 0) mask = (align >> 3) - 1;  // align in bits, offset in bytes
 
     if (((SubBuffer *)buffer)->offset() & mask)
         return false;
@@ -228,6 +234,17 @@ MapBufferEvent::MapBufferEvent(CommandQueue *parent,
     if (offset + cb > buffer->size())
     {
         *errcode_ret = CL_INVALID_VALUE;
+        return;
+    }
+
+    // check conflict between map flags and buffer flags
+    cl_mem_flags buf_flags = buffer->flags();
+    if (   ((map_flags & CL_MAP_READ)
+            && (buf_flags & (CL_MEM_HOST_WRITE_ONLY | CL_MEM_HOST_NO_ACCESS)))
+        || ((map_flags & CL_MAP_WRITE)
+            && (buf_flags & (CL_MEM_HOST_READ_ONLY | CL_MEM_HOST_NO_ACCESS))) )
+    {
+        *errcode_ret = CL_INVALID_OPERATION;
         return;
     }
 }
@@ -413,6 +430,8 @@ CopyBufferEvent::CopyBufferEvent(CommandQueue *parent,
               errcode_ret), p_destination(destination), p_src_offset(src_offset),
   p_dst_offset(dst_offset), p_cb(cb)
 {
+    clRetainMemObject((cl_mem) p_destination);
+
     if (*errcode_ret != CL_SUCCESS) return;
 
     if (!destination)
@@ -460,6 +479,11 @@ CopyBufferEvent::CopyBufferEvent(CommandQueue *parent,
         *errcode_ret = CL_MEM_OBJECT_ALLOCATION_FAILURE;
         return;
     }
+}
+
+CopyBufferEvent::~CopyBufferEvent()
+{
+    clReleaseMemObject((cl_mem) p_destination);
 }
 
 MemObject *CopyBufferEvent::source() const
@@ -633,6 +657,8 @@ KernelEvent::KernelEvent(CommandQueue *parent,
 : Event(parent, Queued, num_events_in_wait_list, event_wait_list, errcode_ret),
   p_work_dim(work_dim), p_kernel(kernel)
 {
+    clRetainKernel((cl_kernel) p_kernel);
+
     if (*errcode_ret != CL_SUCCESS) return;
 
     *errcode_ret = CL_SUCCESS;
@@ -699,8 +725,38 @@ KernelEvent::KernelEvent(CommandQueue *parent,
 
     // Populate work_offset, work_size and local_work_size
     size_t work_group_size = 1;
+    boost::tuple <uint,uint,uint> reqd_work_group_size(
+                kernel->reqdWorkGroupSize(kernel->deviceDependentModule(device)));
 
-    for (cl_uint i=0; i<work_dim; ++i)
+    uint reqd_x = reqd_work_group_size.get<0>();
+    uint reqd_y = reqd_work_group_size.get<1>();
+    uint reqd_z = reqd_work_group_size.get<2>();
+    bool reqd_any = reqd_x > 0 || reqd_y > 0 || reqd_z > 0;
+
+    if (reqd_any)
+    {
+        // if __attribute__((reqd_work_group_size(X, Y, Z))) is set and local size not specified
+        if (!local_work_size)
+        {
+            *errcode_ret = CL_INVALID_WORK_GROUP_SIZE;
+            return;
+        }
+
+        // if __attribute__((reqd_work_group_size(X, Y, Z))) doesn't match
+        else 
+        {
+            if ((                local_work_size[0] != reqd_x) ||
+                (work_dim > 1 && local_work_size[1] != reqd_y) ||
+                (work_dim > 2 && local_work_size[2] != reqd_z))
+            {
+                *errcode_ret = CL_INVALID_WORK_GROUP_SIZE;
+                return;
+            }
+        }
+    }
+
+    cl_uint i;
+    for (i=0; i<work_dim; ++i)
     {
         if (global_work_offset)
         {
@@ -722,9 +778,6 @@ KernelEvent::KernelEvent(CommandQueue *parent,
             // Guess the best value according to the device
             p_local_work_size[i] =
                 p_dev_kernel->guessWorkGroupSize(work_dim, i, global_work_size[i]);
-
-            // TODO: CL_INVALID_WORK_GROUP_SIZE if
-            // __attribute__((reqd_work_group_size(X, Y, Z))) is set
         }
         else
         {
@@ -742,12 +795,16 @@ KernelEvent::KernelEvent(CommandQueue *parent,
                 return;
             }
 
-            // TODO: CL_INVALID_WORK_GROUP_SIZE if
-            // __attribute__((reqd_work_group_size(X, Y, Z))) doesn't match
-
             p_local_work_size[i] = local_work_size[i];
             work_group_size *= local_work_size[i];
         }
+    }
+    // initialize missing dimensions
+    for (; i < max_dims; i++)
+    {
+        p_global_work_offset[i]  = 0;
+        p_global_work_size[i]    = 1;
+        p_local_work_size[i]     = 1;
     }
 
     // Check we don't ask too much to the device
@@ -762,7 +819,7 @@ KernelEvent::KernelEvent(CommandQueue *parent,
     {
         const Kernel::Arg &a = kernel->arg(i);
 
-        if (a.kind() == Kernel::Arg::Buffer)
+        if (a.kind() == Kernel::Arg::Buffer && a.file() != Kernel::Arg::Local)
         {
             const MemObject *buffer = *(const MemObject **)(a.value(0));
 
@@ -818,7 +875,7 @@ KernelEvent::KernelEvent(CommandQueue *parent,
 
 KernelEvent::~KernelEvent()
 {
-
+    clReleaseKernel((cl_kernel) p_kernel);
 }
 
 cl_uint KernelEvent::work_dim() const
@@ -890,25 +947,6 @@ Event::Type UserEvent::type() const
 Context *UserEvent::context() const
 {
     return p_context;
-}
-
-void UserEvent::addDependentCommandQueue(CommandQueue *queue)
-{
-    std::vector<CommandQueue *>::const_iterator it;
-
-    for (it = p_dependent_queues.begin(); it != p_dependent_queues.end(); ++it)
-        if (*it == queue)
-            return;
-
-    p_dependent_queues.push_back(queue);
-}
-
-void UserEvent::flushQueues()
-{
-    std::vector<CommandQueue *>::const_iterator it;
-
-    for (it = p_dependent_queues.begin(); it != p_dependent_queues.end(); ++it)
-        (*it)->pushEventsOnDevice();
 }
 
 /*

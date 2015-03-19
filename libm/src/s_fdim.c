@@ -43,4 +43,4 @@ fn(type x, type y)			\
 
 DECL(double, fdim)
 DECL(float, fdimf)
-DECL(long double, fdiml)
+//DECL(long double, fdiml)

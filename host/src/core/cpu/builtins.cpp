@@ -46,7 +46,7 @@
 #include <sys/mman.h>
 #include <signal.h>
 
-#include <llvm/Function.h>
+#include <llvm/IR/Function.h>
 
 #include <iostream>
 #include <cstring>
@@ -173,7 +173,7 @@ void CPUKernelWorkGroup::barrier(unsigned int flags)
             // Completely abnormal, it means that not every work-items
             // encounter the barrier
             std::cerr << "*** Not every work-items of "
-                      << p_kernel->function()->getNameStr()
+                      << p_kernel->function()->getName().str()
                       << " calls barrier(); !" << std::endl;
             return;
         }
@@ -251,7 +251,7 @@ void CPUKernelWorkGroup::barrier(unsigned int flags)
 void CPUKernelWorkGroup::builtinNotFound(const std::string &name) const
 {
     std::cout << "OpenCL: Non-existant builtin function " << name
-              << " found in kernel " << p_kernel->function()->getNameStr()
+              << " found in kernel " << p_kernel->function()->getName().str()
               << '.' << std::endl;
 }
 

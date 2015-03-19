@@ -22,6 +22,12 @@
 #include "openlibm.h"
 #include "math_private.h"
 
+#if _TMS320C6X
+#define FTZ 1
+#else
+#define FTZ 0
+#endif
+
 static const float
 TWO23[2]={
   8.3886080000e+06, /* 0x4b000000 */
@@ -34,6 +40,9 @@ rintf(float x)
 	int32_t i0,j0,sx;
 	float w,t;
 	GET_FLOAT_WORD(i0,x);
+#if FTZ
+        if (((i0>>23)&0xFF) == 0) return 0.0f; /* flush Denormalized to zero */
+#endif
 	sx = (i0>>31)&1;
 	j0 = ((i0>>23)&0xff)-0x7f;
 	if(j0<23) {

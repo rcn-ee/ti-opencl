@@ -1,6 +1,8 @@
 /******************************************************************************
 * The Loki Library
 * Copyright (c) 2001 by Andrei Alexandrescu
+* Copyright (c) 2010-2014, Texas Instruments Incorporated
+*
 * This code accompanies the book:
 * Alexandrescu, Andrei. "Modern C++ Design: Generic Programming and Design
 *     Patterns Applied". Copyright (c) 2001. Addison-Wesley.
@@ -15,14 +17,6 @@
 
 /**************************************************************************//**
 *
-*  Copyright (c) 2010, Texas Instruments Incorporated
-*
-*  All rights reserved. Property of Texas Instruments Incorporated.
-*  Restricted rights to use, duplicate or disclose this code are
-*  granted through contract.
-*
-*  ============================================================================
-*
 *  @file    u_lockable.h
 *
 *  @brief   Defines a base class that provides a derived class with a Lock type.
@@ -31,7 +25,7 @@
 *
 *  @note    The Locakable class is a modified version of the ObjectLevelLockable
 *           class from the LOKI library.  The copyright from that library is 
-*           also included at the bottom of this file. 
+*           included at the top of this file. 
 *
 ******************************************************************************/
 #ifndef _U_LOCKABLE_H_

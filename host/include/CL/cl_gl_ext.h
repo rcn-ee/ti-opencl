@@ -1,4 +1,4 @@
-/**********************************************************************************
+/******************************************************************************
  * Copyright (c) 2008-2010 The Khronos Group Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
@@ -19,9 +19,9 @@
  * CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
- **********************************************************************************/
+ ******************************************************************************/
 
-/* $Revision: 1.1.1.1 $ on $Date: 2012/04/03 20:36:04 $ */
+/* $Revision: 11708 $ on $Date: 2010-06-13 23:36:24 -0700 (Sun, 13 Jun 2010) $ */
 
 /* cl_gl_ext.h contains vendor (non-KHR) OpenCL extensions which have           */
 /* OpenGL dependencies.                                                         */
@@ -41,8 +41,8 @@ extern "C" {
 
 /*
  * For each extension, follow this template
- * /* cl_VEN_extname extension  */
-/* #define cl_VEN_extname 1
+ * // cl_VEN_extname extension
+ * #define cl_VEN_extname 1
  * ... define new types, if any
  * ... define new tokens, if any
  * ... define new APIs, if any

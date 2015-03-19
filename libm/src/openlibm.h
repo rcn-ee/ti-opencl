@@ -44,13 +44,15 @@ extern const union __nan_un {
 */
 
 //VBS begin
-#define __MATH_BUILTIN_CONSTANTS
-#define	__MATH_BUILTIN_RELOPS
+//#define __MATH_BUILTIN_CONSTANTS
+//#define	__MATH_BUILTIN_RELOPS
 #define __ISO_C_VISIBLE 1999
 //VBS end
 
 #ifdef __MATH_BUILTIN_CONSTANTS
 #define	HUGE_VAL	__builtin_huge_val()
+#elif _TMS320C6X
+#define	HUGE_VAL	_itod(0x7FF00000,0x00000000)
 #else
 #define	HUGE_VAL	(__infinity.__ud)
 #endif
@@ -64,6 +66,11 @@ extern const union __nan_un {
 #define	HUGE_VALL	__builtin_huge_vall()
 #define	INFINITY	__builtin_inff()
 #define	NAN		__builtin_nanf("")
+#elif _TMS320C6X
+#define	HUGE_VALF	_itof(0x7F800000)
+#define	HUGE_VALL	(long double)HUGE_VAL
+#define	INFINITY	HUGE_VALF
+#define	NAN		_itof(0x7FC00000)
 #else
 #define	HUGE_VALF	(float)HUGE_VAL
 #define	HUGE_VALL	(long double)HUGE_VAL

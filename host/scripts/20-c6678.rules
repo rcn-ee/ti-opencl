@@ -1,0 +1,6 @@
+ACTION=="remove", GOTO="c6678_end"
+
+SUBSYSTEM=="pci", RUN+="/bin/sh /etc/udev/rules.d/c6678_udev.sh /sys/$env{DEVPATH}"
+SUBSYSTEM=="cmem", RUN+="/bin/chmod ugo+rw /dev/cmem"
+
+LABEL="c6678_end"

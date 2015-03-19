@@ -26,7 +26,8 @@
  *   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  *   THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
-#include <clc.h>
+#include "clc.h"
+
 _CLC_OVERLOAD _CLC_DEF float3 cross(float3 p0, float3 p1) 
 {
    return (float3)(p0.y*p1.z - p0.z*p1.y, 

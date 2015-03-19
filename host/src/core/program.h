@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011, Denis Steckelmacher <steckdenis@yahoo.fr>
+ * Copyright (c) 2012-2014, Texas Instruments Incorporated - http://www.ti.com/
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -41,6 +42,7 @@
 
 namespace llvm
 {
+    class LLVMContext;
     class MemoryBuffer;
     class Module;
     class Function;
@@ -81,7 +83,7 @@ class Program : public Object
         {
             Invalid, /*!< Invalid or unknown, type of a program not already loaded */
             Source,  /*!< Program made of sources that must be compiled and linked */
-            Binary   /*!< Program made of pre-built binaries that only need to be linked */
+            Binary   /*!< Program made of pre-built binaries that only need to be (transformed)/linked */
         };
 
         /**
@@ -120,7 +122,8 @@ class Program : public Object
          * (after a restart for example) by giving it a precompiled binary.
          * 
          * This function loads the binaries for each device and parse them into
-         * LLVM modules, then sets the program type to \c Binary.
+         * LLVM modules, then sets the program type to \c Binary or
+         * \c NativeBinary.
          * 
          * \param data array of pointers to binaries, one for each device
          * \param lengths lengths of the binaries pointed to by \p data
@@ -202,16 +205,22 @@ class Program : public Object
                          void *param_value,
                          size_t *param_value_size_ret) const;
 
+         std::string source() { return p_source; }
+
     private:
         Type        p_type;
         State       p_state;
         std::string p_source;
+
+        llvm::LLVMContext   * p_llvmcontext;
 
         struct DeviceDependent
         {
             DeviceInterface * device;
             DeviceProgram   * program;
             std::string       unlinked_binary;
+            bool              is_native_binary; // llvm kernel bitcode vs final native binary
+            char            * native_binary_filename;  // if file exist already
             llvm::Module    * linked_module;
             Compiler        * compiler;
         };
@@ -220,6 +229,7 @@ class Program : public Object
         DeviceDependent              p_null_device_dependent;
 
         void setDevices(cl_uint num_devices, DeviceInterface * const*devices);
+	void resetDeviceDependent();
         DeviceDependent &deviceDependent(DeviceInterface *device);
         const DeviceDependent &deviceDependent(DeviceInterface *device) const;
         std::vector<llvm::Function *> kernelFunctions(DeviceDependent &dep);

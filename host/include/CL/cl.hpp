@@ -2423,6 +2423,9 @@ public:
     {
         cl_int error;
         const ::size_t n = binaries.size();
+        if (n != devices.size())
+            detail::errHandler(CL_INVALID_BINARY, 
+                               "Number of binaries != Number of devices!");
         ::size_t* lengths = (::size_t*) alloca(n * sizeof(::size_t));
         const unsigned char** images = (const unsigned char**) alloca(n * sizeof(const void*));
 

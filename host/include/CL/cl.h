@@ -21,7 +21,7 @@
  * MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
  ******************************************************************************/
 
-/* $Revision: 1.1.1.1 $ on $Date: 2012/04/03 20:36:04 $ */
+/* $Revision: 11985 $ on $Date: 2010-07-15 11:16:06 -0700 (Thu, 15 Jul 2010) $ */
 
 #ifndef __OPENCL_CL_H
 #define __OPENCL_CL_H
@@ -221,7 +221,7 @@ typedef struct _cl_buffer_region {
 #define CL_DEVICE_VERSION                           0x102F
 #define CL_DEVICE_EXTENSIONS                        0x1030
 #define CL_DEVICE_PLATFORM                          0x1031
-/* 0x1032 reserved for CL_DEVICE_DOUBLE_FP_CONFIG */
+#define CL_DEVICE_DOUBLE_FP_CONFIG                  0x1032 
 /* 0x1033 reserved for CL_DEVICE_HALF_FP_CONFIG */
 #define CL_DEVICE_PREFERRED_VECTOR_WIDTH_HALF       0x1034
 #define CL_DEVICE_HOST_UNIFIED_MEMORY               0x1035
@@ -959,7 +959,7 @@ clEnqueueTask(cl_command_queue  /* command_queue */,
 
 extern CL_API_ENTRY cl_int CL_API_CALL
 clEnqueueNativeKernel(cl_command_queue  /* command_queue */,
-					  void (*user_func)(void *), 
+					  void (CL_CALLBACK *user_func)(void *), 
                       void *            /* args */,
                       size_t            /* cb_args */, 
                       cl_uint           /* num_mem_objects */,

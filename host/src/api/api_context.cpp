@@ -1,5 +1,7 @@
 /*
  * Copyright (c) 2011, Denis Steckelmacher <steckdenis@yahoo.fr>
+ * Copyright (c) 2012-2014, Texas Instruments Incorporated - http://www.ti.com/
+ *
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,8 +34,8 @@
 
 #include <CL/cl.h>
 #include <core/context.h>
+#include <core/platform.h>
 #include <stdlib.h>
-#include "api_platform.h"
 
 // Context APIs
 
@@ -81,15 +83,21 @@ clCreateContextFromType(const cl_context_properties   *properties,
                         cl_int *                errcode_ret)
 {
     cl_device_id* devices;
-    cl_uint      num_devices;
+    cl_uint       num_devices;
+    cl_int        default_errcode_ret;
 
-    *errcode_ret = clGetDeviceIDs(PLATFORM_ID, device_type, 0, NULL, &num_devices);
+    // No errcode_ret ?
+    if (!errcode_ret) errcode_ret = &default_errcode_ret;
+
+    *errcode_ret = clGetDeviceIDs(&the_platform::Instance(), device_type, 0, NULL, 
+                                  &num_devices);
     if (!num_devices) { *errcode_ret = CL_INVALID_DEVICE; return NULL; }
 
     devices = (cl_device_id*) malloc(num_devices * sizeof(cl_device_id));
     if (!devices) { *errcode_ret = CL_OUT_OF_HOST_MEMORY; return NULL; }
 
-    *errcode_ret = clGetDeviceIDs(PLATFORM_ID, device_type, num_devices, devices, 0);
+    *errcode_ret = clGetDeviceIDs(&the_platform::Instance(), device_type, num_devices, 
+                                   devices, 0);
 
     if (*errcode_ret != CL_SUCCESS) { free (devices); return NULL; }
 

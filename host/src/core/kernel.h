@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011, Denis Steckelmacher <steckdenis@yahoo.fr>
+ * Copyright (c) 2012-2014, Texas Instruments Incorporated - http://www.ti.com/
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -36,9 +37,11 @@
 #include "object.h"
 
 #include <CL/cl.h>
+#include <CL/cl_ext.h>
 
 #include <vector>
 #include <string>
+#include <boost/tuple/tuple.hpp>
 
 namespace llvm
 {
@@ -88,9 +91,16 @@ class Kernel : public Object
                 enum File
                 {
                     Private = 0,  /*!< \brief __private */
+#if 1
                     Global = 1,   /*!< \brief __global */
-                    Local = 2,    /*!< \brief __local */
-                    Constant = 3  /*!< \brief __constant */
+                    Constant = 2, /*!< \brief __constant */
+                    Local = 3     /*!< \brief __local */
+#else
+                    /* using clang defaults */
+                    Global   = 0xFFFF00, /*!< \brief __global */
+                    Local    = 0xFFFF01, /*!< \brief __local */
+                    Constant = 0xFFFF02  /*!< \brief __constant */
+#endif
                 };
 
                 /**
@@ -117,7 +127,7 @@ class Kernel : public Object
                  * \param file \c File of the argument
                  * \param kind \c Kind of the argument
                  */
-                Arg(unsigned short vec_dim, File file, Kind kind);
+                Arg(unsigned short vec_dim, File file, Kind kind, bool is_subword_int_uns);
                 ~Arg();
 
                 /**
@@ -188,6 +198,7 @@ class Kernel : public Object
                 size_t allocAtKernelRuntime() const;           /*!< \brief Size of the \c __local buffer to allocate at kernel runtime */
                 const void *value(unsigned short index) const; /*!< \brief Pointer to the value of this argument, for the \p index vector element */
                 const void *data() const;                      /*!< \brief Pointer to the data of this arg, equivalent to <tt>value(0)</tt> */
+                bool is_subword_int_uns() const ;
 
             private:
                 unsigned short p_vec_dim;
@@ -196,6 +207,7 @@ class Kernel : public Object
                 void *p_data;
                 bool p_defined;
                 size_t p_runtime_alloc;
+                bool p_is_subword_int_uns;
         };
 
         /**
@@ -254,6 +266,7 @@ class Kernel : public Object
 
         /*! \brief \c Coal::DeviceKernel for the specified \p device */
         DeviceKernel *deviceDependentKernel(DeviceInterface *device) const;
+        llvm::Module *deviceDependentModule(DeviceInterface *device) const;
 
         bool argsSpecified() const;               /*!< \brief true if all the arguments have been set through \c setArg() */
         bool hasLocals() const;                   /*!< \brief true if one or more argument is in file \c Arg::Local */
@@ -267,6 +280,7 @@ class Kernel : public Object
                     void *param_value,
                     size_t *param_value_size_ret) const;
 
+
         /**
          * \brief Get performance hints and device-specific data about this kernel
          * \copydetails Coal::DeviceInterface::info
@@ -278,9 +292,14 @@ class Kernel : public Object
                              void *param_value,
                              size_t *param_value_size_ret) const;
 
+        boost::tuple<uint,uint,uint> reqdWorkGroupSize(llvm::Module *module) const;
+
+        int get_wi_alloca_size() { return wi_alloca_size; }
+
     private:
         std::string p_name;
         bool p_has_locals;
+        int wi_alloca_size;
 
         struct DeviceDependent
         {
@@ -296,6 +315,7 @@ class Kernel : public Object
 
         const DeviceDependent &deviceDependent(DeviceInterface *device) const;
         DeviceDependent &deviceDependent(DeviceInterface *device);
+
 };
 
 }

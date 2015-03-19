@@ -30,10 +30,13 @@
 
 START_TEST (test_create_context)
 {
-    cl_platform_id platform = 0;
     cl_device_id device, wrong_device;
     cl_int result;
     cl_context ctx;
+
+    cl_platform_id platform      = 0;
+    cl_uint        num_platforms = 0;
+    clGetPlatformIDs(1, &platform, &num_platforms);
 
     struct __attribute__((packed)) {
         cl_context_properties prop_platform;
@@ -185,8 +188,12 @@ START_TEST (test_get_context_info)
     // Use a real context and check the return values
     clReleaseContext(ctx);
 
+    cl_platform_id platform      = 0;
+    cl_uint        num_platforms = 0;
+    clGetPlatformIDs(1, &platform, &num_platforms);
+
     context_info.properties.prop_platform = CL_CONTEXT_PLATFORM;
-    context_info.properties.platform = 0;
+    context_info.properties.platform = platform;
     context_info.properties.null = 0;
 
     ctx = clCreateContextFromType(properties, CL_DEVICE_TYPE_DEFAULT, 0, 0,

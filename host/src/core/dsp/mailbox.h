@@ -1,3 +1,30 @@
+/******************************************************************************
+ * Copyright (c) 2013-2014, Texas Instruments Incorporated - http://www.ti.com/
+ *   All rights reserved.
+ *
+ *   Redistribution and use in source and binary forms, with or without
+ *   modification, are permitted provided that the following conditions are met:
+ *       * Redistributions of source code must retain the above copyright
+ *         notice, this list of conditions and the following disclaimer.
+ *       * Redistributions in binary form must reproduce the above copyright
+ *         notice, this list of conditions and the following disclaimer in the
+ *         documentation and/or other materials provided with the distribution.
+ *       * Neither the name of Texas Instruments Incorporated nor the
+ *         names of its contributors may be used to endorse or promote products
+ *         derived from this software without specific prior written permission.
+ *
+ *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ *   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+ *   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ *   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ *   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ *   SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ *   INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ *   CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ *   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+ *   THE POSSIBILITY OF SUCH DAMAGE.
+ *****************************************************************************/
 #ifndef _MAILBOX_H_
 #define _MAILBOX_H_
 #include "u_locks_pthread.h"
@@ -5,57 +32,78 @@
 
 extern "C"
 {
+#ifndef DSPC868X
+    #include "mpm_mailbox.h"
+#else
     #include "mailBox.h"
+    #define MPM_MAILBOX_ERR_FAIL                MAILBOX_ERR_FAIL
+    #define MPM_MAILBOX_ERR_MAIL_BOX_FULL       MAILBOX_ERR_MAIL_BOX_FULL
+    #define MPM_MAILB0X_ERR_EMPTY               MAILB0X_ERR_EMPTY
+    #define MPM_MAILBOX_READ_ERROR              MAILBOX_READ_ERROR
+    #define MPM_MAILBOX_MEMORY_LOCATION_REMOTE  MAILBOX_MEMORY_LOCATION_REMOTE
+    #define MPM_MAILBOX_DIRECTION_RECEIVE       MAILBOX_DIRECTION_RECEIVE
+    #define MPM_MAILBOX_DIRECTION_SEND          MAILBOX_DIRECTION_SEND
+    #define mpm_mailbox_config_t                mailBox_config_t
+    #define mpm_mailbox_create                  mailBox_create
+    #define mpm_mailbox_open                    mailBox_open
+    #define mpm_mailbox_write                   mailBox_write
+    #define mpm_mailbox_read                    mailBox_read
+    #define mpm_mailbox_query                   mailBox_query
+    #define mpm_mailbox_get_alloc_size          mailBox_get_alloc_size
+#endif
 }
 
 class Mailbox
 {
   public:
-    int32_t init(int32_t node_writer, int32_t node_reader)
+
+#ifdef DSPC868X
+    int32_t create(void* mbox_handle, uint32_t remote_node_id, 
+                   uint32_t mem_location, uint32_t direction, 
+                   mpm_mailbox_config_t *mbox_config)
     { 
-        Driver::instance()->reserve();
-        int32_t result = mailBox_init(node_writer, node_reader); 
-        Driver::instance()->release();
+       int32_t result = mpm_mailbox_create(mbox_handle, remote_node_id,
+                                        mem_location, direction, mbox_config);
+        return result;
+    }
+#else
+    int32_t create(void* mbox_handle, char *slave_node_name, 
+                   uint32_t mem_location, uint32_t direction, 
+                   mpm_mailbox_config_t *mbox_config)
+    { 
+       int32_t result = mpm_mailbox_create(mbox_handle, slave_node_name,
+                                        mem_location, direction, mbox_config);
+        return result;
+    }
+#endif
+
+    int32_t open(void* mbox_handle)
+    { 
+        int32_t result = mpm_mailbox_open(mbox_handle); 
         return result;
     }
 
-    int32_t create(int32_t node_writer, int32_t node_reader, int32_t mem_space, int32_t max_size, int32_t depth)
+    int32_t write (void* mbox_handle, uint8_t *buf, uint32_t size, 
+                   uint32_t trans_id)
     { 
-        Driver::instance()->reserve();
-        int32_t result = mailBox_create(node_writer, node_reader, mem_space, max_size, depth); 
-        Driver::instance()->release();
+        int result;
+
+        do result = mpm_mailbox_write (mbox_handle, buf, size, trans_id); 
+        while (result == MPM_MAILBOX_ERR_MAIL_BOX_FULL);
+
+        return true;
+    }
+
+    int32_t read (void* mbox_handle, uint8_t *buf, uint32_t *size, 
+                  uint32_t *trans_id)
+    { 
+        int32_t result = mpm_mailbox_read (mbox_handle, buf, size, trans_id); 
         return result;
     }
 
-    int32_t open(int32_t node_writer, int32_t node_reader)
+    int32_t query (void* mbox_handle)
     { 
-        Driver::instance()->reserve();
-        int32_t result = mailBox_open(node_writer, node_reader); 
-        Driver::instance()->release();
-        return result;
-    }
-
-    int32_t write (int32_t mailBox_id, uint8_t *buf, uint32_t size, uint32_t trans_id)
-    { 
-        Driver::instance()->reserve();
-        int32_t result = mailBox_write (mailBox_id, buf, size, trans_id); 
-        Driver::instance()->release();
-        return result;
-    }
-
-    int32_t read (int32_t mailBox_id, uint8_t *buf, uint32_t *size, uint32_t *trans_id)
-    { 
-        Driver::instance()->reserve();
-        int32_t result = mailBox_read (mailBox_id, buf, size, trans_id); 
-        Driver::instance()->release();
-        return result;
-    }
-
-    int32_t query (int32_t mailBox_id, uint32_t *read_cnt, uint32_t *write_cnt)
-    { 
-        Driver::instance()->reserve();
-        int32_t result = mailBox_query (mailBox_id, read_cnt, write_cnt); 
-        Driver::instance()->release();
+        int32_t result = mpm_mailbox_query (mbox_handle); 
         return result;
     }
 

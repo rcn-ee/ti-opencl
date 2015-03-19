@@ -33,8 +33,6 @@
 #ifndef __REFCOUNTED_H__
 #define __REFCOUNTED_H__
 
-#include <list>
-
 namespace Coal
 {
 
@@ -56,6 +54,7 @@ class Object
          */
         enum Type
         {
+            T_Invalid,      /* Invalid type */
             T_Device,       /*!< \brief \c Coal::DeviceInterface */
             T_CommandQueue, /*!< \brief \c Coal::CommandQueue */
             T_Event,        /*!< \brief \c Coal::Event */
@@ -121,10 +120,9 @@ class Object
         bool isA(Type type) const;
 
     private:
+        Type p_type;
         unsigned int p_references;
         Object *p_parent;
-        Type p_type;
-        std::list<Object *>::iterator p_it;
         bool p_release_parent;
 };
 

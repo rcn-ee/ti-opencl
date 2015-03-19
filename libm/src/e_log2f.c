@@ -43,7 +43,13 @@ __ieee754_log2f(float x)
 	    if ((hx&0x7fffffff)==0)
 		return -two25/zero;		/* log(+-0)=-inf */
 	    if (hx<0) return (x-x)/zero;	/* log(-#) = NaN */
-	    k -= 25; x *= two25; /* subnormal number, scale up x */
+	    k -= 25; 
+#if _TMS320C6X
+            float __fmpy_by_0x1p25(float);
+            x = __fmpy_by_0x1p25(x);
+#else
+            x *= two25; /* subnormal number, scale up x */
+#endif
 	    GET_FLOAT_WORD(hx,x);
 	}
 	if (hx >= 0x7f800000) return x+x;

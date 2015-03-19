@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011, Denis Steckelmacher <steckdenis@yahoo.fr>
+ * Copyright (c) 2012-2014, Texas Instruments Incorporated - http://www.ti.com/
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -13,10 +14,10 @@
  *       names of its contributors may be used to endorse or promote products
  *       derived from this software without specific prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL THE CONTRIBUTORS BE LIABLE FOR ANY
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE CONTRIBUTORS BE LIABLE FOR ANY
  * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
  * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
  * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
@@ -34,6 +35,7 @@
 #include "deviceinterface.h"
 
 #include <cstring>
+#include <cstdio>
 #include <string>
 #include <sstream>
 #include <iostream>
@@ -45,8 +47,11 @@
 #include <llvm/ADT/SmallVector.h>
 #include <llvm/Support/Host.h>
 #include <llvm/Support/MemoryBuffer.h> // ASW
-#include <llvm/Module.h>
-#include <llvm/LLVMContext.h>
+#include <llvm/IR/Module.h>
+#include <llvm/IR/LLVMContext.h>
+#include <sys/stat.h>
+
+std::string get_ocl_dsp();
 
 using namespace Coal;
 
@@ -54,7 +59,6 @@ Compiler::Compiler(DeviceInterface *device)
 : p_device(device), p_module(0), p_optimize(true), p_log_stream(p_log),
   p_log_printer(0)
 {
-
 }
 
 Compiler::~Compiler()
@@ -63,7 +67,8 @@ Compiler::~Compiler()
 }
 
 bool Compiler::compile(const std::string &options,
-                                llvm::MemoryBuffer *source)
+                       llvm::MemoryBuffer *source,
+                       llvm::LLVMContext *llvmcontext)
 {
     /* Set options */
     p_options = options;
@@ -78,9 +83,12 @@ bool Compiler::compile(const std::string &options,
     clang::CompilerInvocation &invocation = p_compiler.getInvocation();
 
     // Set codegen options
-    codegen_opts.DebugInfo = false;
+    codegen_opts.setDebugInfo(clang::CodeGenOptions::NoDebugInfo);
     codegen_opts.AsmVerbose = true;
-    codegen_opts.OptimizationLevel = 3;
+
+    // level >= 1 is too much for the pocl transformations.
+    // TODO: codegen_opts.OptimizationLevel = 0;
+    codegen_opts.OptimizationLevel = 2;
 
     // Set diagnostic options
     diag_opts.Pedantic = true;
@@ -105,29 +113,68 @@ bool Compiler::compile(const std::string &options,
     // Set preprocessor options
     prep_opts.RetainRemappedFileBuffers = true;
 
+    //prep_opts.ImplicitPCHInclude = "/usr/share/ti/opencl/clc.h.pch";
+    //prep_opts.DisablePCHValidation = true;
+    //prep_opts.AllowPCHWithCompilerErrors= true;
+    //prep_opts.UsePredefines = 1;
+
+    prep_opts.Includes.push_back("clc.h");
+    prep_opts.Includes.push_back(p_device->builtinsHeader());
+
     // Set lang options
     lang_opts.NoBuiltin = true;
     lang_opts.OpenCL = true;
     lang_opts.CPlusPlus = false;
+    lang_opts.MathErrno = false;
 
     // Set target options
-    target_opts.Triple = llvm::sys::getHostTriple();
-    //target_opts.Triple = "i386-unknown-linux-gnu";
+    cl_device_type devtype;
+    p_device->info(CL_DEVICE_TYPE, sizeof(devtype), &devtype, 0);
 
-    // Set invocation options
-    invocation.setLangDefaults(clang::IK_OpenCL);
+    if (devtype == CL_DEVICE_TYPE_CPU)
+       target_opts.Triple = "spir-unknown-unknown-unknown";
+
+#if 0
+    // Originally: target_opts.Triple = llvm::sys::getHostTriple();
+#if defined(__i386__) && defined(DSPC868X)
+       target_opts.Triple = "i386-pc-linux-gnu";
+#elif defined(__x86_64__) && defined(DSPC868X)
+       target_opts.Triple = "x86_64-unknown-linux-gnu";
+#elif defined(__arm__) || !defined(DSPC868X)
+       target_opts.Triple = "armv7-unknown-linux-gnueabihf";
+#else
+       target_opts.Triple = "i386-unknown-linux-gnu";
+#endif
+#endif
+
+    else // devtype != CL_DEVICE_TYPE_CPU
+    {
+       // For 6X, use the 'spir' target, since it implements opencl specs
+       target_opts.Triple = "spir-unknown-unknown-unknown";
+
+       // Currently, llp6x does not handle fused multiply and add
+       // llvm intrinsics (llvm.fmuladd.*). Disable generating these
+       // intrinsics using clang -ffp-contract=off option
+       codegen_opts.setFPContractMode(clang::CodeGenOptions::FPC_Off);
+    }
 
     // Parse the user options
     std::istringstream options_stream(options);
     std::string token;
     bool Werror = false, inI = false, inD = false;
 
+    /*-------------------------------------------------------------------------
+    * Add OpenCL C header path as a default location for searching for headers
+    *------------------------------------------------------------------------*/
+    std::string header_path(get_ocl_dsp());
+    header_opts.AddPath(header_path, clang::frontend::Angled, false, false);
+
     while (options_stream >> token)
     {
         if (inI)
         {
             // token is an include path
-            header_opts.AddPath(token, clang::frontend::Angled, true, false, false);
+            header_opts.AddPath(token, clang::frontend::Angled, false, false);
             inI = false;
             continue;
         }
@@ -137,14 +184,25 @@ bool Compiler::compile(const std::string &options,
             prep_opts.addMacroDef(token);
         }
 
+	//Handle -I xxx or -Ixxx. Assuming no other -I option prefix
         if (token == "-I")
         {
             inI = true;
         }
+	else if (token.compare(0,2,"-I") == 0) 
+	{
+	   header_opts.AddPath(token.substr(2), clang::frontend::Angled, false,
+                                                                         false);
+	}
+	//Handle -D xxx or -Dxxx. Assuming no other -D option prefix
         else if (token == "-D")
         {
             inD = true;
         }
+	else if (token.compare(0,2,"-D") == 0) //Handle -Dxxx (no space between)
+	{
+	   prep_opts.addMacroDef(token.substr(2));
+	}
         else if (token == "-cl-single-precision-constant")
         {
             lang_opts.SinglePrecisionConstants = true;
@@ -184,9 +242,15 @@ bool Compiler::compile(const std::string &options,
         }
     }
 
+    add_macrodefs_for_supported_opencl_extensions(prep_opts);  
+
+    // Set invocation options
+    //invocation.setLangDefaults(lang_opts,clang::IK_OpenCL);
+    invocation.setLangDefaults(lang_opts,clang::IK_OpenCL, clang::LangStandard::lang_opencl12);
+
     // Create the diagnostics engine
-    p_log_printer = new clang::TextDiagnosticPrinter(p_log_stream, diag_opts);
-    p_compiler.createDiagnostics(0, NULL, p_log_printer);
+    p_log_printer = new clang::TextDiagnosticPrinter(p_log_stream, &diag_opts);
+    p_compiler.createDiagnostics(p_log_printer);
 
     if (!p_compiler.hasDiagnostics())
         return false;
@@ -194,14 +258,16 @@ bool Compiler::compile(const std::string &options,
     p_compiler.getDiagnostics().setWarningsAsErrors(Werror);
 
     // Feed the compiler with source
-    frontend_opts.Inputs.push_back(std::make_pair(clang::IK_OpenCL, "program.cl"));
+    frontend_opts.Inputs.push_back(clang::FrontendInputFile("program.cl", clang::IK_OpenCL));
 
     //ASW  TODO cleanup
 #if 0
     prep_opts.addRemappedFile("program.cl", source);
 #else
-    std::string srcc = source->getBuffer();
-    srcc = p_device->sourceTranslation(srcc);
+
+
+    std::string srcc(source->getBuffer());
+    srcc += "\n\n";
 
     const llvm::StringRef s_data(srcc);
     const llvm::StringRef s_name("<source>");
@@ -211,9 +277,11 @@ bool Compiler::compile(const std::string &options,
     prep_opts.addRemappedFile("program.cl", buffer);
 #endif
 
+    //timespec t0, t1;
+    //clock_gettime(CLOCK_MONOTONIC, &t0);
     // Compile
     llvm::OwningPtr<clang::CodeGenAction> act(
-        new clang::EmitLLVMOnlyAction(&llvm::getGlobalContext())
+                   new clang::EmitLLVMOnlyAction(llvmcontext)
     );
 
     if (!p_compiler.ExecuteAction(*act))
@@ -222,14 +290,45 @@ bool Compiler::compile(const std::string &options,
         std::cout << log() << std::endl;
         return false;
     }
+    //clock_gettime(CLOCK_MONOTONIC, &t1);
+    //printf("clang time: %6.4f secs\n", 
+       //(float)t1.tv_sec-t0.tv_sec+(t1.tv_nsec-t0.tv_nsec)/1e9);
 
     p_log_stream.flush();
     p_module = act->takeModule();
+
+    // uncomment to debug the llvm IR
+    // p_module->dump();  
 
     // Cleanup
     prep_opts.eraseRemappedFile(prep_opts.remapped_file_buffer_end());
 
     return true;
+}
+
+// Query the device to get list of supported OpenCL extensions.  Standard
+// requires that each supported extension has a macro definition with the
+// same name as the extension
+void Compiler::add_macrodefs_for_supported_opencl_extensions
+                                        (clang::PreprocessorOptions &prep_opts)
+{
+    // Get the extensions string for the device
+    size_t size;
+    p_device->info(CL_DEVICE_EXTENSIONS, 0, NULL, &size);
+
+    char *extensions = new char[size + 1];
+    memset( extensions, CHAR_MIN, sizeof(char)*(size+1) );
+
+    p_device->info(CL_DEVICE_EXTENSIONS, sizeof(char)*size, extensions, NULL);
+
+    // Create macro definitions from the extension names
+    std::istringstream extensions_stream(extensions);
+    std::string token;
+
+    while (extensions_stream >> token)
+       prep_opts.addMacroDef(token);
+
+    delete [] extensions;
 }
 
 const std::string &Compiler::log() const
@@ -240,6 +339,11 @@ const std::string &Compiler::log() const
 const std::string &Compiler::options() const
 {
     return p_options;
+}
+
+void Compiler::set_options(const std::string &options)
+{
+   p_options = options;
 }
 
 bool Compiler::optimize() const

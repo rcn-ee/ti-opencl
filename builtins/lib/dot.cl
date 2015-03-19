@@ -25,7 +25,7 @@
  *   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  *   THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
-#include <clc.h>
+#include "clc.h"
 
 _CLC_OVERLOAD _CLC_DEF float dot(float3 p0, float3 p1) 
 { return p0.x*p1.x + p0.y*p1.y + p0.z*p1.z; }

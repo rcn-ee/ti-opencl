@@ -58,10 +58,6 @@ START_TEST (test_get_platform_ids)
         result != CL_SUCCESS,
         "It's bad to fail when the function is used in the most common sense"
     );
-    fail_if(
-        platform != 0,
-        "Currently, we have only one platform, default, identified by NULL"
-    );
 }
 END_TEST
 

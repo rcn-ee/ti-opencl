@@ -30,24 +30,27 @@
 
 START_TEST (test_get_device_ids)
 {
-    cl_platform_id platform = 0;
     cl_device_id device;
     cl_uint num_devices;
     cl_int result;
 
-    result = clGetDeviceIDs(platform, CL_DEVICE_TYPE_CPU, 0, &device, &num_devices);
+    cl_platform_id platform      = 0;
+    cl_uint        num_platforms = 0;
+    clGetPlatformIDs(1, &platform, &num_platforms);
+
+    result = clGetDeviceIDs(platform, CL_DEVICE_TYPE_ACCELERATOR, 0, &device, &num_devices);
     fail_if(
         result != CL_INVALID_VALUE,
         "num_entries cannot be NULL when devices is not null"
     );
 
-    result = clGetDeviceIDs(platform, CL_DEVICE_TYPE_CPU, 0, 0, 0);
+    result = clGetDeviceIDs(platform, CL_DEVICE_TYPE_ACCELERATOR, 0, 0, 0);
     fail_if(
         result != CL_INVALID_VALUE,
         "num_devices and devices cannot be NULL at the same time"
     );
 
-    result = clGetDeviceIDs((cl_platform_id)1337, CL_DEVICE_TYPE_CPU, 1, &device, &num_devices);
+    result = clGetDeviceIDs((cl_platform_id)1337, CL_DEVICE_TYPE_ACCELERATOR, 1, &device, &num_devices);
     fail_if(
         result != CL_INVALID_PLATFORM,
         "1337 is not a valid platform"
@@ -59,34 +62,37 @@ START_TEST (test_get_device_ids)
         "there are no GPU devices currently available"
     );
 
-    result = clGetDeviceIDs(platform, CL_DEVICE_TYPE_CPU, 1, 0, &num_devices);
+    result = clGetDeviceIDs(platform, CL_DEVICE_TYPE_ACCELERATOR, 1, 0, &num_devices);
     fail_if(
         result != CL_SUCCESS || num_devices != 1,
-        "we must succeed and say that we have one CPU device"
+        "we must succeed and say that we have one ACCELERATOR device"
     );
 
-    result = clGetDeviceIDs(platform, CL_DEVICE_TYPE_CPU, 1, &device, &num_devices);
+    result = clGetDeviceIDs(platform, CL_DEVICE_TYPE_ACCELERATOR, 1, &device, &num_devices);
     fail_if(
         result != CL_SUCCESS || num_devices != 1 || device == 0,
-        "we must succeed and have one CPU device"
+        "we must succeed and have one ACCELERATOR device"
     );
 }
 END_TEST
 
 START_TEST (test_get_device_info)
 {
-    cl_platform_id platform = 0;
     cl_device_id device;
     cl_uint num_devices;
     cl_int result;
 
+    cl_platform_id platform      = 0;
+    cl_uint        num_platforms = 0;
+    clGetPlatformIDs(1, &platform, &num_platforms);
+
     size_t size_ret;
     char value[500];
 
-    result = clGetDeviceIDs(platform, CL_DEVICE_TYPE_CPU, 1, &device, &num_devices);
+    result = clGetDeviceIDs(platform, CL_DEVICE_TYPE_ACCELERATOR, 1, &device, &num_devices);
     fail_if(
         result != CL_SUCCESS,
-        "unable to get a CPU device"
+        "unable to get a ACCELERATOR device"
     );
 
     result = clGetDeviceInfo(0, CL_DEVICE_TYPE, 500, value, &size_ret);
@@ -115,8 +121,8 @@ START_TEST (test_get_device_info)
 
     result = clGetDeviceInfo(device, CL_DEVICE_TYPE, 500, value, &size_ret);
     fail_if(
-        result != CL_SUCCESS || *(cl_device_type*)(value) != CL_DEVICE_TYPE_CPU,
-        "we have to say the device is a CPU"
+        result != CL_SUCCESS || *(cl_device_type*)(value) != CL_DEVICE_TYPE_ACCELERATOR,
+        "we have to say the device is a ACCELERATOR"
     );
 
     result = clGetDeviceInfo(device, CL_DEVICE_VENDOR, 500, value, &size_ret);
@@ -125,8 +131,8 @@ START_TEST (test_get_device_info)
         "we must succeed"
     );
     fail_if(
-        strncmp(value, "Mesa", size_ret) != 0,
-        "the device vendor must be \"Mesa\""
+        strncmp(value, "Texas Instruments, Inc.", size_ret) != 0,
+        "the device vendor must be \"Texas Instruments, Inc.\""
     );
 }
 END_TEST

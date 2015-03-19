@@ -25,7 +25,7 @@
  *   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  *   THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
-#include <clc.h>
+#include "clc.h"
 
 #define EXPAND_SIZES(type)             \
     IMPLEMENTATION (_VEC_TYPE(type,3), type)  \

@@ -31,8 +31,11 @@
  */
 
 #include "CL/cl.h"
+#include "CL/cl_ext.h"
 #include <core/memobject.h>
 #include <core/context.h>
+#include <core/platform.h>
+#include <core/dsp/device.h>
 
 #include <cstring>
 
@@ -338,6 +341,9 @@ static cl_image_format supported_formats[] = {
     { CL_INTENSITY, CL_FLOAT }
 };
 
+#ifdef MIN
+#undef MIN
+#endif
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 cl_int
@@ -415,4 +421,85 @@ clSetMemObjectDestructorCallback(cl_mem memobj,
 
     return CL_SUCCESS;
 }
+
+extern "C"
+{
+
+Coal::DSPDevice *
+getDspDevice()
+{
+    static Coal::DSPDevice *dspdevice = NULL;
+
+    if (dspdevice == NULL)
+    {
+        cl_device_id* devices;
+        cl_uint       num_devices = 0;
+        cl_int        errcode;
+
+        errcode = clGetDeviceIDs(&the_platform::Instance(), CL_DEVICE_TYPE_ACCELERATOR,
+                                 0, NULL, &num_devices);
+        if (!num_devices)  return NULL;
+
+        devices = (cl_device_id*) malloc(num_devices * sizeof(cl_device_id));
+        if (!devices)  return NULL;
+
+        errcode = clGetDeviceIDs(&the_platform::Instance(), CL_DEVICE_TYPE_ACCELERATOR,
+                                 num_devices, devices, 0);
+        if (errcode != CL_SUCCESS) { free (devices); return NULL; }
+
+        dspdevice = (Coal::DSPDevice *) devices[0];
+        free(devices);
+    }
+
+    return dspdevice;
+}
+
+// context is ignored for now.  TODO: get device from context if not NULL
+static void*
+clMalloc(size_t size, cl_mem_flags flags, cl_context context)
+{
+    Coal::DSPDevice *dspdevice = getDspDevice();
+    if (dspdevice != NULL)  return dspdevice->clMalloc(size, flags);
+    return NULL;
+}
+
+static void
+clFree(void *p, cl_context context)
+{
+    Coal::DSPDevice *dspdevice = getDspDevice();
+    if (dspdevice != NULL)  dspdevice->clFree(p);
+}
+
+void *
+__malloc_ddr(size_t size)
+{
+    return clMalloc(size, 0, NULL);
+}
+
+void
+__free_ddr(void *p)
+{
+    clFree(p, NULL);
+}
+
+void *
+__malloc_msmc(size_t size)
+{
+    return clMalloc(size, CL_MEM_USE_MSMC_TI, NULL);
+}
+
+void
+__free_msmc(void *p)
+{
+    clFree(p, NULL);
+}
+
+int
+__is_in_malloced_region(void *p)
+{
+    Coal::DSPDevice *dspdevice = getDspDevice();
+    return dspdevice->isInClMallocedRegion(p);
+}
+
+}  // End: extern "C"
 

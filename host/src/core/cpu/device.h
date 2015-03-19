@@ -37,6 +37,7 @@
 
 #include <pthread.h>
 #include <list>
+#include <string>
 
 namespace Coal
 {
@@ -88,13 +89,17 @@ class CPUDevice : public DeviceInterface
 
         void pushEvent(Event *event);
         Event *getEvent(bool &stop);
+        bool gotEnoughToWorkOn();
 
         unsigned int numCPUs() const;   /*!< \brief Number of logical CPU cores on the system */
         float cpuMhz() const;           /*!< \brief Speed of the CPU in Mhz */
 
+        std::string builtinsHeader(void) const { return "cpu.h"; }
+
     private:
         unsigned int p_cores, p_num_events;
-        float p_cpu_mhz;
+        float       p_cpu_mhz;
+        std::string p_device_name;
         pthread_t *p_workers;
 
         std::list<Event *> p_events;

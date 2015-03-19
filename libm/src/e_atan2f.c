@@ -29,6 +29,12 @@ pi      = 3.1415927410e+00; /* 0x40490fdb */
 static volatile float
 pi_lo   = -8.7422776573e-08; /* 0xb3bbbd2e */
 
+#if _TMS320C6X
+#define FTZ 1
+#else
+#define FTZ 0
+#endif
+
 DLLEXPORT float
 __ieee754_atan2f(float y, float x)
 {
@@ -46,16 +52,26 @@ __ieee754_atan2f(float y, float x)
 	m = ((hy>>31)&1)|((hx>>30)&2);	/* 2*sign(x)+sign(y) */
 
     /* when y = 0 */
-	if(iy==0) {
+#if FTZ
+	if(y==0)
+#else
+	if(iy==0)
+#endif
+        {
 	    switch(m) {
 		case 0:
-		case 1: return y; 	/* atan(+-0,+anything)=+-0 */
+		case 1: return copysign(0.0f,y); 	/* atan(+-0,+anything)=+-0 */
 		case 2: return  pi+tiny;/* atan(+0,-anything) = pi */
 		case 3: return -pi-tiny;/* atan(-0,-anything) =-pi */
 	    }
 	}
     /* when x = 0 */
-	if(ix==0) return (hy<0)?  -pi_o_2-tiny: pi_o_2+tiny;
+#if FTZ
+	if(x==0)
+#else
+	if(ix==0)
+#endif
+            return (hy<0)?  -pi_o_2-tiny: pi_o_2+tiny;
 
     /* when x is INF */
 	if(ix==0x7f800000) {

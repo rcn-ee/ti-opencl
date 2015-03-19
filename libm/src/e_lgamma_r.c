@@ -156,7 +156,7 @@ w6  = -1.63092934096575273989e-03; /* 0xBF5AB89D, 0x0B9E43E4 */
 
 static const double zero=  0.00000000000000000000e+00;
 
-	static double sin_pi(double x)
+static double sin_pi(double x)
 {
 	double y,z;
 	int n,ix;
@@ -199,7 +199,6 @@ static const double zero=  0.00000000000000000000e+00;
 	    }
 	return -y;
 }
-
 
 DLLEXPORT double
 __ieee754_lgamma_r(double x, int *signgamp)

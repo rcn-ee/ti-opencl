@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011, Denis Steckelmacher <steckdenis@yahoo.fr>
+ * Copyright (c) 2012-2014, Texas Instruments Incorporated - http://www.ti.com/
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -58,6 +59,7 @@ class BufferEvent : public Event
                     cl_uint num_events_in_wait_list,
                     const Event **event_wait_list,
                     cl_int *errcode_ret);
+        virtual ~BufferEvent();
 
         MemObject *buffer() const; /*!< \brief Buffer on which to operate */
 
@@ -272,6 +274,7 @@ class CopyBufferEvent : public BufferEvent
                         cl_uint num_events_in_wait_list,
                         const Event **event_wait_list,
                         cl_int *errcode_ret);
+        ~CopyBufferEvent();
 
         Type type() const; /*!< \brief Say the event is a \c Coal::Event::CopyBuffer one */
 
@@ -665,20 +668,9 @@ class UserEvent : public Event
 
         Type type() const;        /*!< \brief Say the event is a \c Coal::Event::User one */
         Context *context() const; /*!< \brief Context of this event */
-        void flushQueues();       /*!< \brief Call \c Coal::CommandQueue::pushEventsOnDevice() for each command queue in which this event is queued */
-        
-        /**
-         * \brief Add a \c Coal::CommandQueue that will have to be flushed when this event becomes completed
-         * 
-         * See the long description of this class for a complete explanation
-         * 
-         * \param queue \c Coal::CommandQueue to add in the list of queues to flush
-         */
-        void addDependentCommandQueue(CommandQueue *queue);
 
     private:
         Context *p_context;
-        std::vector<CommandQueue *> p_dependent_queues;
 };
 
 /**

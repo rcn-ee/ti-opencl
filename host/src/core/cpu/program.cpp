@@ -73,7 +73,8 @@ bool CPUProgram::linkStdLib() const
     return true;
 }
 
-void CPUProgram::createOptimizationPasses(llvm::PassManager *manager, bool optimize)
+void CPUProgram::createOptimizationPasses(llvm::PassManager *manager,
+                                          bool optimize, bool hasBarrier)
 {
     if (optimize)
     {
@@ -102,7 +103,8 @@ void CPUProgram::createOptimizationPasses(llvm::PassManager *manager, bool optim
     }
 }
 
-bool CPUProgram::build(llvm::Module *module)
+bool CPUProgram::build(llvm::Module *module, std::string *binary_str,
+                       char *binary_filename)
 {
     // Nothing to build
     p_module = module;
@@ -124,7 +126,11 @@ bool CPUProgram::initJIT()
 
     builder.setErrorStr(&err);
     builder.setAllocateGVsWithCode(false);
-    builder.setMArch("x86");
+
+#if defined (__arm__)
+    // uncomment to try the MCJIT for ARM
+    //builder.setUseMCJIT(true);
+#endif
 
     p_jit = builder.create();
 

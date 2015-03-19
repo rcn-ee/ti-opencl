@@ -41,11 +41,11 @@
 #include "../events.h"
 #include "../program.h"
 
-#include <llvm/Function.h>
-#include <llvm/Constants.h>
-#include <llvm/Instructions.h>
-#include <llvm/LLVMContext.h>
-#include <llvm/Module.h>
+#include <llvm/IR/Function.h>
+#include <llvm/IR/Constants.h>
+#include <llvm/IR/Instructions.h>
+#include <llvm/IR/LLVMContext.h>
+#include <llvm/IR/Module.h>
 #include <llvm/ExecutionEngine/ExecutionEngine.h>
 
 #include <cstdlib>
@@ -437,7 +437,7 @@ void *CPUKernelWorkGroup::callArgs(std::vector<void *> &locals_to_free)
     rs = std::malloc(args_size);
 
     if (!rs)
-        return false;
+        return NULL;
 
     size_t arg_offset = 0;
 

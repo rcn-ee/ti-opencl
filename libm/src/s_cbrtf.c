@@ -46,7 +46,12 @@ cbrtf(float x)
 	    if(hx==0)
 		return(x);		/* cbrt(+-0) is itself */
 	    SET_FLOAT_WORD(t,0x4b800000); /* set t= 2**24 */
+#if _TMS320C6X
+            float __fmpy_by_0x1p24(float);
+            x = __fmpy_by_0x1p24(x);
+#endif
 	    t*=x;
+
 	    GET_FLOAT_WORD(high,t);
 	    SET_FLOAT_WORD(t,sign|((high&0x7fffffff)/3+B2));
 	} else
@@ -67,6 +72,12 @@ cbrtf(float x)
      */
 	r=T*T*T;
 	T=T*((double)x+x+r)/(x+r+r);
+
+#if _TMS320C6X
+	if(hx<0x00800000) { 		/* zero or subnormal? */
+            T /= 0x1p8;
+        }
+#endif
 
     /* rounding to 24 bits is perfect in round-to-nearest mode */
 	return(T);

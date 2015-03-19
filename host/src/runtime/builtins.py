@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # Copyright (c) 2011, Denis Steckelmacher <steckdenis@yahoo.fr>
+# Copyright (c) 2012-2014, Texas Instruments Incorporated - http://www.ti.com/
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -172,7 +173,7 @@ class Function:
             rs += '__cpu_' + self.mangled_name(current_type)
         else:
             # No need to mangle the name, but add OVERLOAD
-            rs += 'OVERLOAD ' + self.name
+            rs += '_CLC_OVERLOAD ' + self.name
 
         # Print function args
         rs += '('

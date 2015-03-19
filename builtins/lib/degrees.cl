@@ -25,7 +25,7 @@
  *   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  *   THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
-#include <clc.h>
+#include "clc.h"
 
 #define EXPAND_SIZES(type) \
     IMPLEMENTATION(_VEC_TYPE(type,3))  \
@@ -37,4 +37,5 @@
 _CLC_OVERLOAD _CLC_DEF gentype degrees(gentype radians) { return radians * (gentype)180.0 * (gentype)M_1_PI; } \
 _CLC_OVERLOAD _CLC_DEF gentype radians(gentype degrees) { return degrees * (gentype)M_PI / (gentype)180.0; } 
 
-_EXPAND_FLOAT_TYPES()
+EXPAND_SIZES(float)
+EXPAND_SIZES(double)

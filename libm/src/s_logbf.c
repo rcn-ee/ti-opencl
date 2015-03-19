@@ -31,7 +31,13 @@ logbf(float x)
 	if(ix==0) return (float)-1.0/fabsf(x);
 	if(ix>=0x7f800000) return x*x;
 	if(ix<0x00800000) {
-		x *= two25;		 /* convert subnormal x to normal */
+#if _TMS320C6X
+                float __fmpy_by_0x1p25(float);
+                x = __fmpy_by_0x1p25(x);
+#else
+                x *= two25; /* subnormal number, scale up x */
+#endif
+
 		GET_FLOAT_WORD(ix,x);
 		ix &= 0x7fffffff;
 		return (float) ((ix>>23)-127-25);

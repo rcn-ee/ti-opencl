@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011, Denis Steckelmacher <steckdenis@yahoo.fr>
+ * Copyright (c) 2012-2014, Texas Instruments Incorporated - http://www.ti.com/
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,16 +41,22 @@
 #include <string>
 #include <iostream>
 #include <cstring>
+#include <cstdio>
 #include <cstdlib>
+#include <boost/tuple/tuple.hpp>
 
 #include <llvm/Support/Casting.h>
-#include <llvm/Module.h>
-#include <llvm/Type.h>
-#include <llvm/DerivedTypes.h>
+#include <llvm/IR/Attributes.h>
+#include <llvm/IR/Module.h>
+#include <llvm/IR/Type.h>
+#include <llvm/IR/DerivedTypes.h>
+#include <llvm/IR/Constants.h>
+#include <llvm/IR/Metadata.h>
+
 
 using namespace Coal;
 Kernel::Kernel(Program *program)
-: Object(Object::T_Kernel, program), p_has_locals(false)
+: Object(Object::T_Kernel, program), p_has_locals(false), wi_alloca_size(0)
 {
     // TODO: Say a kernel is attached to the program (that becomes unalterable)
 
@@ -103,7 +110,14 @@ Kernel::DeviceDependent &Kernel::deviceDependent(DeviceInterface *device)
 cl_int Kernel::addFunction(DeviceInterface *device, llvm::Function *function,
                            llvm::Module *module)
 {
-    p_name = function->getNameStr();
+    p_name = function->getName().str();
+
+    // Get wi_alloca_size, to be used for computing wg_alloca_size
+    std::string fattrs = function->getAttributes().getAsString(
+                                           llvm::AttributeSet::FunctionIndex);
+    std::size_t found = fattrs.find("_wi_alloca_size=");
+    if (found != std::string::npos)
+        wi_alloca_size = atoi(fattrs.data() + found + 16);
 
     /*-------------------------------------------------------------------------
     * Add a device dependent
@@ -129,6 +143,7 @@ cl_int Kernel::addFunction(DeviceInterface *device, llvm::Function *function,
         llvm::Type *arg_type = f->getParamType(i);
         Arg::Kind kind = Arg::Invalid;
         Arg::File file = Arg::Private;
+        bool is_subword_int_uns = false;
         unsigned short vec_dim = 1;
 
         if (arg_type->isPointerTy())
@@ -188,6 +203,13 @@ cl_int Kernel::addFunction(DeviceInterface *device, llvm::Function *function,
             {
                 llvm::IntegerType *i_type = llvm::cast<llvm::IntegerType>(arg_type);
 
+                /*-------------------------------------------------------------
+                * We offset the arg index by 1, because element 0 is the return 
+                * type.
+                *------------------------------------------------------------*/
+                is_subword_int_uns = function->getAttributes().
+                                     hasAttribute(i+1, llvm::Attribute::ZExt);
+
                 if (i_type->getBitWidth() == 8)
                 {
                     kind = Arg::Int8;
@@ -213,7 +235,7 @@ cl_int Kernel::addFunction(DeviceInterface *device, llvm::Function *function,
             return CL_INVALID_KERNEL_DEFINITION;
 
         // Create arg
-        Arg a(vec_dim, file, kind);
+        Arg a(vec_dim, file, kind, is_subword_int_uns);
 
         // If we also have a function registered, check for signature compliance
         if (!append && a != p_args[i])
@@ -262,7 +284,7 @@ cl_int Kernel::setArg(cl_uint index, size_t size, const void *value)
     /*-------------------------------------------------------------------------
     * Check that size corresponds to the arg type
     *------------------------------------------------------------------------*/
-    size_t arg_size = arg.valueSize();
+    size_t arg_size = arg.valueSize() * arg.vecDim();
 
     /*-------------------------------------------------------------------------
     * Special case for samplers (pointers in C++, uint32 in OpenCL).
@@ -338,6 +360,13 @@ DeviceKernel *Kernel::deviceDependentKernel(DeviceInterface *device) const
     return dep.kernel;
 }
 
+llvm::Module *Kernel::deviceDependentModule(DeviceInterface *device) const
+{
+    const DeviceDependent &dep = deviceDependent(device);
+
+    return dep.module;
+}
+
 cl_int Kernel::info(cl_kernel_info param_name,
                     size_t param_value_size,
                     void *param_value,
@@ -390,6 +419,48 @@ cl_int Kernel::info(cl_kernel_info param_name,
     return CL_SUCCESS;
 }
 
+boost::tuple<uint,uint,uint> Kernel::reqdWorkGroupSize(llvm::Module *module) const
+{
+    llvm::NamedMDNode *kernels = module->getNamedMetadata("opencl.kernels");
+
+    boost::tuple<uint,uint,uint> zeros(0,0,0);
+
+    if (!kernels) return zeros;
+
+    for (unsigned int i=0; i<kernels->getNumOperands(); ++i)
+    {
+        llvm::MDNode *node = kernels->getOperand(i);
+
+        /*---------------------------------------------------------------------
+        * Each node has only one operand : a llvm::Function
+        *--------------------------------------------------------------------*/
+        llvm::Value *value = node->getOperand(0);
+
+        /*---------------------------------------------------------------------
+        * Bug somewhere, don't crash
+        *--------------------------------------------------------------------*/
+        if (!llvm::isa<llvm::Function>(value)) continue;
+
+        llvm::Function *f = llvm::cast<llvm::Function>(value);
+        if(f->getName().str() != p_name) continue;
+
+        if (node->getNumOperands() <= 1) return zeros;
+
+        llvm::MDNode *meta = llvm::cast<llvm::MDNode>(node->getOperand(1));
+        if (meta->getNumOperands() == 4 &&
+            meta->getOperand(0)->getName().str() == std::string("reqd_work_group_size"))
+        {
+            uint x = llvm::cast<llvm::ConstantInt> (meta->getOperand(1))->getValue().getLimitedValue();
+            uint y = llvm::cast<llvm::ConstantInt> (meta->getOperand(2))->getValue().getLimitedValue();
+            uint z = llvm::cast<llvm::ConstantInt> (meta->getOperand(3))->getValue().getLimitedValue();
+
+            return boost::tuple<uint,uint,uint> (x,y,z);
+        }
+        return zeros;
+    }
+}
+
+
 cl_int Kernel::workGroupInfo(DeviceInterface *device,
                              cl_kernel_work_group_info param_name,
                              size_t param_value_size,
@@ -414,12 +485,14 @@ cl_int Kernel::workGroupInfo(DeviceInterface *device,
             break;
 
         case CL_KERNEL_COMPILE_WORK_GROUP_SIZE:
-            // TODO: Get this information from the kernel source
-            three_size_t[0] = 0;
-            three_size_t[1] = 0;
-            three_size_t[2] = 0;
+            {
+            boost::tuple<uint,uint,uint> res(reqdWorkGroupSize(dep.module));
+            three_size_t[0] = res.get<0>();
+            three_size_t[1] = res.get<1>();
+            three_size_t[2] = res.get<2>();
             value = &three_size_t;
             value_length = sizeof(three_size_t);
+            }
             break;
 
         case CL_KERNEL_LOCAL_MEM_SIZE:
@@ -453,9 +526,9 @@ cl_int Kernel::workGroupInfo(DeviceInterface *device,
 /*
  * Kernel::Arg
  */
-Kernel::Arg::Arg(unsigned short vec_dim, File file, Kind kind)
+Kernel::Arg::Arg(unsigned short vec_dim, File file, Kind kind, bool is_subword_int_uns)
 : p_vec_dim(vec_dim), p_file(file), p_kind(kind), p_data(0), p_defined(false),
-  p_runtime_alloc(0)
+  p_runtime_alloc(0), p_is_subword_int_uns(is_subword_int_uns)
 { }
 
 Kernel::Arg::~Arg()
@@ -519,7 +592,8 @@ Kernel::Arg::File Kernel::Arg::file()      const { return p_file;    }
 Kernel::Arg::Kind Kernel::Arg::kind()      const { return p_kind;    }
 bool              Kernel::Arg::defined()   const { return p_defined; }
 const void *      Kernel::Arg::data()      const { return p_data;    }
-size_t       Kernel::Arg::allocAtKernelRuntime() const {return p_runtime_alloc;}
+size_t Kernel::Arg::allocAtKernelRuntime() const {return p_runtime_alloc;}
+bool Kernel::Arg::is_subword_int_uns()   const {return p_is_subword_int_uns;}
 
 const void *Kernel::Arg::value(unsigned short index) const
 {

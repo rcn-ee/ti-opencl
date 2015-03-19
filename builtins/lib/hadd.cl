@@ -1,6 +1,6 @@
 /******************************************************************************
- * Copyright (c) 2011-2013, Peter Collingbourne <peter@pcc.me.uk>
- * Copyright (c) 2011-2013, Texas Instruments Incorporated - http://www.ti.com/
+ * Copyright (c) 2011-2014, Peter Collingbourne <peter@pcc.me.uk>
+ * Copyright (c) 2011-2014, Texas Instruments Incorporated - http://www.ti.com/
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -26,10 +26,9 @@
  *   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  *   THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
-#include <clc.h>
+#include "clc.h"
 
 #define EXPAND_SIZES(type) \
-    IMPLEMENTATION(type)              \
     IMPLEMENTATION(_VEC_TYPE(type,2))  \
     IMPLEMENTATION(_VEC_TYPE(type,3))  \
     IMPLEMENTATION(_VEC_TYPE(type,4))  \

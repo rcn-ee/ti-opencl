@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011, Denis Steckelmacher <steckdenis@yahoo.fr>
+ * Copyright (c) 2012-2014, Texas Instruments Incorporated - http://www.ti.com/
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -161,10 +162,14 @@ class DeviceInterface : public Object
          */
         virtual void freeEventDeviceData(Event *event) = 0;
 
-        virtual std::string sourceTranslation(std::string& source) 
-            { return source; }
+        virtual std::string builtinsHeader(void) const = 0;
 
         virtual void init() = 0;
+
+        /**
+         * \brief Ask device if it has enough work in its queue
+         */
+        virtual bool gotEnoughToWorkOn() { return false; }
 };
 
 /**
@@ -259,7 +264,7 @@ class DeviceProgram
          *                 time.
          */
         virtual void createOptimizationPasses(llvm::PassManager *manager,
-                                              bool optimize) = 0;
+                                    bool optimize, bool hasBarrier=false) = 0;
 
         /**
          * \brief Build a device-specific representation of the program
@@ -269,9 +274,26 @@ class DeviceProgram
          * device-specific representation of the program.
          *
          * \param module \c llvm::Module containing the program's LLVM IR
+         * \param binary_str \c std::string containing dep.unlinked_binary
          * \return true in case of success, false otherwise
+         * \param binary_filename \c char* binary already in file, if not NULL
          */
-        virtual bool build(llvm::Module *module) = 0;
+        virtual bool build(llvm::Module *module, std::string* binary_str,
+                           char *binary_filename) = 0;
+
+        /**
+         * \brief Extract binaries from MIXED binary
+         * 
+         * This function is called to extract LLVM bitcode from the native
+         * binary in the MIXED binary.
+         * \param binary_str \c std::string containing mixed binary
+         * \param bitcode \c std::string returns LLVM bitcode if not NULL
+         * \param native \c std::string returns native binary if not NULL
+         * \return true if the binary is indeed mixed
+         */
+        virtual bool ExtractMixedBinary(std::string *binary_str, 
+                                     std::string *bitcode, std::string *native)
+        {  return false;  }
 };
 
 /**

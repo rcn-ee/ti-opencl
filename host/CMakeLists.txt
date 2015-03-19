@@ -1,43 +1,171 @@
 cmake_minimum_required(VERSION 2.6)
-project(Coal)
+#Project needs to be set early or CMAKE_SYSTEM_PROCESSOR doesn't get 
+#reliably set. Commit to C6678 and then change below if we build for HAWKING
+project(ti-opencl)
+
+if (${CMAKE_SYSTEM_PROCESSOR} MATCHES "86")
+    set(C6678_BUILD on)
+    set(SDK "/opt/ti/desktop-linux-sdk_01_00_00_07")
+    MESSAGE(STATUS "Build Target Is C6678")
+else()
+    set(HAWKING_BUILD on)
+    MESSAGE(STATUS "Build Target Is  HAWKING")
+endif()
 
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/modules)
 
 # project version
-SET(${PROJECT_NAME}_MAJOR_VERSION 0)
+SET(${PROJECT_NAME}_MAJOR_VERSION 1)
 SET(${PROJECT_NAME}_MINOR_VERSION 1)
 SET(${PROJECT_NAME}_PATCH_LEVEL 0)
-# Coal version
-SET(${PROJECT_NAME}_VERSION 0.1.0)
-# OpenCL version
-SET(${PROJECT_NAME}_SOVERSION 1.1.0)
 
+# OpenCL platform version
+SET(${PROJECT_NAME}_VERSION ${${PROJECT_NAME}_MAJOR_VERSION}.${${PROJECT_NAME}_MINOR_VERSION}.${${PROJECT_NAME}_PATCH_LEVEL})
+
+# Set SONAME for OpenCL library
+SET(${PROJECT_NAME}_SOVERSION ${${PROJECT_NAME}_MAJOR_VERSION})
+
+#set(CMAKE_INSTALL_PREFIX $ENV{DESTDIR})
+
+if (YOCTO_BUILD)
+   set(CMAKE_INSTALL_PREFIX $ENV{DESTDIR_YOCTO})
+endif()
+
+MESSAGE(STATUS "Install path is ${CMAKE_INSTALL_PREFIX}")
+
+if (HAWKING_CROSS_COMPILE)
+  set(CMAKE_SKIP_RPATH TRUE)
+endif()
 
 OPTION(BUILD_SHARED_LIBS "Set to OFF to build static libraries" ON)
 
+#ADD_DEFINITIONS("-DLOCK")
+
+#SET(CMAKE_VERBOSE_MAKEFILE TRUE)
+
+# Find_Package() for LLVM/CLANG defined in CMAKE_MODULE_PATH
+# Do not use system installed versions
 Find_Package(LLVM REQUIRED)
 Find_Package(Clang REQUIRED)
 
-#SET(CMAKE_VERBOSE_MAKEFILE TRUE)
-SET(BOOST_ROOT /db/sds13/packages)
-Find_Package(Boost 1.38.0 REQUIRED)
+# OpenCL requires boost headers. If boost is installed to some directory
+# other than /usr/include then define BOOST_INCLUDEDIR as below:
+#set (BOOST_INCLUDEDIR path-to-boost-headers)
+#include_directories(${BOOST_INCLUDEDIR})
 
-if (Boost_FOUND)
-   include_directories(${Boost_INCLUDE_DIRS})
+SET (INCLUDE_INSTALL_DIR "include" CACHE PATH
+  "The directory the headers are installed in")
+
+# Set up install permissions for file, directories and binaries.
+# !!! Note that these variables are used by the child cmake files so these
+# variables must be set before the add_subdirectories() commands below
+# File permissions (664)
+set(OCL_FPERMS PERMISSIONS 
+               OWNER_READ OWNER_WRITE 
+	       GROUP_READ GROUP_WRITE 
+	       WORLD_READ)
+
+# Directory permissions (775). Files within the directories are set as above.
+set(OCL_DPERMS FILE_${OCL_FPERMS} 
+               DIRECTORY_PERMISSIONS 
+	       OWNER_READ OWNER_WRITE OWNER_EXECUTE 
+	       GROUP_READ GROUP_WRITE GROUP_EXECUTE 
+	       WORLD_READ WORLD_EXECUTE)
+
+# Binary permissions (775)
+set(OCL_BPERMS PERMISSIONS 
+               OWNER_READ OWNER_WRITE OWNER_EXECUTE 
+	       GROUP_READ GROUP_WRITE GROUP_EXECUTE 
+	       WORLD_READ WORLD_EXECUTE)
+
+
+if (NOT OCL_EXAMPLES_DIR)
+set(OCL_EXAMPLES_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../examples)
 endif()
 
-ADD_DEFINITIONS("-DCOAL_BUILD_DIR=\"${CMAKE_BINARY_DIR}\"")
-ADD_DEFINITIONS("-DCOAL_INSTALL_DIR=\"${CMAKE_INSTALL_PREFIX}\"")
+if (NOT OCL_MONITOR_DIR)
+set(OCL_MONITOR_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../monitor)
+endif()
 
-SET (INCLUDE_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/include" CACHE PATH
-    "The directory the headers are installed in")
+if (NOT OCL_BUILTINS_DIR)
+set(OCL_BUILTINS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../builtins)
+endif()
 
-add_subdirectory(ocl_load)
-add_subdirectory(src)
-add_subdirectory(examples)
+ # Create the top level share install directory with the desired permissions
+set (SHARE_PATH /usr/share/ti)
+install(DIRECTORY DESTINATION ${SHARE_PATH} ${OCL_DPERMS})
+
+if (NOT BUILD_OUTPUT)
+  set(BUILD_OUTPUT all)
+endif()
+
+if (${BUILD_OUTPUT} STREQUAL "all" OR ${BUILD_OUTPUT} STREQUAL "lib")
+  add_subdirectory(src)
+  add_subdirectory(util)
+  add_subdirectory(${OCL_BUILTINS_DIR} ${CMAKE_CURRENT_BINARY_DIR}/builtins)
+  add_subdirectory(${OCL_MONITOR_DIR} ${CMAKE_CURRENT_BINARY_DIR}/monitor)
+
+  install(DIRECTORY DESTINATION /usr/share/doc/ti-opencl         ${OCL_DPERMS})
+  install(DIRECTORY DESTINATION /usr/include/CL                  ${OCL_DPERMS})
+  install(FILES opencl-manifest.html  DESTINATION /usr/share/doc/ti-opencl 
+                                                                 ${OCL_FPERMS})
+  install(FILES doc/opencl-1.1.pdf DESTINATION /usr/share/doc/ti-opencl 
+                                                                 ${OCL_FPERMS})
+  install(FILES doc/opencl-cplusplus-1.1.pdf DESTINATION 
+                                        /usr/share/doc/ti-opencl ${OCL_FPERMS})
+  install(FILES     util/ocl_util.h  DESTINATION /usr/include    ${OCL_FPERMS})
+  install(DIRECTORY include/CL       DESTINATION /usr/include    ${OCL_DPERMS})
+
+  if (C6678_BUILD)
+    install(DIRECTORY DESTINATION init                           ${OCL_DPERMS})
+    install(DIRECTORY scripts DESTINATION .                      ${OCL_DPERMS})
+    install(DIRECTORY cmem DESTINATION .                         ${OCL_DPERMS})
+    install(FILES init/init_dspc8681.out DESTINATION lib         ${OCL_FPERMS})
+    install(FILES init/init_dspc8682.out DESTINATION lib         ${OCL_FPERMS})
+    install(PROGRAMS bin/init_global_shared_mem DESTINATION bin  ${OCL_BPERMS})
+    install(PROGRAMS bin/oclenv DESTINATION bin                  ${OCL_BPERMS})
+    install(FILES doc/readme_c6678.txt DESTINATION . RENAME readme.txt 
+                                                                 ${OCL_FPERMS})
+  elseif(HAWKING_BUILD)
+    install(FILES doc/opencl_readme.txt DESTINATION 
+                                        /usr/share/doc/ti-opencl ${OCL_FPERMS})
+  endif()
+endif()
+
+if (BUILD_OUTPUT STREQUAL "all" OR BUILD_OUTPUT STREQUAL "examples")
+  add_subdirectory(${OCL_EXAMPLES_DIR} ${CMAKE_CURRENT_BINARY_DIR}/examples)
+endif()
+
+if (BUILD_OUTPUT STREQUAL "all" OR BUILD_OUTPUT STREQUAL "clocl")
+  add_subdirectory(clocl)
+
+  if (HAWKING_BUILD)
+    add_custom_target(arm_clocl_build ALL DEPENDS arm_clocl)
+  endif()
+
+  if (HAWKING_CROSS_COMPILE OR C6678_BUILD)
+    add_custom_target(x86_clocl_build ALL DEPENDS x86_clocl)
+  endif()
+endif()
+
 
 IF (BUILD_TESTS)
     ENABLE_TESTING()
     Find_Package(Check REQUIRED)
     add_subdirectory(tests)
 ENDIF (BUILD_TESTS)
+
+set (CPACK_GENERATOR "DEB")
+set (CPACK_DEBIAN_PACKAGE_MAINTAINER "TI")
+set (CPACK_DEBIAN_PACKAGE_NAME ${PROJECT_NAME})
+set (CPACK_DEBIAN_PACKAGE_ARCHITECTURE "all")
+
+set (CPACK_PACKAGE_VERSION_MAJOR ${${PROJECT_NAME}_MAJOR_VERSION})
+set (CPACK_PACKAGE_VERSION_MINOR ${${PROJECT_NAME}_MINOR_VERSION})
+set (CPACK_PACKAGE_VERSION_PATCH ${${PROJECT_NAME}_PATCH_LEVEL})
+set (CPACK_DEBIAN_PACKAGE_DEPENDS "mesa-common-dev (>=8.0.4-0), binutils-dev (>=2.22-6), libsqlite3-dev (>=3.7.9-2), libffi6 (>=3.0.11~rc1-5), zlib1g (>=1:1.2.3.4)")
+
+#Set where dpkg will put the install
+set (CPACK_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX})
+set (CPACK_SET_DESTDIR TRUE)
+include(CPack)
