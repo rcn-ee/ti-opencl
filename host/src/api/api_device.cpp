@@ -45,7 +45,7 @@ clGetDeviceIDs(cl_platform_id   platform,
     /*-------------------------------------------------------------------------
     * We currently implement only one platform
     *------------------------------------------------------------------------*/
-    if (!platform) platform = &(the_platform::Instance());
+    if (!platform) platform = (cl_platform_id)&(the_platform::Instance());
 
     if (platform != &(the_platform::Instance())) return CL_INVALID_PLATFORM;
     if (num_entries == 0 && devices != 0)        return CL_INVALID_VALUE;

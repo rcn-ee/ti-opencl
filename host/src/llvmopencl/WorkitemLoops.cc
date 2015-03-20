@@ -662,7 +662,6 @@ WorkitemLoops::ProcessFunction(Function &F)
     BasicBlockVector preds;
     ParallelRegion *loopRegion = original;
 
-    bool unrolled = false;
     if (peelFirst) 
       {
 #ifdef DEBUG_WORK_ITEM_LOOPS
@@ -1116,7 +1115,6 @@ WorkitemLoops::GetContextArray(llvm::Instruction *instruction)
                               elementType->getArrayElementType() == Int1))
     wgsize = builder.CreateMul(wgsize, ConstantInt::get(Int32, 4));
 
-  llvm::Type *contextArrayType = llvm::ArrayType::get(elementType, 1);
   llvm::Instruction *alloca =
     builder.CreateAlloca(elementType, wgsize, varName);
 
@@ -1371,8 +1369,9 @@ WorkitemLoops::genLinearIndex(IRBuilder<> &builder, Function *F)
          /*isVarArg=*/ false);
   Function *f_localid =
         dyn_cast<Function>(M->getOrInsertFunction("get_local_id", ft));
-  Value *lidX, *lidY, *lidZ;
-  lidX = builder.CreateCall(f_localid, ConstantInt::get(Int32, 0));
+  Value *lidX = builder.CreateCall(f_localid, ConstantInt::get(Int32, 0));
+  Value *lidY=NULL, *lidZ=NULL;
+
   if (maxDim > 1)
     lidY = builder.CreateCall(f_localid, ConstantInt::get(Int32, 1));
   if (maxDim > 2)
@@ -1499,8 +1498,8 @@ WorkitemLoops::varyOnlyWithLocalId(Instruction *instr, int depth)
     return (functionName == "get_local_id") ? true : false;
   }
 
-  Function *F = instr->getParent()->getParent();
-  for (int op = 0; op < instr->getNumOperands(); ++op)
+  //Function *F = instr->getParent()->getParent();
+  for (unsigned int op = 0; op < instr->getNumOperands(); ++op)
   {
     Value *op_val = instr->getOperand(op);
     // if (VUA->isUniform(F, op_val)) continue;
@@ -1528,8 +1527,8 @@ WorkitemLoops::rematerializeUse(Instruction *instr, Instruction *user)
   dup->insertBefore(user);
   user->replaceUsesOfWith(instr, dup);
 
-  Function *F = instr->getParent()->getParent();
-  for (int op = 0; op < dup->getNumOperands(); ++op)
+  //Function *F = instr->getParent()->getParent();
+  for (unsigned int op = 0; op < dup->getNumOperands(); ++op)
   {
     Value *op_val = dup->getOperand(op);
     // if (VUA->isUniform(F, op_val)) continue;
@@ -1625,7 +1624,7 @@ void MoveWGInvariant(Instruction *instr, Instruction *insb4)
   if (instr->getParent() == insb4->getParent())  return;
 
   instr->moveBefore(insb4);
-  for (int op = 0; op < instr->getNumOperands(); ++op)
+  for (unsigned int op = 0; op < instr->getNumOperands(); ++op)
   {
     if (Instruction *op_instr = dyn_cast<Instruction>(instr->getOperand(op)))
       MoveWGInvariant(op_instr, instr);
@@ -1699,7 +1698,7 @@ WorkitemLoops::isWGInvariant(Value *v)
 
   if (Instruction *instr = dyn_cast<Instruction>(v))
   {
-    for (int op = 0; op < instr->getNumOperands(); ++op) {
+    for (unsigned int op = 0; op < instr->getNumOperands(); ++op) {
       if (!isWGInvariant(instr->getOperand(op))) {
         WGInvariantMap[v] = false;
         return false;

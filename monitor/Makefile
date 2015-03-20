@@ -1,6 +1,6 @@
 # If not specified, assume the opencl source directory is at same location as
 # monitor
-OPENCL_SRC_DIR ?= ../opencl
+OPENCL_SRC_DIR ?= ../host
 
 # If not specified, pick a default location for TI dependent packages
 DEFAULT_DEV_INSTALL_DIR ?= /opt/ti
@@ -135,7 +135,7 @@ K2H_LIBS  = $(K2LIBS) $(MPM_DIR)/lib_c66x/mpmmailbox.ae66 $(ULM_DIR)/libtiulm.ae
 #----------------------------------------------------------------------------
 # include libm functions in monitor
 #----------------------------------------------------------------------------
-LIBM_DIR=../open_libm
+LIBM_DIR=../libm
 LIBM=$(LIBM_DIR)/libm.lib
 
 $(LIBM): 
@@ -144,7 +144,7 @@ $(LIBM):
 #----------------------------------------------------------------------------
 # include builtins functions in monitor
 #----------------------------------------------------------------------------
-BUILTINS_DIR=../opencl_builtins
+BUILTINS_DIR=../builtins
 BUILTINS=$(BUILTINS_DIR)/dsp.lib
 
 $(BUILTINS): 

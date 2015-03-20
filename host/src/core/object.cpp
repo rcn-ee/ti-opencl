@@ -37,17 +37,18 @@
 using namespace Coal;
 
 /*-----------------------------------------------------------------------------
-* This static was previously inside the getKnownObjects function in order to
+* This static was previously inside the getKnownObjects function in order to 
 * delay its construction until first use.  Since we now delay the construction
-* of the platform until first use, we need to make sure that known_objects
+* of the platform until first use, we need to make sure that known_objects 
 * lifetime is a superset of the the_platform and all opencl objects lifetimes.
-* Therefore we moved the definition of known_objects to global scope which
+* Therefore we moved the definition of known_objects to global scope which 
 * will ensure that it exists before the_platform and should also ensure that
 * it is destroyed after the_platform, since objects are destructed in reverse
-* order of construction.  Both singletons created with new and statics are
+* order of construction.  Both singletons created with new and statics are 
 * both placed in the same dtor queue.
 *----------------------------------------------------------------------------*/
 static concurrent_set<Object *> known_objects;
+
 
 Object::Object(Type type, Object *parent)
 : p_references(1), p_parent(parent), p_type(type), p_release_parent(true)

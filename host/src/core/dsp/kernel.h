@@ -127,6 +127,17 @@ class DSPKernelEvent
         char args_of_argref[MAX_ARGS_TOTAL_SIZE*2];
         int  argref_offset;
         std::vector<LocalPair>    p_argrefs;
+
+        /*---------------------------------------------------------------------
+        * Helpers for run member function
+        *--------------------------------------------------------------------*/
+        cl_int allocate_and_assign_local_buffers(uint32_t &, DSPDevicePtr &);
+        cl_int init_kernel_runtime_variables(Event::Type evtype, uint32_t, DSPDevicePtr);
+        cl_int allocate_temp_global (void);
+        cl_int flush_special_use_host_ptr_buffers(void);
+        cl_int setup_extended_memory_mappings(void);
+        cl_int setup_stack_based_arguments(void);
+        int debug_kernel_dispatch();
 };
 }
 #endif

@@ -1,4 +1,4 @@
-OPENCL_SRC_DIR          = ../opencl
+OPENCL_SRC_DIR          = ../host
 PDK_DIR                 ?= $(DEFAULT_DEV_INSTALL_DIR)/pdk_am57xx_8_00_00_00
 IPC_DIR                 ?= $(DEFAULT_DEV_INSTALL_DIR)/ipc_3_30_01_12
 XDC_DIR                 ?= $(DEFAULT_DEV_INSTALL_DIR)/xdctools_3_30_05_60
@@ -46,14 +46,14 @@ BUILD_TYPE = release
 #----------------------------------------------------------------------------
 # LIBM
 #----------------------------------------------------------------------------
-LIBM_DIR=../open_libm
+LIBM_DIR=../libm
 LIBM=$(LIBM_DIR)/libm.lib
 
 
 #----------------------------------------------------------------------------
 # BUILTINS
 #----------------------------------------------------------------------------
-BUILTINS_DIR=../opencl_builtins
+BUILTINS_DIR=../builtins
 BUILTINS=$(BUILTINS_DIR)/dsp.lib
 
 

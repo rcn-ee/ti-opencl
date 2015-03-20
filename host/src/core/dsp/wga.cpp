@@ -67,7 +67,7 @@ Pass *createTIOpenclWorkGroupAggregationPass(bool is_pocl_mode)
 TIOpenclWorkGroupAggregation::TIOpenclWorkGroupAggregation(bool pocl_mode) : 
     FunctionPass(ID), is_pocl_mode(pocl_mode), di_function(NULL)
 {
-    for (int i = 0; i < MAX_DIMENSIONS; ++i) IVPhi[i] = 0;
+    for (unsigned int i = 0; i < MAX_DIMENSIONS; ++i) IVPhi[i] = 0;
 }
 
 /**************************************************************************
@@ -82,7 +82,7 @@ llvm::Value* TIOpenclWorkGroupAggregation::get_IV(Function &F, CallInst *call)
 
     if (ConstantInt * constInt = dyn_cast<ConstantInt>(arg))
     {
-        uint32_t dim = constInt->getSExtValue();
+        int32_t dim = constInt->getSExtValue();
         return (dim >= 0 && dim <= 2) ? IVPhi[dim] : zero;
     }
 
@@ -197,7 +197,8 @@ bool TIOpenclWorkGroupAggregation::rewrite_first_wi(Function &F, int dims)
 {
     Module *M                  = F.getParent();
     llvm::Type*  Int32         = llvm::IntegerType::getInt32Ty(M->getContext());
-    llvm::Value* dummy         = M->getOrInsertGlobal("__first_wi", Int32);
+
+    M->getOrInsertGlobal("__first_wi", Int32);
     GlobalVariable* __first_wi = M->getNamedGlobal("__first_wi"); 
     Value *zero                = ConstantInt::get(Int32, 0); 
 
@@ -272,8 +273,8 @@ Instruction* TIOpenclWorkGroupAggregation::createLoadGlobal
 {
     llvm::Type     *Int32 = llvm::IntegerType::getInt32Ty(M->getContext());
     llvm::ArrayType *type = ArrayType::get(Int32, 32);
-    llvm::Value* dummy     = M->getOrInsertGlobal("kernel_config_l2", type);
 
+    M->getOrInsertGlobal("kernel_config_l2", type);
     GlobalVariable* global = M->getNamedGlobal("kernel_config_l2"); 
 
     std::vector<Value*> indices;
@@ -327,10 +328,10 @@ bool TIOpenclWorkGroupAggregation::rewrite_allocas(Function &F)
     Function *core_num = dyn_cast<Function>(
                          M->getOrInsertFunction("__core_num", core_num_ft));
     Instruction *f_core_num = CallInst::Create(core_num, "", inspt);
-    Instruction *wg_alloca_size = createLoadGlobal(17, M, inspt);
+    Instruction *wg_alloca_size = createLoadGlobal(15, M, inspt);
     Instruction *shift = BinaryOperator::Create(Instruction::Mul, f_core_num,
                                                 wg_alloca_size, "", inspt);
-    Instruction *start = createLoadGlobal(16, M, inspt);
+    Instruction *start = createLoadGlobal(14, M, inspt);
     Instruction *wg_alloca_addr = BinaryOperator::Create(
                                     Instruction::Add, start, shift, "", inspt);
     if (di_function != NULL)
@@ -478,9 +479,6 @@ TIOpenclWorkGroupAggregation::hoist_wg_invariant_code(Function &F)
     Module              *M = F.getParent();
     BasicBlock      *entry = &(F.getEntryBlock());
     llvm::Type      *Int32 = llvm::IntegerType::getInt32Ty(M->getContext());
-    llvm::ArrayType  *type = ArrayType::get(Int32, 32);
-    llvm::Value*     dummy = M->getOrInsertGlobal("kernel_config_l2", type);
-    GlobalVariable* global = M->getNamedGlobal("kernel_config_l2"); 
 
 #define MAX_KERNEL_CONFIG_L2_ENTRIES	32
     Value  *geps[MAX_KERNEL_CONFIG_L2_ENTRIES];
@@ -542,8 +540,10 @@ BasicBlock* TIOpenclWorkGroupAggregation::findExitBlock(Function &F)
     *------------------------------------------------------------------------*/
     for (Function::iterator B = F.begin(), E = F.end(); B != E; ++B)
         if ((*B).getTerminator()->getNumSuccessors() == 0) 
+        {
             if (!exit) exit = &(*B);
             else assert(false);
+        }
 
     /*-------------------------------------------------------------------------
     * Split the return off into it's own block

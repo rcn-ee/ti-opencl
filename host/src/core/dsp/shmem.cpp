@@ -44,7 +44,10 @@
 ******************************************************************************/
 shmem::shmem()
  : p_dsp_addr(0), p_size(0), p_page_size(sysconf(_SC_PAGE_SIZE)), p_mmap_fd(-1)
-   , p_mpm_transport_handle(NULL), p_threshold(32<<20) 
+#if !defined (DEVICE_AM57)
+   , p_mpm_transport_handle(NULL)
+#endif
+   , p_threshold(32<<20) 
 
 { }
 
@@ -66,7 +69,10 @@ void shmem::configure_base(DSPDevicePtr64 dsp_addr,  uint64_t size)
     *------------------------------------------------------------------------*/
     if (p_page_size <= 0) { REPORT("Failed to get PAGE_SIZE"); return; }
 
-    // p_mmap_fd = open("/dev/mem", (O_RDWR | O_SYNC));
+#if defined (DEVICE_AM57)
+    p_mmap_fd = open("/dev/mem", (O_RDWR | O_SYNC));
+    if (p_mmap_fd == -1) { REPORT("Failed to open /dev/mem"); return; }
+#else
     // Now we use mpm_transport_{open, mmap, munmap, close}
     /*-------------------------------------------------------------------------
     * core1-core7's l2 go through /dev/dsp{1-7}
@@ -84,12 +90,12 @@ void shmem::configure_base(DSPDevicePtr64 dsp_addr,  uint64_t size)
     /*-------------------------------------------------------------------------
     * If the open failed
     *------------------------------------------------------------------------*/
-    // if (p_mmap_fd == -1) { REPORT("Failed to open /dev/mem"); return; }
     if (p_mpm_transport_handle == NULL)
     { 
         printf("Failed to open /dev/%s", devname);
         return;
     }
+#endif
 
     p_dsp_addr = dsp_addr;
     p_size     = size;
@@ -115,8 +121,11 @@ void shmem_persistent::configure(DSPDevicePtr64 dsp_addr, uint64_t size)
     /*-------------------------------------------------------------------------
     * if base class failed to construct, because /dev/mem could not be opened
     *------------------------------------------------------------------------*/
-    // if (p_mmap_fd == -1) return;
+#if defined (DEVICE_AM57)
+    if (p_mmap_fd == -1) return;
+#else
     if (p_mpm_transport_handle == NULL) return;
+#endif
 
     if (!MULTIPLE_OF_POW2(dsp_addr, p_page_size)) 
     {
@@ -130,8 +139,10 @@ void shmem_persistent::configure(DSPDevicePtr64 dsp_addr, uint64_t size)
         return;
     }
 
-    //p_host_addr = mmap(0, size, (PROT_READ|PROT_WRITE), MAP_SHARED, p_mmap_fd,
-    //                     (off_t)dsp_addr);
+#if defined (DEVICE_AM57)
+    p_host_addr = mmap(0, size, (PROT_READ|PROT_WRITE), MAP_SHARED, p_mmap_fd,
+                         (off_t)dsp_addr);
+#else
     mpm_transport_mmap_t mpm_transport_mmap_cfg;
     mpm_transport_mmap_cfg.mmap_prot = (PROT_READ|PROT_WRITE);
     mpm_transport_mmap_cfg.mmap_flags = MAP_SHARED;
@@ -139,6 +150,7 @@ void shmem_persistent::configure(DSPDevicePtr64 dsp_addr, uint64_t size)
     p_host_addr = (void *)mpm_transport_mmap(p_mpm_transport_handle,
                                                 dsp_addr, size,
                                                 &mpm_transport_mmap_cfg);
+#endif
 
     // if (p_host_addr == MAP_FAILED) 
     if (p_host_addr == (void *) -1)
@@ -156,9 +168,12 @@ void shmem_persistent::configure(DSPDevicePtr64 dsp_addr, uint64_t size)
 ******************************************************************************/
 shmem_persistent::~shmem_persistent()
 {
-    // if (p_host_addr) munmap(p_host_addr, p_size);
+#if defined (DEVICE_AM57)
+    if (p_host_addr) munmap(p_host_addr, p_size);
+#else
     if (p_host_addr)
         mpm_transport_munmap(p_mpm_transport_handle, p_host_addr, p_size);
+#endif
 }
 
 /******************************************************************************
@@ -232,8 +247,10 @@ void *shmem_ondemand::map(DSPDevicePtr64 dsp_addr, uint32_t size, bool is_read)
         return 0;
     }
 
-    //void *host_addr = mmap(0, size, (PROT_READ|PROT_WRITE), MAP_SHARED, 
-    //                          p_mmap_fd, (off_t)dsp_addr);
+#if defined (DEVICE_AM57)
+    void *host_addr = mmap(0, size, (PROT_READ|PROT_WRITE), MAP_SHARED, 
+                              p_mmap_fd, (off_t)dsp_addr);
+#else
     mpm_transport_mmap_t mpm_transport_mmap_cfg;
     mpm_transport_mmap_cfg.mmap_prot = (PROT_READ|PROT_WRITE);
     mpm_transport_mmap_cfg.mmap_flags = MAP_SHARED;
@@ -241,6 +258,7 @@ void *shmem_ondemand::map(DSPDevicePtr64 dsp_addr, uint32_t size, bool is_read)
     void * host_addr = mpm_transport_mmap(p_mpm_transport_handle,
                                           dsp_addr, size,
                                           &mpm_transport_mmap_cfg);
+#endif
 
     // if (host_addr == MAP_FAILED)
     if (host_addr == (void *) -1)
@@ -257,7 +275,9 @@ void *shmem_ondemand::map(DSPDevicePtr64 dsp_addr, uint32_t size, bool is_read)
 ******************************************************************************/
 void  shmem_ondemand::unmap(void* host_addr, uint32_t size, bool is_write)
 { 
-    // if (host_addr) munmap(host_addr, size);
+#if defined (DEVICE_AM57)
+    if (host_addr) munmap(host_addr, size);
+#endif
 }
 
 
@@ -332,7 +352,7 @@ void shmem_cmem::cmem_init(DSPDevicePtr64 *addr1, uint64_t *size1,
     *------------------------------------------------------------------------*/
     if (CMEM_init() == -1) 
     {
-        printf("\nThe cmemk kernel module does not appear to installed.\n\n"
+        printf("\nThe cmemk kernel module does not appear to be installed.\n\n"
                "Commands such as the following run as root would "
                "install cmemk and allow OpenCL to proceed properly.\n\n");
         printf("%s\n\n", cmem_command);
@@ -348,10 +368,11 @@ void shmem_cmem::cmem_init(DSPDevicePtr64 *addr1, uint64_t *size1,
     *------------------------------------------------------------------------*/
     int num_Blocks = 0;
     CMEM_getNumBlocks(&num_Blocks);
-    if (num_Blocks < 2)
+    if (num_Blocks < CMEM_MIN_BLOCKS)
     {
-        printf("\nOpenCL needs at least two CMEM blocks to operate properly.\n"
-               "One for DDR, the other for MSMC.  Example commands:\n");
+        printf("\nOpenCL needs at least %d CMEM blocks to operate properly.\n"
+               "One for DDR, the other for MSMC.  Example commands:\n",
+               CMEM_MIN_BLOCKS);
         printf("%s\n\n", cmem_command);
         printf("%s\n\n", cmem_command2);
         exit(-1);
@@ -362,7 +383,6 @@ void shmem_cmem::cmem_init(DSPDevicePtr64 *addr1, uint64_t *size1,
     CMEM_BlockAttrs pattrs2 = {0, 0};
 
     CMEM_getBlockAttrs(0, &pattrs0);
-    CMEM_getBlockAttrs(1, &pattrs1);
 
     /*-------------------------------------------------------------------------
     * Return 36-bit addr, and up to 7.5G memory size
@@ -375,15 +395,6 @@ void shmem_cmem::cmem_init(DSPDevicePtr64 *addr1, uint64_t *size1,
     { 
         printf("Unable to allocate OCL persistent CMem from 0x%llx\n",
                pattrs0.phys_base);
-        exit(EXIT_FAILURE);
-    }
-
-    *addr2 = pattrs1.phys_base;
-    *size2 = pattrs1.size;
-    if (*addr2 < MSMC_OCL_START_ADDR || *addr2 >= MSMC_OCL_END_ADDR)
-    { 
-        printf("Unable to allocate OCL MSMC memory from 0x%llx\n",
-               pattrs1.phys_base);
         exit(EXIT_FAILURE);
     }
 
@@ -401,6 +412,26 @@ void shmem_cmem::cmem_init(DSPDevicePtr64 *addr1, uint64_t *size1,
                *size1, alloc_dsp_addr);
         exit(EXIT_FAILURE);
     }
+
+    if (num_Blocks == 1)
+    {
+        *addr2 = 0;
+        *size2 = 0;
+        *addr3 = 0;
+        *size3 = 0;
+        return;
+    }
+   
+    CMEM_getBlockAttrs(1, &pattrs1);
+    *addr2 = pattrs1.phys_base;
+    *size2 = pattrs1.size;
+    if (*addr2 < MSMC_OCL_START_ADDR || *addr2 >= MSMC_OCL_END_ADDR)
+    { 
+        printf("Unable to allocate OCL MSMC memory from 0x%llx\n",
+               pattrs1.phys_base);
+        exit(EXIT_FAILURE);
+    }
+
 
     params.type    = CMEM_HEAP;
     alloc_dsp_addr = CMEM_allocPhys2(1, *size2, &params);
@@ -457,8 +488,12 @@ void shmem_cmem_persistent::configure(DSPDevicePtr64 dsp_addr, uint64_t size)
     p_dsp_addr = dsp_addr;
     p_size     = size;
     DSPDevicePtr64 cmem_addr = p_dsp_addr;
+#if defined (DEVICE_AM57)
+    if ( dsp_addr >= 0x80000000 ) cmem_addr = dsp_addr + 0x20000000;
+#else
     if (p_dsp_addr >= 0xA0000000 && p_dsp_addr < 0xFFFFFFFF)
         cmem_addr = p_dsp_addr - 0xA0000000 + 0x820000000ULL;
+#endif
     p_host_addr = CMEM_map(cmem_addr, size);
     if (! p_host_addr) 
         ERR(1, "Cannot map CMEM physical memory into the Host virtual address space.\n"
@@ -477,8 +512,12 @@ shmem_cmem_persistent::~shmem_cmem_persistent()
     CMEM_AllocParams params = CMEM_DEFAULTPARAMS;
     params.flags = CMEM_CACHED;
     DSPDevicePtr64 cmem_addr = p_dsp_addr;
+#if defined (DEVICE_AM57)
+    if (p_dsp_addr >= 0x80000000 ) cmem_addr = p_dsp_addr + 0x20000000;
+#else
     if (p_dsp_addr > 0xA0000000 && p_dsp_addr < 0xFFFFFFFF)
         cmem_addr = p_dsp_addr - 0xA0000000 + 0x820000000ULL;
+#endif
     CMEM_freePhys(cmem_addr, &params);
 }
 

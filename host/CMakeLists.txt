@@ -3,37 +3,69 @@ cmake_minimum_required(VERSION 2.6)
 #reliably set. Commit to C6678 and then change below if we build for HAWKING
 project(ti-opencl)
 
-if (${CMAKE_SYSTEM_PROCESSOR} MATCHES "86")
+if (${BUILD_TARGET} MATCHES "DSPC868x")
     set(C6678_BUILD on)
     set(SDK "/opt/ti/desktop-linux-sdk_01_00_00_07")
     MESSAGE(STATUS "Build Target Is C6678")
-else()
+elseif (${BUILD_TARGET} MATCHES "ARM_K2H")
     set(HAWKING_BUILD on)
     MESSAGE(STATUS "Build Target Is  HAWKING")
+elseif (${BUILD_TARGET} MATCHES "ARM_AM57")
+    set(AM57_BUILD on)
+    MESSAGE(STATUS "Build Target Is  AM57")
+else()
+    MESSAGE(FATAL_ERROR "No build target selected. Set cmake variable BUILD_TARGET")
 endif()
 
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/modules)
 
 # project version
-SET(${PROJECT_NAME}_MAJOR_VERSION 1)
-SET(${PROJECT_NAME}_MINOR_VERSION 1)
-SET(${PROJECT_NAME}_PATCH_LEVEL 0)
+# The linux shared library versioning convention uses x.y.z format,
+# with no leading zeros. For debian packaging versioning we use xx.yy.zz.ww
+# formatting with leading zero's.  Opencl/clocl platform and version queries
+# will report in this format.  The 'ww' represents the PATCH_VERSION of a
+# particular release.  This number will not be reflected in the library
+# .so name, only in the packaging.
+# NOTE!!!!!! The packaging version numbers need to match what is specified in 
+# debian/changelog!!!
+SET(OCL_SPEC_MAJOR_VERSION 1)
+SET(OCL_SPEC_MINOR_VERSION 1)
+SET(RELEASE_VERSION 1)
+# use 2-digits to specify patch version as there is no need to convert
+# to library versioning
+SET(PATCH_VERSION   00)
 
-# OpenCL platform version
-SET(${PROJECT_NAME}_VERSION ${${PROJECT_NAME}_MAJOR_VERSION}.${${PROJECT_NAME}_MINOR_VERSION}.${${PROJECT_NAME}_PATCH_LEVEL})
+# Create the packaging version numbers which need leading zeros if single digit.
+if("${OCL_SPEC_MAJOR_VERSION}" MATCHES "^[0-9]$")
+   SET(PKG_MAJOR_VERSION "0${OCL_SPEC_MAJOR_VERSION}")
+else()
+   SET(PKG_MAJOR_VERSION ${OCL_SPEC_MAJOR_VERSION})
+endif()
+
+if("${OCL_SPEC_MINOR_VERSION}" MATCHES "^[0-9]$")
+   SET(PKG_MINOR_VERSION "0${OCL_SPEC_MINOR_VERSION}")
+else()
+   SET(PKG_MINOR_VERSION ${OCL_SPEC_MINOR_VERSION})
+endif()
+
+if("${RELEASE_VERSION}" MATCHES "^[0-9]$")
+   SET(PKG_RELEASE_VERSION "0${RELEASE_VERSION}")
+else()
+   SET(PKG_RELEASE_VERSION ${RELEASE_VERSION})
+endif()
+
+# Set OpenCL library version number
+SET(${PROJECT_NAME}_VERSION ${OCL_SPEC_MAJOR_VERSION}.${OCL_SPEC_MINOR_VERSION}.${RELEASE_VERSION})
 
 # Set SONAME for OpenCL library
-SET(${PROJECT_NAME}_SOVERSION ${${PROJECT_NAME}_MAJOR_VERSION})
+SET(${PROJECT_NAME}_SOVERSION ${OCL_SPEC_MAJOR_VERSION})
 
-#set(CMAKE_INSTALL_PREFIX $ENV{DESTDIR})
-
-if (YOCTO_BUILD)
-   set(CMAKE_INSTALL_PREFIX $ENV{DESTDIR_YOCTO})
-endif()
+# Set OpenCL package version
+SET(${PROJECT_NAME}_PKG_VERSION ${PKG_MAJOR_VERSION}.${PKG_MINOR_VERSION}.${PKG_RELEASE_VERSION}.${PATCH_VERSION})
 
 MESSAGE(STATUS "Install path is ${CMAKE_INSTALL_PREFIX}")
 
-if (HAWKING_CROSS_COMPILE)
+if (CROSS_COMPILE)
   set(CMAKE_SKIP_RPATH TRUE)
 endif()
 
@@ -84,26 +116,44 @@ set(OCL_EXAMPLES_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../examples)
 endif()
 
 if (NOT OCL_MONITOR_DIR)
-set(OCL_MONITOR_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../monitor)
+    if (HAWKING_BUILD OR C6678_BUILD)
+     set(OCL_MONITOR_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../monitor)
+    else()
+     set(OCL_MONITOR_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../monitor_vayu)
+    endif()
 endif()
 
 if (NOT OCL_BUILTINS_DIR)
 set(OCL_BUILTINS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../builtins)
 endif()
 
- # Create the top level share install directory with the desired permissions
+# Create the top level share install directory with the desired permissions
 set (SHARE_PATH /usr/share/ti)
 install(DIRECTORY DESTINATION ${SHARE_PATH} ${OCL_DPERMS})
 
+# For now, pick default ULM configurations for each target
+if(NOT DEFINED ENABLE_ULM)
+  if (HAWKING_BUILD)
+    set(ENABLE_ULM on)
+  elseif(C6678_BUILD)
+    set(ENABLE_ULM off)
+  elseif(AM57_BUILD)
+    set(ENABLE_ULM off)
+  endif()
+endif()
+
 if (NOT BUILD_OUTPUT)
   set(BUILD_OUTPUT all)
+endif()
+
+if (${BUILD_OUTPUT} STREQUAL "all")
+  add_subdirectory(${OCL_MONITOR_DIR} ${CMAKE_CURRENT_BINARY_DIR}/monitor)
 endif()
 
 if (${BUILD_OUTPUT} STREQUAL "all" OR ${BUILD_OUTPUT} STREQUAL "lib")
   add_subdirectory(src)
   add_subdirectory(util)
   add_subdirectory(${OCL_BUILTINS_DIR} ${CMAKE_CURRENT_BINARY_DIR}/builtins)
-  add_subdirectory(${OCL_MONITOR_DIR} ${CMAKE_CURRENT_BINARY_DIR}/monitor)
 
   install(DIRECTORY DESTINATION /usr/share/doc/ti-opencl         ${OCL_DPERMS})
   install(DIRECTORY DESTINATION /usr/include/CL                  ${OCL_DPERMS})
@@ -139,11 +189,11 @@ endif()
 if (BUILD_OUTPUT STREQUAL "all" OR BUILD_OUTPUT STREQUAL "clocl")
   add_subdirectory(clocl)
 
-  if (HAWKING_BUILD)
+  if (HAWKING_BUILD OR AM57_BUILD)
     add_custom_target(arm_clocl_build ALL DEPENDS arm_clocl)
   endif()
 
-  if (HAWKING_CROSS_COMPILE OR C6678_BUILD)
+  if (CROSS_COMPILE OR C6678_BUILD)
     add_custom_target(x86_clocl_build ALL DEPENDS x86_clocl)
   endif()
 endif()
@@ -160,9 +210,9 @@ set (CPACK_DEBIAN_PACKAGE_MAINTAINER "TI")
 set (CPACK_DEBIAN_PACKAGE_NAME ${PROJECT_NAME})
 set (CPACK_DEBIAN_PACKAGE_ARCHITECTURE "all")
 
-set (CPACK_PACKAGE_VERSION_MAJOR ${${PROJECT_NAME}_MAJOR_VERSION})
-set (CPACK_PACKAGE_VERSION_MINOR ${${PROJECT_NAME}_MINOR_VERSION})
-set (CPACK_PACKAGE_VERSION_PATCH ${${PROJECT_NAME}_PATCH_LEVEL})
+set (CPACK_PACKAGE_VERSION_MAJOR ${${PROJECT_NAME}_OCL_SPEC_MAJOR_VERSION})
+set (CPACK_PACKAGE_VERSION_MINOR ${${PROJECT_NAME}_OCL_SPEC_MINOR_VERSION})
+set (CPACK_PACKAGE_VERSION_PATCH ${${PROJECT_NAME}_RELEASE_VERSION})
 set (CPACK_DEBIAN_PACKAGE_DEPENDS "mesa-common-dev (>=8.0.4-0), binutils-dev (>=2.22-6), libsqlite3-dev (>=3.7.9-2), libffi6 (>=3.0.11~rc1-5), zlib1g (>=1:1.2.3.4)")
 
 #Set where dpkg will put the install

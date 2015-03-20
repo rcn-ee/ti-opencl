@@ -53,7 +53,7 @@ using namespace Coal;
 /******************************************************************************
 * begin_file_lock_crit_section
 ******************************************************************************/
-static int begin_file_lock_crit_section(char* fname)
+static int begin_file_lock_crit_section(const char* fname)
 {
     /*---------------------------------------------------------------------
     * Create a lock, so only 1 OpenCL program can progress at a time.
@@ -169,8 +169,10 @@ namespace Coal
                 break;
 
             case CL_PLATFORM_NAME:
-#if defined(__arm__)
+#if defined(DEVICE_K2H)
                 STRING_ASSIGN("TI KeyStone II");
+#elif defined(DEVICE_AM57)
+                STRING_ASSIGN("TI AM57x");
 #else
                 STRING_ASSIGN("TI KeyStone I");
 #endif

@@ -1,6 +1,6 @@
 include_directories( ${CMAKE_SOURCE_DIR}/include )
 
-if (HAWKING_CROSS_COMPILE)
+if (CROSS_COMPILE)
    include_directories( ${CMAKE_FIND_ROOT_PATH} ${HOST_USR_INCLUDE_PATH} )
 endif()
 

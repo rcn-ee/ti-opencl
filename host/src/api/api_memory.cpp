@@ -436,14 +436,14 @@ getDspDevice()
         cl_uint       num_devices = 0;
         cl_int        errcode;
 
-        errcode = clGetDeviceIDs(&the_platform::Instance(), CL_DEVICE_TYPE_ACCELERATOR,
+        errcode = clGetDeviceIDs((cl_platform_id) &the_platform::Instance(), CL_DEVICE_TYPE_ACCELERATOR,
                                  0, NULL, &num_devices);
         if (!num_devices)  return NULL;
 
         devices = (cl_device_id*) malloc(num_devices * sizeof(cl_device_id));
         if (!devices)  return NULL;
 
-        errcode = clGetDeviceIDs(&the_platform::Instance(), CL_DEVICE_TYPE_ACCELERATOR,
+        errcode = clGetDeviceIDs((cl_platform_id) &the_platform::Instance(), CL_DEVICE_TYPE_ACCELERATOR,
                                  num_devices, devices, 0);
         if (errcode != CL_SUCCESS) { free (devices); return NULL; }
 

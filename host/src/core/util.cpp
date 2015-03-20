@@ -246,7 +246,8 @@ int getKernelConfigGEPInstIndex(Instruction *instr)
       Module              *M = instr->getParent()->getParent()->getParent();
       llvm::Type      *Int32 = llvm::IntegerType::getInt32Ty(M->getContext());
       llvm::ArrayType  *type = ArrayType::get(Int32, 32);
-      llvm::Value*     dummy = M->getOrInsertGlobal("kernel_config_l2", type);
+
+      M->getOrInsertGlobal("kernel_config_l2", type);
       GlobalVariable* global = M->getNamedGlobal("kernel_config_l2");
 
       llvm::Value *load_from  = gep_instr->getPointerOperand();
@@ -274,7 +275,8 @@ int getKernelConfigLoadInstIndex(Instruction *instr)
         Module              *M = instr->getParent()->getParent()->getParent();
         llvm::Type      *Int32 = llvm::IntegerType::getInt32Ty(M->getContext());
         llvm::ArrayType  *type = ArrayType::get(Int32, 32);
-        llvm::Value*     dummy = M->getOrInsertGlobal("kernel_config_l2", type);
+
+        M->getOrInsertGlobal("kernel_config_l2", type);
         GlobalVariable* global = M->getNamedGlobal("kernel_config_l2");
 
         llvm::Value *load_from  = gep_expr->getOperand(0);

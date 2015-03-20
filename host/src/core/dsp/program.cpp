@@ -131,45 +131,33 @@ bool DSPProgram::load()
     /*-------------------------------------------------------------------------
     * ensure that the newly populated areas are not stale in device caches
     *------------------------------------------------------------------------*/
-    Msg_t msg;
-    int   segNum = p_segments_written.size();
-
-    assert(segNum <= MAX_FLUSH_BUF_SIZE/2);
-
-    msg.command = CACHEINV;
-    msg.u.k.flush.numBuffers = segNum;
-    msg.u.k.flush.num_mpaxs  = 0;
-    for (int i=0; i < segNum; ++i)
+    if (0 && p_debug)
     {
-        msg.u.k.flush.buffers[2*i]   = p_segments_written[i].ptr;
-        msg.u.k.flush.buffers[2*i+1] = p_segments_written[i].size;
-
-        uint32_t flags = p_segments_written[i].flags & 
-                   (DLOAD_SF_executable | DLOAD_SF_writable);
-
-        const char *seg_desc;
-        switch (flags)
+        int   segNum = p_segments_written.size();
+        for (int i=0; i < segNum; ++i)
         {
-            case 0:                   seg_desc = "Read Only"; break;
-            case DLOAD_SF_executable: seg_desc = "Executable"; break;
-            case DLOAD_SF_writable:   seg_desc = "Writable"; break;
-            default:                  seg_desc = "Writable & Executable"; break;
-        }
+            uint32_t flags = p_segments_written[i].flags & 
+                       (DLOAD_SF_executable | DLOAD_SF_writable);
 
-        if (0 && p_debug)
-           printf("%s segment loaded to 0x%08x with size 0x%x\n", 
-               seg_desc, p_segments_written[i].ptr, p_segments_written[i].size);
+            const char *seg_desc;
+            switch (flags)
+            {
+                case 0:                   seg_desc = "Read Only"; break;
+                case DLOAD_SF_executable: seg_desc = "Executable"; break;
+                case DLOAD_SF_writable:   seg_desc = "Writable"; break;
+                default:                  seg_desc = "Writable & Executable"; break;
+            }
+
+               printf("%s segment loaded to 0x%08x with size 0x%x\n", 
+                   seg_desc, p_segments_written[i].ptr, p_segments_written[i].size);
+        }
     }
 
     /*-------------------------------------------------------------------------
-    * Send the command and wait for the ready response.
+    * Send the cache Inv command.  We do not wait here.  The wait will be 
+    * handled by the standard wait loop in the worker thread.
     *------------------------------------------------------------------------*/
-    p_device->mail_to(msg);
-
-    /*-------------------------------------------------------------------------
-    * We do not wait here.  The wait will be handled by the standard wait loop
-    * int the worker thread.
-    *------------------------------------------------------------------------*/
+    p_device->mail_to(cacheMsg);
     return true;
 }
 
@@ -333,28 +321,24 @@ std::string process_cl6x_options(std::string options)
 ******************************************************************************/
 #define DEFAULT_TI_CGT_INSTALL_PATH "/usr/share/ti/cgt-c6x"
 
-char *get_cgt_install()
+const char *get_cgt_install()
 {
-    char *install = getenv("TI_OCL_CGT_INSTALL");
-    if (!install)
+    const char *install = getenv("TI_OCL_CGT_INSTALL");
+    if (install) return install;
+
+    bool def_install = access(DEFAULT_TI_CGT_INSTALL_PATH, F_OK|R_OK) != -1;
+
+    if (!def_install)
     {
-       bool def_install = access(DEFAULT_TI_CGT_INSTALL_PATH, F_OK|R_OK) != -1;
-
-       if (!def_install)
-       {
-	  std::cout << "\nThe C6000 compiler lib/include installation is not "
-          "located in the default\n"
-	  "location (/usr/share/ti/cgt-c6x).\n"
-          "Use the environment variable TI_OCL_CGT_INSTALL to specify an alternate\n"
-	  "installation path.\n"  << std::endl;
-	  
-	  abort();
-       }
-       else
-	  install = DEFAULT_TI_CGT_INSTALL_PATH;
+       std::cout << "\nThe C6000 compiler lib/include installation is not "
+       "located in the default\n"
+       "location (/usr/share/ti/cgt-c6x).\n"
+       "Use the environment variable TI_OCL_CGT_INSTALL to specify an alternate\n"
+       "installation path.\n"  << std::endl;
+      
+       abort();
     }
-
-    return install;
+    else return DEFAULT_TI_CGT_INSTALL_PATH;
 }
 
 
@@ -400,7 +384,7 @@ static int run_cl6x(char *filename, std::string *llvm_bitcode,
     char *no_sp = getenv("TI_OCL_SOFTWARE_PIPELINE_OFF");
     if (no_sp) command += "-mu ";
 
-    char *cgt_install = get_cgt_install();
+    const char *cgt_install = get_cgt_install();
 
     command += "-I"; command += cgt_install; command += "/include ";
     command += "-I"; command += cgt_install; command += "/lib ";

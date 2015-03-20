@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2013-2014, Texas Instruments Incorporated - http://www.ti.com/
+ * Copyright (c) 2015, Texas Instruments Incorporated - http://www.ti.com/
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -25,42 +25,57 @@
  *   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  *   THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
+#pragma once
+
+#include "u_locks_pthread.h"
 #include "u_lockable.h"
-#ifndef _CORE_SCHEDULER_H
-#define _CORE_SCHEDULER_H
+#include "driver.h"
 
-class CoreScheduler : public Lockable
+#include "mbox.h"
+
+using namespace Coal;
+
+class MBoxRPMsg : public MBox, public Lockable
 {
-  public:
-    /*-------------------------------------------------------------------------
-    * Currently limited to a max of 8 cores
-    *------------------------------------------------------------------------*/
-    CoreScheduler(unsigned int num_cores = 8) : p_num_cores(num_cores), p_avail(0xff) {}
-
-    void free(int core) 
-    { 
-        Lock lock(this);
-        p_avail |= (1 << core);
-        CV.notify_one();
-    }
-
-    int allocate()
-    {
-        Lock lock(this);
-
-        /*---------------------------------------------------------------------
-        * Wait in a loop in case the condvar is falsely signalled
-        *--------------------------------------------------------------------*/
-        while (!p_avail) CV.wait(lock.raw());
-
-        for (int i=0, mask = 1; i < p_num_cores; ++i, mask <<= 1)
-            if (p_avail & mask) { p_avail &= ~mask; return i; }
-    }
+    public:
+        MBoxRPMsg(Coal::DSPDevice *device);
+        ~MBoxRPMsg();
+        void to   (uint8_t *msg, uint32_t  size);
+        int  from (uint8_t *msg, uint32_t *size);
+        bool query();
 
   private:
-     unsigned int  p_num_cores;
-     unsigned char p_avail;
-     CondVar       CV;
+    int32_t write (uint8_t *buf, uint32_t size,
+                   uint32_t trans_id);
+    int32_t read (uint8_t *buf, uint32_t *size,
+                  uint32_t *trans_id);
+
+  private:
+    char             p_rpmsg_dev[128];
+    int              p_fd;
+    Coal::DSPDevice *p_device;
 };
 
-#endif //_CORE_SCHEDULER_H
+inline void MBoxRPMsg::to(uint8_t *msg, uint32_t  size)
+{
+    static unsigned trans_id = TX_ID_START;
+
+    Lock lock(this);
+    write(msg, size, trans_id++);
+}
+
+inline int MBoxRPMsg::from (uint8_t *msg, uint32_t *size)
+{
+    uint32_t trans_id_rx;
+
+    read(msg, size, &trans_id_rx);
+
+    return trans_id_rx;
+}
+
+inline bool MBoxRPMsg::query()
+{
+    return true;
+}
+
+

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2013-2014, Texas Instruments Incorporated - http://www.ti.com/
+ * Copyright (c) 2015, Texas Instruments Incorporated - http://www.ti.com/
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -25,42 +25,19 @@
  *   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  *   THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
-#include "u_lockable.h"
-#ifndef _CORE_SCHEDULER_H
-#define _CORE_SCHEDULER_H
 
-class CoreScheduler : public Lockable
+#pragma once
+
+class MBox
 {
-  public:
-    /*-------------------------------------------------------------------------
-    * Currently limited to a max of 8 cores
-    *------------------------------------------------------------------------*/
-    CoreScheduler(unsigned int num_cores = 8) : p_num_cores(num_cores), p_avail(0xff) {}
+    public:
+        MBox() {}
+        virtual ~MBox() {}
+        virtual void to   (uint8_t *msg, uint32_t  size)  =0;
+        virtual int  from (uint8_t *msg, uint32_t *size)  =0;
+        virtual bool query()                              =0;
 
-    void free(int core) 
-    { 
-        Lock lock(this);
-        p_avail |= (1 << core);
-        CV.notify_one();
-    }
-
-    int allocate()
-    {
-        Lock lock(this);
-
-        /*---------------------------------------------------------------------
-        * Wait in a loop in case the condvar is falsely signalled
-        *--------------------------------------------------------------------*/
-        while (!p_avail) CV.wait(lock.raw());
-
-        for (int i=0, mask = 1; i < p_num_cores; ++i, mask <<= 1)
-            if (p_avail & mask) { p_avail &= ~mask; return i; }
-    }
-
-  private:
-     unsigned int  p_num_cores;
-     unsigned char p_avail;
-     CondVar       CV;
+    protected:
+        static const unsigned int TX_ID_START = 0xC0DE0000;
 };
 
-#endif //_CORE_SCHEDULER_H

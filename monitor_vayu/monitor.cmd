@@ -47,8 +47,8 @@ MEMORY
 *----------------------------------------------------------------------------*/
 --rom_model
 
---retain="../opencl_builtins/dsp.lib<*>(*)"
---retain="../open_libm/libm.lib<*>(*)"
+--retain="../builtins/dsp.lib<*>(*)"
+--retain="../libm/libm.lib<*>(*)"
 --retain="GOMP_*"
 --retain="omp_*"
 --retain="__gomp_flush0"

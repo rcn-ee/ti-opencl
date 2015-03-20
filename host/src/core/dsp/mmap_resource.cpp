@@ -39,13 +39,27 @@
  *
  */
 
-#ifndef DSPC868X
+#if defined(DEVICE_K2H)
+
+extern "C" {
 
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
 
+
+/*-----------------------------------------------------------------------------
+* The file ti/runtime/mmap/mmap.h has a missing '}' when compiled with C++.  
+* We do this as a workaraound for now.
+*----------------------------------------------------------------------------*/
+#ifdef __cplusplus
+#undef __cplusplus
 #include <ti/runtime/mmap/mmap.h>
+#define __cplusplus
+#else
+#include <ti/runtime/mmap/mmap.h>
+#endif
+
 #include <ti/runtime/mmap/include/mmap_resource.h>
 
 #define KEYSTONE_MMAP_MIN_LENGTH        0x1000   //This can be reduced to 4K, but then cache handling needs enhancement.
@@ -793,5 +807,7 @@ static void map_status(keystone_mmap_mapping_t *mapping)
   }
 } /* map_status() */
 
-#endif  // #ifndef DSPC868X
+}
+
+#endif  // #if defined(DEVICE_K2H)
 
