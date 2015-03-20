@@ -25,6 +25,23 @@
  *   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  *   THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
+--args 0x0
+-heap  0x8000
+-stack 0x4000
+
+/*
+MEMORY
+{
+    L2SRAM       (RWX) : org = 0x800000, len = 0x20000
+    OCL_LOCAL    (RWX) : org = 0x820000, len = 0xc0000
+    OCL_MSMC     (RWX) : org = 0xc040000, len = 0x4c0000
+    MSMC_NC_PHYS (RWX) : org = 0xc500000, len = 0x100000
+    MSMC_NC_VIRT (RWX) : org = 0xa1000000, len = 0x100000
+    DDR3         (RWX) : org = 0xa0000000, len = 0x1000000
+    OCL_GLOBAL   (RWX) : org = 0xa6000000, len = 0x5a000000
+}
+*/
+
 /*-----------------------------------------------------------------------------
 * The loader will load initialized values, i.e. cinit is not required
 *----------------------------------------------------------------------------*/
@@ -64,17 +81,45 @@
 
 SECTIONS
 {
+    .text: load >> DDR3
+    .ti.decompress: load > DDR3
+    .stack: load > L2SRAM
+    GROUP: load > DDR3
+    {
+        .bss:
+        .neardata:
+        .rodata:
+    }
+    .cinit: load > DDR3
+    .pinit: load >> L2SRAM
+    .init_array: load > L2SRAM
+    .const: load >> DDR3
+    .data: load >> L2SRAM
+    .switch: load >> DDR3
+    .sysmem: load > L2SRAM
+    .args: load > L2SRAM align = 0x4, fill = 0 {_argsize = 0x0; }
+    .cio: load >> L2SRAM
+    .ti.handler_table: load > L2SRAM
+    .c6xabi.extab: load >> L2SRAM
+    .ddr: load > DDR3
+    .private: load > L2SRAM, fill = 0x0
+    .fast_shared_noncached: load > L2SRAM, fill = 0x0
+}
+
+SECTIONS
+{
     /*-------------------------------------------------------------------------
-    * 10 bit alignment for the entry point.
+    * Needed for MPM on Hawking, which has a 10 bit alignment rqmt for the 
+    * entry point.  Can be removed when that reqmt is lifted.
     *------------------------------------------------------------------------*/
     .text:_c_int00 > DDR3 align(0x400)
 
     .workgroup_config: > L2SRAM  palign(L2_LINE_SIZE)
 
-    .mbox_d2h:         run=MSMC_NC_VIRT, load=MSMC_NC_PHYS, fill=0
+    .mbox_d2h:         > L2SRAM, fill=0
 		          load_start(mbox_d2h_phys) size(mbox_d2h_size) 
 
-    .mbox_h2d:         run=MSMC_NC_VIRT, load=MSMC_NC_PHYS, fill=0
+    .mbox_h2d:         > L2SRAM, fill=0
 		          load_start(mbox_h2d_phys) size(mbox_h2d_size) 
 }
 
@@ -86,27 +131,36 @@ ocl_local_mem_size   = size (OCL_LOCAL);
 
 ocl_global_mem_start = start(OCL_GLOBAL);
 ocl_global_mem_size  = size (OCL_GLOBAL);
-
+/*
 ocl_msmc_mem_start   = start(OCL_MSMC);
 ocl_msmc_mem_size    = size (OCL_MSMC);
 
 nocache_phys_start   = start(MSMC_NC_PHYS);
 nocache_virt_start   = start(MSMC_NC_VIRT);
 nocache_size         = size (MSMC_NC_PHYS);
+*/
+
+nocache_phys_start   = start(DDR3_NC);
+nocache_virt_start   = start(DDR3_NC);
+nocache_size         = size(DDR3_NC);
 
 --export ocl_local_mem_start
 --export ocl_local_mem_size
 
 --export ocl_global_mem_start
 --export ocl_global_mem_size
-
+/*
 --export ocl_msmc_mem_start
 --export ocl_msmc_mem_size
 
 --export nocache_phys_start
 --export nocache_virt_start
 --export nocache_size
-
+*/
+/*-----------------------------------------------------------------------------
+* Place the far data from the framework components into l2 rather than ddr, becuase they 
+* are core private
+*----------------------------------------------------------------------------*/
 SECTIONS
 {
     .fardata: load >> DDR3

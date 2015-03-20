@@ -29,8 +29,9 @@
 #ifndef  _monitor_h_
 #define  _monitor_h_
 
+#include <stdint.h>
 #include <ti/csl/csl_cacheAux.h>
-#include "message.h"
+//#include "mbox_msgq_shared.h"
 
 extern cregister volatile unsigned int DNUM;
 
@@ -40,7 +41,6 @@ extern cregister volatile unsigned int DNUM;
 #define NUM_CORES            (8)
 #define ROUNDUP(val, pow2)   (((val) + (pow2) - 1) & ~((pow2) - 1))
 
-#define TOMP_NUM_QMSS_MEMORY_REGIONS (1)
 #define EXPORT __attribute__((visibility("protected")))
 
 /******************************************************************************
@@ -57,12 +57,13 @@ extern cregister volatile unsigned int DNUM;
 /******************************************************************************
 * Define the signature of an Event manager event handler
 ******************************************************************************/
-#define EVENT_HANDLER(name) void name(void *eventHdl)
+#define EVENT_HANDLER(name)
 
 /******************************************************************************
 * Event Machine Event Handlers
 ******************************************************************************/
-EVENT_HANDLER(queue_handler);
+EVENT_HANDLER(service_kernel_complete);
+EVENT_HANDLER(service_workgroup);
 EVENT_HANDLER(service_exit);
 
 /******************************************************************************
@@ -113,5 +114,10 @@ EVENT_HANDLER(service_exit);
 ******************************************************************************/
 #define ERROR(msg) do { printMsg = (Msg_t*)print_msg_mem; printf("%s\n", msg);\
                         printMsg = NULL; process_exit_command(); } while(0)
+
+/******************************************************************************
+* Define Macros to aid in EM queue creation
+******************************************************************************/
+#define EM_QUEUE(name, pri, grp) 
 
 #endif  //_monitor_h_

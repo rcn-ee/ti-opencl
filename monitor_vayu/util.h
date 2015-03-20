@@ -24,25 +24,32 @@
  *  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF T
  *  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
+#ifndef _util_h_
+#define _util_h_
 
-// Additional numbers for settings
+#include <monitor.h>
+#include <stdint.h>
 
-#ifndef _ocl_device_defs_h_
-#define _ocl_device_defs_h_
+extern cregister volatile uint32_t DNUM;
 
-#ifdef TI_C6678
-#define OCL_QMSS_HW_QUEUE_BASE_IDX              (1022)
-#define OCL_HW_SEM_IDX                          (3)
-#define OCL_QMSS_FIRST_DESC_IDX_IN_LINKING_RAM  (0)
-#define OCL_QMSS_FIRST_MEMORY_REGION_IDX        (0)
-#endif
+EXPORT uint32_t __clock                (void);
+EXPORT uint64_t __clock64              (void);
+EXPORT void     __cycle_delay          (uint64_t cyclesToDelay);
+EXPORT void     __mfence               (void);
+void     cacheWbInvAllL2        (void);
+void     cacheInvAllL2          (void);
+void     cacheWbInvL2           (uint8_t* bufferPtr, uint32_t bufferSize);
+void     cacheInvL2             (uint8_t* bufferPtr, uint32_t bufferSize);
+uint32_t get_dsp_id             (void);
+uint32_t count_trailing_zeros   (uint32_t x);
 
-#ifdef TI_66AK2H
-#define OCL_QMSS_HW_QUEUE_BASE_IDX              (7300)
-#define OCL_HW_SEM_IDX                          (3)
-#define OCL_QMSS_FIRST_DESC_IDX_IN_LINKING_RAM  (8192)
-#define OCL_QMSS_FIRST_MEMORY_REGION_IDX        (16)
-#endif
+void     enableCache    (unsigned start, unsigned next_start);
+void     disableCache   (unsigned start, unsigned next_start);
+void     set_MPAX       (            int index, uint32_t bAddr, uint32_t rAddr, uint8_t segSize);
+void     set_MSMC_MPAX  (int privId, int index, uint32_t bAddr, uint32_t rAddr, uint8_t segSize);
+void     reset_MPAX     (            int index);
+void     reset_MSMC_MPAX(int privId, int index);
+void     set_kernel_MPAXs  (int num_mpaxs, uint32_t *settings);
+void     reset_kernel_MPAXs(int num_mpaxs);
 
-
-#endif /*_ocl_device_defs_h_*/
+#endif /* _util_h_ */

@@ -60,7 +60,11 @@ static inline void* ocl_descriptorAlloc(void)
 {
     // The popped descriptor may have its size encoded in lower 4 bits.
     // QMSS_DESC_PTR clears these bits out.
-    return (void*)QMSS_DESC_PTR(Qmss_queuePop(ocl_queues.freeQ));
+
+    void *ptr;
+    do ptr = (void*)QMSS_DESC_PTR(Qmss_queuePop(ocl_queues.freeQ));
+    while (ptr == NULL);
+    return ptr;
 }
 
 

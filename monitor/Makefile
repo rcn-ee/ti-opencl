@@ -1,6 +1,6 @@
 # If not specified, assume the opencl source directory is at same location as
 # monitor
-OPENCL_SRC_DIR ?= ../host
+OPENCL_SRC_DIR ?= ../opencl
 
 # If not specified, pick a default location for TI dependent packages
 DEFAULT_DEV_INSTALL_DIR ?= /opt/ti
@@ -94,7 +94,7 @@ CC= cl6x -o3 -mv6600 --abi=eabi --gcc --mem_model:const=data --mem_model:data=fa
 INCLUDES=  -i $(OPENCL_SRC_DIR)/src/core/dsp \
            -D MAILBOX_ON_HOST 
 
-SOURCES = monitor.c dsp_rpc.asm util.c  stats2.c touch.asm sem.c 
+SOURCES = monitor.c dsp_rpc.asm util.c touch.asm sem.c 
 SOURCES+= osal.c qmss_device.c  
 SOURCES+= omp_config_api.c
 SOURCES+= builtins.c
@@ -135,7 +135,7 @@ K2H_LIBS  = $(K2LIBS) $(MPM_DIR)/lib_c66x/mpmmailbox.ae66 $(ULM_DIR)/libtiulm.ae
 #----------------------------------------------------------------------------
 # include libm functions in monitor
 #----------------------------------------------------------------------------
-LIBM_DIR=../libm
+LIBM_DIR=../open_libm
 LIBM=$(LIBM_DIR)/libm.lib
 
 $(LIBM): 
@@ -144,7 +144,7 @@ $(LIBM):
 #----------------------------------------------------------------------------
 # include builtins functions in monitor
 #----------------------------------------------------------------------------
-BUILTINS_DIR=../builtins
+BUILTINS_DIR=../opencl_builtins
 BUILTINS=$(BUILTINS_DIR)/dsp.lib
 
 $(BUILTINS): 
@@ -220,3 +220,5 @@ $(LINK_CMD): $(PROJECT).cfg ocl_platforms/dspc868x/package/package_ocl_platforms
 	@mv lnk_tmp $(LINK_CMD)
 
 
+monitor.obj:  $(OPENCL_SRC_DIR)/src/core/dsp/message.h
+ocl_qmss.obj: $(OPENCL_SRC_DIR)/src/core/dsp/message.h

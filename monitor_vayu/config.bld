@@ -1,0 +1,8 @@
+var rootDir = "/opt/ti/C60000CGT7.4.0B2"
+
+var C66 = xdc.useModule('ti.targets.elf.C66');
+C66.rootDir = rootDir;
+//C66.ccOpts.suffix += " -mi10 -mo";
+C66.ccOpts.suffix += " -mi10 -mo --mem_model:data=far";
+
+Build.targets = [ C66 ];
