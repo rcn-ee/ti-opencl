@@ -26,8 +26,6 @@ dp_l[] = { 0.0, 1.56322085e-06,}, /* 0x35d1cfdc */
 zero    =  0.0,
 one	=  1.0,
 two	=  2.0,
-two24	=  16777216.0,	/* 0x4b800000 */
-two25   =  0x1p25,
 huge	=  1.0e30,
 tiny    =  1.0e-30,
 	/* poly coefs for (3/2)*(log(x)-2s-2/3*s**3 */
@@ -161,7 +159,7 @@ __ieee754_powf(float x, float y)
                 float __fmpy_by_0x1p25(float);
                 ax = __fmpy_by_0x1p25(x);
 #else
-                ax *= two25; /* subnormal number, scale up x */
+                ax *= 0x1p25; /* subnormal number, scale up x */
 #endif
                 n -= 25; 
                 GET_FLOAT_WORD(ix,ax); 
