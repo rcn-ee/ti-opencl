@@ -64,6 +64,7 @@ const int inflight = 32;
 const int elements = 1 << 13; // 8K
 const int size     = sizeof(int) * elements;
 int       arys [inflight][elements];
+int       incorrect_results = false;
 
 static double clock_diff (struct timespec *t1, struct timespec *t2)
        { return t2->tv_sec - t1->tv_sec + (t2->tv_nsec - t1->tv_nsec) / 1e9; }
@@ -92,6 +93,7 @@ void cpu_consume(void *args)
             std::cout << "Iteration " << p->iter << ": "
                       << p->ptr[i] << " != " << p->val 
                       << std::endl << std::endl;
+            incorrect_results = true;
             break;
         }
 }
@@ -293,8 +295,17 @@ int main(int argc, char *argv[])
      }
 #endif
    }
+   catch (Error err)
+   {
+       cerr << "ERROR: " << err.what() << "("
+            << ocl_decode_error(err.err()) << ")"
+            << endl;
+       incorrect_results = true;
+   }
 
-   catch (Error err) 
-     {cerr<<"ERROR: "<<err.what()<<"("<<ocl_decode_error(err.err())<<")"<<endl;}
+   if (incorrect_results) return -1;
+
+
+
 }
 
