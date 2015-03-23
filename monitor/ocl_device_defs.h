@@ -38,11 +38,27 @@
 #endif
 
 #ifdef TI_66AK2H
+#if 0
 #define OCL_QMSS_HW_QUEUE_BASE_IDX              (7300)
 #define OCL_HW_SEM_IDX                          (3)
+// #define OCL_QMSS_FIRST_DESC_IDX_IN_LINKING_RAM  (8192)
+// #define OCL_QMSS_FIRST_MEMORY_REGION_IDX        (16)
 #define OCL_QMSS_FIRST_DESC_IDX_IN_LINKING_RAM  (97024)
 #define OCL_QMSS_FIRST_MEMORY_REGION_IDX        (62)
+#else
+extern int OCL_QMSS_HW_QUEUE_BASE_IDX;
+#define OCL_HW_SEM_IDX                          (3)
+extern int OCL_QMSS_FIRST_DESC_IDX_IN_LINKING_RAM;
+extern int OCL_QMSS_FIRST_MEMORY_REGION_IDX;
+#endif
 #endif
 
+// OCL is followed by OMP in queues, mem regions, descs
+#define OCL_NUM_QMSS_HW_QUEUES                   (3)
+#define OMP_NUM_QMSS_HW_QUEUES                   (11)
+#define OCL_NUM_QMSS_MEM_REGIONS                 (1)
+#define OMP_NUM_QMSS_MEM_REGIONS                 (1)
+#define OCL_NUM_QMSS_DESC_IN_LINKING_RAMS        (1024)
+#define OMP_NUM_QMSS_DESC_IN_LINKING_RAMS        (256)
 
 #endif /*_ocl_device_defs_h_*/

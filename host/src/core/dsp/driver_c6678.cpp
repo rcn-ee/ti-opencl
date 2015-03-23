@@ -109,7 +109,7 @@ bool Driver::wait_for_ready(int chip)
 }
 
 // char *get_ocl_install();
-void *Driver::reset_and_load(int chip)
+void Driver::reset_and_load(int chip)
 {
     // char *installation = get_ocl_install();
     char *installation = getenv("TI_OCL_INSTALL");
@@ -166,6 +166,23 @@ void *Driver::reset_and_load(int chip)
 
     ret = dnldmgr_load_image(chip, 0xFFFF, image_handle, entry, NULL);
     ERR(ret, "Download image failed");
+
+    dnldmgr_free_image(image_handle);
+}
+
+void* Driver::create_image_handle(void)
+{
+    char *installation = getenv("TI_OCL_INSTALL");
+    if (! installation)  ERR(1, "TI_OCL_INSTALL env variable not set");
+
+    std::string monitor(installation);
+    monitor += "/opencl/dsp.out";
+
+    void * image_handle;
+    uint32_t entry;
+
+    int ret = dnldmgr_get_image(monitor.c_str(), &image_handle, &entry);
+    ERR(ret, "Get DSP image failed");
 
     return image_handle;
 }

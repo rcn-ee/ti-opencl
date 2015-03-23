@@ -30,6 +30,7 @@
 #define  _monitor_h_
 
 #include <ti/csl/csl_cacheAux.h>
+#include "ocl_device_defs.h"
 #include "message.h"
 
 extern cregister volatile unsigned int DNUM;
@@ -42,8 +43,8 @@ extern cregister volatile unsigned int DNUM;
 
 #define EM_EVENT_WG_BUF_SIZE ROUNDUP(sizeof(Msg_t), CACHE_L2_LINESIZE)
 
-#define EM_MAX_WG_EVENTS         (1024)    // maximum WGs     in flight 
-#define EM_EVENT_GROUP_NUM       (16)      // maximum Kernels in flight
+#define EM_MAX_WG_EVENTS         OCL_NUM_QMSS_DESC_IN_LINKING_RAMS  // maximum WGs     in flight
+#define EM_EVENT_GROUP_NUM       (16)                               // maximum Kernels in flight
 
 #define EM_EVENT_NOTIFY_BUF_SIZE ROUNDUP(sizeof(flush_msg_t)+sizeof(uint32_t), \
                                          CACHE_L2_LINESIZE)
@@ -53,7 +54,6 @@ extern cregister volatile unsigned int DNUM;
 #define EM_POOL_WG_IDX           (0)
 #define EM_POOL_NOTIFY_IDX       (1)
 
-#define TOMP_NUM_QMSS_MEMORY_REGIONS (1)
 #define EXPORT __attribute__((visibility("protected")))
 
 /******************************************************************************

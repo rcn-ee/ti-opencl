@@ -135,6 +135,10 @@ set(COAL_SRC_FILES
     llvmopencl/WorkitemReplication.cc
 )
 
+if (HAWKING_BUILD)
+    set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/rm_qmss_res.c)
+endif()
+
 add_subdirectory(runtime)
 
 set(CMAKE_SHARED_LINKER_FLAGS "-Wl,-Bsymbolic")
@@ -205,7 +209,8 @@ elseif(HAWKING_BUILD)
          ${LINUX_DEVKIT_ROOT}/usr/lib/libmpmtransport.so
          ${LINUX_DEVKIT_ROOT}/usr/lib/libmpmclient.so
          ${LINUX_DEVKIT_ROOT}/usr/lib/libticmem.so
-         ${LINUX_DEVKIT_ROOT}/usr/lib/libtiulm.a )
+         ${LINUX_DEVKIT_ROOT}/usr/lib/libtiulm.a
+         ${LINUX_DEVKIT_ROOT}/usr/lib/librm.so )
          # ${LINUX_DEVKIT_ROOT}/usr/lib/libkeystonemmap.so
 endif()
 
