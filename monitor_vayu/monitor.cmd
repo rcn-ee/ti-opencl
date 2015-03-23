@@ -25,25 +25,10 @@
  *   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  *   THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
---args 0x0
--heap  0x8000
--stack 0x4000
-
-/*
-MEMORY
-{
-    L2SRAM       (RWX) : org = 0x800000, len = 0x20000
-    OCL_LOCAL    (RWX) : org = 0x820000, len = 0xc0000
-    OCL_MSMC     (RWX) : org = 0xc040000, len = 0x4c0000
-    MSMC_NC_PHYS (RWX) : org = 0xc500000, len = 0x100000
-    MSMC_NC_VIRT (RWX) : org = 0xa1000000, len = 0x100000
-    DDR3         (RWX) : org = 0xa0000000, len = 0x1000000
-    OCL_GLOBAL   (RWX) : org = 0xa6000000, len = 0x5a000000
-}
-*/
 
 /*-----------------------------------------------------------------------------
-* The loader will load initialized values, i.e. cinit is not required
+* Monitor requires run time initialization (rom model) as it requires
+* initialization of L2 data
 *----------------------------------------------------------------------------*/
 --rom_model
 
@@ -129,17 +114,6 @@ SECTIONS
 ocl_local_mem_start  = start(OCL_LOCAL);
 ocl_local_mem_size   = size (OCL_LOCAL);
 
-ocl_global_mem_start = start(OCL_GLOBAL);
-ocl_global_mem_size  = size (OCL_GLOBAL);
-/*
-ocl_msmc_mem_start   = start(OCL_MSMC);
-ocl_msmc_mem_size    = size (OCL_MSMC);
-
-nocache_phys_start   = start(MSMC_NC_PHYS);
-nocache_virt_start   = start(MSMC_NC_VIRT);
-nocache_size         = size (MSMC_NC_PHYS);
-*/
-
 nocache_phys_start   = start(DDR3_NC);
 nocache_virt_start   = start(DDR3_NC);
 nocache_size         = size(DDR3_NC);
@@ -147,19 +121,10 @@ nocache_size         = size(DDR3_NC);
 --export ocl_local_mem_start
 --export ocl_local_mem_size
 
---export ocl_global_mem_start
---export ocl_global_mem_size
-/*
---export ocl_msmc_mem_start
---export ocl_msmc_mem_size
 
---export nocache_phys_start
---export nocache_virt_start
---export nocache_size
-*/
 /*-----------------------------------------------------------------------------
-* Place the far data from the framework components into l2 rather than ddr, becuase they 
-* are core private
+* Place the far data from the framework components into l2 rather than ddr, 
+* becuase they are core private
 *----------------------------------------------------------------------------*/
 SECTIONS
 {

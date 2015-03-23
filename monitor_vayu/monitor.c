@@ -106,13 +106,13 @@ extern void*    dsp_rpc(void* p, void *more_args, uint32_t more_args_size);
 * Workgroup dispatch routines
 ******************************************************************************/
 static int  incVec(unsigned dims, unsigned *vec, unsigned *inc, unsigned *maxs);
-void        mail_safely(uint8_t* msg, size_t msgSz, uint32_t msgId);
+static void respond_to_host(ocl_msgq_message_t *msgq_pkt, uint32_t msgId);
 
-static void  process_kernel_command(Msg_t* msg);
-static void  process_task_command  (Msg_t* msg);
-static void  process_cache_command (int pkt_id, flush_msg_t* Msg);
-static void  process_exit_command  (void);
-static void  service_workgroup     (Msg_t* msg);
+static void process_kernel_command(ocl_msgq_message_t* msgq_pkt);
+static void process_task_command  (ocl_msgq_message_t* msgq_msg);
+static void process_cache_command (int pkt_id, ocl_msgq_message_t *msgq_pkt);
+static void process_exit_command  (ocl_msgq_message_t* msgq_msg);
+static void service_workgroup     (Msg_t* msg);
 
 
 
@@ -124,6 +124,10 @@ static void ocl_monitor();
 
 // Prevent RTS versions of malloc etc. from getting pulled into link
 void _minit(void) { }
+
+
+#define SERVICE_STACK_SIZE 0x2800
+PRIVATE_1D(char, sstack, SERVICE_STACK_SIZE);
 
 
 /******************************************************************************
@@ -146,7 +150,8 @@ int main(int argc, char* argv[])
     taskParams.instance->name = "ocl_main";
     taskParams.arg0 = (UArg)argc;
     taskParams.arg1 = (UArg)argv;
-    taskParams.stackSize = 0x2000;
+    taskParams.stackSize = SERVICE_STACK_SIZE;
+    taskParams.stack = (xdc_Ptr)sstack;
     Task_create(ocl_main, &taskParams, &eb);
 
     if (Error_check(&eb)) {
@@ -172,7 +177,7 @@ void ocl_main(UArg arg0, UArg arg1)
     assert(result == Registry_SUCCESS);
 
     /* enable ENTRY/EXIT/INFO log events */
-    Diags_setMask(MODULE_NAME"+EXF");
+    Diags_setMask(MODULE_NAME"-EXF");
 
     Log_print0(Diags_ENTRY | Diags_INFO, "--> ocl_main:");
 
@@ -211,49 +216,47 @@ void ocl_monitor()
         Log_print0(Diags_INFO, "ocl_monitor: Waiting for message");
 
         /* Wait for inbound message from host*/
-        ocl_msgq_message_t *msg;
-        MessageQ_get(ocl_queues.dspQue, (MessageQ_Msg *)&msg, MessageQ_FOREVER);
+        ocl_msgq_message_t *msgq_pkt;
+        MessageQ_get(ocl_queues.dspQue, (MessageQ_Msg *)&msgq_pkt, 
+                     MessageQ_FOREVER);
 
         /* Get the host queue id from the message & save it */
-        MessageQ_QueueId  hostQueId = MessageQ_getReplyQueue(msg);
+        MessageQ_QueueId  hostQueId = MessageQ_getReplyQueue(msgq_pkt);
         if (ocl_queues.hostQue == MessageQ_INVALIDMESSAGEQ)
             ocl_queues.hostQue = hostQueId;
 
         enable_printf = true;
 
         /* Get a pointer to the OpenCL payload in the message */
-        Msg_t *ocl_msg =  &(msg->message);
+        Msg_t *ocl_msg =  &(msgq_pkt->message);
 
         switch (ocl_msg->command)
         {
             case TASK: 
                 Log_print0(Diags_INFO, "TASK\n");
-                ocl_msg->trans_id = ocl_msg->u.k.kernel.Kernel_id;
-                process_task_command(ocl_msg);
+                process_task_command(msgq_pkt);
                 break;
 
             case NDRKERNEL: 
                 Log_print0(Diags_INFO, "NDKERNEL\n");
-                process_kernel_command(ocl_msg);
+                process_kernel_command(msgq_pkt);
                 process_cache_command(ocl_msg->u.k.kernel.Kernel_id, 
-                                      &ocl_msg->u.k.flush);
-                ocl_msg->trans_id = ocl_msg->u.k.kernel.Kernel_id;
+                                      msgq_pkt);
                 break;
 
             case CACHEINV: 
                 Log_print0(Diags_INFO, "CACHEINV\n");
-                process_cache_command(-1, &ocl_msg->u.k.flush); 
-                ocl_msg->trans_id = (uint32_t)-1;
+                process_cache_command(-1, msgq_pkt); 
                 break; 
 
             case EXIT:     
                 Log_print0(Diags_INFO, "EXIT\n");
-                process_exit_command();
+                process_exit_command(msgq_pkt);
                 break;
 
             case FREQUENCY:
                 Log_print0(Diags_INFO, "FREQUENCY\n");
-                ocl_msg->trans_id = dsp_speed();
+                respond_to_host(msgq_pkt, dsp_speed());
                 break;
 
             default:    
@@ -263,21 +266,6 @@ void ocl_monitor()
 
         enable_printf = false;
 
-        if (ocl_msg->command != EXIT) 
-        {
-            /* send a response to host (re-use the message) */
-            MessageQ_put(hostQueId, (MessageQ_Msg)msg);
-
-            Log_print0(Diags_INFO, "ocl_monitor: Send response");
-        }
-        else
-        {
-            /* Not sending a response to host, delete the msg */
-            MessageQ_free((MessageQ_Msg)msg);
-
-            Log_print0(Diags_INFO, "ocl_monitor: EXIT, no response");
-        }
-
     } /* while (true) */
 }
 
@@ -285,8 +273,10 @@ void ocl_monitor()
 /******************************************************************************
 * process_task_command
 ******************************************************************************/
-static void process_task_command(Msg_t* Msg) 
+static void process_task_command(ocl_msgq_message_t* msgq_pkt) 
 {
+    Msg_t* Msg = &(msgq_pkt->message);
+
     kernel_config_t * kcfg  = &Msg->u.k.config;
     uint32_t  kernel_id = Msg->u.k.kernel.Kernel_id;
 
@@ -319,7 +309,7 @@ static void process_task_command(Msg_t* Msg)
     dsp_rpc(&((kernel_msg_t *)&Msg->u.k.kernel)->entry_point,
             more_args, more_args_size);
 
-    mail_safely((uint8_t*)&readyMsg, sizeof(readyMsg), kernel_id);
+    respond_to_host(msgq_pkt, kernel_id);
 
     flush_msg_t*  flushMsgPtr  = &Msg->u.k.flush;
     flush_buffers(flushMsgPtr);
@@ -331,8 +321,10 @@ static void process_task_command(Msg_t* Msg)
 /******************************************************************************
 * process_kernel_command
 ******************************************************************************/
-static void process_kernel_command(Msg_t* msg)
+static void process_kernel_command(ocl_msgq_message_t *msgq_pkt)
 {
+    Msg_t* msg = &(msgq_pkt->message);
+
     int               done;
     uint32_t          workgroup = 0;
     uint32_t          WGid[3]   = {0,0,0};
@@ -378,17 +370,23 @@ static void service_workgroup(Msg_t* msg)
 /******************************************************************************
 * process_cache_command 
 ******************************************************************************/
-static void process_cache_command (int pkt_id, flush_msg_t* flush_msg)
+static void process_cache_command (int pkt_id, ocl_msgq_message_t *msgq_pkt)
 {
-    mail_safely((uint8_t*)&readyMsg, sizeof(readyMsg), pkt_id);
+    flush_msg_t* flush_msg = &msgq_pkt->message.u.k.flush;
+    respond_to_host(msgq_pkt, pkt_id);
     if (flush_msg->need_cache_op > 0) flush_buffers(flush_msg);
 }
 
 /******************************************************************************
 * process_exit_command
 ******************************************************************************/
-static void process_exit_command(void)
+static void process_exit_command(ocl_msgq_message_t *msg_pkt)
 {
+    /* Not sending a response to host, delete the msg */
+    MessageQ_free((MessageQ_Msg)msg_pkt);
+
+    Log_print0(Diags_INFO, "ocl_monitor: EXIT, no response");
+
     cacheWbInvAllL2();
 }
 
@@ -458,19 +456,12 @@ static int incVec(unsigned dims, unsigned *vec, unsigned *inc, unsigned *maxs)
 }
 
 /******************************************************************************
-* mail_safely
+* respond_to_host
 ******************************************************************************/
-void mail_safely(uint8_t* msg, size_t msgSz, uint32_t msgId)
+static void respond_to_host(ocl_msgq_message_t *msgq_pkt, uint32_t msgId)
 {
-#if 0
-   int status;
-   do 
-   {
-       status = mpm_mailbox_write(tx_mbox, msg, msgSz, msgId);
-   }
-   while (status == MPM_MAILBOX_ERR_MAIL_BOX_FULL
-          && tx_mbox != NULL && rx_mbox != NULL);
-#endif
+    msgq_pkt->message.trans_id = msgId;
+    MessageQ_put(ocl_queues.hostQue, (MessageQ_Msg)msgq_pkt);
 }
 
 /******************************************************************************
@@ -478,7 +469,7 @@ void mail_safely(uint8_t* msg, size_t msgSz, uint32_t msgId)
 ******************************************************************************/
 static void flush_buffers(flush_msg_t *Msg)
 {
-    cacheInvAllL2();
+    cacheWbInvAllL2();
     return; 
 }
 
@@ -527,7 +518,7 @@ _CODE_ACCESS void __TI_readmsg(register unsigned char *parm,
 /*
  *  Create a DSP message queue. Returns false if queue creation fails
  */
-bool create_mqueue()
+static bool create_mqueue()
 {
     MessageQ_Params     msgqParams;
     char                msgqName[MSGQ_NAME_LENGTH];
