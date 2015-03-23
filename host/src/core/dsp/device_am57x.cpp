@@ -26,7 +26,6 @@
  *   THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
 #include "mbox_impl_msgq.h"
-//#include "mbox_impl_rpmsg.h"
 
 /******************************************************************************
 * DSPDevice::DSPDevice(unsigned char dsp_id)
@@ -113,7 +112,6 @@ DSPDevice::DSPDevice(unsigned char dsp_id)
 
 void DSPDevice::setup_mailbox(void)
 {
-    //p_mb = new MBoxRPMsg(this);
     p_mb = new MBoxMsgQ(this);
 }
 

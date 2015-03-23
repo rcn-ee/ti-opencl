@@ -68,9 +68,9 @@ class MBoxMPM : public MBox, public Lockable
     public:
         MBoxMPM(Coal::DSPDevice *device);
         ~MBoxMPM();
-        void to   (uint8_t *msg, uint32_t  size);
-        int  from (uint8_t *msg, uint32_t *size);
-        bool query();
+        void     to   (uint8_t *msg, uint32_t  size, uint8_t id=0);
+        int32_t  from (uint8_t *msg, uint32_t *size, uint8_t id=0);
+        bool     query(uint8_t id=0);
 
   private:
 
@@ -197,7 +197,7 @@ inline MBoxMPM::MBoxMPM(Coal::DSPDevice *device)
 }
 
 
-inline void MBoxMPM::to(uint8_t *msg, uint32_t  size)
+inline void MBoxMPM::to(uint8_t *msg, uint32_t  size, uint8_t id)
 {
     static unsigned trans_id = TX_ID_START;
 
@@ -205,7 +205,7 @@ inline void MBoxMPM::to(uint8_t *msg, uint32_t  size)
     write(p_tx_mbox, msg, size, trans_id++);
 }
 
-inline int MBoxMPM::from (uint8_t *msg, uint32_t *size)
+inline int32_t MBoxMPM::from (uint8_t *msg, uint32_t *size, uint8_t id)
 {
     uint32_t trans_id_rx;
 
@@ -214,7 +214,7 @@ inline int MBoxMPM::from (uint8_t *msg, uint32_t *size)
     return trans_id_rx;
 }
 
-inline bool MBoxMPM::query()
+inline bool MBoxMPM::query(uint8_t id)
 {
     return query(p_rx_mbox);
 }

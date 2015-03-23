@@ -26,6 +26,11 @@
  *   THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
 
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
+#include <assert.h>
+
 #include <stdio.h>
 #include <time.h>
 #include <unistd.h>
@@ -62,19 +67,28 @@ MBoxMsgQ::MBoxMsgQ(Coal::DSPDevice *device)
     hostQue = MessageQ_create(hostQueueName, &msgqParams);
     assert (hostQue != NULL);
 
-    /* Open the DSP message queue */
+    /* Open DSP message queues for DSP1 and DSP2 */
     char dspQueueName[MSGQ_NAME_LENGTH];
-    const char *dsp_name = (p_device->dspID() == 0) ? "DSP1" : "DSP2";
-    snprintf(dspQueueName, MSGQ_NAME_LENGTH, Ocl_DspMsgQueName, dsp_name);
+    snprintf(dspQueueName, MSGQ_NAME_LENGTH, Ocl_DspMsgQueName, "DSP1");
 
     do {
-        status = MessageQ_open(dspQueueName, &dspQue);
+        status = MessageQ_open(dspQueueName, &dspQue[0]);
     } while (status == MessageQ_E_NOTFOUND);
+
+    snprintf(dspQueueName, MSGQ_NAME_LENGTH, Ocl_DspMsgQueName, "DSP2");
+
+    do {
+        status = MessageQ_open(dspQueueName, &dspQue[1]);
+    } while (status == MessageQ_E_NOTFOUND);
+
 
 }
 
-void MBoxMsgQ::write (uint8_t *buf, uint32_t size, uint32_t trans_id)
+void MBoxMsgQ::write (uint8_t *buf, uint32_t size, uint32_t trans_id, 
+                      uint8_t id)
 { 
+    assert (id == 0 || id == 1);
+
     ocl_msgq_message_t *msg = 
        (ocl_msgq_message_t *)MessageQ_alloc(heapId, sizeof(ocl_msgq_message_t));
     assert (msg != NULL);
@@ -89,13 +103,13 @@ void MBoxMsgQ::write (uint8_t *buf, uint32_t size, uint32_t trans_id)
     msg->message.trans_id = trans_id;
 
     /* send message */
-    int status = MessageQ_put(dspQue, (MessageQ_Msg)msg);
+    int status = MessageQ_put(dspQue[id], (MessageQ_Msg)msg);
     assert (status == MessageQ_S_SUCCESS);
 
     return;
 }
 
-uint32_t MBoxMsgQ::read (uint8_t *buf, uint32_t *size)
+uint32_t MBoxMsgQ::read (uint8_t *buf, uint32_t *size, uint8_t id)
 { 
     ocl_msgq_message_t *msg = NULL;
 
@@ -116,7 +130,7 @@ uint32_t MBoxMsgQ::read (uint8_t *buf, uint32_t *size)
     return trans_id;
 }
 
-inline bool MBoxMsgQ::query()
+inline bool MBoxMsgQ::query(uint8_t id)
 {
     return true;
     //return (MessageQ_count(hostQue) > 0);
@@ -126,7 +140,10 @@ inline bool MBoxMsgQ::query()
 MBoxMsgQ::~MBoxMsgQ(void)
 {    
     /* Close the DSP message queue */
-    int status = MessageQ_close(&dspQue);
+    int status = MessageQ_close(&dspQue[0]);
+    assert (status == MessageQ_S_SUCCESS);
+
+    status = MessageQ_close(&dspQue[1]);
     assert (status == MessageQ_S_SUCCESS);
 
     /* Unblocks reader thread that is blocked on a MessageQ_get(). The 

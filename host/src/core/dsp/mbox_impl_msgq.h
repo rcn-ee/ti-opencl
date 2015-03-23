@@ -48,32 +48,32 @@ class MBoxMsgQ : public MBox, public Lockable
     public:
         MBoxMsgQ(Coal::DSPDevice *device);
         ~MBoxMsgQ();
-        void to   (uint8_t *msg, uint32_t  size);
-        int  from (uint8_t *msg, uint32_t *size);
-        bool query();
+        void     to   (uint8_t *msg, uint32_t  size, uint8_t id);
+        int32_t  from (uint8_t *msg, uint32_t *size, uint8_t id);
+        bool     query(uint8_t id=0);
 
   private:
-    void     write (uint8_t *buf, uint32_t  size, uint32_t  trans_id);
-    uint32_t read  (uint8_t *buf, uint32_t *size);
+    void     write (uint8_t *buf, uint32_t size, uint32_t trans_id, uint8_t id);
+    uint32_t read  (uint8_t *buf, uint32_t *size, uint8_t id);
 
   private:
-    MessageQ_Handle         hostQue;   // created by host
-    MessageQ_QueueId        dspQue;    // created by DSP, opened by host
-    UInt16                  heapId;    // heap for MessageQ_alloc, 0 on host
-    Coal::DSPDevice        *p_device;
+    MessageQ_Handle    hostQue;   // created by host
+    MessageQ_QueueId   dspQue[2]; // created by DSP1/DSP2, opened by host
+    UInt16             heapId;    // heap for MessageQ_alloc, 0 on host
+    Coal::DSPDevice   *p_device;
 };
 
-inline void MBoxMsgQ::to(uint8_t *msg, uint32_t  size)
+inline void MBoxMsgQ::to(uint8_t *msg, uint32_t  size, uint8_t id)
 {
     static unsigned trans_id = TX_ID_START;
 
     Lock lock(this);
-    write(msg, size, trans_id++);
+    write(msg, size, trans_id++, id);
 }
 
-inline int MBoxMsgQ::from (uint8_t *msg, uint32_t *size)
+inline int32_t MBoxMsgQ::from (uint8_t *msg, uint32_t *size, uint8_t id)
 {
-    return read(msg, size);
+    return read(msg, size, id);
 }
 
 

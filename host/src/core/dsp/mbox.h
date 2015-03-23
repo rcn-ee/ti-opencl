@@ -28,16 +28,18 @@
 
 #pragma once
 
+#include <stdint.h>
+
 class MBox
 {
     public:
         MBox() {}
         virtual ~MBox() {}
-        virtual void to   (uint8_t *msg, uint32_t  size)  =0;
-        virtual int  from (uint8_t *msg, uint32_t *size)  =0;
-        virtual bool query()                              =0;
+        virtual void     to   (uint8_t *msg, uint32_t  size, uint8_t id=0)  =0;
+        virtual int32_t  from (uint8_t *msg, uint32_t *size, uint8_t id=0)  =0;
+        virtual bool     query(uint8_t id=0)                                =0;
 
     protected:
-        static const unsigned int TX_ID_START = 0xC0DE0000;
+        static const uint32_t TX_ID_START = 0xC0DE0000;
 };
 

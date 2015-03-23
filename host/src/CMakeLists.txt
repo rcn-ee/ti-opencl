@@ -56,8 +56,6 @@ endif()
 
 if (AM57_BUILD)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDEVICE_AM57")
-    # Required for RPmsg headers
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DKERNEL_INSTALL_DIR=$ENV{KERNEL_INSTALL_DIR}")
 endif()
 
 if (ENABLE_ULM)
@@ -147,8 +145,7 @@ set(COAL_SRC_FILES
 )
 
 if (AM57_BUILD)
-    set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/mbox_impl_rpmsg.cpp 
-                                         core/dsp/mbox_impl_msgq.cpp)
+    set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/mbox_impl_msgq.cpp)
 endif()
 
 add_subdirectory(runtime)
