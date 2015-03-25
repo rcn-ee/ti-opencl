@@ -3,6 +3,7 @@ PDK_DIR                 ?= $(DEFAULT_DEV_INSTALL_DIR)/pdk_am57xx_8_00_00_00
 IPC_DIR                 ?= $(DEFAULT_DEV_INSTALL_DIR)/ipc_3_30_01_12
 XDC_DIR                 ?= $(DEFAULT_DEV_INSTALL_DIR)/xdctools_3_30_05_60
 BIOS_DIR                ?= $(DEFAULT_DEV_INSTALL_DIR)/bios_6_41_00_26
+ULM_DIR                 ?= $(LINUX_DEVKIT_ROOT)/usr/share/ti/ulm
 
 export XDC_DIR := $(XDC_DIR)
 
@@ -22,10 +23,12 @@ INCLUDES += -i $(PDK_DIR)/packages -i $(TI_OCL_CGT_INSTALL)/include \
 	    -i $(IPC_DIR)/packages -i $(XDC_DIR)/packages           \
 	    -i $(BIOS_DIR)/packages
 INCLUDES += -D$(DEVICE)
+INCLUDES += -i $(ULM_DIR) -DULM_ENABLED
 
 SOURCES = monitor.c util.c dsp_rpc.asm touch.asm builtins.c edma.c
 HEADERS = edma.h monitor.h util.h trace.h custom_rsc_table_vayu_dsp.h
 LIBS    = monitor.cmd
+LIBS   += $(ULM_DIR)/libtiulm.ae66
 OBJS1   = $(patsubst %.c,%.obj,$(SOURCES))
 OBJS    = $(patsubst %.asm,%.obj,$(OBJS1))
 

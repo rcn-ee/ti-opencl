@@ -103,6 +103,8 @@ DSPDevice::DSPDevice(unsigned char dsp_id)
     p_device_ddr_heap3.configure(global3,          gsize3, true);
     p_device_l2_heap.configure  (p_addr_local_mem, p_size_local_mem);
 
+    init_ulm(gsize1, gsize2, gsize3);
+
     /*-------------------------------------------------------------------------
     * initialize the mailboxes on the cores, so they can receive an exit cmd
     *------------------------------------------------------------------------*/
