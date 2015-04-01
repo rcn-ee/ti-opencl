@@ -814,7 +814,6 @@ int get_ocl_qmss_res(int *res)
                                 nameOclMemRegion);
         if (res[1] != RM_RESOURCE_BASE_UNSPECIFIED)
         {
-if (getenv("TI_OCL_EXT_LINKRAM") == NULL)  // YUAN TO REMOVE, FOR DEBUG PURPOSE ONLY
             res[2] = allocResFromRm(resIntLinkingRam1, NUM_DESC_IN_LINKING_RAMS,
                                     0, nameOclDescInLinkingRam);
             if (res[2] == RM_RESOURCE_BASE_UNSPECIFIED)

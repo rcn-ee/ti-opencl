@@ -117,9 +117,6 @@ DSPDevice::DSPDevice(unsigned char dsp_id)
         printf("Unable to allocate resource from RM server!\n");
         exit(-1);
     }
-    if (getenv("TI_OCL_DEBUG_QMSS"))
-        printf("OpenCL QMSS queue=%d, mem region=%d, desc in linking ram=%d\n",
-               ((int *)&oclQmssMsg)[1], ((int *)&oclQmssMsg)[2], ((int *)&oclQmssMsg)[3]);
     mail_to(oclQmssMsg);
 #endif
 
