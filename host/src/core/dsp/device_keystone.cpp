@@ -31,6 +31,12 @@
 
 #include "mbox_impl_mpm.h"
 
+#if defined(DEVICE_K2H)
+extern "C" {
+    extern int get_ocl_qmss_res(int *);
+}
+#endif
+
 /******************************************************************************
 * DSPDevice::DSPDevice(unsigned char dsp_id)
 ******************************************************************************/
@@ -102,6 +108,20 @@ DSPDevice::DSPDevice(unsigned char dsp_id)
     * initialize the mailboxes on the cores, so they can receive an exit cmd
     *------------------------------------------------------------------------*/
     setup_mailbox();
+
+#if defined(DEVICE_K2H)
+    // Keystone2: get QMSS resources from RM, mail to DSP monitor
+    Msg_t oclQmssMsg = {READY};
+    if (get_ocl_qmss_res(((int *)&oclQmssMsg) + 1) == 0)
+    {
+        printf("Unable to allocate resource from RM server!\n");
+        exit(-1);
+    }
+    if (getenv("TI_OCL_DEBUG_QMSS"))
+        printf("OpenCL QMSS queue=%d, mem region=%d, desc in linking ram=%d\n",
+               ((int *)&oclQmssMsg)[1], ((int *)&oclQmssMsg)[2], ((int *)&oclQmssMsg)[3]);
+    mail_to(oclQmssMsg);
+#endif
 
     setup_dsp_mhz();
 

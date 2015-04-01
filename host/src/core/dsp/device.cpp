@@ -50,6 +50,7 @@
 extern "C"
 {
     #include <ti/runtime/mmap/include/mmap_resource.h>
+    extern void free_ocl_qmss_res();
 }
 #endif
 
@@ -212,6 +213,10 @@ DSPDevice::~DSPDevice()
     * Only need to close the driver for one of the devices
     *------------------------------------------------------------------------*/
     if (p_dsp_id == 0) Driver::instance()->close(); 
+
+#if defined(DEVICE_K2H)
+    free_ocl_qmss_res();
+#endif
 
     if (!p_initialized) return;
 

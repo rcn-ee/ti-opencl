@@ -30,6 +30,7 @@
 #define  _monitor_h_
 
 #include <ti/csl/csl_cacheAux.h>
+#include "ocl_device_defs.h"
 #include "message.h"
 
 extern cregister volatile unsigned int DNUM;
@@ -40,7 +41,6 @@ extern cregister volatile unsigned int DNUM;
 #define NUM_CORES            (8)
 #define ROUNDUP(val, pow2)   (((val) + (pow2) - 1) & ~((pow2) - 1))
 
-#define TOMP_NUM_QMSS_MEMORY_REGIONS (1)
 #define EXPORT __attribute__((visibility("protected")))
 
 /******************************************************************************

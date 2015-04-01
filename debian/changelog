@@ -1,3 +1,10 @@
+ti-opencl (01.01.00.01-0ubuntu0~ppa1) trusty; urgency=medium
+
+  * Make OpenCL use Resource Manager (RM) to allocate QMSS resources on the
+    ARM side and pass to DSP for QMSS use.
+
+ -- TI Keystone PPA <ti-keystone-ppa@list.ti.com>  Mon, 23 Mar 2015 16:04:26 -0500
+
 ti-opencl (01.01.00.00-0ubuntu0~ppa3) trusty; urgency=medium
 
   * Fixed a C++ global objects destruction ordering problem that can cause

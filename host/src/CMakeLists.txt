@@ -145,6 +145,10 @@ set(COAL_SRC_FILES
     llvmopencl/WorkitemReplication.cc
 )
 
+if (HAWKING_BUILD)
+    set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/rm_qmss_res.c)
+endif()
+
 if (AM57_BUILD)
     set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/mbox_impl_msgq.cpp)
 endif()
@@ -216,9 +220,10 @@ if(HAWKING_BUILD)
    find_library(MPMMAIL_LIB       mpmmailbox)
    find_library(MPMTRANSPORT_LIB  mpmtransport)
    find_library(MPMCLIENT_LIB     mpmclient)
+   find_library(RM_LIB            rm)
 
    LIST (APPEND LIBS ${CMEM_LIB} ${MPMMAIL_LIB} ${MPMTRANSPORT_LIB} 
-                     ${MPMCLIENT_LIB} )
+                     ${MPMCLIENT_LIB} ${RM_LIB} )
 elseif(C6678_BUILD)
   LIST (APPEND LIBS
 	${SDK}/sdk/pciedrv/lib/pciedrv.a
