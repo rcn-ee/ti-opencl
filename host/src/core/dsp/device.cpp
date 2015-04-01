@@ -51,6 +51,8 @@
 extern "C"
 {
     #include <ti/runtime/mmap/include/mmap_resource.h>
+    extern void free_ocl_qmss_res();
+    extern int get_ocl_qmss_res(int *);
 }
 #endif
 
@@ -264,6 +266,19 @@ DSPDevice::DSPDevice(unsigned char dsp_id)
        std::cout << "Could not create mailboxes for dsp " 
                  << p_dsp_id << std::endl;
 
+#ifndef DSPC868X
+    // Keystone2: get QMSS resources from RM, mail to DSP monitor
+    Msg_t oclQmssMsg = {READY};
+    if (get_ocl_qmss_res(((int *)&oclQmssMsg) + 1) == 0)
+    {
+        printf("Unable to allocate resource from RM server!\n");
+        exit(-1);
+    }
+    if (getenv("TI_OCL_DEBUG_QMSS"))  // YUAN TO REMOVE
+        printf("OpenCL QMSS queue=%d, mem region=%d, desc in linking ram=%d\n",
+               ((int *)&oclQmssMsg)[1], ((int *)&oclQmssMsg)[2], ((int *)&oclQmssMsg)[3]);
+    mail_to(oclQmssMsg);
+#endif
 
 #ifdef DSPC868X
     char *ghz1 = getenv("TI_OCL_DSP_1_25GHZ");
@@ -323,6 +338,10 @@ DSPDevice::~DSPDevice()
     * Only need to close the driver for one of the devices
     *------------------------------------------------------------------------*/
     if (p_dsp_id == 0) Driver::instance()->close(); 
+
+#ifndef DSPC868X
+    free_ocl_qmss_res();
+#endif
 
     if (!p_initialized) return;
 

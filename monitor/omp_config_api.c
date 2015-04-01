@@ -34,6 +34,7 @@
 
 #include <c6x.h>
 #include <ti/runtime/openmp/omp.h>
+#include "ocl_device_defs.h"
 
 /**
  * OpenMP runtime configuration function
@@ -47,7 +48,8 @@ void __TI_omp_configure(void)
     __TI_omp_config_hw_semaphores(/*hw_sem_base_idx=*/3);
 
     __TI_omp_config_hw_queues (/* init_qmss=*/                        0,
-                               /* hw_queue_base_idx=*/             7332,
+                               /* hw_queue_base_idx=*/OCL_QMSS_HW_QUEUE_BASE_IDX
+                                                      + OCL_NUM_QMSS_HW_QUEUES,
                                /* first_desc_idx_in_linking_ram=*/    0,
                                /* first_memory_region_idx=*/          0);
 

@@ -271,6 +271,7 @@ bool initQmss (Qmss_MemRegInfo* regionConfigTbl, uint8_t* extLinkTbl)
     qmssGlobalCfg = &qmssGblCfgParams;
     // Linux already configured QMSS 
     // Retrieving the value
+    // QM1 and QM2 share internal and external linking ram
     {
         CSL_Qm_configRegs *qm_config_regs_ptr;
         qm_config_regs_ptr = (CSL_Qm_configRegs *) CSL_QMSS_CFG_QM_1_CFG_REGS;
@@ -289,16 +290,16 @@ bool initQmss (Qmss_MemRegInfo* regionConfigTbl, uint8_t* extLinkTbl)
 #endif
 
     // Get memory regions used by OpenMP-DSP runtime
-    Qmss_MemRegInfo tomp_qmssMemRegions[TOMP_NUM_QMSS_MEMORY_REGIONS];
+    Qmss_MemRegInfo tomp_qmssMemRegions[OMP_NUM_QMSS_MEM_REGIONS];
     int tomp_qmssMemRegionCount;
     __TI_omp_get_qmss_memory_regions(tomp_qmssMemRegions, 
                                      &tomp_qmssMemRegionCount);
 
     // Initialize start index & memory region for OpenCL
-    tomp_qmssMemRegions[0].startIndex = OCL_QMSS_FIRST_DESC_IDX_IN_LINKING_RAM+
+    tomp_qmssMemRegions[0].startIndex = OCL_QMSS_FIRST_DESC_IDX_IN_LINKING_RAM +
                                         regionConfigTbl->descNum;
-    tomp_qmssMemRegions[0].memRegion  = (Qmss_MemRegion)(
-                                        OCL_QMSS_FIRST_MEMORY_REGION_IDX + 1);
+    tomp_qmssMemRegions[0].memRegion  = (Qmss_MemRegion)(OCL_QMSS_FIRST_MEMORY_REGION_IDX +
+                                                         OCL_NUM_QMSS_MEM_REGIONS);
 
     // Update OpenCL runtime with start index & region
     __TI_omp_update_qmss_memory_regions(tomp_qmssMemRegions, 

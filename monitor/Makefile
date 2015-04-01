@@ -19,7 +19,7 @@ endif
 SDK_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/desktop-linux-sdk_01_00_00_07
 MPM_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/mpm_2.00.01.04
 BIOS_DIR       ?= $(DEFAULT_DEV_INSTALL_DIR)/bios_6_37_00_20
-OMP_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/openmp_dsp_2_01_16_02
+OMP_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/openmp_dsp_2_01_16_03
 IPC_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/ipc_3_00_04_29
 FC_DIR         ?= $(DEFAULT_DEV_INSTALL_DIR)/framework_components_3_30_00_06
 EDMA3LLD_DIR   ?= $(DEFAULT_DEV_INSTALL_DIR)/edma3_lld_02_11_11_15

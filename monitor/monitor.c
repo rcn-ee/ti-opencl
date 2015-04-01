@@ -245,10 +245,34 @@ static int initialize_cores()
 
 /******************************************************************************
 * initialize_qmss
+* Keystone 2 needs to get QMSS resources allocated by RM on ARM
 ******************************************************************************/
+#ifdef TI_66AK2H
+int OCL_QMSS_HW_QUEUE_BASE_IDX             = 7300;
+int OCL_QMSS_FIRST_DESC_IDX_IN_LINKING_RAM = 8192;
+int OCL_QMSS_FIRST_MEMORY_REGION_IDX       = 16;
+#endif
 
 static int initialize_qmss(void)
 {
+#ifdef TI_66AK2H
+    if (DNUM == 0)
+    {
+        uint32_t size, trans_id;
+        int      mail_available;
+        do mail_available = mpm_mailbox_query(rx_mbox);
+        while (!mail_available);
+        Msg_t Msg;
+        mpm_mailbox_read(rx_mbox, (uint8_t *)&Msg, &size, &trans_id);
+        if (((int *)&Msg)[1] > 0)
+        {
+            OCL_QMSS_HW_QUEUE_BASE_IDX             = ((int *)&Msg)[1];
+            OCL_QMSS_FIRST_DESC_IDX_IN_LINKING_RAM = ((int *)&Msg)[3];
+            OCL_QMSS_FIRST_MEMORY_REGION_IDX       = ((int *)&Msg)[2];
+        }
+    }
+#endif
+
     if (DNUM == 0 && !ocl_initGlobalQMSS())   return RETURN_FAIL; 
     waitAtCoreBarrier();
     if (!ocl_initLocalQMSS())                 return RETURN_FAIL; 
