@@ -138,6 +138,7 @@ class DSPKernelEvent
         cl_int setup_extended_memory_mappings(void);
         cl_int setup_stack_based_arguments(void);
         int debug_kernel_dispatch();
+
 };
 }
 #endif

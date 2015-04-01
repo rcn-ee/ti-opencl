@@ -386,8 +386,9 @@ Event *DSPDevice::getEvent(bool &stop)
     return event;
 }
 
-void DSPDevice::push_complete_pending(uint32_t idx, Event* const data)
-    { p_complete_pending.push(idx, data); }
+void DSPDevice::push_complete_pending(uint32_t idx, Event* const data, 
+                                      unsigned int cnt)
+    { p_complete_pending.push(idx, data, cnt); }
 
 bool DSPDevice::get_complete_pending(uint32_t idx, Event*& data)
     { return p_complete_pending.try_pop(idx, data); }
@@ -406,6 +407,7 @@ bool DSPDevice::gotEnoughToWorkOn() { return p_num_events > 0; }
 /******************************************************************************
 * Getter functions
 ******************************************************************************/
+bool          DSPDevice::hostSchedule() const { return p_core_mail;   }
 unsigned int  DSPDevice::numDSPs()      const { return p_cores;   }
 float         DSPDevice::dspMhz()       const { return p_dsp_mhz; }
 unsigned char DSPDevice::dspID()        const { return p_dsp_id;  }
@@ -627,9 +629,31 @@ bool DSPDevice::isInClMallocedRegion(void *ptr)
     return clMallocQuery(ptr, NULL, NULL);
 }
 
-void DSPDevice::mail_to(Msg_t &msg)
+int DSPDevice::mail_to(Msg_t &msg, unsigned int core)
 {
-    p_mb->to((uint8_t*)&msg, sizeof(Msg_t));
+    switch(msg.command)
+    {
+        /*---------------------------------------------------------------------
+        * for hostScheduled platforms, broadcast the following messages
+        *--------------------------------------------------------------------*/
+        case EXIT:
+        case CACHEINV:
+        case NDRKERNEL:
+            if (hostSchedule())
+            {
+                for (int i = 0; i < numDSPs(); i++)
+                    p_mb->to((uint8_t*)&msg, sizeof(Msg_t), i);
+                return numDSPs();
+            }
+            // fall through
+            
+        /*---------------------------------------------------------------------
+        * otherwise send it to the designated core
+        *--------------------------------------------------------------------*/
+        default: 
+            p_mb->to((uint8_t*)&msg, sizeof(Msg_t), core);
+            return 1;
+    }
 }
 
 bool DSPDevice::mail_query()

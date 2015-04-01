@@ -62,10 +62,10 @@ public:
     * @brief Place an object in the map.
     * @param data is the item to psh on the map
     ***************************************************************************/
-    void push(I index, T const data)
+    void push(I index, T const data, unsigned cnt = 1)
     {
         Lock lock(this);
-        M[index] = data;
+        M[index] = std::pair<T,unsigned int>(data, cnt);
         num_elements++;
     }
 
@@ -98,32 +98,33 @@ public:
     bool try_pop(I idx, T& popped_value)
     {
         Lock lock(this);
-        if (num_elements == 0) return false;
+        auto it = M.find(idx);
 
-        typename std::map<I,T>::iterator it = M.find(idx);
-
-        if (it != M.end())
+        if (it != M.end() && --it->second.second == 0)
         {
-            popped_value = it->second;
+            popped_value = it->second.first;
             M.erase (it);
             num_elements--;
             return true;
         }
+
 
         return false;
     }
 
     void dump()
     {
-       for (typename std::map<I,T>::const_iterator i = M.begin(); i != M.end(); ++i)
-               std::cout << i->first << " ==> " << i->second << std::endl;
+       for (auto &i : M) 
+           std::cout << i.first << " ==> " << i.second.first 
+                     << "(" << i.second.second << ")" 
+                     << std::endl;
     }
 
     /*-------------------------------------------------------------------------
     * The class's data
     *------------------------------------------------------------------------*/
 private:
-    std::map<I,T> M;        //!< standard stl map
+    std::map<I, std::pair<T, unsigned int>> M;  //!< standard stl map
     int num_elements;
 
     /*-------------------------------------------------------------------------

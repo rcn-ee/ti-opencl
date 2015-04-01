@@ -652,10 +652,14 @@ cl_int DSPKernelEvent::run(Event::Type evtype)
     int ret = debug_kernel_dispatch();
     if (ret != CL_SUCCESS) return ret;
 
-    /*-------------------------------------------------------------------------
-    * Dispatch the commands through the mailbox
-    *------------------------------------------------------------------------*/
-    p_device->mail_to(p_msg);
+    /*---------------------------------------------------------------------
+    * For host scheduled devices, i.e. AM57, NDRkernels send to all cores.
+    * The monitor will determine how to divide the work. Need to wait on 
+    * all replies.
+    *--------------------------------------------------------------------*/
+    int num_return_mails = p_device->mail_to(p_msg);
+
+    p_device->push_complete_pending(p_kernel_id, p_event, num_return_mails);
 
     /*-------------------------------------------------------------------------
     * Do not wait for completion

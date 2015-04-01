@@ -88,6 +88,7 @@ class DSPDevice : public DeviceInterface, public Lockable
         bool   availableEvent();
         Event *getEvent(bool &stop);
 
+        bool hostSchedule() const;
         unsigned int numDSPs() const;
         float dspMhz() const;
         unsigned char dspID() const;
@@ -125,11 +126,12 @@ class DSPDevice : public DeviceInterface, public Lockable
         bool  isInClMallocedRegion(void *ptr);
 
 
-        void mail_to   (Msg_t& msg);
+        int   mail_to   (Msg_t& msg, unsigned core = 0);
         bool mail_query();
         int  mail_from ();
 
-        void push_complete_pending(uint32_t idx, class Event* const data);
+        void push_complete_pending(uint32_t idx, class Event* const data,
+                                   unsigned int cnt = 1);
         bool get_complete_pending(uint32_t idx, class Event* &data);
         void dump_complete_pending();
         bool any_complete_pending();
@@ -155,6 +157,7 @@ class DSPDevice : public DeviceInterface, public Lockable
         virtual void setup_dsp_mhz(void);
 
     private:
+        bool               p_core_mail;        // send mails per core ?
         unsigned int       p_cores;
         unsigned int       p_num_events;
         float              p_dsp_mhz;

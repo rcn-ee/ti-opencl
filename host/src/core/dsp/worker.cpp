@@ -64,13 +64,8 @@ void handle_event_completion(DSPDevice *device)
     if (k_id < 0) return;
 
     Event* event;
-    bool   found = device->get_complete_pending(k_id, event);
-    if (!found) 
-    {
-        std::cout << "Completion status received for kernel Id " << k_id <<
-                     " but no pending event found for that id" << std::endl;
-        exit(-1);
-    }
+    bool   done = device->get_complete_pending(k_id, event);
+    if (!done) return;
 
     KernelEvent    *e  = (KernelEvent *) event;
     DSPKernelEvent *ke = (DSPKernelEvent *)e->deviceData();
@@ -464,16 +459,7 @@ bool handle_event_dispatch(DSPDevice *device)
             DSPKernelEvent     *ke = (DSPKernelEvent *)e->deviceData();
 
             errcode = ke->run(t);
-
-            /*-----------------------------------------------------------------
-            * Put the event on a pending completion list and its 
-            * completion will be handled asynchronously.
-            *----------------------------------------------------------------*/
-            if (errcode == CL_SUCCESS) 
-            {
-                device->push_complete_pending(ke->kernel_id(), e);
-                return false;
-            }
+            if (errcode == CL_SUCCESS) return false;
             break;
         }
         default: break;

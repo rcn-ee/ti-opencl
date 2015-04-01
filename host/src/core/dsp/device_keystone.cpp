@@ -36,6 +36,7 @@
 ******************************************************************************/
 DSPDevice::DSPDevice(unsigned char dsp_id)
     : DeviceInterface   (), 
+      p_core_mail       (0), 
       p_cores           (8), 
       p_num_events      (0), 
       p_dsp_mhz         (1000), // 1.00 GHz

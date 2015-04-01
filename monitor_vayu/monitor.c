@@ -113,6 +113,8 @@ static void process_task_command  (ocl_msgq_message_t* msgq_msg);
 static void process_cache_command (int pkt_id, ocl_msgq_message_t *msgq_pkt);
 static void process_exit_command  (ocl_msgq_message_t* msgq_msg);
 static void service_workgroup     (Msg_t* msg);
+static int  setup_ndr_chunks      (int dims, uint32_t* limits, uint32_t* offsets, 
+                                   uint32_t *gsz, uint32_t* lsz);
 
 
 
@@ -328,6 +330,18 @@ static void process_kernel_command(ocl_msgq_message_t *msgq_pkt)
     int               done;
     uint32_t          workgroup = 0;
     uint32_t          WGid[3]   = {0,0,0};
+    uint32_t          limits[3];
+    uint32_t          offsets[3];
+
+    memcpy(limits,  msg->u.k.config.global_size,   sizeof(limits));
+    memcpy(offsets, msg->u.k.config.global_offset, sizeof(offsets));
+
+    int any_work = setup_ndr_chunks(msg->u.k.config.num_dims, 
+                                    limits, offsets, 
+                                    msg->u.k.config.global_size, 
+                                    msg->u.k.config.local_size);
+
+    if (!any_work) return;
 
     /*---------------------------------------------------------
     * Iterate over each Work Group
@@ -337,17 +351,39 @@ static void process_kernel_command(ocl_msgq_message_t *msgq_pkt)
         msg->command = NDRKERNEL;
         kernel_config_t *cfg = &msg->u.k.config;
 
-        cfg->WG_gid_start[0] = cfg->global_offset[0] + WGid[0];
-        cfg->WG_gid_start[1] = cfg->global_offset[1] + WGid[1];
-        cfg->WG_gid_start[2] = cfg->global_offset[2] + WGid[2];
+        cfg->WG_gid_start[0] = offsets[0] + WGid[0];
+        cfg->WG_gid_start[1] = offsets[1] + WGid[1];
+        cfg->WG_gid_start[2] = offsets[2] + WGid[2];
         cfg->WG_id          = workgroup++;
 
         service_workgroup(msg);
 
-        done = incVec(cfg->num_dims, WGid, &cfg->local_size[0], &cfg->global_size[0]);
+        done = incVec(cfg->num_dims, WGid, &cfg->local_size[0], limits);
 
     } while (!done);
 }
+
+/******************************************************************************
+* setup_ndr_chunks
+******************************************************************************/
+#define IS_MULTIPLE(x, y)       ((y) % (x) == 0)
+static int setup_ndr_chunks(int dims, uint32_t* limits, uint32_t* offsets, 
+                                      uint32_t *gsz, uint32_t* lsz)
+{
+    int num_chunks = NUM_CORES;
+
+    while (--dims >= 0)
+        if (IS_MULTIPLE(num_chunks, gsz[dims]) && IS_MULTIPLE(lsz[dims], gsz[dims] / num_chunks))
+        {
+            limits[dims] /= num_chunks;
+            offsets[dims] += (get_dsp_id() * limits[dims]);
+            return true;
+        }
+
+    return (get_dsp_id() == 0);
+}
+
+
 
 /******************************************************************************
 * service_workgroup - service an individual work group for a kernel.
