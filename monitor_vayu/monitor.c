@@ -70,6 +70,9 @@
 #include "trace.h"
 #include "mbox_msgq_shared.h"
 
+#if defined(ULM_ENABLED)
+#include "tiulm.h"
+#endif
 
 typedef struct 
 {
@@ -242,8 +245,9 @@ void ocl_monitor()
             case NDRKERNEL: 
                 Log_print0(Diags_INFO, "NDKERNEL\n");
                 process_kernel_command(msgq_pkt);
-                process_cache_command(ocl_msg->u.k.kernel.Kernel_id, 
-                                      msgq_pkt);
+                process_cache_command(ocl_msg->u.k.kernel.Kernel_id, msgq_pkt);
+                TRACE(ULM_OCL_NDR_CACHE_COHERENCE_COMPLETE,
+                      ocl_msg->u.k.kernel.Kernel_id, 0);
                 break;
 
             case CACHEINV: 
@@ -253,6 +257,7 @@ void ocl_monitor()
 
             case EXIT:     
                 Log_print0(Diags_INFO, "EXIT\n");
+                TRACE(ULM_OCL_EXIT, 0, 0);
                 process_exit_command(msgq_pkt);
                 break;
 
@@ -281,6 +286,7 @@ static void process_task_command(ocl_msgq_message_t* msgq_pkt)
 
     kernel_config_t * kcfg  = &Msg->u.k.config;
     uint32_t  kernel_id = Msg->u.k.kernel.Kernel_id;
+    int      is_inorder = (kcfg->global_size[0] == IN_ORDER_TASK_SIZE);
 
     /*---------------------------------------------------------
     * Copy the configuration in L2, where the kernel wants it
@@ -308,13 +314,19 @@ static void process_task_command(ocl_msgq_message_t* msgq_pkt)
     uint32_t more_args_size = Msg->u.k.kernel.args_on_stack_size;
     void *   more_args      = (void *) Msg->u.k.kernel.args_on_stack_addr;
 
+    TRACE(is_inorder ? ULM_OCL_IOT_KERNEL_START
+                     : ULM_OCL_OOT_KERNEL_START, kernel_id, 0);
     dsp_rpc(&((kernel_msg_t *)&Msg->u.k.kernel)->entry_point,
             more_args, more_args_size);
+    TRACE(is_inorder ? ULM_OCL_IOT_KERNEL_COMPLETE
+                     : ULM_OCL_OOT_KERNEL_COMPLETE, kernel_id, 0);
 
     respond_to_host(msgq_pkt, kernel_id);
 
     flush_msg_t*  flushMsgPtr  = &Msg->u.k.flush;
     flush_buffers(flushMsgPtr);
+    TRACE(is_inorder ? ULM_OCL_IOT_CACHE_COHERENCE_COMPLETE
+                     : ULM_OCL_OOT_CACHE_COHERENCE_COMPLETE, kernel_id, 0);
 
     return;
 }
@@ -343,6 +355,9 @@ static void process_kernel_command(ocl_msgq_message_t *msgq_pkt)
 
     if (!any_work) return;
 
+    workgroup = get_dsp_id() * (limits[0] * limits[1] * limits[2]) /
+                (msg->u.k.config.local_size[0] * msg->u.k.config.local_size[1]
+                                               * msg->u.k.config.local_size[2]);
     /*---------------------------------------------------------
     * Iterate over each Work Group
     *--------------------------------------------------------*/
@@ -356,7 +371,10 @@ static void process_kernel_command(ocl_msgq_message_t *msgq_pkt)
         cfg->WG_gid_start[2] = offsets[2] + WGid[2];
         cfg->WG_id          = workgroup++;
 
+        TRACE(ULM_OCL_NDR_KERNEL_START, msg->u.k.kernel.Kernel_id, cfg->WG_id);
         service_workgroup(msg);
+        TRACE(ULM_OCL_NDR_KERNEL_COMPLETE, msg->u.k.kernel.Kernel_id,
+                                                                   cfg->WG_id);
 
         done = incVec(cfg->num_dims, WGid, &cfg->local_size[0], limits);
 
