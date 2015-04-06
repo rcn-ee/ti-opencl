@@ -23,12 +23,12 @@ INCLUDES += -i $(PDK_DIR)/packages -i $(TI_OCL_CGT_INSTALL)/include \
 	    -i $(IPC_DIR)/packages -i $(XDC_DIR)/packages           \
 	    -i $(BIOS_DIR)/packages
 INCLUDES += -D$(DEVICE)
-INCLUDES += -i $(ULM_DIR) -DULM_ENABLED
+## INCLUDES += -i $(ULM_DIR) -DULM_ENABLED
 
 SOURCES = monitor.c util.c dsp_rpc.asm touch.asm builtins.c edma.c
 HEADERS = edma.h monitor.h util.h trace.h custom_rsc_table_vayu_dsp.h
 LIBS    = monitor.cmd
-LIBS   += $(ULM_DIR)/libtiulm.ae66
+## LIBS   += $(ULM_DIR)/libtiulm.ae66
 OBJS1   = $(patsubst %.c,%.obj,$(SOURCES))
 OBJS    = $(patsubst %.asm,%.obj,$(OBJS1))
 
