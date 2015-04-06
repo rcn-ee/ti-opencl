@@ -355,6 +355,9 @@ static void process_kernel_command(ocl_msgq_message_t *msgq_pkt)
 
     if (!any_work) return;
 
+    workgroup = get_dsp_id() * (limits[0] * limits[1] * limits[2]) /
+                (msg->u.k.config.local_size[0] * msg->u.k.config.local_size[1]
+                                               * msg->u.k.config.local_size[2]);
     /*---------------------------------------------------------
     * Iterate over each Work Group
     *--------------------------------------------------------*/
