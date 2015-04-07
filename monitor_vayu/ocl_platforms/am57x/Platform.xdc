@@ -15,13 +15,13 @@ config ti.platforms.generic.Platform.Instance CPU =
       *----------------------------------------------------------------------*/
       [ "L2SRAM",    { name: "L2SRAM", 
                        base: 0x00800000, 
-                       len:     0x06000,    
+                       len:     0x06000,
                        space: "code/data", 
 		       access: "RWX", } ],
 
       [ "OCL_LOCAL", { name: "OCL_LOCAL",
                        base: 0x00806000,
-                       len:     0x22000,  
+                       len:     0x22000,
                        space: "code/data",
                        access: "RWX", } ],
 
@@ -32,6 +32,18 @@ config ti.platforms.generic.Platform.Instance CPU =
                           base: 0xFE800000, 
 			  len:  0x00400000,
                           space: "code/data", 
+			  access: "RWX", } ],
+
+      /* Each DSP core uses its own framework components data structure */
+      [ "DDR3_FC0",     { name: "DDR3_FC0",
+                          base: 0xFEC00000,
+			  len:  0x00010000,
+                          space: "code/data",
+			  access: "RWX", } ],
+      [ "DDR3_FC1",     { name: "DDR3_FC1",
+                          base: 0xFEC10000,
+			  len:  0x00010000,
+                          space: "code/data",
 			  access: "RWX", } ],
 
       /* Non-cached DDR */

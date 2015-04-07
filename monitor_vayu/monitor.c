@@ -141,6 +141,7 @@ PRIVATE_1D(char, sstack, SERVICE_STACK_SIZE);
 int main(int argc, char* argv[])
 {
     initialize_memory();
+    initialize_edmamgr();
 
     Error_Block     eb;
     Task_Params     taskParams;

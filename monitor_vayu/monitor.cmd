@@ -128,6 +128,33 @@ nocache_size         = size(DDR3_NC);
 *----------------------------------------------------------------------------*/
 SECTIONS
 {
+    /*
+     *  The .far and .fardata sections of FC and EDMA3LLD need to be local to each core.
+     *  These sections are therefore placed in memory local to each core.
+     */
+    .fclocalfar :
+    {
+                "ecpy.ae66"         (.fardata)
+                "edma3.ae66"        (.fardata)
+                "edma3Chan.ae66"    (.fardata)
+                "edma3_lld_rm.ae66" (.fardata)
+                "edmamgr.ae66"      (.fardata)
+                "fcsettings.ae66"   (.fardata)
+                "rman.ae66"         (.fardata)
+
+                "edma3.ae66"        (.far)
+                "edma3Chan.ae66"    (.far)
+                "edma3_lld_rm.ae66" (.far)
+                "edmamgr.ae66"      (.far)
+                "fcsettings.ae66"   (.far)
+                "rman.ae66"         (.far)
+    } > DDR3_FCSECTION
+    .fclocalfarsyms :
+    {
+                "nullres.ae66"      (.fardata)
+                "nullres.ae66"      (.far)
+    } > L2SRAM
+
     .fardata: load >> DDR3
     .far: load >> DDR3
     .gdb_server: >> DDR3

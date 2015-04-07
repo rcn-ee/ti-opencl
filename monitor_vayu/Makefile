@@ -1,9 +1,12 @@
-OPENCL_SRC_DIR          = ../host
-PDK_DIR                 ?= $(DEFAULT_DEV_INSTALL_DIR)/pdk_am57xx_8_00_00_00
-IPC_DIR                 ?= $(DEFAULT_DEV_INSTALL_DIR)/ipc_3_30_01_12
-XDC_DIR                 ?= $(DEFAULT_DEV_INSTALL_DIR)/xdctools_3_30_05_60
-BIOS_DIR                ?= $(DEFAULT_DEV_INSTALL_DIR)/bios_6_41_00_26
-ULM_DIR                 ?= $(LINUX_DEVKIT_ROOT)/usr/share/ti/ulm
+OPENCL_SRC_DIR = ../host
+PDK_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/pdk_am57xx_8_00_00_00
+IPC_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/ipc_3_35_00_05
+XDC_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/xdctools_3_30_06_67
+BIOS_DIR       ?= $(DEFAULT_DEV_INSTALL_DIR)/bios_6_41_02_41
+FC_DIR         ?= $(DEFAULT_DEV_INSTALL_DIR)/framework_components_3_40_00_01_eng
+EDMA3LLD_DIR   ?= $(DEFAULT_DEV_INSTALL_DIR)/edma3_lld_02_12_00_20
+XDAIS_DIR      ?= $(DEFAULT_DEV_INSTALL_DIR)/xdais_7_24_00_04
+ULM_DIR        ?= $(LINUX_DEVKIT_ROOT)/usr/share/ti/ulm
 
 export XDC_DIR := $(XDC_DIR)
 
@@ -21,11 +24,13 @@ CC= cl6x -o3 -mv6600 --abi=eabi --gcc --mem_model:const=data --mem_model:data=fa
 INCLUDES  = -i. -i $(OPENCL_SRC_DIR)/src/core/dsp
 INCLUDES += -i $(PDK_DIR)/packages -i $(TI_OCL_CGT_INSTALL)/include \
 	    -i $(IPC_DIR)/packages -i $(XDC_DIR)/packages           \
-	    -i $(BIOS_DIR)/packages
+	    -i $(BIOS_DIR)/packages -i $(EDMA3LLD_DIR)/packages     \
+	    -i $(FC_DIR)/packages -i $(XDAIS_DIR)/packages
 INCLUDES += -D$(DEVICE)
 ## INCLUDES += -i $(ULM_DIR) -DULM_ENABLED
 
-SOURCES = monitor.c util.c dsp_rpc.asm touch.asm builtins.c edma.c
+SOURCES = monitor.c util.c dsp_rpc.asm touch.asm builtins.c edma.c \
+          edma3_config.c
 HEADERS = edma.h monitor.h util.h trace.h custom_rsc_table_vayu_dsp.h
 LIBS    = monitor.cmd
 ## LIBS   += $(ULM_DIR)/libtiulm.ae66
@@ -38,7 +43,7 @@ LINK_CMD  = $(PROJECT)/linker.cmd
 #----------------------------------------------------------------------------
 # XDC stuff
 #----------------------------------------------------------------------------
-XDCPATH = ./;$(IPC_DIR)/packages;$(BIOS_DIR)/packages;
+XDCPATH = ./;$(IPC_DIR)/packages;$(BIOS_DIR)/packages;$(EDMA3LLD_DIR)/packages;$(FC_DIR)/packages;$(XDAIS_DIR)/packages
 
 XDCTARGET = ti.targets.elf.C66
 
@@ -71,15 +76,15 @@ dsp1 : $(PROJECT)/linker.cmd dsp1.out dsp1.syms
 #---------------------------------------------------------------------------
 # Build monitors
 #----------------------------------------------------------------------------
-dsp0.out : custom_rsc_table_vayu_dsp0.obj $(OBJS) $(BUILTINS) $(LIBM) $(LIBS)
+dsp0.out: custom_rsc_table_vayu_dsp0.obj $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD) $(LIBS)
 	@echo Linking $@
 	@echo $(LINK_CMD)
-	$(CC) -z --priority -w -x -m$@.map $^ $(PROJECT)/linker.cmd -I$(TI_OCL_CGT_INSTALL)/lib -llibc.a -o $@
+	$(CC) -z --priority -w -x -m$@.map --define=DDR3_FCSECTION=DDR3_FC0 $^ -I$(TI_OCL_CGT_INSTALL)/lib -llibc.a -o $@
 
-dsp1.out: custom_rsc_table_vayu_dsp1.obj $(OBJS) $(BUILTINS) $(LIBM) $(LIBS)
+dsp1.out: custom_rsc_table_vayu_dsp1.obj $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD) $(LIBS)
 	@echo Linking $@
 	@echo $(LINK_CMD)
-	$(CC) -z --priority -w -x -m$@.map $^ $(PROJECT)/linker.cmd -I$(TI_OCL_CGT_INSTALL)/lib -llibc.a -o $@
+	$(CC) -z --priority -w -x -m$@.map --define=DDR3_FCSECTION=DDR3_FC1 $^ -I$(TI_OCL_CGT_INSTALL)/lib -llibc.a -o $@
 
 %.syms: %.out
 	@echo Creating $@
@@ -101,7 +106,7 @@ ocl_platforms/am57x/package/package_ocl_platforms.am57x.c: ocl_platforms/am57x/P
 
 
 monitor/linker.cmd : monitor.cfg ocl_platforms/am57x/package/package_ocl_platforms.am57x.c
-	@$(XDC_DIR)/xs --xdcpath "$(XDCPATH)" xdc.tools.configuro -c $(TI_OCL_CGT_INSTALL) --cb -t $(XDCTARGET) -p ocl_platforms.$(PLATFORM) -r $(BUILD_TYPE) $(PROJECT).cfg
+	$(XDC_DIR)/xs --xdcpath "$(XDCPATH)" xdc.tools.configuro -c $(TI_OCL_CGT_INSTALL) --cb -t $(XDCTARGET) -p ocl_platforms.$(PLATFORM) -r $(BUILD_TYPE) $(PROJECT).cfg
 	@sed '/c6xabi\.exidx/d' $(LINK_CMD) > lnk_tmp
 	@mv lnk_tmp $(LINK_CMD)
 

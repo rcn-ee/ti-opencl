@@ -89,7 +89,7 @@
 
 // Static DDR range used by monitor (DDR3 region in Platform.xdc)
 #define DSP_MEM_DDR             0xFE800000
-#define DSP_MEM_DDR_SIZE        (SZ_1M * 4)
+#define DSP_MEM_DDR_SIZE        (SZ_1M * 5)
 
 // CMEM buffers mapped by MMU to PHYS_MEM_IOBUFS
 #define DSP_MEM_IOBUFS          0x80000000
