@@ -116,8 +116,23 @@ int main(int argc, char *argv[])
      unsigned CChunk = sizeof(C) / nDev;
 
      std::vector<CommandQueue*> Q (nDev);
+
+     cl_mem_flags use_msmc = CL_MEM_USE_MSMC_TI;
+     for (int d = 0; d < nDev; d++)
+     {
+         std::string dev_exts;
+         devices[d].getInfo(CL_DEVICE_EXTENSIONS, &dev_exts);
+         if (dev_exts.find("cl_ti_msmc_buffers") != std::string::npos)
+         {
+            cl_ulong msmc_size = 0;
+            devices[d].getInfo(CL_DEVICE_MSMC_MEM_SIZE_TI, &msmc_size);
+            if (msmc_size > 0)  continue;
+         }
+         use_msmc = 0;
+         break;
+     }
      std::vector<Buffer> bufA(nDev, Buffer(context, 
-                              CL_MEM_READ_ONLY|CL_MEM_USE_MSMC_TI,  AChunk));
+                                           CL_MEM_READ_ONLY|use_msmc,  AChunk));
      std::vector<Buffer> bufC(nDev, Buffer(context, CL_MEM_WRITE_ONLY, CChunk));
      std::vector<Event>  ev(nDev, Event());
 
