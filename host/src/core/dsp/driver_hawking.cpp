@@ -87,7 +87,6 @@ const char *get_board(unsigned switch_device)
     }
 }
 
-#define TOTAL_NUM_CORES_PER_CHIP 8
 
 /******************************************************************************
 * wait_for_ready
@@ -317,7 +316,11 @@ int32_t Driver::write(int32_t dsp_id, DSPDevicePtr64 addr, uint8_t *buf,
     *------------------------------------------------------------------------*/
     if ((addr >> 20) == 0x008)
         for (core=0; core< TOTAL_NUM_CORES_PER_CHIP; core++)
+#if !defined (DEVICE_AM57)
             write_core(dsp_id, ((0x10 + core) << 24) + addr, buf, size);
+#else
+            write_core(dsp_id, ((0x80 + core) << (3+20)) + addr, buf, size);
+#endif
     else write_core(dsp_id, addr, buf, size);
 }
 
