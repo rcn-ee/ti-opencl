@@ -148,6 +148,8 @@ EXPORT copy_event * __copy_1D1D(copy_event *event, void *dst, void *src,
       //if (!ADDR_IS_EDMA3_COHERENT(src)) 
 	 //Cache_wb(src, bytes, Cache_Type_ALL, TRUE);
 
+      EdmaMgr_copy1D1D(event->channel, src, dst, bytes);
+
       /*-----------------------------------------------------------------------
       * The dst needs to be invalidate before the core can read it again.
       * This could be performed after the copy is complete, but we issue it 
@@ -156,7 +158,6 @@ EXPORT copy_event * __copy_1D1D(copy_event *event, void *dst, void *src,
       if (!ADDR_IS_EDMA3_COHERENT(dst)) 
 	 Cache_inv(dst, bytes, Cache_Type_ALL, TRUE);
 
-      EdmaMgr_copy1D1D(event->channel, src, dst, bytes);
    }
    // Requested copy size isn't efficient using edma or we didn't get a channel
    else
@@ -191,9 +192,9 @@ EXPORT copy_event *__copy_1D2D(copy_event *event, void *dst, void *src,
       *
       * We do not need to wb the source because it is onchip and coherent.
       *----------------------------------------------------------------------*/
-      Cache_inv(dst, bytes * (1+(num_lines-1)*pitch), Cache_Type_ALL, TRUE);
       EdmaMgr_copy1D2D(event->channel, src, dst, bytes, num_lines, 
 		       bytes * pitch);
+      Cache_inv(dst, bytes * (1+(num_lines-1)*pitch), Cache_Type_ALL, TRUE);
    }
    // pitch(stride) is too large or we didn't get a channel.
    else
