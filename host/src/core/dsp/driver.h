@@ -43,6 +43,12 @@ extern "C"
 #include "shmem.h"
 #endif
 
+#if !defined(DEVICE_AM57)
+#define TOTAL_NUM_CORES_PER_CHIP 8
+#else
+#define TOTAL_NUM_CORES_PER_CHIP 2
+#endif
+
 class Driver : public Lockable_off
 {
   public:

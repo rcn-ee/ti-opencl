@@ -157,7 +157,7 @@ void DSPDevice::setup_memory(DSPDevicePtr64 &global1, DSPDevicePtr64 &global2,
     // driver->shmem_configure(p_addr_mbox_d2h_phys, p_size_mbox_d2h);
     // driver->shmem_configure(p_addr_mbox_h2d_phys, p_size_mbox_h2d);
 
-    for (int core=0; core < 8; core++)
+    for (int core=0; core < TOTAL_NUM_CORES_PER_CHIP; core++)
         driver->shmem_configure(((0x10 + core) << 24) + p_addr_local_mem,    
                                 p_size_local_mem);
 

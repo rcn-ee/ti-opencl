@@ -764,8 +764,8 @@ cl_int DSPKernelEvent::init_kernel_runtime_variables(Event::Type evtype,
 
     if (cfg->WG_alloca_size > 0)
     {
-#define NUM_CORES_PER_CHIP	8               // TODO
-        uint32_t chip_alloca_size = cfg->WG_alloca_size * NUM_CORES_PER_CHIP;
+        uint32_t chip_alloca_size = cfg->WG_alloca_size *
+                                    TOTAL_NUM_CORES_PER_CHIP;
         if (cfg->WG_alloca_size <= remaining_l2_size)
         {
             p_WG_alloca_start = local_scratch;
