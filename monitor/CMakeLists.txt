@@ -12,5 +12,5 @@ elseif(HAWKING_BUILD)
 endif()
 
 if(BUILD_OUTPUT STREQUAL "all" OR BUILD_OUTPUT STREQUAL "lib")
-  install(FILES dsp.out dsp.syms DESTINATION ${SHARE_PATH}/opencl ${OCL_FPERMS})
+  install(FILES dsp.out dsp.syms dsp_syms.obj DESTINATION ${SHARE_PATH}/opencl ${OCL_FPERMS})
 endif()

@@ -15,17 +15,48 @@ endif()
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/modules)
 
 # project version
-SET(${PROJECT_NAME}_MAJOR_VERSION 1)
-SET(${PROJECT_NAME}_MINOR_VERSION 1)
-SET(${PROJECT_NAME}_PATCH_LEVEL 0)
+# The linux shared library versioning convention uses x.y.z format,
+# with no leading zeros. For debian packaging versioning we use xx.yy.zz.ww
+# formatting with leading zero's.  Opencl/clocl platform and version queries
+# will report in this format.  The 'ww' represents the PATCH_VERSION of a
+# particular release.  This number will not be reflected in the library
+# .so name, only in the packaging.
+# NOTE!!!!!! The packaging version numbers need to match what is specified in 
+# debian/changelog!!!
+SET(OCL_SPEC_MAJOR_VERSION 1)
+SET(OCL_SPEC_MINOR_VERSION 1)
+SET(RELEASE_VERSION 0)
+# use 2-digits to specify patch version as there is no need to convert
+# to library versioning
+SET(PATCH_VERSION   02)
 
-# OpenCL platform version
-SET(${PROJECT_NAME}_VERSION ${${PROJECT_NAME}_MAJOR_VERSION}.${${PROJECT_NAME}_MINOR_VERSION}.${${PROJECT_NAME}_PATCH_LEVEL})
+# Create the packaging version numbers which need leading zeros if single digit.
+if("${OCL_SPEC_MAJOR_VERSION}" MATCHES "^[0-9]$")
+   SET(PKG_MAJOR_VERSION "0${OCL_SPEC_MAJOR_VERSION}")
+else()
+   SET(PKG_MAJOR_VERSION ${OCL_SPEC_MAJOR_VERSION})
+endif()
+
+if("${OCL_SPEC_MINOR_VERSION}" MATCHES "^[0-9]$")
+   SET(PKG_MINOR_VERSION "0${OCL_SPEC_MINOR_VERSION}")
+else()
+   SET(PKG_MINOR_VERSION ${OCL_SPEC_MINOR_VERSION})
+endif()
+
+if("${RELEASE_VERSION}" MATCHES "^[0-9]$")
+   SET(PKG_RELEASE_VERSION "0${RELEASE_VERSION}")
+else()
+   SET(PKG_RELEASE_VERSION ${RELEASE_VERSION})
+endif()
+ 
+# Set OpenCL library version number
+SET(${PROJECT_NAME}_VERSION ${OCL_SPEC_MAJOR_VERSION}.${OCL_SPEC_MINOR_VERSION}.${RELEASE_VERSION})
 
 # Set SONAME for OpenCL library
-SET(${PROJECT_NAME}_SOVERSION ${${PROJECT_NAME}_MAJOR_VERSION})
+SET(${PROJECT_NAME}_SOVERSION ${OCL_SPEC_MAJOR_VERSION})
 
-#set(CMAKE_INSTALL_PREFIX $ENV{DESTDIR})
+# Set OpenCL package version
+SET(${PROJECT_NAME}_PKG_VERSION ${PKG_MAJOR_VERSION}.${PKG_MINOR_VERSION}.${PKG_RELEASE_VERSION}.${PATCH_VERSION})
 
 if (YOCTO_BUILD)
    set(CMAKE_INSTALL_PREFIX $ENV{DESTDIR_YOCTO})
@@ -160,9 +191,9 @@ set (CPACK_DEBIAN_PACKAGE_MAINTAINER "TI")
 set (CPACK_DEBIAN_PACKAGE_NAME ${PROJECT_NAME})
 set (CPACK_DEBIAN_PACKAGE_ARCHITECTURE "all")
 
-set (CPACK_PACKAGE_VERSION_MAJOR ${${PROJECT_NAME}_MAJOR_VERSION})
-set (CPACK_PACKAGE_VERSION_MINOR ${${PROJECT_NAME}_MINOR_VERSION})
-set (CPACK_PACKAGE_VERSION_PATCH ${${PROJECT_NAME}_PATCH_LEVEL})
+set (CPACK_PACKAGE_VERSION_MAJOR ${PKG_MAJOR_VERSION})
+set (CPACK_PACKAGE_VERSION_MINOR ${PKG_MINOR_VERSION})
+set (CPACK_PACKAGE_VERSION_PATCH ${PKG_RELEASE_VERSION})
 set (CPACK_DEBIAN_PACKAGE_DEPENDS "mesa-common-dev (>=8.0.4-0), binutils-dev (>=2.22-6), libsqlite3-dev (>=3.7.9-2), libffi6 (>=3.0.11~rc1-5), zlib1g (>=1:1.2.3.4)")
 
 #Set where dpkg will put the install

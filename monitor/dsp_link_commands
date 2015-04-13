@@ -2,6 +2,7 @@
 --display_error_number
 --diag_suppress=10188
 --priority
+-ldsp_syms.obj
 -lrts6600_elf.lib
 --dynamic=exe 
 --relocatable 
