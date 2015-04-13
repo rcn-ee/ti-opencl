@@ -151,17 +151,24 @@ $(BUILTINS):
 	@$(MAKE) -C $(BUILTINS_DIR) -j4 
 
 #---------------------------------------------------------------------------
+# Function to create the dsp symbols database
+#----------------------------------------------------------------------------
+define create_dsp_syms
+	@echo Creating dsp.syms
+	@nm6x -l dsp.out | grep PROT | awk -F\| '{ print "\t.weak "$$8"\n"$$8"\t.set "$$2 };' >  dsp_syms.asm
+	@nm6x -l dsp.out | grep FUNC | grep -fexport_syms | awk -F\| '{ print "\t.weak "$$8"\n"$$8"\t.set "$$2 };' >> dsp_syms.asm
+	@$(CC) dsp_syms.asm
+	@cp dsp_link_commands dsp.syms
+	@rm -f $1.syms.tmp* dsp_syms.asm
+endef
+
+#---------------------------------------------------------------------------
 # Build k1 monitor
 #----------------------------------------------------------------------------
 dsp_k1: $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD) $(DSPC_LIBS)
 	@echo Linking $@
 	@$(CC) -z --priority -w -x -m$@.map $^ -I$(TI_OCL_CGT_INSTALL)/lib -llibc.a -o dsp.out
-	@echo Creating dsp.syms
-	@nm6x -l dsp.out | grep PROT | awk -F\| '{ print $$8"="$$2";" };' >  $@.syms.tmp
-	@nm6x -l dsp.out | grep FUNC | grep -fexport_syms | awk -F\| '{ print $$8"="$$2";" };' >> $@.syms.tmp
-	@sort $@.syms.tmp | uniq > $@.syms.tmp1
-	@cat $@.syms.tmp1 dsp_link_commands > dsp.syms
-	@rm -f $@.syms.tmp* library.fcns dsp.nm6x
+	$(call create_dsp_syms, $@)
 
 #---------------------------------------------------------------------------
 # Build k2h monitor
@@ -169,12 +176,7 @@ dsp_k1: $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD) $(DSPC_LIBS)
 dsp_k2h: $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD) $(K2H_LIBS)
 	@echo Linking $@
 	@$(CC) -z --priority -w -x -m$@.map $^ -I$(TI_OCL_CGT_INSTALL)/lib -llibc.a -o dsp.out
-	@echo Creating dsp.syms
-	@nm6x -l dsp.out | grep PROT | awk -F\| '{ print $$8"="$$2";" };' >  $@.syms.tmp
-	@nm6x -l dsp.out | grep FUNC | grep -fexport_syms | awk -F\| '{ print $$8"="$$2";" };' >> $@.syms.tmp
-	@sort $@.syms.tmp | uniq > $@.syms.tmp1
-	@cat $@.syms.tmp1 dsp_link_commands > dsp.syms
-	@rm -f $@.syms.tmp* library.fcns dsp.nm6x
+	$(call create_dsp_syms, $@)
 
 %.obj : %.c $(COMP_OPTS) $(HEADERS)
 	@echo Compiling $<

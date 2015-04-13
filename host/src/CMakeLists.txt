@@ -40,7 +40,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DLLVM_3_3")
 # bfd.h has a check to ensure that config.h is included
 # We don't require config.h (autotools) so we bypass this check by defining
 # PACKAGE, and PACKAGE_VERSION 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DPACKAGE=${PROJECT_NAME} -DPACKAGE_VERSION=${${PROJECT_NAME}_VERSION}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DPACKAGE=${PROJECT_NAME} -DPACKAGE_VERSION=${${PROJECT_NAME}_PKG_VERSION}")
 
 # Toggle below if wanting to build with debug
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -fno-inline -g")

@@ -1,3 +1,17 @@
+ti-opencl (01.01.00.02-0ubuntu0~ppa1) trusty; urgency=medium
+
+  * Modified the monitor mechanism for mapping builtin functions names to
+    address from being text based to being object based.  This speeds link
+    time significantly.
+
+  * Update version scheme for debian packaging to ww.xx.yy.zz format.
+    Where:
+        ww.xx - Maps to supported OpenCL specification version. Currently 1.1.
+        yy    - TI release
+        zz    - TI patch release
+
+ -- TI Keystone PPA <ti-keystone-ppa@list.ti.com>  Fri, 10 Apr 2015 15:38:44 -0500
+
 ti-opencl (01.01.00.01-0ubuntu0~ppa1) trusty; urgency=medium
 
   * Make OpenCL use Resource Manager (RM) to allocate QMSS resources on the
@@ -27,9 +41,9 @@ ti-opencl (01.01.00.00-0ubuntu0~ppa1) trusty; urgency=medium
 
   * Update version scheme for debian packaging to ww.xx.yy.zz format.
     Where:
-	ww.xx - Maps to supported OpenCL specification version. Currently 1.1.
-	yy    - TI release
-	zz    - TI patch release
+        ww.xx - Maps to supported OpenCL specification version. Currently 1.1.
+        yy    - TI release
+        zz    - TI patch release
 
  -- TI Keystone PPA <ti-keystone-ppa@list.ti.com>  Sun, 15 Feb 2015 13:21:14 -0600
 
