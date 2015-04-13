@@ -47,6 +47,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
+#include <signal.h>
 
 using namespace Coal;
 
@@ -111,6 +112,10 @@ namespace Coal
 
        for (int i = 0; i < Driver::instance()->num_dsps(); i++)
             p_devices.push_back((_cl_device_id*)new Coal::DSPDevice(i));
+
+        signal(SIGINT,  exit);
+        signal(SIGABRT, exit);
+        signal(SIGTERM, exit);
     }
 
     Platform::~Platform()
