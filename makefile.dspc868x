@@ -13,8 +13,9 @@ OCL_MONITOR_DIR  = monitor
 OCL_BUILTINS_DIR = builtins
 OCL_LIBM_DIR     = libm
 OCL_EXAMPLES_DIR = examples
-OCL_MONITOR_OUT  = $(OCL_MONITOR_DIR)/dsp.out
-OCL_MONITOR_SYMS  = $(OCL_MONITOR_DIR)/dsp.syms
+OCL_MONITOR_OUT       = $(OCL_MONITOR_DIR)/dsp.out
+OCL_MONITOR_SYMS      = $(OCL_MONITOR_DIR)/dsp.syms
+OCL_MONITOR_SYMS_OBJ  = $(OCL_MONITOR_DIR)/dsp_syms.obj
 
 OCL_EXAMPLES = edmamgr matmpy simple dsplib_fft mandelbrot mandelbrot_native \
                offline offline_embed platforms ccode null ooo vecadd         \
@@ -31,7 +32,7 @@ OPENCL_CMAKE_OPTS = -DDEFAULT_DEV_INSTALL_DIR=/opt/ti
 all: opencl
 
 
-opencl: $(OCL_MONITOR_OUT) $(OCL_MONITOR_SYMS) $(OCL_BUILD_DIR)/Makefile 
+opencl: $(OCL_MONITOR_OUT) $(OCL_MONITOR_SYMS) $(OCL_MONITOR_SYMS_OBJ) $(OCL_BUILD_DIR)/Makefile 
 	$(MAKE) -C $(OCL_MONITOR_DIR)
 	$(MAKE) -C $(OCL_BUILD_DIR) -j4
 
@@ -44,7 +45,7 @@ $(OCL_BUILD_DIR):
 	mkdir -p $(OCL_BUILD_DIR)
 
 
-$(OCL_MONITOR_OUT) $(OCL_MONITOR_SYMS):
+$(OCL_MONITOR_OUT) $(OCL_MONITOR_SYMS) $(OCL_MONITOR_SYMS_OBJ):
 	$(MAKE) -C $(OCL_MONITOR_DIR)
 
 
@@ -75,6 +76,7 @@ install:
 	cp -P ${OCL_BUILD_DIR}/lib/libOpenCL.so.${OCL_MAJ_VER}  ${DESTDIR}/lib
 	cp ${OCL_MONITOR_OUT}    	        ${DESTDIR}/opencl
 	cp ${OCL_MONITOR_SYMS}   	        ${DESTDIR}/opencl
+	cp ${OCL_MONITOR_SYMS_OBJ}   	        ${DESTDIR}/opencl
 	for dir in $(OCL_EXAMPLES); do \
           cp -r  ${OCL_EXAMPLES_DIR}/$$dir ${DESTDIR}/examples/opencl; \
 	done
