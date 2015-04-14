@@ -429,7 +429,7 @@ static void process_cache_command (int pkt_id, ocl_msgq_message_t *msgq_pkt)
 {
     flush_msg_t* flush_msg = &msgq_pkt->message.u.k.flush;
     respond_to_host(msgq_pkt, pkt_id);
-    if (flush_msg->need_cache_op > 0) flush_buffers(flush_msg);
+    flush_buffers(flush_msg);
 }
 
 /******************************************************************************
