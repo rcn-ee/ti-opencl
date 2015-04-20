@@ -9,6 +9,9 @@ ti-opencl (01.01.01.01-0ubuntu0~ppa1) trusty; urgency=medium
   * Update MPX examples to query available memory and allocate buffers
     accordingly
 
+  * Add OSAL critical section support in RM client code that allocates QMSS
+    resources.
+
  -- TI Keystone PPA <ti-keystone-ppa@list.ti.com>  Fri, 17 Apr 2015 15:48:32 -0500
 
 ti-opencl (01.01.00.03-0ubuntu0~ppa1) trusty; urgency=medium

@@ -52,6 +52,7 @@
 #include <fcntl.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <pthread.h>
 
 /* RM Includes */
 #include <ti/drv/rm/rm.h>
@@ -191,6 +192,32 @@ void Osal_rmTaskUnblock(void *handle)
 void Osal_rmTaskBlockDelete(void *handle)
 {
 
+}
+
+/* FUNCTION PURPOSE: Multi-threaded critical section enter
+ ***********************************************************************
+ * DESCRIPTION: The function is used to enter a multi-threaded critical
+ *              section. Function protects against
+ *              access from multiple threads on single core
+ */
+void *Osal_rmMtCsEnter(void *mtSemObj)
+{
+    pthread_mutex_t *mutex = (pthread_mutex_t *)mtSemObj;
+
+    pthread_mutex_lock(mutex);
+    return NULL;
+}
+
+/* FUNCTION PURPOSE: Multi-threaded critical section exit
+ ***********************************************************************
+ * DESCRIPTION: The function is used to exit a multi-threaded critical
+ *              section protected using Osal_rmMtCsEnter() API.
+ */
+void Osal_rmMtCsExit(void *mtSemObj, void *CsHandle)
+{
+    pthread_mutex_t *mutex = (pthread_mutex_t *)mtSemObj;
+
+    pthread_mutex_unlock(mutex);
 }
 
 /* FUNCTION PURPOSE: Prints a variable list
