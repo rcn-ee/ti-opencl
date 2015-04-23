@@ -11,7 +11,7 @@ if (C6678_BUILD)
     ${SDK}/sdk/dnldmgr )
 # Cross-compiling needs additional paths to find target OS headers 
 # and non-system headers found on the host (BOOST,GL)
-elseif (HAWKING_CROSS_COMPILE)
+elseif (CROSS_COMPILE)
   SET (TARGET_INCLUDES 
     ${CMAKE_FIND_ROOT_PATH} 
     ${HOST_USR_INCLUDE_PATH}  )
@@ -30,6 +30,8 @@ include_directories (
     ${TARGET_INCLUDES}
     )
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fpermissive")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_FILE_OFFSET_BITS=64")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_PRODUCT_VERSION=${${PROJECT_NAME}_PKG_VERSION}")
@@ -50,6 +52,14 @@ if (C6678_BUILD)
 endif()
 
 if (HAWKING_BUILD)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDEVICE_K2H")
+endif()
+
+if (AM57_BUILD)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDEVICE_AM57")
+endif()
+
+if (ENABLE_ULM)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DULM_ENABLED")
 endif()
 
@@ -106,7 +116,7 @@ set(COAL_SRC_FILES
     core/dsp/device.cpp
     core/dsp/kernel.cpp
     core/dsp/worker.cpp
-    core/dsp/mmap_resource.c
+    core/dsp/mmap_resource.cpp
 
     llvmopencl/AllocasToEntry.cc
     llvmopencl/BarrierBlock.cc
@@ -137,6 +147,10 @@ set(COAL_SRC_FILES
 
 if (HAWKING_BUILD)
     set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/rm_qmss_res.c)
+endif()
+
+if (AM57_BUILD)
+    set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/mbox_impl_msgq.cpp)
 endif()
 
 add_subdirectory(runtime)
@@ -193,8 +207,24 @@ set (LIBS
         dl
 )
 
+# Add non-target dependent libraries
+find_library(FFI_LIB ffi)
+find_library(BFD_LIB bfd)
+find_library(SQLITE3_LIB sqlite3)
 
-if (C6678_BUILD)
+LIST (APPEND LIBS ${FFI_LIB} ${BFD_LIB} ${SQLITE3_LIB})
+
+# Add target dependent libraries
+if(HAWKING_BUILD)
+   find_library(CMEM_LIB          ticmem)
+   find_library(MPMMAIL_LIB       mpmmailbox)
+   find_library(MPMTRANSPORT_LIB  mpmtransport)
+   find_library(MPMCLIENT_LIB     mpmclient)
+   find_library(RM_LIB            rm)
+
+   LIST (APPEND LIBS ${CMEM_LIB} ${MPMMAIL_LIB} ${MPMTRANSPORT_LIB} 
+                     ${MPMCLIENT_LIB} ${RM_LIB} )
+elseif(C6678_BUILD)
   LIST (APPEND LIBS
 	${SDK}/sdk/pciedrv/lib/pciedrv.a
 	${SDK}/sdk/dnldmgr/lib/dnldmgr.a
@@ -203,28 +233,19 @@ if (C6678_BUILD)
 	${SDK}/sdk/mailBox/host/lib/mailBox.a
         pciaccess
 	)
-elseif(HAWKING_BUILD)
-  LIST (APPEND LIBS 
-	 ${LINUX_DEVKIT_ROOT}/usr/lib/libmpmmailbox.so
-         ${LINUX_DEVKIT_ROOT}/usr/lib/libmpmtransport.so
-         ${LINUX_DEVKIT_ROOT}/usr/lib/libmpmclient.so
-         ${LINUX_DEVKIT_ROOT}/usr/lib/libticmem.so
-         ${LINUX_DEVKIT_ROOT}/usr/lib/libtiulm.a
-         ${LINUX_DEVKIT_ROOT}/usr/lib/librm.so )
-         # ${LINUX_DEVKIT_ROOT}/usr/lib/libkeystonemmap.so
+elseif (AM57_BUILD)
+  find_library(CMEM_LIB          ticmem)
+  find_library(IPC_LIB           tiipc)
+  find_library(IPC_UTIL_LIB      tiipcutils)
+  find_library(IPC_TRANS_RPMSG   titransportrpmsg)
+  LIST (APPEND LIBS ${CMEM_LIB} ${IPC_LIB} ${IPC_UTIL_LIB} ${IPC_TRANS_RPMSG})
 endif()
 
-if (HAWKING_CROSS_COMPILE)
-   SET(FFI_LIB     ${LINUX_DEVKIT_ROOT}/usr/lib/libffi.so.6)
-   SET(BFD_LIB     ${LINUX_DEVKIT_ROOT}/usr/lib/libbfd.so)
-   SET(SQLITE3_LIB ${LINUX_DEVKIT_ROOT}/usr/lib/libsqlite3.so.0)
-else()
-   find_library(FFI_LIB ffi)
-   find_library(BFD_LIB bfd)
-   find_library(SQLITE3_LIB sqlite3)
+if(ENABLE_ULM)
+  find_library(ULM_LIB  NAMES    libtiulm.a)
+  LIST (APPEND LIBS ${ULM_LIB} )
 endif()
 
-LIST (APPEND LIBS ${FFI_LIB} ${BFD_LIB} ${SQLITE3_LIB})
 
 TARGET_LINK_LIBRARIES(OpenCL ${LIBS})
 install(TARGETS OpenCL LIBRARY DESTINATION /usr/lib ${OCL_FPERMS})

@@ -32,7 +32,10 @@
 class CoreScheduler : public Lockable
 {
   public:
-    CoreScheduler() : p_avail(0xff) {}
+    /*-------------------------------------------------------------------------
+    * Currently limited to a max of 8 cores
+    *------------------------------------------------------------------------*/
+    CoreScheduler(unsigned int num_cores = 8) : p_num_cores(num_cores), p_avail(0xff) {}
 
     void free(int core) 
     { 
@@ -50,11 +53,12 @@ class CoreScheduler : public Lockable
         *--------------------------------------------------------------------*/
         while (!p_avail) CV.wait(lock.raw());
 
-        for (int i=0, mask = 1; i < 8; ++i, mask <<= 1)
+        for (int i=0, mask = 1; i < p_num_cores; ++i, mask <<= 1)
             if (p_avail & mask) { p_avail &= ~mask; return i; }
     }
 
   private:
+     unsigned int  p_num_cores;
      unsigned char p_avail;
      CondVar       CV;
 };

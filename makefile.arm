@@ -1,6 +1,6 @@
 OCL_BUILD_ROOT= $(shell pwd)
-OCL_VER=1.1.0
 OCL_MAJ_VER=1
+OCL_VER=$(OCL_MAJ_VER).1.1
 .SILENT:
 LLVM_VER=3.3
 
@@ -27,7 +27,12 @@ OCL_OMP_EXAMPLES = vecadd_openmp vecadd_openmp_t dgemm
 .PHONY: all clean opencl install clone
 
 
-OPENCL_CMAKE_OPTS = 
+# Default to K2H build. If BUILD_AM57 is set, build for AM57.
+ifeq ($(BUILD_AM57),1)
+CMAKE_DEFINES = -DBUILD_TARGET=ARM_AM57
+else
+CMAKE_DEFINES = -DBUILD_TARGET=ARM_K2H
+endif
 
 all: opencl
 
@@ -37,7 +42,7 @@ opencl: $(OCL_MONITOR_OUT) $(OCL_MONITOR_SYMS) $(OCL_MONITOR_SYMS_OBJ) $(OCL_BUI
 
 
 $(OCL_BUILD_DIR)/Makefile: $(filter-out $(wildcard $(OCL_BUILD_DIR)), $(OCL_BUILD_DIR)) 
-	cd $(OCL_BUILD_DIR); cmake $(OPENCL_CMAKE_OPTS) ../host
+	cd $(OCL_BUILD_DIR); cmake $(CMAKE_DEFINES) ../host
 
 
 $(OCL_BUILD_DIR): 

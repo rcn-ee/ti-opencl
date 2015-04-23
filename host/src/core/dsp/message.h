@@ -30,13 +30,12 @@
 
 #include <stdint.h>
 
-typedef enum { READY, EXIT, TASK, NDRKERNEL, WORKGROUP, CACHEINV, FREQUENCY, SUCCESS, ERROR, PRINT, FLUSH } command_codes;
+typedef enum { READY, EXIT, TASK, NDRKERNEL, WORKGROUP, CACHEINV, 
+               FREQUENCY, SUCCESS, ERROR, PRINT, BROADCAST } command_codes;
 
+#define MAX_NDR_DIMENSIONS   3
 #define MAX_IN_REG_ARGUMENTS 10
 #define MAX_ARGS_IN_REG_SIZE (MAX_IN_REG_ARGUMENTS*2)
-
-#define MAX_FLUSH_ARGUMENTS  10
-#define MAX_FLUSH_BUF_SIZE   (MAX_FLUSH_ARGUMENTS*2)
 
 #define MAX_ARGS_TOTAL_SIZE 1024
 
@@ -50,61 +49,58 @@ typedef enum { READY, EXIT, TASK, NDRKERNEL, WORKGROUP, CACHEINV, FREQUENCY, SUC
 
 /******************************************************************************
 * Need to ensure that the alignments and therefore the offsets of all fields 
-* are consistent between the host and the device.
+* are consistent between the host and the device. There is a dependency on 
+* order here with both the wga xforms and the get_xxx functions in the 
+* builtins library.
 ******************************************************************************/
 typedef struct
 {
     uint32_t num_dims;
-
-    uint32_t global_sz_0;
-    uint32_t global_sz_1;
-    uint32_t global_sz_2;
-    uint32_t local_sz_0;
-    uint32_t local_sz_1;
-    uint32_t local_sz_2;
-    uint32_t global_off_0;
-    uint32_t global_off_1;
-    uint32_t global_off_2;
-    uint32_t WG_gid_start_0;
-    uint32_t WG_gid_start_1;
-    uint32_t WG_gid_start_2;
-    uint32_t Kernel_id;
+    uint32_t global_size  [MAX_NDR_DIMENSIONS];
+    uint32_t local_size   [MAX_NDR_DIMENSIONS];
+    uint32_t global_offset[MAX_NDR_DIMENSIONS];
+    uint32_t WG_gid_start [MAX_NDR_DIMENSIONS];
     uint32_t WG_id;
-    uint32_t stats;
     uint32_t WG_alloca_start;
     uint32_t WG_alloca_size;
 } kernel_config_t;
 
 typedef struct 
 {
-    uint8_t  numBuffers;
-    uint8_t  num_mpaxs;  // TODO: XMC only mpax for kernel alloca memory
-    uint16_t args_on_stack_size;
-    uint32_t args_on_stack_addr;
-    uint32_t buffers[MAX_FLUSH_BUF_SIZE];
+    uint32_t need_cache_op;
+    uint32_t num_mpaxs;  // TODO: XMC only mpax for kernel alloca memory
     uint32_t mpax_settings[2*MAX_XMCSES_MPAXS];  // (MPAXL, MPAXH) pair
 } flush_msg_t;
 
+/*-----------------------------------------------------------------------------
+* The dsp_rpc.asm file has a dependency on the exact order of the fields:
+* entry_point through args_in_reg. If they are changed, then dsp_rpc.asm will
+* also need modification.
+*----------------------------------------------------------------------------*/
 typedef struct
 {
-    kernel_config_t config;
+    uint32_t        Kernel_id;
     uint32_t        entry_point;
     uint32_t        data_page_ptr;
     uint32_t        args_in_reg_size;
     uint32_t        args_in_reg[MAX_ARGS_IN_REG_SIZE];
+    uint32_t        args_on_stack_addr;
+    uint32_t        args_on_stack_size;
 } kernel_msg_t;
 
 typedef struct 
 {
     command_codes command;
+    uint32_t      trans_id;
     union
     {
         struct
         {
-            kernel_msg_t  kernel;
-            flush_msg_t   flush;
+            kernel_config_t config;
+            kernel_msg_t    kernel;
+            flush_msg_t     flush;
         } k;
-        char message[sizeof(kernel_msg_t) + sizeof(flush_msg_t)];
+        char message[sizeof(kernel_config_t) + sizeof(kernel_msg_t) + sizeof(flush_msg_t)];
     } u;
 } Msg_t;
 
@@ -113,6 +109,8 @@ static Msg_t successMsg   = {SUCCESS};
 static Msg_t readyMsg     = {READY};
 static Msg_t errorMsg     = {ERROR};
 static Msg_t frequencyMsg = {FREQUENCY};
+static Msg_t cacheMsg     = {CACHEINV};
+
 // static far Msg_t printMsg  = {PRINT}; // moved to L2 in monitor
 
 static const uint32_t mbox_payload         = sizeof(Msg_t);

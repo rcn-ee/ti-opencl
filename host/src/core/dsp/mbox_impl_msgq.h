@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2013-2014, Texas Instruments Incorporated - http://www.ti.com/
+ * Copyright (c) 2015, Texas Instruments Incorporated - http://www.ti.com/
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -25,51 +25,55 @@
  *   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  *   THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
-#include <stdint.h>
-#include <string.h>
-#include "monitor.h"
+#pragma once
 
-uint64_t getTimestamp()
+/* package header files */
+#include <ti/ipc/Std.h>
+/* Work around IPC usage of typedef void */
+#define Void void
+#include <ti/ipc/MultiProc.h>
+#include <ti/ipc/MessageQ.h>
+#undef Void
+
+#include "u_locks_pthread.h"
+#include "u_lockable.h"
+#include "driver.h"
+
+#include "mbox.h"
+
+using namespace Coal;
+
+class MBoxMsgQ : public MBox, public Lockable
 {
-    uint32_t *GLOBAL_TIMESTAMP_ADRS = (uint32_t*)0x023101F0;
-    return _itoll(GLOBAL_TIMESTAMP_ADRS[1], GLOBAL_TIMESTAMP_ADRS[0]); 
+    public:
+        MBoxMsgQ(Coal::DSPDevice *device);
+        ~MBoxMsgQ();
+        void     to   (uint8_t *msg, uint32_t  size, uint8_t id);
+        int32_t  from (uint8_t *msg, uint32_t *size, uint8_t id);
+        bool     query(uint8_t id=0);
+
+  private:
+    void     write (uint8_t *buf, uint32_t size, uint32_t trans_id, uint8_t id);
+    uint32_t read  (uint8_t *buf, uint32_t *size, uint8_t id);
+
+  private:
+    MessageQ_Handle    hostQue;   // created by host
+    MessageQ_QueueId   dspQue[2]; // created by DSP1/DSP2, opened by host
+    UInt16             heapId;    // heap for MessageQ_alloc, 0 on host
+    Coal::DSPDevice   *p_device;
+};
+
+inline void MBoxMsgQ::to(uint8_t *msg, uint32_t  size, uint8_t id)
+{
+    static unsigned trans_id = TX_ID_START;
+
+    Lock lock(this);
+    write(msg, size, trans_id++, id);
 }
 
-/******************************************************************************
-* record_wg_data
-******************************************************************************/
-typedef struct 
+inline int32_t MBoxMsgQ::from (uint8_t *msg, uint32_t *size, uint8_t id)
 {
-    uint32_t start;
-    uint32_t stop;
-    uint32_t wg;
-    uint32_t core;
-} STATS;
-
-#define MAX_STAT 1024
-
-FAST_SHARED_1D(STATS, stats, MAX_STAT);
-
-void stats_record(uint32_t wgid, uint32_t coreid, uint32_t start, uint32_t stop)
-{
-    STATS *core = &stats[wgid];
-    if (wgid >= MAX_STAT) return;
-
-    core->start = start;
-    core->stop  = stop;
-    core->wg    = wgid;
-    core->core  = coreid;
+    return read(msg, size, id);
 }
 
-/******************************************************************************
-* stats_start
-******************************************************************************/
-void stats_start() 
-{ 
-    memset((void*) stats, 0, sizeof(stats)); 
 
-    uint32_t *GLOBAL_TIMESTAMP_ADRS = (uint32_t*)0x023101F0;
-    *GLOBAL_TIMESTAMP_ADRS = 0;
-}
-
-void stats_stop() { }

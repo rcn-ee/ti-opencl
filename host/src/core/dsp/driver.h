@@ -43,6 +43,12 @@ extern "C"
 #include "shmem.h"
 #endif
 
+#if !defined(DEVICE_AM57)
+#define TOTAL_NUM_CORES_PER_CHIP 8
+#else
+#define TOTAL_NUM_CORES_PER_CHIP 2
+#endif
+
 class Driver : public Lockable_off
 {
   public:
@@ -53,7 +59,8 @@ class Driver : public Lockable_off
    int32_t write(int32_t dsp, DSPDevicePtr64 addr, uint8_t *buf, uint32_t sz);
    int32_t read (int32_t dsp, DSPDevicePtr64 addr, uint8_t *buf, uint32_t sz);
 
-   void*        reset_and_load   (int chip);
+   void         reset_and_load   (int chip);
+   void*        create_image_handle(void);
    void         free_image_handle(void *handle);
    void         cmem_init(DSPDevicePtr64 *addr1, uint64_t *size1,
                           DSPDevicePtr   *addr2, uint32_t *size2,

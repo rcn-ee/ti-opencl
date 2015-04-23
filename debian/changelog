@@ -1,6 +1,22 @@
+ti-opencl (01.01.01.01-0ubuntu0~ppa1) trusty; urgency=medium
+
+  * Make __malloc/free_ddr/msmc() thread safe, use Lock to guard the
+    bookkeeping map accesses.
+
+  * Update to always flush buffers after kernel execution, even when kernel
+    has only WRITE_ONLY buffers
+
+  * Update MPX examples to query available memory and allocate buffers
+    accordingly
+
+  * Add OSAL critical section support in RM client code that allocates QMSS
+    resources.
+
+ -- TI Keystone PPA <ti-keystone-ppa@list.ti.com>  Fri, 17 Apr 2015 15:48:32 -0500
+
 ti-opencl (01.01.00.03-0ubuntu0~ppa1) trusty; urgency=medium
 
-  * Added signal handler in opencl to cleanup if user hits ctrl-c during 
+  * Added signal handler in opencl to cleanup if user hits ctrl-c during
     OpenCL execution.
 
   * Updated ARM makefile install to include new monitor file 'dsp_syms.obj'.

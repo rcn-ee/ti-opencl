@@ -58,6 +58,6 @@
 /* VERSION string construction macros.                                        */
 /******************************************************************************/
 #define VERSTR  MKMSTR(VERSION_MAJOR) "." MKMSTR(VERSION_MINOR) "." MKMSTR(VERSION_PATCH)
-#define VERSION "Texas Instruments Dynamic Loader API/Core v"VERSTR
+#define VERSION "Texas Instruments Dynamic Loader API/Core v" VERSTR
 
 #endif

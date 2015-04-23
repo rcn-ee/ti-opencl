@@ -116,21 +116,34 @@ PRIVATE(Msg_t*, printMsg)   = NULL;
 PRIVATE_1D(char, print_msg_mem, sizeof(Msg_t));
 
 /******************************************************************************
-* Defines a fixed area of 64 bytes at the start of L2, where the kernels will
+* Defines a fixed area of 64 bytes in L2, where the kernels will
 * resolve the get_global_id type calls
 ******************************************************************************/
 #pragma DATA_SECTION(kernel_config_l2, ".workgroup_config");
 EXPORT kernel_config_t kernel_config_l2;
 
 /******************************************************************************
+* Define a kernel msg area where kernel attributes may be written from core 0
+* before workgroups begin.
+******************************************************************************/
+PRIVATE(kernel_msg_t, kernel_attributes);
+
+/******************************************************************************
+* This initialization is dependent on the order of fields in kernel_config_t
+******************************************************************************/
+FAST_SHARED(kernel_config_t, task_config) = 
+     { 1, {1,1,1}, {1,1,1}, {0,0,0}, {0,0,0}, 0, 0, 0 };
+
+/******************************************************************************
 * Initialization Routines
 ******************************************************************************/
+static int initialize_memory        (void);
+static int initialize_host_mailboxes(void);
 static int initialize_cores         (void);
 static int initialize_qmss          (void);
 static int initialize_bios_tasks    (void);
-static int initialize_host_mailboxes(void);
-static int initialize_memory        (void);
 static int initialize_gdbserver     (void);
+
 static void reset_memory            (void);
 
 /******************************************************************************
@@ -142,10 +155,35 @@ BIOS_TASK(listen_host_task);
 BIOS_TASK(service_wg_task);
 
 /******************************************************************************
+* QMSS Packet overlays 
+******************************************************************************/
+typedef struct 
+{ 
+    uint32_t cmd; 
+    uint32_t id; 
+    flush_msg_t Fmsg; 
+} broadcast_pkt_t; 
+
+typedef struct 
+{ 
+    uint32_t cmd; 
+    uint32_t WG_gid_start[3]; 
+    uint32_t WG_id; 
+} workgroup_pkt_t;
+
+typedef struct { 
+    uint32_t     cmd; 
+    uint32_t     WG_alloca_start; 
+    uint32_t     WG_alloca_size; 
+    kernel_msg_t kmsg; 
+    flush_msg_t  fmsg;
+} task_pkt_t;
+
+/******************************************************************************
 * External prototypes
 ******************************************************************************/
 extern unsigned dsp_speed();
-extern void*    dsp_rpc(void* p, void *more_args, uint32_t more_args_size);
+extern void*    dsp_rpc(void* p, void *stk_args, uint32_t stk_args_size);
 extern int      tomp_initOpenMPforOpenCL(void);
 extern void     tomp_exitOpenMPforOpenCL(void);
 
@@ -155,38 +193,26 @@ extern void     tomp_exitOpenMPforOpenCL(void);
 static int  incVec(unsigned dims, unsigned *vec, unsigned *inc, unsigned *maxs);
 void        mail_safely(uint8_t* msg, size_t msgSz, uint32_t msgId);
 
-static void  process_kernel_command(Msg_t* msg);
-static void  process_task_command  (Msg_t* msg);
-static void  process_cache_command (flush_msg_t* Msg);
+static void  process_kernel_local      (Msg_t* msg);
+static void  process_kernel_distributed(Msg_t* msg);
+static void  process_task_local        (Msg_t* msg);
+static void  process_task_distributed  (Msg_t* msg);
+
 static int   process_exit_command  (void);
-static void  core0_to_allcores     (uint32_t flush_msg_id, flush_msg_t *f_msg);
+static void  broadcast             (uint32_t flush_msg_id, flush_msg_t *f_msg);
 
+static void  service_broadcast     (void* ptr);
+static void  service_task          (void* ptr);
+static void  service_workgroup     (void* ptr);
 
-void _minit(void) { }
+static inline void set_mpax_for_extended_memory(flush_msg_t* flush_msg);
+static inline void restore_mpax_for_extended_memory(flush_msg_t* flush_msg);
+static        void all_core_copy (void *dest, void *src, size_t size);
 
-_CODE_ACCESS void __TI_writemsg(               unsigned char  command,
-                                register const unsigned char *parm,
-                                register const          char *data,
-                                                unsigned int  length)
-{
-    if (tx_mbox == NULL || rx_mbox == NULL || printMsg == NULL) return;
-
-    unsigned int msgLen = sizeof(kernel_msg_t) + sizeof(flush_msg_t);
-    printMsg->u.message[0] = DNUM + '0';
-    msgLen = (length <= msgLen-2) ? length : msgLen-2;
-    memcpy(printMsg->u.message+1, data, msgLen);
-    printMsg->u.message[msgLen+1] = '\0';
-    if (tx_mbox != NULL && rx_mbox != NULL && printMsg != NULL)
-        mail_safely((uint8_t*)printMsg, sizeof(Msg_t), 42);
-    return;
-}
-
-_CODE_ACCESS void __TI_readmsg(register unsigned char *parm,
-                               register char          *data)
-{
-    return;  // do nothing
-}
-
+/******************************************************************************
+* MASTER_THREAD : One core acts as a master.  This macro identifies that thread
+******************************************************************************/
+#define MASTER_THREAD (DNUM == 0)
 
 /******************************************************************************
 * main
@@ -206,333 +232,12 @@ int main(void)
 
     waitAtCoreBarrier();
 
-    //Semaphore_post(higherSem); // Enable the host listener
     BIOS_start();
 }
 
-void cycle_delay(uint32_t cycles)
-{
-    uint32_t start_val  = CSL_chipReadTSCL();
-    while ((CSL_chipReadTSCL() - start_val) < cycles);
-}
-
 /******************************************************************************
-* Setup the cores for execution
-******************************************************************************/
-static int initialize_cores()
-{
-#ifndef TI_66AK2H
-    /*---------------------------------------------------------------------
-    * should be abstracted to high level functions through platform library
-    *--------------------------------------------------------------------*/
-#define DEVICE_REG32_W(x,y)   *(volatile uint32_t *)(x)=(y)
-#define IPCGR(x)            (0x02620240 + x*4)
-
-    /*---------------------------------------------------------------------
-    * ipc interrupt other cores
-    *--------------------------------------------------------------------*/
-    int core;
-    if (DNUM == 0)
-        for (core = 1; core < 8; core++)
-        {
-            DEVICE_REG32_W(IPCGR(core), 1);
-            cycle_delay(1000000);
-        }
-#endif
-
-    return RETURN_OK;
-}
-
-/******************************************************************************
-* initialize_qmss
-* Keystone 2 needs to get QMSS resources allocated by RM on ARM
-******************************************************************************/
-#ifdef TI_66AK2H
-int OCL_QMSS_HW_QUEUE_BASE_IDX             = 7300;
-int OCL_QMSS_FIRST_DESC_IDX_IN_LINKING_RAM = 8192;
-int OCL_QMSS_FIRST_MEMORY_REGION_IDX       = 16;
-#endif
-
-static int initialize_qmss(void)
-{
-#ifdef TI_66AK2H
-    if (DNUM == 0)
-    {
-        uint32_t size, trans_id;
-        int      mail_available;
-        do mail_available = mpm_mailbox_query(rx_mbox);
-        while (!mail_available);
-        Msg_t Msg;
-        mpm_mailbox_read(rx_mbox, (uint8_t *)&Msg, &size, &trans_id);
-        if (((int *)&Msg)[1] > 0)
-        {
-            OCL_QMSS_HW_QUEUE_BASE_IDX             = ((int *)&Msg)[1];
-            OCL_QMSS_FIRST_DESC_IDX_IN_LINKING_RAM = ((int *)&Msg)[3];
-            OCL_QMSS_FIRST_MEMORY_REGION_IDX       = ((int *)&Msg)[2];
-        }
-    }
-#endif
-
-    if (DNUM == 0 && !ocl_initGlobalQMSS())   return RETURN_FAIL; 
-    waitAtCoreBarrier();
-    if (!ocl_initLocalQMSS())                 return RETURN_FAIL; 
-    waitAtCoreBarrier();
-
-    if (DNUM == 0 && !initClockGlobal()) return RETURN_FAIL; 
-    waitAtCoreBarrier();
-    if (!initClockLocal())               return RETURN_FAIL; 
-    waitAtCoreBarrier();
-
-    return RETURN_OK;
-}
-
-/******************************************************************************
-* flush_buffers
-******************************************************************************/
-void flush_buffers(flush_msg_t *Msg)
-{
-    /*-------------------------------------------------------------------------
-    * For now we will flush all L2 due to an issue with the below.
-    *
-    * This issue involves prefetching of lines beyond our defined buffers.
-    * Since the prefetch will result in lines being cached that we are not 
-    * aware of, if the host subsequently writes that area and then this core 
-    * reads the area, it will get stale data in the prefetched overflow area.
-    * 
-    * Possible solutions include:
-    * 1) invalidate all L2 cache as a sledgehammer
-    * 2) invalidate our buffers before the kernel runs, this ensures that the 
-    *    exact area we care about is flushed. The cost will be running flush 
-    *    before the kernel runs.
-    * 3) Understand the prefetch boundaries and also add a pre and post 
-    *    overflow to our defined buffers.
-    *
-    * The cost of out infalidates is mostly in the writes that need to occur.
-    * We write nothing back from L2, but we do WBInv on L1, because it could 
-    * be caching an area that is not write though (i.e. l2 sram).  One day we 
-    * could perhaps write a routine that would invalidate lines in L1 associated
-    * with ddr addresss, and would leave other lines alone.
-    *------------------------------------------------------------------------*/
-    cacheInvAllL2(); return; 
-
-#if 0
-    int i;
-    for (i = 0; i < (Msg->numBuffers << 1); i += 2)
-    {
-       /*----------------------------------------------------------------------
-       * The cache routines should be given a bufPtr aligned to a cache line
-       *    and a size that is a multiple of the cache line size.  The bufPtr
-       *    alignment should be handled, since the memory allocator will only 
-       *    allocate blocks on cache line boundaries.  The size arg may not be 
-       *    a multiple of cache line size, but it should be safe to round it 
-       *    up to the next cache line size boundary, since again the allocator
-       *    will allocate memmory only in cache line size chunks. Also, note
-       *    that invL2 calls will also invalidate L1P and L1D.
-       *---------------------------------------------------------------------*/
-       cacheInvL2((void*)Msg->buffers[i], 
-                  CACHE_ROUND_TO_LINESIZE(L2, Msg->buffers[i+1], 1));
-    }
-#endif
-}
-
-
-/******************************************************************************
-* kernel_complete
-*   This function is called when all workgroups for a kernel have completed.
-******************************************************************************/
-EVENT_HANDLER(service_kernel_complete)
-{
-    /*-------------------------------------------------------------------------
-    * We only preschedule if the core is not 0, because core 0 does not 
-    * currently service tasks and if it prescheduled a task it would not 
-    * complete.  When core 0 does participate in task servicing, it can also
-    * prefetch here.
-    *------------------------------------------------------------------------*/
-    // if (DNUM != 0) ti_em_preschedule();
-
-    typedef struct { uint32_t cmd; uint32_t id; flush_msg_t Fmsg; } pkt_t; 
-    pkt_t*             pkt = (pkt_t *) eventHdl;
-    flush_msg_t* flush_msg = &pkt->Fmsg;
-    uint32_t     num_mpaxs = flush_msg->num_mpaxs;
-
-    /*-------------------------------------------------------------------------
-    * The barrier ensures that each core picks up a single flush event from
-    * the queue and waits for remaining cores. Without the barrier, a core
-    * can incorreclty pick up and execute multiple flush events, resulting in
-    * undefined behavior.
-    *------------------------------------------------------------------------*/
-    switch(pkt->id)
-    {
-        case FLUSH_MSG_KERNEL_PROLOG:
-            if (num_mpaxs > 0)
-                set_kernel_MPAXs(num_mpaxs, flush_msg->mpax_settings);
-            printMsg = (Msg_t *) print_msg_mem;
-            waitAtCoreBarrier(); 
-            break;
-
-        case FLUSH_MSG_IOTASK_EPILOG:
-            printMsg = NULL;
-            if (num_mpaxs > 0) reset_kernel_MPAXs(num_mpaxs);
-            waitAtCoreBarrier(); 
-            break;
-
-        case FLUSH_MSG_CACHEINV:
-        default:
- 
-            if (flush_msg->numBuffers > 0 || num_mpaxs > 0)
-            {
-                if (flush_msg->numBuffers > 0) flush_buffers(flush_msg);
-                if (num_mpaxs > 0)             reset_kernel_MPAXs(num_mpaxs);
-            }
-
-            waitAtCoreBarrier(); 
-
-            /*-----------------------------------------------------------------
-            *  Send ready message after core barrier to ensure all cores
-            *  complete their workgroup before the message is sent by core 0
-            *----------------------------------------------------------------*/
-            if (DNUM == 0)
-                mail_safely((uint8_t*)&readyMsg, sizeof(readyMsg), pkt->id);
- 
-            TRACE(ULM_OCL_NDR_CACHE_COHERENCE_COMPLETE, pkt->id, 0);
-            break;
-    }
-
-    ocl_descriptorFree(eventHdl);
-
-    if (DNUM == 0) Semaphore_post(higherSem);
-}
-
-/******************************************************************************
-* service_workgroup
-*   This function is called by the Queue manager system to service an 
-*   individual work group for a kernel.
-******************************************************************************/
-EVENT_HANDLER(service_workgroup)
-{
-    // if (DNUM != 0) ti_em_preschedule(); // prefetch request
-
-    /*-------------------------------------------------------------------------
-    * access event buffer of received event
-    *------------------------------------------------------------------------*/
-    Msg_t *msg = (Msg_t*) eventHdl;
-    uint32_t wg_type = msg->command;
-
-    /*-------------------------------------------------------------------------
-    * Flush descriptors in the workgroup queue are handled by
-    * service_kernel_complete
-    *------------------------------------------------------------------------*/
-    if (wg_type == FLUSH)
-    {
-        service_kernel_complete(eventHdl);
-        return;
-    }
-
-    kernel_msg_t* kernelMsgPtr = &msg->u.k.kernel;
-
-    /*---------------------------------------------------------
-    * Copy the configuration in L2, where the kernel wants it
-    *--------------------------------------------------------*/
-    memcpy((void*)&kernel_config_l2, (void*)&kernelMsgPtr->config, 
-           sizeof(kernel_config_t));
-
-    uint32_t num_mpaxs = msg->u.k.flush.num_mpaxs;
-    if (wg_type == TASK && num_mpaxs > 0)  // OOTask self-set MPAX
-        set_kernel_MPAXs(num_mpaxs, msg->u.k.flush.mpax_settings);
-    printMsg = (Msg_t *) print_msg_mem;  // enable printf before ocl kernel
-
-    /*-------------------------------------------------------------------------
-    * Run the kernel workgroup
-    *------------------------------------------------------------------------*/
-    uint32_t kId  = kernel_config_l2.Kernel_id;
-    uint32_t wgId = kernel_config_l2.WG_id;
-
-    uint32_t more_args_size = msg->u.k.flush.args_on_stack_size;
-    void *   more_args      = (void *) msg->u.k.flush.args_on_stack_addr;
-    TRACE(wg_type == TASK ? ULM_OCL_OOT_KERNEL_START : ULM_OCL_NDR_KERNEL_START, kId, wgId);
-    clear_mpf();
-    dsp_rpc(&kernelMsgPtr->entry_point, more_args, more_args_size);
-    TRACE(wg_type == TASK ? ULM_OCL_OOT_KERNEL_COMPLETE : ULM_OCL_NDR_KERNEL_COMPLETE, kId, wgId);
-    report_and_clear_mpf();
-
-    if (wg_type == TASK) 
-    {
-        mail_safely((uint8_t*)&readyMsg, sizeof(readyMsg), kId);
-
-        flush_msg_t*  flushMsgPtr  = &msg->u.k.flush;
-        flush_buffers(flushMsgPtr);
-        TRACE(ULM_OCL_OOT_CACHE_COHERENCE_COMPLETE, kId, wgId);
-    }
-
-    printMsg = NULL;  // disable printf after ocl kernel
-    if (wg_type == TASK && num_mpaxs > 0)  reset_kernel_MPAXs(num_mpaxs);
-
-    ocl_descriptorFree(eventHdl);
-}
-
-
-/******************************************************************************
-* service_exit
-*   This function is called by the Queue manager system when it receives an
-*   exit command from the host.
-******************************************************************************/
-EVENT_HANDLER(service_exit) 
-{ 
-    TRACE(ULM_OCL_EXIT, 0, 0);
-
-#ifdef TI_66AK2H
-    waitAtCoreBarrier();
-    if (DNUM == 0)
-    {
-        tomp_exitOpenMPforOpenCL();
-        ocl_exitGlobalQMSS();
-    }
-    free_edma_channel_pool();
-#endif
-#if defined(GDB_ENABLED)
-    if (DNUM == 0 && gdb_channel != NULL) EdmaMgr_free(gdb_channel);
-#endif
-    cacheWbInvAllL2();
-    reset_memory();
-    exit(0); 
-}
-
-/******************************************************************************
-* initialize_bios_tasks
-* Core   0: service task, listen task
-* Core 1-7: service task
-******************************************************************************/
-#define LISTEN_STACK_SIZE  0x2800
-#define SERVICE_STACK_SIZE 0x2800
-PRIVATE_1D(char, lstack, LISTEN_STACK_SIZE);
-PRIVATE_1D(char, sstack, SERVICE_STACK_SIZE);
-
-static int initialize_bios_tasks(void)
-{
-    Task_Handle taskHandle;
-    Task_Params taskParams;
-
-    Task_Params_init(&taskParams);
-    taskParams.priority  = 1; // LOW_PRIORITY;
-    taskParams.stackSize = SERVICE_STACK_SIZE;
-    taskParams.stack = (xdc_Ptr)makeAddressGlobal(DNUM, (uint32_t)sstack);
-    taskHandle = Task_create((Task_FuncPtr)service_wg_task, &taskParams, NULL);
-    if (taskHandle == NULL) return RETURN_FAIL;
-
-    if (DNUM != 0) return RETURN_OK;
-
-    Task_Params_init(&taskParams);
-    taskParams.priority  = 15; // HIGH_PRIORITY;
-    taskParams.stackSize = LISTEN_STACK_SIZE;
-    taskParams.stack = (xdc_Ptr)makeAddressGlobal(DNUM, (uint32_t)lstack);
-    taskHandle = Task_create((Task_FuncPtr)listen_host_task, &taskParams, NULL);
-    if (taskHandle == NULL) return RETURN_FAIL;
-
-    return RETURN_OK;
-}
-
-/******************************************************************************
-* listen_host_task
+* listen_host_task - The primary task for the master DSP core.  It accepts 
+*    message from the host and dispatches accordingly.
 ******************************************************************************/
 BIOS_TASK(listen_host_task)
 {
@@ -545,24 +250,43 @@ BIOS_TASK(listen_host_task)
     *------------------------------------------------------------------------*/
     while (1)
     {
+       /*----------------------------------------------------------------------
+       * Busy loop waiting for messages from the host. Would prefer an 
+       * interrupt based message and could sleep the dsps in the interim.
+       *---------------------------------------------------------------------*/
        do mail_available = mpm_mailbox_query(rx_mbox); 
        while (!mail_available);
 
        Msg_t Msg;
        mpm_mailbox_read(rx_mbox, (uint8_t *)&Msg, &size, &trans_id);
 
+       kernel_config_t* kcfg  = &Msg.u.k.config;
+
+       /*----------------------------------------------------------------------
+       * This two items of information from the message are overloading 
+       * fields in the message type that are not populated coming from the 
+       * host to the DSP.
+       *---------------------------------------------------------------------*/
+       int is_inorder_q = (kcfg->global_size[0]  == IN_ORDER_TASK_SIZE);
+       int is_debugmode = (kcfg->WG_gid_start[0] == DEBUG_MODE_WG_GID_START);
+
+       /*----------------------------------------------------------------------
+       * Inspect the message type and dispatch wrok accordingly
+       *---------------------------------------------------------------------*/
        switch (Msg.command)
        {
           case TASK: 
-                      process_task_command(&Msg);
+                      if (is_inorder_q || is_debugmode) process_task_local(&Msg);
+                      else                              process_task_distributed(&Msg);
                       break;
 
           case NDRKERNEL: 
-                      process_kernel_command(&Msg);
+                      if (is_debugmode) process_kernel_local(&Msg);
+                      else              process_kernel_distributed(&Msg);
                       break;
 
           case CACHEINV: 
-                      process_cache_command(&Msg.u.k.flush); 
+                      broadcast(FLUSH_MSG_CACHEINV, &Msg.u.k.flush); 
                       break; 
 
           case EXIT:     
@@ -582,240 +306,190 @@ BIOS_TASK(listen_host_task)
 }
 
 /******************************************************************************
-* service_wg_task
+* process_task_local - Run local to the master core.  OpenMP constructs in the 
+*    task may be used to control parallelism across cores.
 ******************************************************************************/
-extern void tomp_dispatch_once(void);
-BIOS_TASK(service_wg_task)
+static void process_task_local(Msg_t* Msg) 
 {
-    while (1) 
-    {
-        ocl_dispatch_once();
-        tomp_dispatch_once();
-    }
-}
+    kernel_config_t *kcfg       = &Msg->u.k.config;
+    kernel_msg_t    *kmsg       = &Msg->u.k.kernel;
+    flush_msg_t     *fmsg       = &Msg->u.k.flush;
+    uint32_t         kernel_id  = kmsg->Kernel_id;
 
-/******************************************************************************
-* Core 0 sends flush message to all cores with certain type of message id
-*        pends until flush message is processed
-* Note: serviced by each core with service_kernel_complete()
-******************************************************************************/
-static void core0_to_allcores(uint32_t flush_msg_id, flush_msg_t *f_msg)
-{    
-    int core;
-    for (core = 0; core < NUM_CORES; core++)
-    {
-        uint32_t *ptr = NULL;
-        do ptr = (uint32_t *)ocl_descriptorAlloc();
-        while (ptr == NULL);
+    void *           stk_args      = (void *) kmsg->args_on_stack_addr;
+    uint32_t         stk_args_size = kmsg->args_on_stack_size;
 
-        *ptr++ = FLUSH;
-        *ptr++ = flush_msg_id;
-        memcpy(ptr, f_msg, sizeof(flush_msg_t));
+    TRACE(ULM_OCL_IOT_OVERHEAD, kernel_id, 0);
 
-        ocl_descriptorPush(ocl_queues.wgQ, ptr);
-    }
-
-    Semaphore_pend(higherSem, BIOS_WAIT_FOREVER);
-}
-
-
-/******************************************************************************
-* process_task_command
-******************************************************************************/
-static void process_task_command(Msg_t* Msg) 
-{
-    kernel_config_t * kcfg = &Msg->u.k.kernel.config;
-    uint32_t     kernel_id = kcfg->Kernel_id;
-    int         is_inorder = (kcfg->global_sz_0 == IN_ORDER_TASK_SIZE);
-    int       is_debugmode = (kcfg->WG_gid_start_0 == DEBUG_MODE_WG_GID_START);
-
-    /*---------------------------------------------------------
-    * Iterate over each Work Group
-    *--------------------------------------------------------*/
-
-    /*---------------------------------------------------------
-    * OpenMP C code Mode: In Order Queue + Task: flag in global_size_0
-    * Let Core 0 handle it directly (OpenMP requires it)
-    * Out-of-Order Task in Debug mode also only run on Core 0
-    *--------------------------------------------------------*/
-    if (is_inorder || is_debugmode)
-    {
-       TRACE(ULM_OCL_IOT_OVERHEAD, kernel_id, 0);
-        /*---------------------------------------------------------
-        * Copy the configuration in L2, where the kernel wants it
-        *--------------------------------------------------------*/
-        kernel_config_l2.num_dims         = 1;
-        kernel_config_l2.global_sz_0      = 1;
-        kernel_config_l2.global_sz_1      = 1;
-        kernel_config_l2.global_sz_2      = 1;
-        kernel_config_l2.local_sz_0       = 1;
-        kernel_config_l2.local_sz_1       = 1;
-        kernel_config_l2.local_sz_2       = 1;
-        kernel_config_l2.global_off_0     = 0;
-        kernel_config_l2.global_off_1     = 0;
-        kernel_config_l2.global_off_2     = 0;
-        kernel_config_l2.WG_gid_start_0   = 0;
-        kernel_config_l2.WG_gid_start_1   = 0;
-        kernel_config_l2.WG_gid_start_2   = 0;
-        kernel_config_l2.Kernel_id        = kernel_id;
-        kernel_config_l2.WG_id            = 0;
-        kernel_config_l2.stats            = 0;
-        kernel_config_l2.WG_alloca_start  = kcfg->WG_alloca_start;
-        kernel_config_l2.WG_alloca_size   = kcfg->WG_alloca_size;
-
-        core0_to_allcores(FLUSH_MSG_KERNEL_PROLOG, &Msg->u.k.flush);
-
-        /*--------------------------------------------------------------------
-        * Run the OpenMP program
-        *--------------------------------------------------------------------*/
-        uint32_t more_args_size = Msg->u.k.flush.args_on_stack_size;
-        void *   more_args      = (void *) Msg->u.k.flush.args_on_stack_addr;
-        clear_mpf();
-        TRACE(is_inorder ? ULM_OCL_IOT_KERNEL_START
-                         : ULM_OCL_OOT_KERNEL_START, kernel_id, 0);
-        dsp_rpc(&((kernel_msg_t *)&Msg->u.k.kernel)->entry_point,
-                more_args, more_args_size);
-        TRACE(is_inorder ? ULM_OCL_IOT_KERNEL_COMPLETE
-                         : ULM_OCL_OOT_KERNEL_COMPLETE, kernel_id, 0);
-        report_and_clear_mpf();
-        mail_safely((uint8_t*)&readyMsg, sizeof(readyMsg), kernel_id);
-        flush_msg_t*  flushMsgPtr  = &Msg->u.k.flush;
-        flush_buffers(flushMsgPtr);
-        TRACE(is_inorder ? ULM_OCL_IOT_CACHE_COHERENCE_COMPLETE
-                         : ULM_OCL_OOT_CACHE_COHERENCE_COMPLETE, kernel_id, 0);
-
-        core0_to_allcores(FLUSH_MSG_IOTASK_EPILOG, &Msg->u.k.flush);
-        return;
-    }
-    TRACE(ULM_OCL_OOT_OVERHEAD, kernel_id, 0);
+    /*-----------------------------------------------------------------
+    * Copy the static task config in L2, where the kernel wants it.
+    * Also copy the variant portion from the host message.
+    *----------------------------------------------------------------*/
+    memcpy((void*)&kernel_config_l2, (void*)&task_config, sizeof(kernel_config_t));
+    kernel_config_l2.WG_alloca_start  = kcfg->WG_alloca_start;
+    kernel_config_l2.WG_alloca_size   = kcfg->WG_alloca_size;
 
     /*---------------------------------------------------------------------
-    * If I generate more WGs than I have buffers reserved for, then this 
-    * call will block until buffers become available.
+    * OpenCL will run local to this core, but for IOT case, OpenMP may
+    * go wide across all cores, so we broadcast the mpax settings rather
+    * than do a simple local mpax setup.
     *--------------------------------------------------------------------*/
-    void* eventBuf = NULL;
-    do eventBuf = ocl_descriptorAlloc();
-    while (eventBuf == NULL);
+    broadcast(FLUSH_MSG_KERNEL_PROLOG, fmsg);
 
-    Msg_t* emMsg = (Msg_t*) eventBuf;
-    memcpy(eventBuf, Msg, sizeof(Msg_t));
+    /*--------------------------------------------------------------------
+    * Run the task with potential OpenMP constructs 
+    *--------------------------------------------------------------------*/
+    clear_mpf();
 
-    kernel_config_t *cfg = &emMsg->u.k.kernel.config;
-    cfg->num_dims         = 1;
-    cfg->global_sz_0      = 1;
-    cfg->global_sz_1      = 1;
-    cfg->global_sz_2      = 1;
-    cfg->local_sz_0       = 1;
-    cfg->local_sz_1       = 1;
-    cfg->local_sz_2       = 1;
-    cfg->global_off_0     = 0;
-    cfg->global_off_1     = 0;
-    cfg->global_off_2     = 0;
-    cfg->WG_gid_start_0   = 0;
-    cfg->WG_gid_start_1   = 0;
-    cfg->WG_gid_start_2   = 0;
-    cfg->Kernel_id        = kernel_id;
-    cfg->WG_id            = 0;
-    cfg->stats            = 0;
+    TRACE(ULM_OCL_IOT_KERNEL_START, kernel_id, 0);
 
-    ocl_descriptorPush(ocl_queues.wgQ, eventBuf);
+    dsp_rpc(&kmsg->entry_point, stk_args, stk_args_size);
+
+    TRACE(ULM_OCL_IOT_KERNEL_COMPLETE, kernel_id, 0);
+
+    report_and_clear_mpf();
+
+    mail_safely((uint8_t*)&readyMsg, sizeof(readyMsg), kernel_id);
+
+    cacheInvAllL2(); 
+
+    TRACE(ULM_OCL_IOT_CACHE_COHERENCE_COMPLETE, kernel_id, 0);
+
+    broadcast(FLUSH_MSG_IOTASK_EPILOG, &Msg->u.k.flush);
+    return;
+}
+
+/******************************************************************************
+* process_task_distributed
+******************************************************************************/
+static void process_task_distributed(Msg_t* Msg) 
+{
+    uint32_t kernel_id = Msg->u.k.kernel.Kernel_id;
+
+    TRACE(ULM_OCL_OOT_OVERHEAD, kernel_id, 0);
+
+    task_pkt_t* pkt = (task_pkt_t*) ocl_descriptorAlloc();
+
+    pkt->cmd             = Msg->command; 
+    pkt->WG_alloca_start = Msg->u.k.config.WG_alloca_start;
+    pkt->WG_alloca_size  = Msg->u.k.config.WG_alloca_size ;
+    memcpy(&pkt->kmsg, &Msg->u.k.kernel, sizeof(kernel_msg_t));
+    memcpy(&pkt->fmsg, &Msg->u.k.flush,  sizeof(flush_msg_t));
+
+    ocl_descriptorPush(ocl_queues.wgQ, pkt);
 }
 
 
 /******************************************************************************
-* process_kernel_command
+* process_kernel_local: Debug Mode: Run all NDRange workgroups on Core 0.
 ******************************************************************************/
-static void process_kernel_command(Msg_t* msg)
+static void process_kernel_local(Msg_t* msg)
+{
+    int               done;
+    uint32_t          workgroup     = 0;
+    uint32_t          WGid[3]       = {0,0,0};
+    kernel_config_t * kcfg          = &msg->u.k.config;
+    kernel_msg_t    * kmsg          = &msg->u.k.kernel;
+    flush_msg_t     * fmsg          = &msg->u.k.flush;
+    int               kernel_id     = kmsg->Kernel_id;
+    void *            stk_args      = (void *) kmsg->args_on_stack_addr;
+    uint32_t          stk_args_size = kmsg->args_on_stack_size;
+
+    TRACE(ULM_OCL_NDR_OVERHEAD, kernel_id, 0);
+
+    /*-------------------------------------------------------------------------
+    * Set mpax only for core 0.
+    *------------------------------------------------------------------------*/
+    set_mpax_for_extended_memory(fmsg);
+
+    memcpy((void*)&kernel_config_l2, kcfg, sizeof(kernel_config_t));
+
+    /*-------------------------------------------------------------------------
+    * Iteratively run all workgroups locally 
+    *------------------------------------------------------------------------*/
+    do
+    {
+        /*---------------------------------------------------------------------
+        * update the 4 variant fields in kernel_config_l2
+        *--------------------------------------------------------------------*/
+        kernel_config_l2.WG_gid_start[0] = kcfg->global_offset[0] + WGid[0];
+        kernel_config_l2.WG_gid_start[1] = kcfg->global_offset[1] + WGid[1];
+        kernel_config_l2.WG_gid_start[2] = kcfg->global_offset[2] + WGid[2];
+        kernel_config_l2.WG_id           = workgroup++;
+
+        clear_mpf();
+
+        TRACE(ULM_OCL_NDR_KERNEL_START, kernel_id, kcfg->WG_id);
+
+        dsp_rpc(&kmsg->entry_point, stk_args, stk_args_size);
+
+        TRACE(ULM_OCL_NDR_KERNEL_COMPLETE, kernel_id, kcfg->WG_id);
+
+        report_and_clear_mpf();
+
+        done = incVec(kcfg->num_dims, WGid, &kcfg->local_size[0], &kcfg->global_size[0]);
+    } while (!done);
+
+    mail_safely((uint8_t*)&readyMsg, sizeof(readyMsg), kernel_id);
+
+    if (fmsg->need_cache_op) cacheInvAllL2(); 
+
+    TRACE(ULM_OCL_NDR_CACHE_COHERENCE_COMPLETE, kernel_id, 0);
+
+    restore_mpax_for_extended_memory(fmsg);
+}
+
+
+/******************************************************************************
+* process_kernel_distributed
+******************************************************************************/
+static void process_kernel_distributed(Msg_t* msg)
 {
     int               done;
     uint32_t          workgroup = 0;
     uint32_t          WGid[3]   = {0,0,0};
-    kernel_config_t * cfg       = &msg->u.k.kernel.config;
-    int  is_debugmode = (cfg->WG_gid_start_0 == DEBUG_MODE_WG_GID_START);
+    kernel_config_t * kcfg      = &msg->u.k.config;
+    kernel_msg_t    * kmsg      = &msg->u.k.kernel;
+    flush_msg_t     * fmsg      = &msg->u.k.flush;
+    int               kernel_id = kmsg->Kernel_id;
 
-    TRACE(ULM_OCL_NDR_OVERHEAD, cfg->Kernel_id, 0);
-
-    /*-------------------------------------------------------------------------
-    * Kernel Prolog: set MPAX settings for all cores
-    *------------------------------------------------------------------------*/
-    uint32_t num_mpaxs = msg->u.k.flush.num_mpaxs;
-    if (num_mpaxs > 0)
-        core0_to_allcores(FLUSH_MSG_KERNEL_PROLOG, &msg->u.k.flush);
+    TRACE(ULM_OCL_NDR_OVERHEAD, kernel_id, 0);
 
     /*-------------------------------------------------------------------------
-    * Debug Mode: Run all workgroups on Core 0, return
+    * Copy over the kernel attributes that a fixed across workgroups.  
+    * Only the workgroup variant information is passed in the queues.
     *------------------------------------------------------------------------*/
-    if (is_debugmode)
-    {
-        printMsg = (Msg_t *) print_msg_mem;
+    all_core_copy(&kernel_attributes, kmsg, sizeof(kernel_msg_t));
+    all_core_copy(&kernel_config_l2,  kcfg, sizeof(kernel_config_t));
 
-        do
-        {
-            cfg->WG_gid_start_0 = cfg->global_off_0 + WGid[0];
-            cfg->WG_gid_start_1 = cfg->global_off_1 + WGid[1];
-            cfg->WG_gid_start_2 = cfg->global_off_2 + WGid[2];
-            cfg->WG_id          = workgroup++;
-            memcpy((void*)&kernel_config_l2, cfg, sizeof(kernel_config_t));
-
-            /*-----------------------------------------------------------------
-            * Run the kernel workgroup
-            *----------------------------------------------------------------*/
-            clear_mpf();
-            TRACE(ULM_OCL_NDR_KERNEL_START,    cfg->Kernel_id, cfg->WG_id);
-            dsp_rpc(&msg->u.k.kernel.entry_point,
-                    (void *) msg->u.k.flush.args_on_stack_addr,
-                    msg->u.k.flush.args_on_stack_size);
-            TRACE(ULM_OCL_NDR_KERNEL_COMPLETE, cfg->Kernel_id, cfg->WG_id);
-            report_and_clear_mpf();
-
-            done = incVec(cfg->num_dims, WGid, &cfg->local_sz_0, &cfg->global_sz_0);
-        } while (!done);
-
-        printMsg = NULL;
-        core0_to_allcores(cfg->Kernel_id, &msg->u.k.flush);
-        return;
-    }
+    /*-------------------------------------------------------------------------
+    * set MPAX settings for all cores
+    *------------------------------------------------------------------------*/
+    broadcast(FLUSH_MSG_KERNEL_PROLOG, fmsg);
 
     /*---------------------------------------------------------
     * Iterate over each Work Group
     *--------------------------------------------------------*/
     do 
     {
-        void* eventHdl;
+        workgroup_pkt_t* pkt = ocl_descriptorAlloc();
 
-        /*---------------------------------------------------------------------
-        * If I generate more WGs than I have buffers reserved for, then this 
-        * call will block until buffers become available.
-        *--------------------------------------------------------------------*/
-        do eventHdl = ocl_descriptorAlloc();
-        while (eventHdl == NULL);
+        pkt->cmd             = msg->command;
+        pkt->WG_gid_start[0] = kcfg->global_offset[0] + WGid[0];
+        pkt->WG_gid_start[1] = kcfg->global_offset[1] + WGid[1];
+        pkt->WG_gid_start[2] = kcfg->global_offset[2] + WGid[2];
+        pkt->WG_id           = workgroup++;
 
-        uint8_t* eventBuf    = (uint8_t*)(eventHdl);
-        Msg_t* emMsg = (Msg_t*) eventBuf;
-        memcpy(emMsg, msg, sizeof(Msg_t));
-        emMsg->command = NDRKERNEL;
-        kernel_config_t *cfg = &emMsg->u.k.kernel.config;
+        ocl_descriptorPush(ocl_queues.wgQ, pkt);
 
-        cfg->WG_gid_start_0 = cfg->global_off_0 + WGid[0];
-        cfg->WG_gid_start_1 = cfg->global_off_1 + WGid[1];
-        cfg->WG_gid_start_2 = cfg->global_off_2 + WGid[2];
-        cfg->WG_id          = workgroup++;
-
-        ocl_descriptorPush(ocl_queues.wgQ, eventHdl);
-
-        done = incVec(cfg->num_dims, WGid, &cfg->local_sz_0, &cfg->global_sz_0);
+        done = incVec(kcfg->num_dims, WGid, &kcfg->local_size[0], &kcfg->global_size[0]);
 
     } while (!done);
 
-    core0_to_allcores(cfg->Kernel_id, &msg->u.k.flush);
-}
-
-/******************************************************************************
-* process_cache_command 
-******************************************************************************/
-static void process_cache_command (flush_msg_t* Fmsg)
-{
-    core0_to_allcores(FLUSH_MSG_CACHEINV, Fmsg);
+    /*-------------------------------------------------------------------------
+    * reset MPAX settings for all cores and handle cache coherency operations
+    *------------------------------------------------------------------------*/
+    broadcast(kernel_id, fmsg);
 }
 
 /******************************************************************************
@@ -828,16 +502,359 @@ static int process_exit_command(void)
 
     for (i = 0; i < NUM_CORES - 1; i++)
     {
-        void* eventHdl;
-        do eventHdl = ocl_descriptorAlloc();
-        while (eventHdl == NULL);
-
-        ocl_descriptorPush(ocl_queues.exitQ, eventHdl);
+        void* ptr = ocl_descriptorAlloc();
+        ocl_descriptorPush(ocl_queues.exitQ, ptr);
     }
 
     service_exit(NULL);
-
     return 0;
+}
+    
+/******************************************************************************
+* send a command to all cores through a qmss Q and wait for said command to 
+* complete on at least core 0. 
+* Note: serviced by each core with broad_handler()
+******************************************************************************/
+static void broadcast(uint32_t flush_msg_id, flush_msg_t *f_msg)
+{    
+    int      core;
+    uint32_t cache_op  = f_msg->need_cache_op;
+    uint32_t num_mpaxs = f_msg->num_mpaxs;
+
+    if (flush_msg_id == FLUSH_MSG_CACHEINV)
+        { cache_op  = 1; num_mpaxs = 0; }
+
+    for (core = 0; core < NUM_CORES; core++)
+    {
+        broadcast_pkt_t* pkt = (broadcast_pkt_t*) ocl_descriptorAlloc();
+
+        pkt->cmd                = BROADCAST;
+        pkt->id                 = flush_msg_id;
+        pkt->Fmsg.need_cache_op = cache_op;
+        pkt->Fmsg.num_mpaxs     = num_mpaxs;
+
+        if (num_mpaxs) 
+            memcpy(&pkt->Fmsg.mpax_settings, 
+                   (void*)&f_msg->mpax_settings, 
+                   sizeof(f_msg->mpax_settings));
+
+        ocl_descriptorPush(ocl_queues.wgQ, pkt);
+    }
+
+    /*-------------------------------------------------------------------------
+    * Wait for broadcast to complete before master thread continues
+    *------------------------------------------------------------------------*/
+    Semaphore_pend(higherSem, BIOS_WAIT_FOREVER);
+}
+
+
+/******************************************************************************
+* service_wg_task - The task that runs on all DSP cores.  It is listening for 
+*   QMSS queue entries to service, and until exit condition will indirectly 
+*   call queue_handler.
+******************************************************************************/
+extern void tomp_dispatch_once(void);
+BIOS_TASK(service_wg_task)
+{
+    while (1) 
+    {
+        ocl_dispatch_once();
+        tomp_dispatch_once();
+    }
+}
+
+/******************************************************************************
+* queue_handler
+*   This function is called by the Queue manager system to service an 
+*   individual work group for a kernel.
+******************************************************************************/
+EVENT_HANDLER(queue_handler)
+{
+    uint32_t *cmd = (uint32_t*) eventHdl;
+
+    switch (*cmd)
+    {
+        case TASK:
+            service_task(eventHdl);
+            break;
+
+        case NDRKERNEL:
+            service_workgroup(eventHdl);
+            break;
+
+        case BROADCAST: 
+            service_broadcast (eventHdl);
+            break;
+    }
+    ocl_descriptorFree(eventHdl);
+}
+
+/******************************************************************************
+* service_task
+******************************************************************************/
+void service_task(void *ptr)
+{
+    task_pkt_t*      pkt           = (task_pkt_t*) ptr;
+    kernel_msg_t*    kmsg          = &pkt->kmsg;
+    flush_msg_t*     fmsg          = &pkt->fmsg;
+    uint32_t         kId           = kmsg->Kernel_id;
+    void *           stk_args      = (void *) kmsg->args_on_stack_addr;
+    uint32_t         stk_args_size = kmsg->args_on_stack_size;
+
+    /*-------------------------------------------------------------------------
+    * The task invariant get_xxx portions of config have not been written in
+    * the descriptor, so we copy a fixed version of config and then update the
+    * two fields that are variant for a task.
+    *------------------------------------------------------------------------*/
+    memcpy((void*)&kernel_config_l2, (void*)&task_config, sizeof(kernel_config_t));
+    kernel_config_l2.WG_alloca_start  = pkt->WG_alloca_start;
+    kernel_config_l2.WG_alloca_size   = pkt->WG_alloca_size;
+
+    set_mpax_for_extended_memory(fmsg);
+
+    TRACE(ULM_OCL_OOT_KERNEL_START, kId, 0);
+
+    clear_mpf();
+
+    dsp_rpc(&kmsg->entry_point, stk_args, stk_args_size);
+
+    TRACE(ULM_OCL_OOT_KERNEL_COMPLETE, kId, 0);
+
+    report_and_clear_mpf();
+
+    mail_safely((uint8_t*)&readyMsg, sizeof(readyMsg), kId);
+
+    cacheInvAllL2(); 
+
+    TRACE(ULM_OCL_OOT_CACHE_COHERENCE_COMPLETE, kId, 0);
+
+    restore_mpax_for_extended_memory(fmsg);
+}
+
+/******************************************************************************
+* service_workgroup
+******************************************************************************/
+void service_workgroup(void *ptr)
+{
+    workgroup_pkt_t* pkt = (workgroup_pkt_t*) ptr;
+
+    kernel_config_l2.WG_gid_start[0] = pkt->WG_gid_start[0];
+    kernel_config_l2.WG_gid_start[1] = pkt->WG_gid_start[1];
+    kernel_config_l2.WG_gid_start[2] = pkt->WG_gid_start[2];
+    kernel_config_l2.WG_id           = pkt->WG_id;
+
+    uint32_t      kId  = kernel_attributes.Kernel_id;
+    uint32_t     wgId  = kernel_config_l2.WG_id;
+
+    printMsg = (Msg_t *) print_msg_mem;  // enable printf before ocl kernel
+
+    TRACE(ULM_OCL_NDR_KERNEL_START, kId, wgId);
+
+    clear_mpf();
+
+    dsp_rpc(&kernel_attributes.entry_point, 
+            (void*)kernel_attributes.args_on_stack_addr, 
+            kernel_attributes.args_on_stack_size);
+
+    TRACE(ULM_OCL_NDR_KERNEL_COMPLETE, kId, wgId);
+
+    report_and_clear_mpf();
+
+    printMsg = NULL;  // disable printf after ocl kernel
+}
+
+
+/******************************************************************************
+* service_broadcast
+*   This function is called for a broadcast command that is to run once 
+*   for every core.
+******************************************************************************/
+static void service_broadcast(void* ptr)
+{
+    broadcast_pkt_t*   pkt = (broadcast_pkt_t *) ptr;
+    flush_msg_t* flush_msg = &pkt->Fmsg;
+    uint32_t     num_mpaxs = flush_msg->num_mpaxs;
+    uint32_t     cache_op  = flush_msg->need_cache_op;
+
+    /*-------------------------------------------------------------------------
+    * The barrier ensures that each core picks up a single flush event from
+    * the queue and waits for remaining cores. Without the barrier, a core
+    * can incorreclty pick up and execute multiple flush events, resulting in
+    * undefined behavior.
+    *------------------------------------------------------------------------*/
+    switch(pkt->id)
+    {
+        case FLUSH_MSG_KERNEL_PROLOG:
+            set_mpax_for_extended_memory(flush_msg);
+            CACHE_invL1d(&kernel_config_l2,  sizeof(kernel_config_l2),  CACHE_WAIT); 
+            CACHE_invL1d(&kernel_attributes, sizeof(kernel_attributes), CACHE_WAIT); 
+            waitAtCoreBarrier(); 
+            break;
+
+        case FLUSH_MSG_IOTASK_EPILOG:
+            restore_mpax_for_extended_memory(flush_msg);
+            waitAtCoreBarrier(); 
+            break;
+
+        case FLUSH_MSG_CACHEINV:
+        default:
+ 
+            if (cache_op)      cacheInvAllL2(); 
+            if (num_mpaxs > 0) reset_kernel_MPAXs(num_mpaxs);
+            waitAtCoreBarrier(); 
+
+            /*-----------------------------------------------------------------
+            *  Send ready message after core barrier to ensure all cores
+            *  complete their workgroup before the message is sent by core 0
+            *----------------------------------------------------------------*/
+            if (MASTER_THREAD)
+                mail_safely((uint8_t*)&readyMsg, sizeof(readyMsg), pkt->id);
+ 
+            TRACE(ULM_OCL_NDR_CACHE_COHERENCE_COMPLETE, pkt->id, 0);
+            break;
+    }
+
+    if (MASTER_THREAD) Semaphore_post(higherSem);
+}
+
+
+
+/******************************************************************************
+* service_exit
+*   This function is called by the Queue manager system when it receives an
+*   exit command from the host.
+******************************************************************************/
+EVENT_HANDLER(service_exit) 
+{ 
+    TRACE(ULM_OCL_EXIT, 0, 0);
+
+#ifdef TI_66AK2H
+    waitAtCoreBarrier();
+    if (MASTER_THREAD)
+    {
+        tomp_exitOpenMPforOpenCL();
+        ocl_exitGlobalQMSS();
+    }
+    free_edma_channel_pool();
+#endif
+#if defined(GDB_ENABLED)
+    if (MASTER_THREAD && gdb_channel != NULL) EdmaMgr_free(gdb_channel);
+#endif
+    cacheWbInvAllL2();
+    reset_memory();
+    exit(0); 
+}
+
+
+/******************************************************************************
+* Configure the mpax registers for any extended memory arguments to the kernel
+******************************************************************************/
+static inline void set_mpax_for_extended_memory(flush_msg_t* flush_msg)
+{
+    uint32_t num_mpaxs = flush_msg->num_mpaxs;
+    if (num_mpaxs > 0) set_kernel_MPAXs(num_mpaxs, flush_msg->mpax_settings);
+    printMsg = (Msg_t *) print_msg_mem;
+}
+
+/******************************************************************************
+* Reset the mpax registers after a kernel.  
+******************************************************************************/
+static inline void restore_mpax_for_extended_memory(flush_msg_t* flush_msg)
+{
+    uint32_t num_mpaxs = flush_msg->num_mpaxs;
+    printMsg = NULL;
+    if (num_mpaxs > 0) reset_kernel_MPAXs(num_mpaxs);
+}
+
+/******************************************************************************
+* all_core_copy: Copy a memory block to a location in each cores's L2 
+******************************************************************************/
+static void all_core_copy(void *dest, void *src, size_t size)
+{
+    int i;
+
+    // assert(dest) is an L2 location
+   
+    for (i = 0; i < NUM_CORES; i++)
+    {
+        void *gdest = (void*) ((0x10 + i) << 24 | (uint32_t)dest);
+        memcpy(gdest, src, size);
+        CACHE_wbL1d(gdest, size, CACHE_NOWAIT);
+    }
+    CACHE_wbL1dWait();
+
+}
+
+
+/******************************************************************************
+* initialize_memory
+******************************************************************************/
+static int initialize_memory(void)
+{
+    extern uint32_t nocache_phys_start;
+    extern uint32_t nocache_virt_start;
+    extern uint32_t nocache_size;
+
+    uint32_t nc_phys = (uint32_t) &nocache_phys_start;
+    uint32_t nc_virt = (uint32_t) &nocache_virt_start;
+    uint32_t nc_size = (uint32_t) &nocache_size;
+
+    int32_t mask = _disable_interrupts();
+
+    CACHE_setL1DSize(CACHE_L1_32KCACHE);
+    CACHE_setL1PSize(CACHE_L1_32KCACHE);
+    CACHE_setL2Size (CACHE_128KCACHE);
+
+    enableCache (0x0C, 0x0C); // enable write through for msmc
+    enableCache (0x80, 0xFF);
+    disableCache(nc_virt >> 24, (nc_virt+nc_size-1) >> 24);
+
+    nc_virt >>= 12;
+    nc_phys >>= 12;
+    nc_size = count_trailing_zeros(nc_size) - 1;
+
+    set_MPAX(2, nc_virt, nc_size, nc_phys, DEFAULT_PERMISSION);
+
+    if (MASTER_THREAD) 
+    {
+        /*---------------------------------------------------------------------
+        * Use segment 2 for PRIVID 8, 9 and 10 (QMSS)
+        *--------------------------------------------------------------------*/
+        set_MSMC_MPAX(8,  2, nc_virt, nc_size, nc_phys, DEFAULT_PERMISSION);
+#ifdef TI_66AK2H
+        set_MSMC_MPAX(9,  2, nc_virt, nc_size, nc_phys, DEFAULT_PERMISSION);
+#endif
+        set_MSMC_MPAX(10, 2, nc_virt, nc_size, nc_phys, DEFAULT_PERMISSION);
+    }
+
+    _restore_interrupts(mask);
+
+    return RETURN_OK;
+}
+
+/******************************************************************************
+* reset_memory
+******************************************************************************/
+static void reset_memory(void)
+{
+    int32_t mask = _disable_interrupts();
+
+    CACHE_setL1DSize(CACHE_L1_32KCACHE);
+    CACHE_setL1PSize(CACHE_L1_32KCACHE);
+    CACHE_setL2Size (CACHE_0KCACHE);
+
+    disableCache (0x80, 0xFF);
+    reset_MPAX(2);
+    if (MASTER_THREAD) 
+    {
+        reset_MSMC_MPAX(8,  2);
+#ifdef TI_66AK2H
+        reset_MSMC_MPAX(9,  2);
+#endif
+        reset_MSMC_MPAX(10, 2);
+    }
+
+    _restore_interrupts(mask);
 }
 
 char mbox_h2d[MBOX_SIZE] __attribute__((aligned(4096))) \
@@ -852,7 +869,7 @@ char mbox_d2h[MBOX_SIZE] __attribute__((aligned(4096))) \
 static int initialize_host_mailboxes(void)
 {
     ((Msg_t *) print_msg_mem)->command = PRINT;
-    if (DNUM != 0) return RETURN_OK;
+    if (!MASTER_THREAD) return RETURN_OK;
 
     uint32_t mailboxallocsize = mpm_mailbox_get_alloc_size();
     if (!mailboxallocsize) return RETURN_FAIL;
@@ -892,75 +909,148 @@ static int initialize_host_mailboxes(void)
     return RETURN_OK;
 }
 
-/******************************************************************************
-* initialize_memory
-******************************************************************************/
-static int initialize_memory(void)
-{
-    extern uint32_t nocache_phys_start;
-    extern uint32_t nocache_virt_start;
-    extern uint32_t nocache_size;
-
-    uint32_t nc_phys = (uint32_t) &nocache_phys_start;
-    uint32_t nc_virt = (uint32_t) &nocache_virt_start;
-    uint32_t nc_size = (uint32_t) &nocache_size;
-
-    int32_t mask = _disable_interrupts();
-
-    CACHE_setL1DSize(CACHE_L1_32KCACHE);
-    CACHE_setL1PSize(CACHE_L1_32KCACHE);
-    CACHE_setL2Size (CACHE_128KCACHE);
-
-    enableCache (0x0C, 0x0C); // enable write through for msmc
-    enableCache (0x80, 0xFF);
-    disableCache(nc_virt >> 24, (nc_virt+nc_size-1) >> 24);
-
-    nc_virt >>= 12;
-    nc_phys >>= 12;
-    nc_size = count_trailing_zeros(nc_size) - 1;
-
-    set_MPAX(2, nc_virt, nc_size, nc_phys, DEFAULT_PERMISSION);
-
-    if (DNUM == 0) 
-    {
-        /*---------------------------------------------------------------------
-        * Use segment 2 for PRIVID 8, 9 and 10 (QMSS)
-        *--------------------------------------------------------------------*/
-        set_MSMC_MPAX(8,  2, nc_virt, nc_size, nc_phys, DEFAULT_PERMISSION);
 #ifdef TI_66AK2H
-        set_MSMC_MPAX(9,  2, nc_virt, nc_size, nc_phys, DEFAULT_PERMISSION);
-#endif
-        set_MSMC_MPAX(10, 2, nc_virt, nc_size, nc_phys, DEFAULT_PERMISSION);
-    }
+static int initialize_cores() { return RETURN_OK; }
+#else
 
-    _restore_interrupts(mask);
+/******************************************************************************
+* cycle_delay - busy wait the dsp for a number of clock cycles
+******************************************************************************/
+static void cycle_delay(uint32_t cycles)
+{
+    uint32_t start_val  = CSL_chipReadTSCL();
+    while ((CSL_chipReadTSCL() - start_val) < cycles);
+}
+
+/******************************************************************************
+* Setup the cores for execution
+******************************************************************************/
+static int initialize_cores()
+{
+    /*---------------------------------------------------------------------
+    * should be abstracted to high level functions through platform library
+    *--------------------------------------------------------------------*/
+#define DEVICE_REG32_W(x,y)   *(volatile uint32_t *)(x)=(y)
+#define IPCGR(x)            (0x02620240 + x*4)
+
+    /*---------------------------------------------------------------------
+    * ipc interrupt other cores
+    *--------------------------------------------------------------------*/
+    int core;
+    if (MASTER_THREAD)
+        for (core = 1; core < 8; core++)
+        {
+            DEVICE_REG32_W(IPCGR(core), 1);
+            cycle_delay(1000000);
+        }
+
+    return RETURN_OK;
+}
+#endif
+
+/******************************************************************************
+* initialize_qmss
+* Keystone 2 needs to get QMSS resources allocated by RM on ARM
+******************************************************************************/
+#ifdef TI_66AK2H
+int OCL_QMSS_HW_QUEUE_BASE_IDX             = 7300;
+int OCL_QMSS_FIRST_DESC_IDX_IN_LINKING_RAM = 8192;
+int OCL_QMSS_FIRST_MEMORY_REGION_IDX       = 16;
+#endif
+static int initialize_qmss(void)
+{
+#ifdef TI_66AK2H
+    if (MASTER_THREAD)
+    {
+        uint32_t size, trans_id;
+        int      mail_available;
+        do mail_available = mpm_mailbox_query(rx_mbox);
+        while (!mail_available);
+        Msg_t Msg;
+        mpm_mailbox_read(rx_mbox, (uint8_t *)&Msg, &size, &trans_id);
+        if (((int *)&Msg)[1] > 0)
+        {
+            OCL_QMSS_HW_QUEUE_BASE_IDX             = ((int *)&Msg)[1];
+            OCL_QMSS_FIRST_DESC_IDX_IN_LINKING_RAM = ((int *)&Msg)[3];
+            OCL_QMSS_FIRST_MEMORY_REGION_IDX       = ((int *)&Msg)[2];
+        }
+    }
+#endif
+
+    if (MASTER_THREAD && !ocl_initGlobalQMSS())   return RETURN_FAIL; 
+    waitAtCoreBarrier();
+    if (!ocl_initLocalQMSS())                 return RETURN_FAIL; 
+    waitAtCoreBarrier();
+
+    if (MASTER_THREAD && !initClockGlobal()) return RETURN_FAIL; 
+    waitAtCoreBarrier();
+    if (!initClockLocal())               return RETURN_FAIL; 
+    waitAtCoreBarrier();
 
     return RETURN_OK;
 }
 
 /******************************************************************************
-* reset_memory
+* initialize_bios_tasks
+* Core   0: service task, listen task
+* Core 1-7: service task
 ******************************************************************************/
-static void reset_memory(void)
+#define LISTEN_STACK_SIZE  0x2800
+#define SERVICE_STACK_SIZE 0x2800
+PRIVATE_1D(char, lstack, LISTEN_STACK_SIZE);
+PRIVATE_1D(char, sstack, SERVICE_STACK_SIZE);
+
+static int initialize_bios_tasks(void)
 {
-    int32_t mask = _disable_interrupts();
+    Task_Handle taskHandle;
+    Task_Params taskParams;
 
-    CACHE_setL1DSize(CACHE_L1_32KCACHE);
-    CACHE_setL1PSize(CACHE_L1_32KCACHE);
-    CACHE_setL2Size (CACHE_0KCACHE);
+    Task_Params_init(&taskParams);
+    taskParams.priority  = 1; // LOW_PRIORITY;
+    taskParams.stackSize = SERVICE_STACK_SIZE;
+    taskParams.stack = (xdc_Ptr)makeAddressGlobal(DNUM, (uint32_t)sstack);
+    taskHandle = Task_create((Task_FuncPtr)service_wg_task, &taskParams, NULL);
+    if (taskHandle == NULL) return RETURN_FAIL;
 
-    disableCache (0x80, 0xFF);
-    reset_MPAX(2);
-    if (DNUM == 0) 
-    {
-        reset_MSMC_MPAX(8,  2);
-#ifdef TI_66AK2H
-        reset_MSMC_MPAX(9,  2);
+    if (!MASTER_THREAD) return RETURN_OK;
+
+    Task_Params_init(&taskParams);
+    taskParams.priority  = 15; // HIGH_PRIORITY;
+    taskParams.stackSize = LISTEN_STACK_SIZE;
+    taskParams.stack = (xdc_Ptr)makeAddressGlobal(DNUM, (uint32_t)lstack);
+    taskHandle = Task_create((Task_FuncPtr)listen_host_task, &taskParams, NULL);
+    if (taskHandle == NULL) return RETURN_FAIL;
+
+    return RETURN_OK;
+}
+
+/******************************************************************************
+* INITIALIZE_GDBSERVER() - The GDB server requires an edma channel. Core 0
+* will provide the channel for GDB initialization. Once the GDB server is
+* initialized start it running on all the DSPs.
+******************************************************************************/
+// Channel controller associated with specified dsp core
+extern int32_t  *ti_sdo_fc_edmamgr_region2Instance;
+#define DSP_CC(dspnum) ti_sdo_fc_edmamgr_region2Instance[dspnum] 
+
+static int initialize_gdbserver()
+{
+#if defined(GDB_ENABLED)
+   if (MASTER_THREAD)
+   {
+      gdb_channel = EdmaMgr_alloc(1);
+
+      if (!gdb_channel || GDB_server_initGlob(4,DSP_CC(DNUM), gdb_channel) != 0)
+	 return RETURN_FAIL;  
+   }
+    
+   waitAtCoreBarrier();
+
+   // Start up the gdb server on all the cores
+   if (GDB_server_initLocal() != 0) return RETURN_FAIL;   
 #endif
-        reset_MSMC_MPAX(10, 2);
-    }
 
-    _restore_interrupts(mask);
+   return RETURN_OK;
 }
 
 /******************************************************************************
@@ -999,32 +1089,30 @@ void mail_safely(uint8_t* msg, size_t msgSz, uint32_t msgId)
 }
 
 
-// Channel controller associated with specified dsp core
-extern int32_t  *ti_sdo_fc_edmamgr_region2Instance;
-#define DSP_CC(dspnum) ti_sdo_fc_edmamgr_region2Instance[dspnum] 
-
 /******************************************************************************
-* INITIALIZE_GDBSERVER() - The GDB server requires an edma channel. Core 0
-* will provide the channel for GDB initialization. Once the GDB server is
-* initialized start it running on all the DSPs.
+* Low level routines within the printf stack
 ******************************************************************************/
-static int initialize_gdbserver()
+void _minit(void) { }
+
+_CODE_ACCESS void __TI_writemsg(               unsigned char  command,
+                                register const unsigned char *parm,
+                                register const          char *data,
+                                                unsigned int  length)
 {
-#if defined(GDB_ENABLED)
-   if (DNUM == 0)
-   {
-      gdb_channel = EdmaMgr_alloc(1);
+    if (tx_mbox == NULL || rx_mbox == NULL || printMsg == NULL) return;
 
-      if (!gdb_channel || GDB_server_initGlob(4,DSP_CC(DNUM), gdb_channel) != 0)
-	 return RETURN_FAIL;  
-   }
-    
-   waitAtCoreBarrier();
-
-   // Start up the gdb server on all the cores
-   if (GDB_server_initLocal() != 0) return RETURN_FAIL;   
-#endif
-
-   return RETURN_OK;
+    unsigned int msgLen = sizeof(kernel_msg_t) + sizeof(flush_msg_t);
+    printMsg->u.message[0] = DNUM + '0';
+    msgLen = (length <= msgLen-2) ? length : msgLen-2;
+    memcpy(printMsg->u.message+1, data, msgLen);
+    printMsg->u.message[msgLen+1] = '\0';
+    if (tx_mbox != NULL && rx_mbox != NULL && printMsg != NULL)
+        mail_safely((uint8_t*)printMsg, sizeof(Msg_t), 42);
+    return;
 }
 
+_CODE_ACCESS void __TI_readmsg(register unsigned char *parm,
+                               register char          *data)
+{
+    return;  // do nothing
+}

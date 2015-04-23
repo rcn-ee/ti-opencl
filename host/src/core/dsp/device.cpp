@@ -45,14 +45,12 @@
 #include "../util.h"
 
 #include "driver.h"
-#include "mailbox.h"
 
-#ifndef DSPC868X
+#if defined(DEVICE_K2H)
 extern "C"
 {
     #include <ti/runtime/mmap/include/mmap_resource.h>
     extern void free_ocl_qmss_res();
-    extern int get_ocl_qmss_res(int *);
 }
 #endif
 
@@ -67,7 +65,6 @@ extern "C"
 
 using namespace Coal;
 
-Mailbox* Mailbox::pInstance = 0;
 
 /******************************************************************************
 * On DSPC868X the mailboxes are remote on the device DDR. On Hawking the 
@@ -115,6 +112,15 @@ unsigned dsp_speed()
 void *dsp_worker(void* data);
 void HOSTwait   (unsigned char dsp_id);
 
+
+#if defined (DSPC868X) || defined (DEVICE_K2H)
+#include "device_keystone.cpp"
+#elif defined (DEVICE_AM57)
+#include "device_am57x.cpp"
+#else
+#error "Device not supported"
+#endif
+
 /*-----------------------------------------------------------------------------
 * If ULM library was not available don't emit ULM trace messages
 *----------------------------------------------------------------------------*/
@@ -123,67 +129,22 @@ void HOSTwait   (unsigned char dsp_id);
 #define ulm_config()
 #define ulm_term()
 #endif
+void DSPDevice::init_ulm(uint64_t gsize1, uint64_t gsize2, uint64_t gsize3)
+{
+    ulm_config();
+    ulm_put_mem(ULM_MEM_IN_DATA_ONLY,     p_size_msmc_mem >> 16  , 1.0f);
+    ulm_put_mem(ULM_MEM_EX_DATA_ONLY,     (gsize2 + gsize3) >> 16, 1.0f);
+    ulm_put_mem(ULM_MEM_EX_CODE_AND_DATA, gsize1 >> 16           , 1.0f);
+}
 
-/******************************************************************************
-* DSPDevice::DSPDevice(unsigned char dsp_id)
-******************************************************************************/
-DSPDevice::DSPDevice(unsigned char dsp_id)
-    : DeviceInterface   (), 
-      p_cores           (8), 
-      p_num_events      (0), 
-      p_dsp_mhz         (1000), // 1.00 GHz
-      p_worker          (0), 
-      p_rx_mbox         (0), 
-      p_tx_mbox         (0), 
-      p_stop            (false),
-      p_initialized     (false), 
-      p_dsp_id          (dsp_id), 
-      p_device_msmc_heap(),
-      p_device_ddr_heap1(),
-      p_device_ddr_heap2(),
-      p_device_ddr_heap3(),
-      p_device_l2_heap  (),
-      p_dload_handle    (0),
-      p_complete_pending(),
-      p_mpax_default_res(NULL)
-{ 
+
+void DSPDevice::setup_memory(DSPDevicePtr64 &global1, DSPDevicePtr64 &global2,
+                             DSPDevicePtr64 &global3,
+                             uint64_t &gsize1, uint64_t &gsize2,
+                             uint64_t &gsize3)
+{
     Driver *driver = Driver::instance();
 
-    void *hdl = driver->reset_and_load(dsp_id);
-
-    p_addr_kernel_config = driver->get_symbol(hdl, "kernel_config_l2");
-    p_addr_local_mem     = driver->get_symbol(hdl, "ocl_local_mem_start");
-    p_addr_mbox_d2h_phys = driver->get_symbol(hdl, "mbox_d2h_phys");
-    p_addr_mbox_h2d_phys = driver->get_symbol(hdl, "mbox_h2d_phys");
-    p_size_local_mem     = driver->get_symbol(hdl, "ocl_local_mem_size");
-    p_size_mbox_d2h      = driver->get_symbol(hdl, "mbox_d2h_size");
-    p_size_mbox_h2d      = driver->get_symbol(hdl, "mbox_h2d_size");
-
-    DSPDevicePtr64 global3 = 0;
-    uint64_t       gsize3  = 0;
-#ifdef DSPC868X
-    p_addr64_global_mem  = driver->get_symbol(hdl, "ocl_global_mem_start");
-    p_size64_global_mem  = driver->get_symbol(hdl, "ocl_global_mem_size");
-    p_addr_msmc_mem      = driver->get_symbol(hdl, "ocl_msmc_mem_start");
-    p_size_msmc_mem      = driver->get_symbol(hdl, "ocl_msmc_mem_size");
-#else
-    /*-------------------------------------------------------------------------
-    * These 4 variables were previously retrieved from the monitor out file.
-    * They are now determined by query of the CMEM system.
-    *------------------------------------------------------------------------*/
-    p_addr64_global_mem = 0;
-    p_size64_global_mem = 0;
-    p_addr_msmc_mem = 0;
-    p_size_msmc_mem = 0;
-    driver->cmem_init(&p_addr64_global_mem, &p_size64_global_mem,
-                      &p_addr_msmc_mem,     &p_size_msmc_mem,
-                      &global3,             &gsize3);
-#endif
-
-    DSPDevicePtr64 global1 = p_addr64_global_mem;
-    DSPDevicePtr64 global2 = 0;
-    uint64_t       gsize1  = p_size64_global_mem;
-    uint64_t       gsize2  = 0;
     driver->split_ddr_memory(p_addr64_global_mem, p_size64_global_mem,
                              global1, gsize1, global2, gsize2, gsize3);
 
@@ -191,13 +152,15 @@ DSPDevice::DSPDevice(unsigned char dsp_id)
     if (gsize2 > 0) driver->shmem_configure(global2, gsize2, 0);
     if (gsize3 > 0) driver->shmem_configure(global3, gsize3, 0);
     driver->shmem_configure(p_addr_msmc_mem,      p_size_msmc_mem, 1);
-    driver->shmem_configure(p_addr_mbox_d2h_phys, p_size_mbox_d2h);
-    driver->shmem_configure(p_addr_mbox_h2d_phys, p_size_mbox_h2d);
-    for (int core=0; core < 8; core++)
+
+    // Moved to mbox_impl_mph.h
+    // driver->shmem_configure(p_addr_mbox_d2h_phys, p_size_mbox_d2h);
+    // driver->shmem_configure(p_addr_mbox_h2d_phys, p_size_mbox_h2d);
+
+    for (int core=0; core < TOTAL_NUM_CORES_PER_CHIP; core++)
         driver->shmem_configure(((0x10 + core) << 24) + p_addr_local_mem,    
                                 p_size_local_mem);
 
-    driver->free_image_handle(hdl);
 
     /*-------------------------------------------------------------------------
     * Setup the DSP heaps for memory allocation
@@ -207,96 +170,8 @@ DSPDevice::DSPDevice(unsigned char dsp_id)
     p_device_ddr_heap3.configure(global3,          gsize3, true);
     p_device_l2_heap.configure  (p_addr_local_mem, p_size_local_mem);
     p_device_msmc_heap.configure(p_addr_msmc_mem,  p_size_msmc_mem);
-
-    ulm_config();
-    ulm_put_mem(ULM_MEM_IN_DATA_ONLY,     p_size_msmc_mem >> 16  , 1.0f);
-    ulm_put_mem(ULM_MEM_EX_DATA_ONLY,     (gsize2 + gsize3) >> 16, 1.0f);
-    ulm_put_mem(ULM_MEM_EX_CODE_AND_DATA, gsize1 >> 16           , 1.0f);
-
-    /*-------------------------------------------------------------------------
-    * initialize the mailboxes on the cores, so they can receive an exit cmd
-    *------------------------------------------------------------------------*/
-    Mailbox* mb_instance = Mailbox::instance();
-
-    uint32_t mailboxallocsize     = mpm_mailbox_get_alloc_size();
-
-    p_tx_mbox = (void*)malloc(mailboxallocsize);
-    p_rx_mbox = (void*)malloc(mailboxallocsize);
-
-    mpm_mailbox_config_t mbConfig;
-    mbConfig.mem_size         = p_size_mbox_h2d;
-    mbConfig.max_payload_size = mbox_payload;
-
-#ifdef DSPC868X    // mailbox location is remote
-    mbConfig.mem_start_addr   = (uint32_t) p_addr_mbox_h2d_phys;
-    int tx_status = mb_instance->create(p_tx_mbox,  
-                     MAILBOX_MAKE_DSP_NODE_ID(p_dsp_id, 0),
-                     MAILBOX_LOCATION, 
-                     MPM_MAILBOX_DIRECTION_SEND, &mbConfig);
-#else              // mailbox location is local 
-    mbConfig.mem_start_addr   = (uint32_t)driver->map(this,
-                                        p_addr_mbox_h2d_phys, p_size_mbox_h2d);
-    int tx_status = mb_instance->create(p_tx_mbox,  
-       		     NULL,
-                     MAILBOX_LOCATION, 
-                     MPM_MAILBOX_DIRECTION_SEND, &mbConfig);
-#endif
-
-    mbConfig.mem_size         = p_size_mbox_d2h;
-
-#ifdef DSPC868X    // mailbox location is remote
-    mbConfig.mem_start_addr   = (uint32_t)p_addr_mbox_d2h_phys;
-    int rx_status = mb_instance->create(p_rx_mbox,  
-                     MAILBOX_MAKE_DSP_NODE_ID(p_dsp_id, 0),
-                     MAILBOX_LOCATION, 
-                     MPM_MAILBOX_DIRECTION_RECEIVE, &mbConfig);
-#else              // mailbox location is local 
-    mbConfig.mem_start_addr   = (uint32_t)driver->map(this,
-                                        p_addr_mbox_d2h_phys, p_size_mbox_d2h);
-    int rx_status = mb_instance->create(p_rx_mbox,  
-		     NULL,
-                     MAILBOX_LOCATION, 
-                     MPM_MAILBOX_DIRECTION_RECEIVE, &mbConfig);
-#endif
-
-    tx_status |= mb_instance->open(p_tx_mbox);
-    rx_status |= mb_instance->open(p_rx_mbox);
-
-    if (tx_status != 0 || rx_status != 0)
-       std::cout << "Could not create mailboxes for dsp " 
-                 << p_dsp_id << std::endl;
-
-#ifndef DSPC868X
-    // Keystone2: get QMSS resources from RM, mail to DSP monitor
-    Msg_t oclQmssMsg = {READY};
-    if (get_ocl_qmss_res(((int *)&oclQmssMsg) + 1) == 0)
-    {
-        printf("Unable to allocate resource from RM server!\n");
-        exit(-1);
-    }
-    if (getenv("TI_OCL_DEBUG_QMSS"))  // YUAN TO REMOVE
-        printf("OpenCL QMSS queue=%d, mem region=%d, desc in linking ram=%d\n",
-               ((int *)&oclQmssMsg)[1], ((int *)&oclQmssMsg)[2], ((int *)&oclQmssMsg)[3]);
-    mail_to(oclQmssMsg);
-#endif
-
-#ifdef DSPC868X
-    char *ghz1 = getenv("TI_OCL_DSP_1_25GHZ");
-    if (ghz1) p_dsp_mhz = 1250;  // 1.25 GHz
-#else
-    mail_to(frequencyMsg);
-
-    int ret = 0;
-    do
-    {
-        while (!mail_query())  ;
-        ret = mail_from();
-    } while (ret == -1);
-
-    p_dsp_mhz = ret;
-
-#endif
 }
+
 
 
 /******************************************************************************
@@ -326,8 +201,8 @@ DSPDevice::~DSPDevice()
     *------------------------------------------------------------------------*/
     mail_to(exitMsg);
 
-    free (p_tx_mbox);
-    free (p_rx_mbox);
+    delete p_mb;
+    p_mb = NULL;
 
     /*-------------------------------------------------------------------------
     * Free any ulm resources used.
@@ -339,7 +214,7 @@ DSPDevice::~DSPDevice()
     *------------------------------------------------------------------------*/
     if (p_dsp_id == 0) Driver::instance()->close(); 
 
-#ifndef DSPC868X
+#if defined(DEVICE_K2H)
     free_ocl_qmss_res();
 #endif
 
@@ -516,8 +391,9 @@ Event *DSPDevice::getEvent(bool &stop)
     return event;
 }
 
-void DSPDevice::push_complete_pending(uint32_t idx, Event* const data)
-    { p_complete_pending.push(idx, data); }
+void DSPDevice::push_complete_pending(uint32_t idx, Event* const data, 
+                                      unsigned int cnt)
+    { p_complete_pending.push(idx, data, cnt); }
 
 bool DSPDevice::get_complete_pending(uint32_t idx, Event*& data)
     { return p_complete_pending.try_pop(idx, data); }
@@ -536,6 +412,7 @@ bool DSPDevice::gotEnoughToWorkOn() { return p_num_events > 0; }
 /******************************************************************************
 * Getter functions
 ******************************************************************************/
+bool          DSPDevice::hostSchedule() const { return p_core_mail;   }
 unsigned int  DSPDevice::numDSPs()      const { return p_cores;   }
 float         DSPDevice::dspMhz()       const { return p_dsp_mhz; }
 unsigned char DSPDevice::dspID()        const { return p_dsp_id;  }
@@ -704,6 +581,7 @@ void* DSPDevice::clMalloc(size_t size, cl_mem_flags flags)
         host_addr = Driver::instance()->map(this, phys_addr, size, false, true);
         if (host_addr)
         {
+            Lock lock(this);
             p_clMalloc_mapping[host_addr] = PhysAddrSizeFlagsTriple(
                            PhysAddrSizePair(phys_addr, size), flags);
         }
@@ -718,6 +596,7 @@ void* DSPDevice::clMalloc(size_t size, cl_mem_flags flags)
 
 void DSPDevice::clFree(void* ptr)
 {
+    Lock lock(this);
     clMallocMapping::iterator it = p_clMalloc_mapping.find(ptr);
     if (it != p_clMalloc_mapping.end())
     {
@@ -736,6 +615,7 @@ void DSPDevice::clFree(void* ptr)
 // Support query of host ptr in the middle of a clMalloced region
 bool DSPDevice::clMallocQuery(void* ptr, DSPDevicePtr64* p_addr, size_t* p_size)
 {
+    Lock lock(this);
     if (p_clMalloc_mapping.empty())  return false;
 
     clMallocMapping::iterator it = p_clMalloc_mapping.upper_bound(ptr);
@@ -744,7 +624,7 @@ bool DSPDevice::clMallocQuery(void* ptr, DSPDevicePtr64* p_addr, size_t* p_size)
     // map has bidirectional iterator, so --it is defined, even at end()
     PhysAddrSizeFlagsTriple phys_a_s_f = (*--it).second;
     // (ptr >= (*it).first) must hold because of upper_bound() call
-    if (ptr >= (*it).first + phys_a_s_f.first.second)  return false;
+    if (ptr >= (char*)(*it).first + phys_a_s_f.first.second)  return false;
 
     ptrdiff_t offset = ((char *) ptr) - ((char *) (*it).first);
     if (p_addr)  *p_addr = phys_a_s_f.first.first + offset;
@@ -757,18 +637,36 @@ bool DSPDevice::isInClMallocedRegion(void *ptr)
     return clMallocQuery(ptr, NULL, NULL);
 }
 
-void DSPDevice::mail_to(Msg_t &msg)
+int DSPDevice::mail_to(Msg_t &msg, unsigned int core)
 {
-    static unsigned trans_id = 0xC0DE0000;
-
-    Lock lock(this);
-    Mailbox::instance()->write(p_tx_mbox, (uint8_t*)&msg, sizeof(Msg_t), 
-                               trans_id++);
+    switch(msg.command)
+    {
+        /*---------------------------------------------------------------------
+        * for hostScheduled platforms, broadcast the following messages
+        *--------------------------------------------------------------------*/
+        case EXIT:
+        case CACHEINV:
+        case NDRKERNEL:
+            if (hostSchedule())
+            {
+                for (int i = 0; i < numDSPs(); i++)
+                    p_mb->to((uint8_t*)&msg, sizeof(Msg_t), i);
+                return numDSPs();
+            }
+            // fall through
+            
+        /*---------------------------------------------------------------------
+        * otherwise send it to the designated core
+        *--------------------------------------------------------------------*/
+        default: 
+            p_mb->to((uint8_t*)&msg, sizeof(Msg_t), core);
+            return 1;
+    }
 }
 
 bool DSPDevice::mail_query()
 {
-    return Mailbox::instance()->query(p_rx_mbox);
+    return p_mb->query();
 }
 
 int DSPDevice::mail_from()
@@ -776,8 +674,7 @@ int DSPDevice::mail_from()
     uint32_t size_rx, trans_id_rx;
     Msg_t    rxmsg;
 
-    Mailbox::instance()->read(p_rx_mbox, (uint8_t*)&rxmsg, &size_rx, 
-                              &trans_id_rx);
+    trans_id_rx = p_mb->from((uint8_t*)&rxmsg, &size_rx);
     
     if (rxmsg.command == ERROR)
     {
@@ -794,7 +691,7 @@ int DSPDevice::mail_from()
     return trans_id_rx;
 }
 
-#ifndef DSPC868X
+#if defined(DEVICE_K2H)
 /******************************************************************************
 * void* DSPDevice::get_mpax_default_res, only need to be computed once
 ******************************************************************************/
@@ -822,7 +719,7 @@ void* DSPDevice::get_mpax_default_res()
     }
     return p_mpax_default_res;
 }
-#endif  // #ifndef DSPC868X
+#endif  // #ifdef DEVICE_K2H
 
 /******************************************************************************
 * cl_int DSPDevice::info

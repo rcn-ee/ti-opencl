@@ -37,7 +37,7 @@ endif()
 STRING(REGEX MATCH "^x86_64" IS_X86_64_HOST ${BUILD_PROCESSOR})
 if(IS_X86_64_HOST)
    # For Hawking just use the x86 version when running clang
-   if (HAWKING_BUILD)
+   if (HAWKING_BUILD OR AM57_BUILD)
      set(LLVM_HOST_PROCESSOR x86)
    else()
      set(LLVM_HOST_PROCESSOR x86_64)
@@ -57,7 +57,7 @@ else()
    set (ARM_LLVM_DIR $ENV{ARM_LLVM_DIR})
 endif()
 
-if (HAWKING_CROSS_COMPILE OR C6678_BUILD)
+if (CROSS_COMPILE OR C6678_BUILD)
 if ("$ENV{X86_LLVM_DIR}" STREQUAL "")
    set (X86_LLVM_DIR ${DEFAULT_DEV_INSTALL_DIR}/llvm${LLVM_VERSION}-install-${LLVM_HOST_PROCESSOR})
    MESSAGE(STATUS "Environment variable X86_LLVM_DIR not set. "
@@ -68,7 +68,7 @@ endif()
 endif()
 
 # Set llvm path to appropriate target llvm install
-if (HAWKING_BUILD)
+if (HAWKING_BUILD OR AM57_BUILD)
    set (LLVM_INSTALL_DIR ${ARM_LLVM_DIR})
 elseif(C6678_BUILD) 
    set (LLVM_INSTALL_DIR ${X86_LLVM_DIR})
@@ -79,18 +79,21 @@ endif()
 message(STATUS "LLVM installation is in ${LLVM_INSTALL_DIR}")
 
 # Find appropriate llvm-config executable
-if (HAWKING_CROSS_COMPILE)
+if (CROSS_COMPILE)
   set(LLVM_CONFIG_NAME llvm-config-host)
 else()
   set(LLVM_CONFIG_NAME llvm-config)
 endif()
 
+# If a specific llvm installation is desired then look for it first before any
+# general installation.  Note that if the first call to find_program()
+# succeeds cmake will cache the result and the 2nd call will be ignored
+# Per cmake documentation
 find_program(LLVM_CONFIG_EXECUTABLE
-  NAMES ${LLVM_CONFIG_NAME}
-  PATHS
-  ${LLVM_INSTALL_DIR}/bin
-  NO_DEFAULT_PATH
-)
+    NAMES ${LLVM_CONFIG_NAME}
+    PATHS ${LLVM_INSTALL_DIR}/bin
+    NO_DEFAULT_PATH )
+find_program(LLVM_CONFIG_EXECUTABLE ${LLVM_CONFIG_NAME})
 
 # Sanity check to ensure we're pointing at an LLVM version we think we are
 exec_program(${LLVM_CONFIG_EXECUTABLE} ARGS --version OUTPUT_VARIABLE REPORTED_LLVM_VERSION )
@@ -130,6 +133,7 @@ exec_program(${LLVM_CONFIG_EXECUTABLE} ARGS --cxxflags  OUTPUT_VARIABLE LLVM_COM
 STRING(REPLACE " -fno-rtti" ""       LLVM_COMPILE_FLAGS ${LLVM_COMPILE_FLAGS})
 STRING(REPLACE " -fno-exceptions" "" LLVM_COMPILE_FLAGS ${LLVM_COMPILE_FLAGS})
 STRING(REPLACE " -Wcast-qual" ""     LLVM_COMPILE_FLAGS ${LLVM_COMPILE_FLAGS})
+STRING(REPLACE " -Wno-maybe-uninitialized" ""     LLVM_COMPILE_FLAGS ${LLVM_COMPILE_FLAGS})
 
 MESSAGE(STATUS "LLVM CXX flags: " ${LLVM_COMPILE_FLAGS})
 MESSAGE(STATUS "LLVM LD flags: " ${LLVM_LDFLAGS})
@@ -138,7 +142,7 @@ MESSAGE(STATUS "LLVM LD flags: " ${LLVM_LDFLAGS})
 # Generate list of LLVM libraries to link against
 if (C6678_BUILD)
   set (LLVM_LIB_TARGET X86)
-elseif(HAWKING_BUILD)
+elseif(HAWKING_BUILD OR AM57_BUILD)
   set (LLVM_LIB_TARGET ARM)
 endif()
 

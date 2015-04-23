@@ -45,6 +45,6 @@ namespace pocl {
   //
   // @return True in case the function was changed.
   bool chopBBs(llvm::Function& F, llvm::Pass &P);
-};
+}
 
 #endif

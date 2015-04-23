@@ -41,19 +41,6 @@ extern cregister volatile unsigned int DNUM;
 #define NUM_CORES            (8)
 #define ROUNDUP(val, pow2)   (((val) + (pow2) - 1) & ~((pow2) - 1))
 
-#define EM_EVENT_WG_BUF_SIZE ROUNDUP(sizeof(Msg_t), CACHE_L2_LINESIZE)
-
-#define EM_MAX_WG_EVENTS         OCL_NUM_QMSS_DESC_IN_LINKING_RAMS  // maximum WGs     in flight
-#define EM_EVENT_GROUP_NUM       (16)                               // maximum Kernels in flight
-
-#define EM_EVENT_NOTIFY_BUF_SIZE ROUNDUP(sizeof(flush_msg_t)+sizeof(uint32_t), \
-                                         CACHE_L2_LINESIZE)
-#define EM_MAX_NOTIFY_EVENTS     ((EM_EVENT_GROUP_NUM + 4) * NUM_CORES)
-
-#define EM_POOL_NUM              (2)
-#define EM_POOL_WG_IDX           (0)
-#define EM_POOL_NOTIFY_IDX       (1)
-
 #define EXPORT __attribute__((visibility("protected")))
 
 /******************************************************************************
@@ -75,9 +62,7 @@ extern cregister volatile unsigned int DNUM;
 /******************************************************************************
 * Event Machine Event Handlers
 ******************************************************************************/
-EVENT_HANDLER(service_kernel_complete);
-EVENT_HANDLER(service_task_complete);
-EVENT_HANDLER(service_workgroup);
+EVENT_HANDLER(queue_handler);
 EVENT_HANDLER(service_exit);
 
 /******************************************************************************
@@ -128,18 +113,5 @@ EVENT_HANDLER(service_exit);
 ******************************************************************************/
 #define ERROR(msg) do { printMsg = (Msg_t*)print_msg_mem; printf("%s\n", msg);\
                         printMsg = NULL; process_exit_command(); } while(0)
-
-/******************************************************************************
-* Define Macros to aid in EM queue creation
-******************************************************************************/
-#define EM_QUEUE(name, pri, grp) do {\
-   EM_EO_##name = em_eo_create(#name" EO", eoStartDefault, NULL, \
-                               eoStopDefault, NULL, service_##name, NULL);\
-   if (EM_EO_##name == EM_EO_UNDEF) return RETURN_FAIL;\
-   EM_Q_##name = em_queue_create(#name" Q", EM_QUEUE_TYPE_PARALLEL, pri,grp);\
-   if (EM_Q_##name == EM_QUEUE_UNDEF)                       return RETURN_FAIL;\
-   if (em_eo_add_queue(EM_EO_##name, EM_Q_##name) != EM_OK) return RETURN_FAIL;\
-   if (em_eo_start(EM_EO_##name, NULL, 0, NULL)   != EM_OK) return RETURN_FAIL;\
-   } while (0)
 
 #endif  //_monitor_h_

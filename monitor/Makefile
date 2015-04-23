@@ -94,7 +94,7 @@ CC= cl6x -o3 -mv6600 --abi=eabi --gcc --mem_model:const=data --mem_model:data=fa
 INCLUDES=  -i $(OPENCL_SRC_DIR)/src/core/dsp \
            -D MAILBOX_ON_HOST 
 
-SOURCES = monitor.c dsp_rpc.asm util.c  stats2.c touch.asm sem.c 
+SOURCES = monitor.c dsp_rpc.asm util.c touch.asm sem.c 
 SOURCES+= osal.c qmss_device.c  
 SOURCES+= omp_config_api.c
 SOURCES+= builtins.c
@@ -222,3 +222,5 @@ $(LINK_CMD): $(PROJECT).cfg ocl_platforms/dspc868x/package/package_ocl_platforms
 	@mv lnk_tmp $(LINK_CMD)
 
 
+monitor.obj:  $(OPENCL_SRC_DIR)/src/core/dsp/message.h
+ocl_qmss.obj: $(OPENCL_SRC_DIR)/src/core/dsp/message.h

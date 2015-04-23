@@ -35,10 +35,12 @@
 #include <string>
 #include <bfd.h>
 
+#if !defined (DEVICE_AM57)
 extern "C"
 {
    #include "mpmclient.h"
 };
+#endif
 
 
 #define ERR(status, msg) if (status) { printf("ERROR: %s\n", msg); exit(-1); }
@@ -85,7 +87,6 @@ const char *get_board(unsigned switch_device)
     }
 }
 
-#define TOTAL_NUM_CORES_PER_CHIP 8
 
 /******************************************************************************
 * wait_for_ready
@@ -118,8 +119,9 @@ static void report_core_state(const char *curr_core)
 #endif
 }
 
-void *Driver::reset_and_load(int chip)
+void Driver::reset_and_load(int chip)
 {
+#if !defined (DEVICE_AM57)
     int ret;
     int error_code = 0;
     int error_code_msg[50];
@@ -173,33 +175,8 @@ void *Driver::reset_and_load(int chip)
         report_core_state(curr_core);
     }
 
-    bfd *dsp_bfd = bfd_openr(monitor.c_str(), NULL);
-    char** matching;
-    char *ptr;
-
-    if(dsp_bfd == NULL) 
-    {
-      printf("\nERROR:driver: %s Error Open image %s\n",  
-             bfd_errmsg(bfd_get_error()), monitor.c_str()); 
-      exit(-1); 
-    }
-    /* Check format with matching */	  
-    if (!bfd_check_format_matches (dsp_bfd, bfd_object, &matching)) 
-    {
-        fprintf(stderr, "\nERROR:driver  %s: %s\n", monitor.c_str(), 
-        bfd_errmsg(bfd_get_error()));  
-        if (bfd_get_error () == bfd_error_file_ambiguously_recognized) 
-        {
-            for (ptr = *matching; ptr != NULL; ptr++) 
-            {
-                printf("%s: \n", ptr); 
-                exit(-1); 
-            }
-            free (matching);
-        }
-    }
-
-    return (void *)dsp_bfd;
+#endif
+    return; 
 }
 
 /******************************************************************************
@@ -339,7 +316,11 @@ int32_t Driver::write(int32_t dsp_id, DSPDevicePtr64 addr, uint8_t *buf,
     *------------------------------------------------------------------------*/
     if ((addr >> 20) == 0x008)
         for (core=0; core< TOTAL_NUM_CORES_PER_CHIP; core++)
+#if !defined (DEVICE_AM57)
             write_core(dsp_id, ((0x10 + core) << 24) + addr, buf, size);
+#else
+            write_core(dsp_id, ((0x80 + core) << (3+20)) + addr, buf, size);
+#endif
     else write_core(dsp_id, addr, buf, size);
 }
 
@@ -422,6 +403,44 @@ int32_t Driver::read(int32_t dsp_id, DSPDevicePtr64 addr, uint8_t *buf,
     region->unmap(dst_host_addr, size, false);
 
     return 0;
+}
+
+/******************************************************************************
+* Driver::create_image_handle
+******************************************************************************/
+void* Driver::create_image_handle(void) 
+{
+    std::string get_ocl_dsp();
+    std::string monitor = get_ocl_dsp() + "/dsp.out";
+
+    bfd *dsp_bfd = bfd_openr(monitor.c_str(), NULL);
+
+    if(dsp_bfd == NULL) 
+    {
+      printf("\nERROR:driver: %s Error Open image %s\n",  
+             bfd_errmsg(bfd_get_error()), monitor.c_str()); 
+      exit(-1); 
+    }
+
+    char** matching;
+    char *ptr;
+    /* Check format with matching */	  
+    if (!bfd_check_format_matches (dsp_bfd, bfd_object, &matching)) 
+    {
+        fprintf(stderr, "\nERROR:driver  %s: %s\n", monitor.c_str(), 
+        bfd_errmsg(bfd_get_error()));  
+        if (bfd_get_error () == bfd_error_file_ambiguously_recognized) 
+        {
+            for (ptr = *matching; ptr != NULL; ptr++) 
+            {
+                printf("%s: \n", ptr); 
+                exit(-1); 
+            }
+            free (matching);
+        }
+    }
+
+    return (void *)dsp_bfd;
 }
 
 /******************************************************************************

@@ -47,6 +47,7 @@ extern "C" {
 #include <pthread.h>
 #include <string>
 #include <list>
+#include "mbox.h"
 
 namespace Coal
 {
@@ -87,6 +88,7 @@ class DSPDevice : public DeviceInterface, public Lockable
         bool   availableEvent();
         Event *getEvent(bool &stop);
 
+        bool hostSchedule() const;
         unsigned int numDSPs() const;
         float dspMhz() const;
         unsigned char dspID() const;
@@ -124,11 +126,12 @@ class DSPDevice : public DeviceInterface, public Lockable
         bool  isInClMallocedRegion(void *ptr);
 
 
-        void mail_to   (Msg_t& msg);
+        int   mail_to   (Msg_t& msg, unsigned core = 0);
         bool mail_query();
         int  mail_from ();
 
-        void push_complete_pending(uint32_t idx, class Event* const data);
+        void push_complete_pending(uint32_t idx, class Event* const data,
+                                   unsigned int cnt = 1);
         bool get_complete_pending(uint32_t idx, class Event* &data);
         void dump_complete_pending();
         bool any_complete_pending();
@@ -137,17 +140,28 @@ class DSPDevice : public DeviceInterface, public Lockable
         std::string builtinsHeader(void) const { return "dsp.h"; }
 
         DSPDevicePtr get_addr_kernel_config() { return p_addr_kernel_config; }
-#ifndef DSPC868x
+#if defined(DEVICE_K2H)
         void*        get_mpax_default_res();
 #endif
 
+        void setup_memory(void);
+        void setup_memory(DSPDevicePtr64 &global1, DSPDevicePtr64 &global2,
+                             DSPDevicePtr64 &global3,
+                             uint64_t &gsize1, uint64_t &gsize2,
+                             uint64_t &gsize3);
+
+        void init_ulm(uint64_t gsize1, uint64_t gsize2, uint64_t gsize3);
+
+    protected:
+        virtual void setup_mailbox(void);
+        virtual void setup_dsp_mhz(void);
+
     private:
+        bool               p_core_mail;        // send mails per core ?
         unsigned int       p_cores;
         unsigned int       p_num_events;
         float              p_dsp_mhz;
         pthread_t          p_worker;
-        void*              p_rx_mbox; // int 
-        void*              p_tx_mbox;
         std::list<Event *> p_events;
         pthread_cond_t     p_events_cond;
         pthread_mutex_t    p_events_mutex;
@@ -168,14 +182,14 @@ class DSPDevice : public DeviceInterface, public Lockable
         DSPDevicePtr64     p_addr64_global_mem;
         DSPDevicePtr       p_addr_local_mem;
         DSPDevicePtr       p_addr_msmc_mem;
-        DSPDevicePtr       p_addr_mbox_d2h_phys;
-        DSPDevicePtr       p_addr_mbox_h2d_phys;
         uint64_t           p_size64_global_mem;
         uint32_t           p_size_local_mem;
         uint32_t           p_size_msmc_mem;
-        uint32_t           p_size_mbox_d2h;
-        uint32_t           p_size_mbox_h2d;
+
+        MBox              *p_mb;
+
         void*              p_mpax_default_res;
 };
+
 }
 #endif

@@ -89,14 +89,14 @@ clCreateContextFromType(const cl_context_properties   *properties,
     // No errcode_ret ?
     if (!errcode_ret) errcode_ret = &default_errcode_ret;
 
-    *errcode_ret = clGetDeviceIDs(&the_platform::Instance(), device_type, 0, NULL, 
+    *errcode_ret = clGetDeviceIDs((cl_platform_id) &the_platform::Instance(), device_type, 0, NULL, 
                                   &num_devices);
     if (!num_devices) { *errcode_ret = CL_INVALID_DEVICE; return NULL; }
 
     devices = (cl_device_id*) malloc(num_devices * sizeof(cl_device_id));
     if (!devices) { *errcode_ret = CL_OUT_OF_HOST_MEMORY; return NULL; }
 
-    *errcode_ret = clGetDeviceIDs(&the_platform::Instance(), device_type, num_devices, 
+    *errcode_ret = clGetDeviceIDs((cl_platform_id) &the_platform::Instance(), device_type, num_devices, 
                                    devices, 0);
 
     if (*errcode_ret != CL_SUCCESS) { free (devices); return NULL; }

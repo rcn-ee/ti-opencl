@@ -52,7 +52,7 @@ clGetPlatformIDs(cl_uint          num_entries,
     /*-------------------------------------------------------------------------
     * Only one "default" platform
     *------------------------------------------------------------------------*/
-    if (platforms != 0) *platforms = &the_platform::Instance();
+    if (platforms != 0) *platforms = (cl_platform_id) &the_platform::Instance();
 
     return CL_SUCCESS;
 }

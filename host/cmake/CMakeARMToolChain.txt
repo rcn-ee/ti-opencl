@@ -4,7 +4,7 @@ SET(CMAKE_SYSTEM_NAME Linux)
 SET(CMAKE_SYSTEM_VERSION 1)
 
 SET(CMAKE_SYSTEM_PROCESSOR ARM)
-SET(HAWKING_CROSS_COMPILE ON)
+SET(CROSS_COMPILE ON)
 
 # specify the cross compiler
 SET(CMAKE_C_COMPILER   arm-linux-gnueabihf-gcc)
@@ -30,10 +30,9 @@ else()
    SET(LINUX_DEVKIT_ROOT $ENV{LINUX_DEVKIT_ROOT})
 endif()
 
-
-SET(CMAKE_FIND_ROOT_PATH  ${LINUX_DEVKIT_ROOT}/usr/include 
-                          ${LINUX_DEVKIT_ROOT}/usr/lib )
 MESSAGE(STATUS "Devkit installation at " ${LINUX_DEVKIT_ROOT})
+
+SET(CMAKE_FIND_ROOT_PATH  ${LINUX_DEVKIT_ROOT} ${LINUX_DEVKIT_ROOT}/usr/include)
 
 # search for programs in the build host directories
 SET(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)

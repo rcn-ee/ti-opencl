@@ -57,7 +57,7 @@ Context::Context(const cl_context_properties *properties,
                  cl_int *errcode_ret)
 : Object(Object::T_Context, 0), p_properties(0), p_pfn_notify(pfn_notify),
   p_user_data(user_data), p_devices(0), p_num_devices(0), p_props_len(0),
-  p_platform(&the_platform::Instance())
+  p_platform((cl_platform_id) &the_platform::Instance())
 {
     if (!p_pfn_notify)
         p_pfn_notify = &default_pfn_notify;
@@ -112,7 +112,7 @@ Context::Context(const cl_context_properties *properties,
     }
 
     // Verify that the platform is good
-    if (p_platform != &the_platform::Instance())
+    if (p_platform != (cl_platform_id) &the_platform::Instance())
     {
         *errcode_ret = CL_INVALID_PLATFORM;
         return;

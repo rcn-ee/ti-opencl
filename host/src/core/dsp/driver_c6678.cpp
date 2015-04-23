@@ -79,7 +79,6 @@ const char *get_board(unsigned switch_device)
     }
 }
 
-#define TOTAL_NUM_CORES_PER_CHIP 8
 
 /******************************************************************************
 * wait_for_ready

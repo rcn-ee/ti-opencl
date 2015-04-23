@@ -38,30 +38,67 @@ using namespace std;
 
 #define EPISILON 0.00001
 
-// Total available device memory via CMEM DDR blocks,
-// equally divide into three float arrays: dst[] = srcA[] + srcB[]
-// Choose one of the following settings based on your CMEM configuration
+const cl_uint NumWorkGroups   = 256;
+const cl_uint VectorElements  = 1;
+// MPAX can handle 3 512MB buffers, if it does not work, reduce to 256MB
+const cl_uint MaxCHUNKSIZE    = 512*1024*1024;
 
-// 1. For available CMEM DDR Blocks: ~1.5GB
-const int64_t NumElements     = 64 * 1024*1024; // 256MB each array
-#define CHUNKSIZE	128*1024*1024  // 128MB each time, works
-// #define CHUNKSIZE	256*1024*1024  // 256MB each time, also works
+// From the available device memory blocks, determine the maximum size of
+// the 3 equally sized buffers that we can allocate: dst[] = srcA[] + srcB[],
+// round the size to multiple of 512MB or nearest power of 2
+cl_uint get_bufsize(cl_ulong gmem_size,cl_ulong gmem_size_ext1,
+                    cl_ulong gmem_size_ext2)
+{
+     // Find the two bigger buffer sizes
+     cl_ulong big = gmem_size;
+     cl_ulong middle = gmem_size_ext1;
+     if (big <= middle)
+     {
+        big = gmem_size_ext1;
+        middle = gmem_size;
+     }
+     if (big <= gmem_size_ext2)
+     {
+        middle = big;
+        big = gmem_size_ext2;
+     }
+     else if (middle <= gmem_size_ext2)
+     {
+        middle = gmem_size_ext2;
+     }
 
-// 2. For available CMEM DDR Blocks: ~3.5GB
-// const int64_t NumElements     = 256 * 1024*1024; // 1024MB each array
-// #define CHUNKSIZE	256*1024*1024  // 256MB each time, works
-// #define CHUNKSIZE	512*1024*1024  // 512MB each time, also works
+     // Determine maximum size of 3 buffers than 2 bigger buffers can hold
+     cl_ulong each_buf_size = 0;
+     if (big > 3 * middle || middle == 0)
+        each_buf_size = big / 3;
+     else if (big > 2 * middle)
+        each_buf_size = middle;
+     else
+        each_buf_size = (big / 2);
+     if (each_buf_size == 0)
+     {
+         printf("Unable to allocate memory, exiting...\n");
+         return -1;
+     }
+     // Cap size of each buffer in 32-bit address space
+     if (each_buf_size > 0xFFFFFFFFU)  each_buf_size = 0xFFFFFFFFU;
 
+     // Round down bufsize to be multiple of 512MB or power of 2s (if < 512MB)
+     cl_uint bufsize = (each_buf_size / MaxCHUNKSIZE) * MaxCHUNKSIZE;
+     if (bufsize == 0)
+     {
+         int power2bit = 1;
+         while ((each_buf_size >> power2bit) != 0)  power2bit++;
+         bufsize = 1ULL << (power2bit - 1);
+     }
 
-const int64_t NumWorkGroups   = 256;
-const int64_t VectorElements  = 1;
-const int64_t NumVecElements  = NumElements / VectorElements;
-const int64_t WorkGroupSize   = NumVecElements / NumWorkGroups;
+     return bufsize;
+}
+
 
 int main(int argc, char *argv[])
 {
    cl_int err     = CL_SUCCESS;
-   int64_t    bufsize = sizeof(float) * NumElements;
    int num_errors = 0;
 
    try 
@@ -74,6 +111,24 @@ int main(int argc, char *argv[])
      std::string str;
      devices[d].getInfo(CL_DEVICE_NAME, &str);
      cout << "DEVICE: " << str << endl << endl;
+
+     // Query OpenCL runtime how much memory and extended memory there is
+     cl_ulong gmem_size = 0;
+     cl_ulong gmem_size_ext1 = 0;
+     cl_ulong gmem_size_ext2 = 0;
+     devices[d].getInfo(CL_DEVICE_GLOBAL_MEM_SIZE, &gmem_size);
+     try
+     {
+        devices[d].getInfo(CL_DEVICE_GLOBAL_EXT1_MEM_SIZE_TI, &gmem_size_ext1);
+        devices[d].getInfo(CL_DEVICE_GLOBAL_EXT2_MEM_SIZE_TI, &gmem_size_ext2);
+     } catch (Error memsz_err)
+     { /* Ext Mem Size not available for this device */ }
+
+     cl_uint bufsize   = get_bufsize(gmem_size, gmem_size_ext1, gmem_size_ext2);
+     if (bufsize <= 0)  return -1;
+     cl_uint CHUNKSIZE = MaxCHUNKSIZE;
+     if (CHUNKSIZE > bufsize) CHUNKSIZE = bufsize;
+     printf("Bufsize: 0x%x bytes, CHUNKSIZE: 0x%x bytes\n", bufsize, CHUNKSIZE);
 
      Buffer bufA   (context, CL_MEM_READ_ONLY,  bufsize);
      Buffer bufB   (context, CL_MEM_READ_ONLY,  bufsize);
@@ -106,7 +161,7 @@ int main(int argc, char *argv[])
         cl_uint remain_vec_elements = remain_elements / VectorElements;
         cl_uint chunk_element_start =  chunk * CHUNKSIZE / sizeof(float);
     
-        printf("Chunk %d: elements 0x%x to 0x%x\n", chunk,
+        printf("Chunk %d: float elements 0x%x to 0x%x\n", chunk,
                chunk_element_start, chunk_element_start + remain_elements);
     
         float * srcA = (float*) Q.enqueueMapBuffer(bufA, CL_TRUE, CL_MAP_WRITE, 

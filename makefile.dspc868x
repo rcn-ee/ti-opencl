@@ -1,6 +1,6 @@
 OCL_BUILD_ROOT= $(shell pwd)
-OCL_VER=1.1.0
 OCL_MAJ_VER=1
+OCL_VER=$(OCL_MAJ_VER).1.1
 .SILENT:
 LLVM_VER=3.3
 
@@ -27,7 +27,7 @@ OCL_OMP_EXAMPLES = vecadd_openmp vecadd_openmp_t dgemm
 .PHONY: all clean opencl install clone
 
 
-OPENCL_CMAKE_OPTS = -DDEFAULT_DEV_INSTALL_DIR=/opt/ti
+OPENCL_CMAKE_OPTS = -DBUILD_TARGET=DSPC868x -DDEFAULT_DEV_INSTALL_DIR=/opt/ti
 
 all: opencl
 

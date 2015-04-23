@@ -179,4 +179,4 @@ bool chopBBs(llvm::Function &F, llvm::Pass &P) {
   return fchanged;
 }
     
-};
+}

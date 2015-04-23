@@ -30,14 +30,17 @@
  * \file ocl_qmss.c
  */
 
-
 #include "ocl_device_defs.h"
 #include "ocl_qmss.h"
 #include "message.h"
 #include "monitor.h"
 #include "util.h"
 #include <ti/runtime/openmp/src/tomp_qmss_api.h>
+#include <ti/csl/csl_cacheAux.h>
 
+#define MIN_QMSS_DESC_SIZE 16
+#define EVENT_WG_BUF_SIZE  ROUNDUP(sizeof(Msg_t), MIN_QMSS_DESC_SIZE)
+#define MAX_WG_EVENTS      (1024)    // maximum WGs     in flight
 
 /*! Queues used by the OpenCL Runtime */
 FAST_SHARED(OCLQueues_t, ocl_global_queues);
@@ -50,7 +53,7 @@ FAST_SHARED(Qmss_MemRegInfo, oclQmssMemRegInfo);
 
 /*! Memory area used for buffer allocations */
 FAST_SHARED_1D(uint8_t,  ocl_DescriptorMemory, 
-               EM_MAX_WG_EVENTS * EM_EVENT_WG_BUF_SIZE);
+               MAX_WG_EVENTS * EVENT_WG_BUF_SIZE);
 
 /* struct defined in qmss_device.c */
 #if defined (TI_66AK2H)
@@ -148,8 +151,8 @@ void ocl_exitGlobalQMSS(void)
 void initRegionConfig(Qmss_MemRegInfo* memRegInfo)
 {
     // Initialize descriptor regions
-    memRegInfo->descSize       = EM_EVENT_WG_BUF_SIZE;
-    memRegInfo->descNum        = EM_MAX_WG_EVENTS;
+    memRegInfo->descSize       = EVENT_WG_BUF_SIZE;
+    memRegInfo->descNum        = MAX_WG_EVENTS;
     memRegInfo->descBase       = (uint32_t *) ocl_DescriptorMemory;
     memRegInfo->manageDescFlag = Qmss_ManageDesc_UNMANAGED_DESCRIPTOR;
     memRegInfo->memRegion      = (Qmss_MemRegion)
@@ -245,7 +248,7 @@ static inline bool ocl_dispatchEvent(ocl_dispatchFn fn, uint32_t qid)
  */ 
 void ocl_dispatch_once (void)
 {      
-    ocl_dispatchEvent(&service_workgroup,       ocl_queues.wgQ);
+    ocl_dispatchEvent(&queue_handler,       ocl_queues.wgQ);
 
     // If there is an event in the exit Q, exit() is called and we will not
     // return
@@ -283,8 +286,6 @@ bool initQmss (Qmss_MemRegInfo* regionConfigTbl, uint8_t* extLinkTbl)
 
     // mode field available only in the KS2 PDK
     qmssCfg.mode = Qmss_Mode_JOINT_LOADBALANCED;
-    // To prevent re-initialization of QMSS linking ram registers
-    qmssCfg.qmssHwStatus = QMSS_HW_INIT_COMPLETE;
 #else
 #error "Device not supported"
 #endif

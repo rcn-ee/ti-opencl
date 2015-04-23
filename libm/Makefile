@@ -4,7 +4,7 @@ endif
 
 AR=$(TI_OCL_CGT_INSTALL)/bin/ar6x
 CC=$(TI_OCL_CGT_INSTALL)/bin/cl6x 
-CFLAGS=-o3 -mv6600 --use_g3 --abi=eabi --mem_model:data=far -I$(TI_OCL_CGT_INSTALL)/include -Isrc -Iinclude -Ic66 -eoo -DASSEMBLER -D__BSD_VISIBLE --visibility=protected
+CFLAGS=-o3 -mv6600 --use_g3 --abi=eabi --mem_model:data=far -I$(TI_OCL_CGT_INSTALL)/include -Isrc -Iinclude -Ic66 -eoo -DASSEMBLER -D__BSD_VISIBLE --visibility=protected 
 
 VPATH=c66:src:bsdsrc
 SRCS =
@@ -159,13 +159,15 @@ OBJST = $(patsubst %.c,%.o,$(SRCS))
 OBJS = $(patsubst %.asm,%.o,$(OBJST))
 
 libm.lib: $(OBJS)
-	$(AR) r libm.lib $(OBJS)
+	@$(AR) r libm.lib $(OBJS)
 
 %.o:%.c
-	$(CC) $(CFLAGS) $<
+	@echo cl6x ... $<
+	@$(CC) $(CFLAGS) $<
 
 %.o:%.asm
-	$(CC) $(CFLAGS) $<
+	@echo cl6x ... $<
+	@$(CC) $(CFLAGS) $<
 
 clean:
 	rm -f *.o libm.lib *.asm

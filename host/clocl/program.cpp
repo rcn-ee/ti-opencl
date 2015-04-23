@@ -59,28 +59,24 @@ using namespace std;
 ******************************************************************************/
 #define DEFAULT_TI_CGT_INSTALL_PATH "/usr/share/ti/cgt-c6x"
 
-char *get_cgt_install()
+const char *get_cgt_install()
 {
-    char *install = getenv("TI_OCL_CGT_INSTALL");
-    if (!install)
+    const char *install = getenv("TI_OCL_CGT_INSTALL");
+    if (install) return install;
+
+    bool def_install = access(DEFAULT_TI_CGT_INSTALL_PATH, F_OK|R_OK) != -1;
+
+    if (!def_install)
     {
-       bool def_install = access(DEFAULT_TI_CGT_INSTALL_PATH, F_OK|R_OK) != -1;
-
-       if (!def_install)
-       {
-	  std::cout << "\nThe C6000 compiler lib/include installation is not "
-          "located in the default\n"
-	  "location (/usr/share/ti/cgt-c6x).\n"
-          "Use the environment variable TI_OCL_CGT_INSTALL to specify an alternate\n"
-	  "installation path.\n"  << std::endl;
-
-	  abort();
-       }
-       else
-	  install = DEFAULT_TI_CGT_INSTALL_PATH;
+       std::cout << "\nThe C6000 compiler lib/include installation is not "
+       "located in the default\n"
+       "location (/usr/share/ti/cgt-c6x).\n"
+       "Use the environment variable TI_OCL_CGT_INSTALL to specify an alternate\n"
+       "installation path.\n"  << std::endl;
+ 
+       abort();
     }
-
-    return install;
+    else return DEFAULT_TI_CGT_INSTALL_PATH;
 }
 
 /******************************************************************************
@@ -155,6 +151,7 @@ int run_cl6x(string filename, string *llvm_bitcode, string addl_files)
     {
         if (opt_verbose) cout << command << endl;
         int x = system(command.c_str());
+        if (x == -1) return false;
         return true;
     }
 
@@ -180,6 +177,7 @@ int run_cl6x(string filename, string *llvm_bitcode, string addl_files)
 
     if (opt_verbose) cout << command << endl;
     int x = system(command.c_str());
+    if (x == -1) return false;
 
     if (!opt_debug)
     {
@@ -187,5 +185,8 @@ int run_cl6x(string filename, string *llvm_bitcode, string addl_files)
         strip_command += outfile;
         if (opt_verbose) cout << strip_command << endl;
         x = system(strip_command.c_str());
+        if (x == -1) return false;
     }
+
+    return true;
 }

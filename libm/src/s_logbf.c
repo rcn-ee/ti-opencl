@@ -19,8 +19,6 @@
 #include "openlibm.h"
 #include "math_private.h"
 
-static const float
-two25 = 3.355443200e+07;		/* 0x4c000000 */
 
 DLLEXPORT float
 logbf(float x)
@@ -35,6 +33,9 @@ logbf(float x)
                 float __fmpy_by_0x1p25(float);
                 x = __fmpy_by_0x1p25(x);
 #else
+                static const float
+                two25 = 3.355443200e+07;		/* 0x4c000000 */
+                
                 x *= two25; /* subnormal number, scale up x */
 #endif
 

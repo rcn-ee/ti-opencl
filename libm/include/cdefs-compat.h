@@ -89,6 +89,12 @@
 #endif	/* __STDC__ */
 #endif	/* __ELF__ */
 #endif  /* __weak_reference */
+
+/*-----------------------------------------------------------------------------
+* No implementation for now
+*----------------------------------------------------------------------------*/
+#else	/* !__GNUC__ */
+#define __weak_reference(sym,alias)
 #endif	/* __GNUC__ */
 
 

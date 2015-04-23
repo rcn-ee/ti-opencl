@@ -394,7 +394,7 @@ void write_text(string filename)
     int val = buf[0] & 0xff;
     header << "0x"<< hex << setfill('0') << setw(2) << nouppercase <<val<<endl;
 
-    for (int i = 1; i < buf.length(); i++)
+    for (unsigned int i = 1; i < buf.length(); i++)
     {
         val = buf[i] & 0xff;
         header << ", 0x"<< hex << setfill('0') << setw(2) << nouppercase <<val;

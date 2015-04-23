@@ -28,13 +28,19 @@
 #ifndef _OCL_UTIL_H_
 #define _OCL_UTIL_H_
 
+/*-----------------------------------------------------------------------------
+* The ocl_util functions are only available for use with the C++ OpenCL bindings
+*----------------------------------------------------------------------------*/
+#ifdef __cplusplus
+
 #define __CL_ENABLE_EXCEPTIONS
 #include <CL/cl.hpp>
-using namespace cl;
 
 char *ocl_decode_error  (int code);
 int   ocl_read_binary   (const char *filename, char* &buffer);
-void  ocl_event_times   (const Event &ev, const char* name);
-void  ocl_relative_times(const Event &ev, const char* name, cl_ulong reference);
+void  ocl_event_times   (const cl::Event &ev, const char* name);
+void  ocl_relative_times(const cl::Event &ev, const char* name, cl_ulong reference);
+
+#endif // if __cplusplus
 
 #endif // _OCL_UTIL_H_

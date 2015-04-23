@@ -29,10 +29,12 @@
 #ifndef _SHMEM_H
 #define _SHMEM_H
 
+#if !defined (DEVICE_AM57)
 extern "C"
 {
     #include <mpm_transport.h>
 }
+#endif
 #include "dspmem.h"
 
 /*=============================================================================
@@ -62,7 +64,9 @@ class shmem
     uint32_t p_page_size;
     int32_t  p_mmap_fd;
     int32_t  p_threshold;
+#if !defined (DEVICE_AM57)
     mpm_transport_h p_mpm_transport_handle;
+#endif
     
 };
 
