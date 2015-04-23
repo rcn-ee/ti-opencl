@@ -581,6 +581,7 @@ void* DSPDevice::clMalloc(size_t size, cl_mem_flags flags)
         host_addr = Driver::instance()->map(this, phys_addr, size, false, true);
         if (host_addr)
         {
+            Lock lock(this);
             p_clMalloc_mapping[host_addr] = PhysAddrSizeFlagsTriple(
                            PhysAddrSizePair(phys_addr, size), flags);
         }
@@ -595,6 +596,7 @@ void* DSPDevice::clMalloc(size_t size, cl_mem_flags flags)
 
 void DSPDevice::clFree(void* ptr)
 {
+    Lock lock(this);
     clMallocMapping::iterator it = p_clMalloc_mapping.find(ptr);
     if (it != p_clMalloc_mapping.end())
     {
@@ -613,6 +615,7 @@ void DSPDevice::clFree(void* ptr)
 // Support query of host ptr in the middle of a clMalloced region
 bool DSPDevice::clMallocQuery(void* ptr, DSPDevicePtr64* p_addr, size_t* p_size)
 {
+    Lock lock(this);
     if (p_clMalloc_mapping.empty())  return false;
 
     clMallocMapping::iterator it = p_clMalloc_mapping.upper_bound(ptr);
