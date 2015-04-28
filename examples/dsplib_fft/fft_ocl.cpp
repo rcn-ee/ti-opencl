@@ -88,6 +88,9 @@ int main ()
      int d = 0;
      int bufsize = sizeof(float) * (2*FFTSZ + PAD + PAD);
 
+     cout << "Offloading FFT (SP,Complex) of " << (FFTSZ / 1024);
+     cout << "K elements..." << endl << endl;
+
      Buffer bufX(context, CL_MEM_READ_ONLY,  bufsize);
      Buffer bufY(context, CL_MEM_WRITE_ONLY, bufsize);
      Buffer bufW(context, CL_MEM_READ_ONLY,  bufsize);
