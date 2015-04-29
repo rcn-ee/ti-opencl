@@ -5,13 +5,14 @@
 
 
 __attribute((visibility("protected")))
-void __sem_lock(int idx)
+uint32_t __sem_lock(int idx)
 {
     while (!CSL_semAcquireDirect(idx));
+    return 0;
 }
 
 __attribute((visibility("protected")))
-void __sem_unlock(int idx)
+void __sem_unlock(int idx, uint32_t lvInt)
 {
     _mfence(); // Wait until data written to memory
     _mfence(); // Second one because of a bug

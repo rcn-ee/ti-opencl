@@ -127,24 +127,35 @@ EXPORT void __cache_l2_flush()
     _restore_interrupts(lvInt);
 }
 
-EXPORT void __sem_lock(int idx)
+
+#define OCL_SPINLOCK_IDX    1     // used in bulitins/lib/dsp/atomics.cl
+#define ADDR_SPINLOCK(IDX)  ((volatile uint32_t *) (0x4A0F6800 + 4 * IDX))
+uint32_t acquire_spinlock(int idx)
 {
-#ifdef DEVICE_K2H
-    while (!CSL_semAcquireDirect(idx));
-#else
-#endif
+    uint32_t lvInt = _disable_interrupts();
+    uint32_t acquired = 1;
+    while (acquired != 0)  acquired = (* ADDR_SPINLOCK(idx)) & 0x1;
+    return lvInt;
 }
 
-EXPORT void __sem_unlock(int idx)
+void release_spinlock(int idx, uint32_t lvInt)
+{
+    * ADDR_SPINLOCK(idx) = 0;
+    _restore_interrupts(lvInt);
+}
+
+EXPORT uint32_t __sem_lock(int idx)
+{
+    return acquire_spinlock(idx);
+}
+
+EXPORT void __sem_unlock(int idx, uint32_t lvInt)
 {
     _mfence(); // Wait until data written to memory
     _mfence(); // Second one because of a bug
     asm(" NOP 9");
     asm(" NOP 7");
-#ifdef DEVICE_K2H
-    CSL_semReleaseSemaphore(idx);
-#else
-#endif
+    release_spinlock(idx, lvInt);
 }
 
 EXPORT void __inv(char*p, int sz)
