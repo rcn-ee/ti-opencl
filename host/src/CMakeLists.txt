@@ -143,6 +143,7 @@ set(COAL_SRC_FILES
     llvmopencl/WorkitemHandlerChooser.cc
     llvmopencl/WorkitemLoops.cc
     llvmopencl/WorkitemReplication.cc
+    llvmopencl/SimplifyShuffleBIFCall.cpp
 )
 
 if (HAWKING_BUILD)

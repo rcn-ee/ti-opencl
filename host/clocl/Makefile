@@ -65,13 +65,14 @@ OBJS        = AllocasToEntry.o BarrierBlock.o BarrierTailReplication.o \
               VariableUniformityAnalysis.o WIVectorize.o Workgroup.o \
               WorkItemAliasAnalysis.o WorkitemHandler.o \
               WorkitemHandlerChooser.o WorkitemLoops.o WorkitemReplication.o\
+              SimplifyShuffleBIFCall.o \
               main.o compiler.o wga.o program.o file_manip.o options.o \
               util.o
 
 OBJS := $(patsubst %.o, $(TARGET)/%.o, $(OBJS))
 
 CXXFLAGS := $(LLVM_CXXFLAGS) -I$(UTILDIR) -I$(WGADIR) -I$(POCLDIR) \
-            -DLLVM_3_3 $(HOST_USR_INCLUDE) -O3 -fexceptions \
+            -DLLVM_3_3 $(HOST_USR_INCLUDE) -O3 -fexceptions -std=c++0x \
             -D_PRODUCT_VERSION=$(_PRODUCT_VERSION) $(CXXFLAGS) 
 
 LIBS      = $(CLANG_LIBS)  $(LLVM_LIBS)

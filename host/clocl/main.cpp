@@ -77,6 +77,7 @@
 #include <AllocasToEntry.h>
 #include <Workgroup.h>
 #include <TargetAddressSpaces.h>
+#include <SimplifyShuffleBIFCall.h>
 
 using namespace std;
 using llvm::Module;
@@ -306,6 +307,7 @@ bool llvm_xforms(Module *module, bool optimize)
             manager->add(new pocl::AllocasToEntry());
     }
 
+    manager->add(new tiocl::TIOpenCLSimplifyShuffleBIFCall());
     manager->add(llvm::createGlobalDCEPass());
     manager->add(llvm::createCFGSimplificationPass());
     manager->add(llvm::createLoopSimplifyPass());  // for llp6x loop.parallel
