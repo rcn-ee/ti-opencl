@@ -74,6 +74,11 @@
 #include "tiulm.h"
 #endif
 
+#if defined(GDB_ENABLED)
+#include "GDB_server.h"
+#endif
+
+
 typedef struct 
 {
     MessageQ_Handle   dspQue;  // DSP creates,  Host writes, DSP  reads
@@ -97,6 +102,7 @@ EXPORT kernel_config_t kernel_config_l2;
 * Initialization Routines
 ******************************************************************************/
 static void initialize_memory        (void);
+static void initialize_gdbserver     ();
 static void flush_buffers(flush_msg_t *Msg);
 
 /******************************************************************************
@@ -139,9 +145,17 @@ PRIVATE_1D(char, sstack, SERVICE_STACK_SIZE);
 * main
 ******************************************************************************/
 int main(int argc, char* argv[])
-{
+{    
+    /* register with xdc.runtime to get a diags mask */
+    Registry_Result result = Registry_addModule(&Registry_CURDESC, MODULE_NAME);
+    assert(result == Registry_SUCCESS);
+
+    /* enable ENTRY/EXIT/INFO log events */
+    Diags_setMask(MODULE_NAME"-EXF");
+
     initialize_memory();
     initialize_edmamgr();
+    initialize_gdbserver();
 
     Error_Block     eb;
     Task_Params     taskParams;
@@ -178,13 +192,6 @@ int main(int argc, char* argv[])
 ******************************************************************************/
 void ocl_main(UArg arg0, UArg arg1)
 {
-    /* register with xdc.runtime to get a diags mask */
-    Registry_Result result = Registry_addModule(&Registry_CURDESC, MODULE_NAME);
-    assert(result == Registry_SUCCESS);
-
-    /* enable ENTRY/EXIT/INFO log events */
-    Diags_setMask(MODULE_NAME"-EXF");
-
     Log_print0(Diags_ENTRY | Diags_INFO, "--> ocl_main:");
 
     /* printfs are enabled ony for the duration of an OpenCL kernel */
@@ -472,6 +479,24 @@ void initialize_memory(void)
 
     return;
 }
+
+static void initialize_gdbserver()
+{
+#if defined(GDB_ENABLED)
+    
+    // Dedicated DSP interrupt vector used by GDB monitor for DSP-ARM IPC
+    int error = GDB_server_init(4); 
+
+    if(error != 0)
+        Log_error1("GDB monitor init failed, error code:%d\n",error);
+    else
+        Log_print0(Diags_INFO, "C66x GDB monitor init success...\n");
+    
+#endif
+
+   return;
+}
+
 
 #if 0
 /******************************************************************************
