@@ -46,6 +46,8 @@ TIOpenCLSimplifyShuffleBIFCall::TIOpenCLSimplifyShuffleBIFCall() :
 * SimplifyShuffleBIFCall - simplify shuffle/shuffle2 OpenCL built-in
 *                          function call with constant mask into
 *                          LLVM ShuffleVectorInst
+* shuffle(vec1, mask)        => ShuffleVectorInst(vec1, Undef, converted mask)
+* shuffle2(vec1, vec2, mask) => ShuffleVectorInst(vec1, vec2,  converted mask)
 **********************************************************************/
 bool TIOpenCLSimplifyShuffleBIFCall::runOnFunction(llvm::Function &F)
 {
@@ -111,9 +113,9 @@ bool TIOpenCLSimplifyShuffleBIFCall::simplify_shuffle_call(llvm::CallInst *ins)
                                                        oldmask->getType());
     if (v1Type == NULL || v2Type == NULL || vType == NULL)  return false;
 
-
     int vLen          = vType->getNumElements();
-    int validBits     = (v1Type->getNumElements() * 2) - 1;
+    int validBits     = (it->second == 3) ? (v1Type->getNumElements() * 2 - 1)
+                                          : (v1Type->getNumElements() - 1);
     llvm::Type* Int32 = llvm::IntegerType::getInt32Ty(vType->getContext());
     llvm::SmallVector<llvm::Constant *, 16> mask_val;
     for (int i = 0; i < vLen; i++)
