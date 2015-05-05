@@ -66,6 +66,7 @@
 #include <llvm/IR/Instructions.h>
 #include <llvm/Support/InstIterator.h>
 #include <llvm/Transforms/Scalar.h>
+#include <SimplifyShuffleBIFCall.h>
 
 #include <runtime/stdlib.c.bc.embed.h>
  
@@ -627,6 +628,7 @@ cl_int Program::build(const char *options,
          
             dep.program->createOptimizationPasses(manager, 
                                        dep.compiler->optimize(), hasBarrier);
+            manager->add(new tiocl::TIOpenCLSimplifyShuffleBIFCall());
          
             manager->add(llvm::createGlobalDCEPass());
             manager->add(llvm::createCFGSimplificationPass());
