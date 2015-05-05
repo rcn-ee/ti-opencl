@@ -846,10 +846,16 @@ cl_int DSPDevice::info(cl_device_info param_name,
 
         /*---------------------------------------------------------------------
         * Capped at 1GB, primarily because that is the max buffer that can be 
-        * mapped into DSP addr space using mpax.
+        * mapped into DSP addr space using mpax.  If there are no extended
+        * memory available, reserve 16MB for loading OCL program code.
         *--------------------------------------------------------------------*/
         case CL_DEVICE_MAX_MEM_ALLOC_SIZE:
-            SIMPLE_ASSIGN(cl_ulong, std::min(p_device_ddr_heap1.size(), (cl_ulong)1ul << 30)); 
+            if (p_device_ddr_heap2.size() + p_device_ddr_heap3.size() > 0)
+                SIMPLE_ASSIGN(cl_ulong, std::min(p_device_ddr_heap1.size(),
+                                                 (cl_ulong)1ul << 30))
+            else
+                SIMPLE_ASSIGN(cl_ulong, std::min(p_device_ddr_heap1.size()
+                                      - (1<<24), (cl_ulong)1ul << 30))
             break;
 
         case CL_DEVICE_IMAGE2D_MAX_WIDTH:
