@@ -51,6 +51,14 @@ using namespace Coal;
 
 #define ERR(status, msg) if (status) { printf("ERROR: %s\n", msg); exit(-1); }
 
+#if defined(DEVICE_AM57)
+#define MAX_NUM_COMPLETION_PENDING  16
+#elif defined(DEVICE_K2H) || defined(DSPC868X)
+#define MAX_NUM_COMPLETION_PENDING  32
+#else
+#error  MAX_NUM_COMPLETION_PENDING not determined for the platform.
+#endif
+
 /******************************************************************************
 * handle_event_completion
 ******************************************************************************/
@@ -108,6 +116,20 @@ bool handle_event_dispatch(DSPDevice *device)
     * Get info about the event and its command queue
     *--------------------------------------------------------------------*/
     Event::Type                 t = event->type();
+
+    /*---------------------------------------------------------------------
+    * If there are enough MSGs in the mail for DSP to run, do not dispatch.
+    * Otherwise, we might overrun the available mail slots, MPM mail (K2H)
+    * will be busy waiting until an empty mail slot becomes available, while
+    * MessageQ mail (AM57) will cause a hang in events conformance test.
+    *--------------------------------------------------------------------*/
+    if ((t == Event::NDRangeKernel || t == Event::TaskKernel) &&
+        device->num_complete_pending() >= MAX_NUM_COMPLETION_PENDING)
+    {
+        device->push_frontEvent(event);
+        return false;
+    }
+
     CommandQueue *              queue = 0;
     cl_command_queue_properties queue_props = 0;
 

@@ -87,6 +87,7 @@ class DSPDevice : public DeviceInterface, public Lockable
         bool   stop();
         bool   availableEvent();
         Event *getEvent(bool &stop);
+        void   push_frontEvent(Event *event);
 
         bool hostSchedule() const;
         unsigned int numDSPs() const;
@@ -133,6 +134,7 @@ class DSPDevice : public DeviceInterface, public Lockable
         void push_complete_pending(uint32_t idx, class Event* const data,
                                    unsigned int cnt = 1);
         bool get_complete_pending(uint32_t idx, class Event* &data);
+        int  num_complete_pending();
         void dump_complete_pending();
         bool any_complete_pending();
         bool gotEnoughToWorkOn();

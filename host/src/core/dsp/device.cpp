@@ -358,6 +358,20 @@ void DSPDevice::pushEvent(Event *event)
     pthread_mutex_unlock(&p_events_mutex);
 }
 
+void DSPDevice::push_frontEvent(Event *event)
+{
+    /*-------------------------------------------------------------------------
+    * Add an event in the list, at FRONT
+    *------------------------------------------------------------------------*/
+    pthread_mutex_lock(&p_events_mutex);
+
+    p_events.push_front(event);
+    p_num_events++;                 // Way faster than STL list::size() !
+
+    pthread_cond_broadcast(&p_events_cond);
+    pthread_mutex_unlock(&p_events_mutex);
+}
+
 bool DSPDevice::stop()           { return p_stop; }
 bool DSPDevice::availableEvent() { return p_num_events > 0; }
 
@@ -397,6 +411,9 @@ void DSPDevice::push_complete_pending(uint32_t idx, Event* const data,
 
 bool DSPDevice::get_complete_pending(uint32_t idx, Event*& data)
     { return p_complete_pending.try_pop(idx, data); }
+
+int  DSPDevice::num_complete_pending()
+    { return p_complete_pending.size(); }
 
 void DSPDevice::dump_complete_pending() { p_complete_pending.dump(); }
 
