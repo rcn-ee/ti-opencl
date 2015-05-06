@@ -39,7 +39,7 @@ extern cregister volatile unsigned int DNUM;
 /******************************************************************************
 * __core_num()
 ******************************************************************************/
-EXPORT int __core_num() { return DNUM; }
+EXPORT int __core_num() { return get_dsp_id(); }
 
 PRIVATE(int32_t, _local_id_x)      EXPORT = 0;
 PRIVATE(int32_t, _local_id_y)      EXPORT = 0;
