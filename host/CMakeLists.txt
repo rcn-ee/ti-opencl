@@ -138,7 +138,7 @@ if(NOT DEFINED ENABLE_ULM)
   elseif(C6678_BUILD)
     set(ENABLE_ULM off)
   elseif(AM57_BUILD)
-    set(ENABLE_ULM off)
+    set(ENABLE_ULM on)
   endif()
 endif()
 
