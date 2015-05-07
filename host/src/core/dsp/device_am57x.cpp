@@ -101,6 +101,7 @@ DSPDevice::DSPDevice(unsigned char dsp_id)
     p_device_ddr_heap2.configure(global2,          gsize2, true);
     p_device_ddr_heap3.configure(global3,          gsize3, true);
     p_device_l2_heap.configure  (p_addr_local_mem, p_size_local_mem);
+    p_device_msmc_heap.configure(p_addr_msmc_mem,  p_size_msmc_mem);
 
     init_ulm(gsize1, gsize2, gsize3);
 
