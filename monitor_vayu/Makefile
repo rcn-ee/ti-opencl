@@ -32,14 +32,14 @@ INCLUDES += -i $(PDK_DIR)/packages -i $(TI_OCL_CGT_INSTALL)/include \
 INCLUDES += -D$(DEVICE)
 INCLUDES += -D$(SOC)
 INCLUDES += -i $(ULM_DIR) -DULM_ENABLED
-## INCLUDES += -i $(GDB_SERVER_DIR)/include -DGDB_ENABLED
+INCLUDES += -i $(GDB_SERVER_DIR)/include -DGDB_ENABLED
 
 SOURCES = monitor.c util.c dsp_rpc.asm touch.asm builtins.c edma.c \
           edma3_config.c
 HEADERS = edma.h monitor.h util.h trace.h custom_rsc_table_vayu_dsp.h
 LIBS    = monitor.cmd
 LIBS   += $(ULM_DIR)/libtiulm.ae66
-## LIBS += $(GDB_SERVER_DIR)/lib/gdb_server.ae66
+LIBS += $(GDB_SERVER_DIR)/lib/gdb_server.ae66
 OBJS1   = $(patsubst %.c,%.obj,$(SOURCES))
 OBJS    = $(patsubst %.asm,%.obj,$(OBJS1))
 
