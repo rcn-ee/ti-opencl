@@ -63,7 +63,7 @@ extern "C"
 
 
 #define ROUNDUP(val, pow2)   (((val) + (pow2) - 1) & ~((pow2) - 1))
-#define QERR(msg, retcode)   do {if (getenv("TI_OCL_VERBOSE_ERROR")) std::cerr << msg << std::endl; return retcode; } while(0)
+#define QERR(msg, retcode)   do { std::cerr << "OCL ERROR: " << msg << std::endl; return retcode; } while(0)
 #define ERR(x) std::cerr << x << std::endl
 #define ERROR() std::cerr << "Unknown error in dsp/kernel.cpp" << std::endl
 
@@ -413,11 +413,11 @@ cl_int DSPKernelEvent::callArgs(unsigned max_args_size)
 
 
         if (size == 0)
-            QERR("Kernel Argument has size == 0", CL_INVALID_ARG_SIZE);
+            QERR("Kernel argument has size of 0", CL_INVALID_ARG_SIZE);
 
         args_total_size += size;
         if (args_total_size > max_args_size)
-            QERR("Total arguments size exceeds maximum allowed (1024 bytes)",
+            QERR("Total size of arguments exceeds allowed maximum (1024 bytes)",
                  CL_INVALID_KERNEL_ARGS);
 
         /*---------------------------------------------------------------------
@@ -684,7 +684,7 @@ cl_int DSPKernelEvent::allocate_and_assign_local_buffers(
         uint32_t rounded_sz = ROUNDUP(local_buf_size, block_sz);
         if (rounded_sz > remaining_l2_size)
         {
-            QERR("Total local buffer size exceeds available local size",
+            QERR("Total size of local buffers exceeds available local size",
                  CL_MEM_OBJECT_ALLOCATION_FAILURE);
         }
         
@@ -786,7 +786,7 @@ cl_int DSPKernelEvent::init_kernel_runtime_variables(Event::Type evtype,
 
         if (!p_WG_alloca_start)
         {
-            QERR("Alloca size exceeds available global memory",
+            QERR("Workgroup alloca size exceeds available global memory",
                  CL_OUT_OF_RESOURCES);
         }
 
@@ -906,7 +906,7 @@ cl_int DSPKernelEvent::setup_extended_memory_mappings()
         if (keystone_mmap_resource_alloc(num_64bit_bufs, phys_addrs, lengths, 
                   prots, virt_addrs, &mpax_res) != KEYSTONE_MMAP_RESOURCE_NOERR)
         {
-            QERR("MPAX allocation failed!",
+            QERR("MPAX allocation failed",
                  CL_OUT_OF_RESOURCES);
         }
     

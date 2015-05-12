@@ -73,6 +73,7 @@ class dspheap : public Lockable
         p_available  = length;
         p_block_size = is_cmem_ondemand_heap ? MIN_CMEM_ONDEMAND_BLOCK_SIZE
                                              : MIN_BLOCK_SIZE;
+        p_map_align  = is_cmem_ondemand_heap;
 
         Lock lock(this);
         if (free_list.empty())
@@ -85,6 +86,11 @@ class dspheap : public Lockable
     {
         size = min_block_size(size);
 
+        uint32_t align = p_block_size;
+        if (p_map_align)
+            align = (size >= MAX_CMEM_MAP_ALIGN) ? MAX_CMEM_MAP_ALIGN
+                                                 : next_power_of_two(size);
+
         Lock lock(this);
         for (block_iter it = free_list.begin(); it != free_list.end(); ++it)
         {
@@ -93,7 +99,29 @@ class dspheap : public Lockable
 
             if (block_size >= size)
             {
-                free_list.erase(it);
+                bool update_insteadof_remove = false;
+                if (p_map_align)
+                {
+                    DSPDevicePtr64 align_addr = ROUNDUP(block_addr,
+                                                        (DSPDevicePtr64)align);
+                    if (block_size < align_addr - block_addr + size)  continue;
+
+                    /*---------------------------------------------------------
+                    * if align_addr does not start at block_addr, add the
+                    * (align_addr - block_addr) portion back to free list
+                    * by updating the current entry to the new size
+                    *--------------------------------------------------------*/
+                    if (align_addr > block_addr)
+                    {
+                        free_list[block_addr]   = align_addr - block_addr;
+                        update_insteadof_remove = true;
+                        block_size -= (align_addr - block_addr);
+                        block_addr  = align_addr;
+                    }
+                }
+
+                if (! update_insteadof_remove)  free_list.erase(it);
+
                 alloc_list[block_addr] = size;
 
                 /*-------------------------------------------------------------
@@ -195,8 +223,22 @@ class dspheap : public Lockable
     uint64_t       p_length;
     uint32_t       p_block_size;
     uint64_t       p_available;
+    bool           p_map_align;
 
     uint32_t min_block_size(uint32_t size) { return ROUNDUP(size, p_block_size); }
+
+    // From Wikipedia : http://www.wikipedia.org/wiki/Power_of_two#Algorithm_to_round_up_to_power_of_two
+template <class T>
+T next_power_of_two(T k)
+{
+    if (k == 0) return 1;
+
+    k--;
+    for (int i=1; i<sizeof(T)*8; i<<=1)
+            k = k | k >> i;
+    return k+1;
+}
+
 };
 
 #endif // _DSPHEAP_H

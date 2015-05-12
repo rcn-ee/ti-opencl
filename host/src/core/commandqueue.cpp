@@ -37,6 +37,7 @@
 #include "deviceinterface.h"
 #include "propertylist.h"
 #include "events.h"
+#include "util.h"
 
 #include <cstring>
 #include <cstdlib>
@@ -409,8 +410,9 @@ void CommandQueue::pushEventsOnDevice(Event *ready_event,
     {
         Event *event = *it;
 
+        cl_int e_status = (cl_int) event->status();
         // If the event is completed, remove it
-        if (event->status() == Event::Complete)
+        if (e_status == Event::Complete)
         {
             event->setReleaseParent(false);
             oldit = it;
@@ -427,6 +429,14 @@ void CommandQueue::pushEventsOnDevice(Event *ready_event,
             clReleaseEvent((cl_event) event);
 #endif
             continue;
+        }
+        // Question: Should we propagate error everywhere: Q, events in Q?
+        //           OpenCL Spec is vague on asynchronous error handling,
+        //           except for blocking waits with wait_events_list.
+        else if (e_status < 0)
+        {
+            p_flushed = false;
+            break;
         }
 
         // If OOO queue threshold is met, skip examining the rest of events
@@ -610,15 +620,21 @@ Event::Event(CommandQueue *parent,
 
     if (parent && num_events_in_wait_list > 0)
     {
+        bool wait_events_in_error_status = false;
         pthread_mutex_lock(&p_state_mutex);
         for (cl_uint i=0; i<num_events_in_wait_list; ++i)
         {
             // if event_wait_list[i] is already COMPLETE, don't add it!!!
             Event *wait_event = (Event *) event_wait_list[i];
-            if (wait_event->addDependentEvent((Event *) this))
+            int added = wait_event->addDependentEvent((Event *) this);
+            if (added > 0)
                 p_wait_events.push_back(wait_event);
+            else if (added < 0)
+                wait_events_in_error_status = true;
         }
         pthread_mutex_unlock(&p_state_mutex);
+        if (wait_events_in_error_status)
+            setStatus((Status) CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST);
     }
 }
 
@@ -737,22 +753,42 @@ void Event::setStatus(Status status)
         }
     }
     else
-        setStatusHelper(status);
+    {
+        int num_dependent_events = setStatusHelper(status);
+
+        /*---------------------------------------------------------------------
+        * If status is error (< 0), set dependent events status to
+        * CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST
+        *--------------------------------------------------------------------*/
+        if (status < 0)
+        {
+            printf("OCL ERROR: %s(%d, %s)\n", name(), status,
+                                                      ocl_error_str(status));
+            for (int i = 0; i < num_dependent_events; i += 1)
+                p_dependent_events[i]->setStatus(
+                        (Status) CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST);
+        }
+    }
 }
 
-bool Event::addDependentEvent(Event *event)
+int Event::addDependentEvent(Event *event)
 {
     pthread_mutex_lock(&p_state_mutex);
     if (p_status == Event::Complete)
     {
         pthread_mutex_unlock(&p_state_mutex);
-        return false;
+        return 0;
+    }
+    else if (p_status < 0)
+    {
+        pthread_mutex_unlock(&p_state_mutex);
+        return -1;
     }
 
     p_dependent_events.push_back(event);
     Object::reference();  // retain this event
     pthread_mutex_unlock(&p_state_mutex);
-    return true;
+    return 1;
 }
 
 bool Event::removeWaitEvent(Event *event)
@@ -1029,3 +1065,36 @@ cl_int Event::profilingInfo(cl_profiling_info param_name,
     return CL_SUCCESS;
 }
 
+/******************************************************************************
+* const char* Event::name()
+******************************************************************************/
+const char* Event::name()
+{
+    switch (type())
+    {
+        case NDRangeKernel:     return "NDRangeKernel";
+        case TaskKernel:        return "TaskKernel";
+        case NativeKernel:      return "NativeKernel";
+        case ReadBuffer:        return "ReadBuffer";
+        case WriteBuffer:       return "WriteBuffer";
+        case CopyBuffer:        return "CopyBuffer";
+        case ReadImage:         return "ReadImage";
+        case WriteImage:        return "WriteImage";
+        case CopyImage:         return "CopyImage";
+        case CopyImageToBuffer: return "CopyImageToBuffer";
+        case CopyBufferToImage: return "CopyBufferToImage";
+        case MapBuffer:         return "MapBuffer";
+        case MapImage:          return "MapImage";
+        case UnmapMemObject:    return "UnmapMemObject";
+        case Marker:            return "Marker";
+        case AcquireGLObjects:  return "AcquireGLObjects";
+        case ReleaseGLObjects:  return "ReleaseGLObjects";
+        case ReadBufferRect:    return "ReadBufferRect";
+        case WriteBufferRect:   return "WriteBufferRect";
+        case CopyBufferRect:    return "CopyBufferRect";
+        case User:              return "User";
+        case Barrier:           return "Barrier";
+        case WaitForEvents:     return "WaitForEvents";
+        default:                return "UnknownCLCommand";
+    }
+}

@@ -49,7 +49,7 @@
 
 using namespace Coal;
 
-#define ERR(status, msg) if (status) { printf("ERROR: %s\n", msg); exit(-1); }
+#define ERR(status, msg) if (status) { printf("OCL ERROR: %s\n", msg); exit(-1); }
 
 /******************************************************************************
 * handle_event_completion
