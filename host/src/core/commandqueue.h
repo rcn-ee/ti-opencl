@@ -325,6 +325,12 @@ class Event : public Object
          * \return type of the event
          */
         virtual Type type() const = 0;
+
+        /**
+         * \brief Corresponding cl command name of the event
+         * \return cl command name of the event
+         */
+        const char* name();
         
         /**
          * \brief Dummy event
@@ -423,10 +429,11 @@ class Event : public Object
         /**
          * \brief Add event to p_dependent_events, which will be notified when
          * current event completes. If current event is already complete,
-         * no need to add and return false.
+         * no need to add and return 0.  If current event is in ERROR status,
+         * no need to add and return -1.  Otherwise, add and return 1..
          * \param event the event to be notified
          */
-        bool addDependentEvent(Event *event);
+        int addDependentEvent(Event *event);
 
         /**
          * \brief Remove event from p_wait_events, which should be waited on

@@ -49,7 +49,7 @@
 
 using namespace Coal;
 
-#define ERR(status, msg) if (status) { printf("ERROR: %s\n", msg); exit(-1); }
+#define ERR(status, msg) if (status) { printf("OCL ERROR: %s\n", msg); exit(-1); }
 
 #if defined(DEVICE_AM57)
 #define MAX_NUM_COMPLETION_PENDING  16
