@@ -41,6 +41,9 @@
 uint32_t parse_file_line_value(const char *fname, const char *sname,
                                uint32_t default_val);
 
+// For OpenCL error reporting, number to meaning mapping
+const char* ocl_error_str(int ocl_error_num);
+
 // OpenCL/LLVM utils
 bool          isKernelFunction(llvm::Function &F);
 bool          getReqdWGSize(llvm::Function &F, int wgsizes[3]);

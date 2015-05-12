@@ -60,5 +60,6 @@ typedef uint32_t	DSPVirtPtr;
 #define MIN_BLOCK_SIZE                 128
 #define MIN_CMEM_ONDEMAND_BLOCK_SIZE  4096
 #define MIN_CMEM_MAP_ALIGN            4096
+#define MAX_CMEM_MAP_ALIGN            (512*1024*1024)
 
 #endif // _DSPMEM_H
