@@ -78,6 +78,10 @@ clWaitForEvents(cl_uint             num_events,
     for (cl_uint i=0; i<num_events; ++i)
     {
         event_list[i]->waitForStatus(Coal::Event::Complete);
+        // Per OpenCL spec, we need to return this error if any event
+        // in the event_wait_list fails
+        if (event_list[i]->status() < 0)
+            return CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST;
     }
 
     return CL_SUCCESS;
