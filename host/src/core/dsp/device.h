@@ -163,7 +163,8 @@ class DSPDevice : public DeviceInterface, public Lockable
         unsigned int       p_cores;
         unsigned int       p_num_events;
         float              p_dsp_mhz;
-        pthread_t          p_worker;
+        pthread_t          p_worker_dispatch;
+        pthread_t          p_worker_completion;
         std::list<Event *> p_events;
         pthread_cond_t     p_events_cond;
         pthread_mutex_t    p_events_mutex;
