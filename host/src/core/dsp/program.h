@@ -92,6 +92,7 @@ class DSPProgram : public DeviceProgram
         bool          p_keep_files;
         bool          p_cache_kernels;
         bool          p_debug;
+        bool          p_info;
 };
 }
 #endif

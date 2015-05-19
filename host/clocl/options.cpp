@@ -21,6 +21,7 @@ int opt_help    = 0;
 int opt_verbose = 0;
 int opt_keep    = 0;
 int opt_debug   = 0;
+int opt_symbols = 0;
 int opt_lib     = 0;
 int opt_txt     = 0;
 int opt_w       = 0;
@@ -61,6 +62,7 @@ void print_options()
     if (opt_w)       printf ("Option w      : on\n");
     if (opt_Werror)  printf ("Option Werror : on\n");
     if (opt_alias)   printf ("Option alias  : on\n");
+    if (opt_symbols) printf ("Option symbols: on\n");
     //if (opt_builtin) printf ("Option builtin: on\n");
     //if (opt_tmpdir)  printf ("Option tmpdir : on\n");
 
@@ -103,6 +105,7 @@ void print_help()
     cout << "   -g, --debug   : Generate debug symbols" << endl;
     cout << "   -t, --txt     : Generate object in header form" << endl;
     cout << "   -l, --lib     : Do not link. Stop after compilation." << endl;
+    cout << "   -s, --symbols : Keep Symbols." << endl;
     cout << "   -a, --alias   : Assume kernel buffers alias each other" << endl;
     cout << "   --version     : Print OpenCL product." << endl;
     cout << endl;
@@ -143,6 +146,7 @@ void process_options(int argc, char **argv)
             {"verbose", no_argument,  &opt_verbose, 'v' },
             {"keep",    no_argument,  &opt_keep,    'k' },
             {"debug",   no_argument,  &opt_debug,   'g' },
+            {"symbols", no_argument,  &opt_symbols, 's' },
             {"lib",     no_argument,  &opt_lib,     'l' },
             {"txt",     no_argument,  &opt_txt,     't' },
             {"builtin", no_argument,  &opt_builtin, 'b' },
@@ -171,7 +175,7 @@ void process_options(int argc, char **argv)
 
         opterr = 0; // prevent getopt from printing warnings
 
-       c = getopt_long_only(argc, argv, "-tadgwI:D:", long_options,
+       c = getopt_long_only(argc, argv, "-tadgwsI:D:", long_options,
                             &option_index);
        if (c == -1) break;
 
@@ -185,7 +189,7 @@ void process_options(int argc, char **argv)
                     name == "keep"    || name == "debug"     ||
                     name == "lib"     || name == "txt"       ||
                     name == "builtin" || name == "tmpdir"    ||
-                    name == "alias"
+                    name == "alias"   || name == "symbols"
                    ) break;
 
                 if (name == "cl-std")
@@ -220,6 +224,7 @@ void process_options(int argc, char **argv)
            case 'd': opt_tmpdir = 1; break;
            case 'a': opt_alias = 1;  break;
            case 'g': opt_debug  = 1; break;
+           case 's': opt_symbols = 1; break;
            case 'w': opt_w = 1; cl_options += " -w"; break;
 
            case 'D': 

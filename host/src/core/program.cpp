@@ -402,6 +402,7 @@ cl_int Program::build(const char *options,
             bool do_cache_kernels = (getenv("TI_OCL_CACHE_KERNELS")  != NULL);
             bool do_keep_files    = (getenv("TI_OCL_KEEP_FILES")     != NULL);
             bool do_debug         = (getenv("TI_OCL_DEBUG")          != NULL);
+            bool do_symbols       = (getenv("TI_OCL_DEVICE_PROGRAM_INFO") != NULL);
 
             cl_device_type devtype;
             device_list[i]->info(CL_DEVICE_TYPE, sizeof(devtype), &devtype, 0);
@@ -452,6 +453,7 @@ cl_int Program::build(const char *options,
 
                     if (do_keep_files) strcat(clocl_command, "-k ");
                     if (do_debug)      strcat(clocl_command, "-g ");
+                    if (do_symbols)    strcat(clocl_command, "-s ");
 
                     int  fOutfile = mkstemp(name_out);
                     strcpy(srcfile, name_out);

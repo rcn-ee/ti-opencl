@@ -8,6 +8,7 @@ extern int opt_verbose;
 extern int opt_version;
 extern int opt_keep;
 extern int opt_debug;
+extern int opt_symbols;
 extern int opt_lib;
 extern int opt_txt;
 extern int opt_w;

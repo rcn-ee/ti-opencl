@@ -179,7 +179,7 @@ int run_cl6x(string filename, string *llvm_bitcode, string addl_files)
     int x = system(command.c_str());
     if (x == -1) return false;
 
-    if (!opt_debug)
+    if (!opt_debug && !opt_symbols)
     {
         string strip_command("strip6x -p ");
         strip_command += outfile;

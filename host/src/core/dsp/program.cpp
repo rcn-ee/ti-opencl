@@ -108,6 +108,9 @@ DSPProgram::DSPProgram(DSPDevice *device, Program *program)
 
     char *debug = getenv("TI_OCL_DEBUG");
     if (debug) { p_debug = true; p_cache_kernels = false; }
+
+    char *info = getenv("TI_OCL_DEVICE_PROGRAM_INFO");
+    if (info) { p_info = true; p_keep_files = true; }
 }
 
 DSPProgram::~DSPProgram()
@@ -131,8 +134,9 @@ bool DSPProgram::load()
     /*-------------------------------------------------------------------------
     * ensure that the newly populated areas are not stale in device caches
     *------------------------------------------------------------------------*/
-    if (0 && p_debug)
+    if (p_info)
     {
+        printf("For executable: %s\n", p_outfile);
         int   segNum = p_segments_written.size();
         for (int i=0; i < segNum; ++i)
         {
@@ -148,9 +152,10 @@ bool DSPProgram::load()
                 default:                  seg_desc = "Writable & Executable"; break;
             }
 
-               printf("%s segment loaded to 0x%08x with size 0x%x\n", 
+               printf("\t%s segment loaded to 0x%08x with size 0x%x\n", 
                    seg_desc, p_segments_written[i].ptr, p_segments_written[i].size);
         }
+        printf("\n");
     }
 
     /*-------------------------------------------------------------------------
@@ -366,7 +371,7 @@ std::string get_ocl_dsp()
 * run_cl6x
 ******************************************************************************/
 static int run_cl6x(char *filename, std::string *llvm_bitcode, 
-                    bool keep_files, bool debug, std::string options)
+                    bool keep_files, bool debug, bool info, std::string options)
 {
     std::string command("cl6x --f -q --abi=eabi --use_g3 -mv6600 -mt -mo "
                         "-ft=/tmp -fs=/tmp -fr=/tmp ");
@@ -431,7 +436,7 @@ static int run_cl6x(char *filename, std::string *llvm_bitcode,
         //printf("cl6x time: %6.4f secs\n", 
         //   (float)t1.tv_sec-t0.tv_sec+(t1.tv_nsec-t0.tv_nsec)/1e9);
 
-    if (!debug)
+    if (!debug && !info)
     {
         std::string strip_command("strip6x -p ");
         strip_command += filename; strip_command += ".out";
@@ -613,7 +618,7 @@ bool DSPProgram::build(llvm::Module *module, std::string *binary_str,
         llvm::raw_string_ostream str_ostream(xformed_binary_str);
         llvm::WriteBitcodeToFile(p_module, str_ostream);
         str_ostream.flush();
-        run_cl6x(name_template, &xformed_binary_str, p_keep_files, p_debug,
+        run_cl6x(name_template, &xformed_binary_str, p_keep_files, p_debug, p_info,
                    p_program->deviceDependentCompilerOptions(p_device));
 
         char objfile[32]; 
