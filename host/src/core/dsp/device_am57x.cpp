@@ -36,7 +36,8 @@ DSPDevice::DSPDevice(unsigned char dsp_id)
       p_cores           (2), 
       p_num_events      (0), 
       p_dsp_mhz         (600), // 600 MHz 
-      p_worker          (0), 
+      p_worker_dispatch  (0), 
+      p_worker_completion(0), 
       p_stop            (false),
       p_initialized     (false), 
       p_dsp_id          (dsp_id), 

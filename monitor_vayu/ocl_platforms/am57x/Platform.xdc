@@ -9,19 +9,19 @@ config ti.platforms.generic.Platform.Instance CPU =
     customMemoryMap: 
     [ 
       /*-----------------------------------------------------------------------
-      * L2SRAM : Memory range used by the runtime to store its state (28KB) 
-      * OCL_GLOBAL : Memory range used for OpenCL local buffers (132KB)
+      * L2SRAM : Memory range used by the runtime to store its state (32KB) 
+      * OCL_GLOBAL : Memory range used for OpenCL local buffers (128KB)
       *   Note: base, len must be a multiple of Linux page size (shmem.cpp)
       *----------------------------------------------------------------------*/
       [ "L2SRAM",    { name: "L2SRAM", 
                        base: 0x00800000, 
-                       len:     0x07000,
+                       len:     0x08000,
                        space: "code/data", 
 		       access: "RWX", } ],
 
       [ "OCL_LOCAL", { name: "OCL_LOCAL",
-                       base: 0x00807000,
-                       len:     0x21000,
+                       base: 0x00808000,
+                       len:     0x20000,
                        space: "code/data",
                        access: "RWX", } ],
 

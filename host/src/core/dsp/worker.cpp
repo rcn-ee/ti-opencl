@@ -501,9 +501,9 @@ bool handle_event_dispatch(DSPDevice *device)
 }
 
 /******************************************************************************
-* dsp_worker
+* dsp_worker_event_dispatch
 ******************************************************************************/
-void *dsp_worker(void *data)
+void *dsp_worker_event_dispatch(void *data)
 {
     char *str_nice  = getenv("TI_OCL_WORKER_NICE");
     char *str_sleep = getenv("TI_OCL_WORKER_SLEEP");
@@ -516,16 +516,42 @@ void *dsp_worker(void *data)
 
     while (true)
     {
+        bool stop = device->stop();
+
+        if (!stop && device->availableEvent())
+            stop |= handle_event_dispatch(device);
+
+        if (stop) break;
+
+        if (env_sleep >= 0) usleep(env_sleep);
+    }
+}
+
+/******************************************************************************
+* dsp_worker_event_dispatch
+******************************************************************************/
+void *dsp_worker_event_completion(void *data)
+{
+    char *str_nice  = getenv("TI_OCL_WORKER_NICE");
+    char *str_sleep = getenv("TI_OCL_WORKER_SLEEP");
+    int   env_nice  = (str_nice)  ? atoi(str_nice)  : 4;
+    int   env_sleep = (str_sleep) ? atoi(str_sleep) : 1;
+    pid_t tid       = syscall(SYS_gettid);
+
+    setpriority(PRIO_PROCESS, tid, env_nice);
+    DSPDevice *device = (DSPDevice *)data;
+
+    while (true)
+    {
         if (device->any_complete_pending() && device->mail_query()) 
             handle_event_completion(device);
 
         bool stop = device->stop();
 
-        if (!stop && (!device->any_complete_pending() || device->availableEvent()))
-            stop |= handle_event_dispatch(device);
-
         if (stop && !device->any_complete_pending()) break;
 
-        if (env_sleep >= 0) usleep(env_sleep);
+        // Need a min sleep of 1us for K2H mailbox. Will move 
+        // into K2H MBox implementation.
+        usleep(env_sleep);
     }
 }

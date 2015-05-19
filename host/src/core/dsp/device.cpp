@@ -109,7 +109,8 @@ unsigned dsp_speed()
 /*-----------------------------------------------------------------------------
 * Declare our threaded dsp handler function
 *----------------------------------------------------------------------------*/
-void *dsp_worker(void* data);
+void *dsp_worker_event_dispatch   (void* data);
+void *dsp_worker_event_completion (void* data);
 void HOSTwait   (unsigned char dsp_id);
 
 
@@ -186,7 +187,8 @@ void DSPDevice::init()
     *------------------------------------------------------------------------*/
     pthread_cond_init(&p_events_cond, 0);
     pthread_mutex_init(&p_events_mutex, 0);
-    pthread_create(&p_worker, 0, &dsp_worker, this);
+    pthread_create(&p_worker_dispatch,   0, &dsp_worker_event_dispatch,   this);
+    pthread_create(&p_worker_completion, 0, &dsp_worker_event_completion, this);
 
     p_initialized = true;
 }
@@ -230,7 +232,8 @@ DSPDevice::~DSPDevice()
     pthread_cond_broadcast(&p_events_cond);
     pthread_mutex_unlock(&p_events_mutex);
 
-    pthread_join(p_worker, 0);
+    pthread_join(p_worker_dispatch, 0);
+    pthread_join(p_worker_completion, 0);
 
     pthread_mutex_destroy(&p_events_mutex);
     pthread_cond_destroy(&p_events_cond);
@@ -671,7 +674,17 @@ int DSPDevice::mail_to(Msg_t &msg, unsigned int core)
                 return numDSPs();
             }
             // fall through
-            
+
+       case TASK:
+           if (hostSchedule() && IS_OOO_TASK(msg))
+           {
+               static int counter = 0;
+               int dsp_id = ((counter++ & 0x1) == 0) ? 0 : 1;
+               p_mb->to((uint8_t*)&msg, sizeof(Msg_t), dsp_id);
+               return 1;
+           }
+           // fall through
+          
         /*---------------------------------------------------------------------
         * otherwise send it to the designated core
         *--------------------------------------------------------------------*/

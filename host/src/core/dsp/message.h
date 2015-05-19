@@ -124,4 +124,7 @@ static const uint32_t mbox_payload         = sizeof(Msg_t);
 #define NORMAL_MODE_WG_GID_START 0
 #define DEBUG_MODE_WG_GID_START  1
 
+#define IS_OOO_TASK(msg) ((msg.command == TASK) && \
+                          (msg.u.k.config.global_size[0] != IN_ORDER_TASK_SIZE))
+
 #endif
