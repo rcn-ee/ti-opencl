@@ -1,6 +1,7 @@
 // LLVM module pass to get information from kernel functions.
 // 
 // Copyright (c) 2011 Universidad Rey Juan Carlos
+// Copyright (c) 2013-2014, Texas Instruments Incorporated - http://www.ti.com/
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -181,10 +182,17 @@ GenerateHeader::ProcessPointers(Function *F,
     
   out << "#define _" << F->getName() << "_NUM_ARGS " << num_args << '\n';
       
+#if 0
   bool is_pointer[num_args];
   bool is_local[num_args];
   bool is_image[num_args];
   bool is_sampler[num_args];
+#else
+  std::vector<bool> is_pointer(num_args, false);
+  std::vector<bool> is_local(num_args, false);
+  std::vector<bool> is_image(num_args, false);
+  std::vector<bool> is_sampler(num_args, false);
+#endif
   
   int i = 0;
   for (Function::const_arg_iterator ii = F->arg_begin(),

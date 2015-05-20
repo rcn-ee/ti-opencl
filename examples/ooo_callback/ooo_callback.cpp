@@ -255,11 +255,10 @@ int main(int argc, char *argv[])
         evt[circIdx][RD ][0] = nullEv;
         QdspIO->enqueueReadBuffer (buf, CL_FALSE, 0, size, ary,  
                                    &evt[circIdx][CMP], &evt[circIdx][RD ][0]);
-
-        evt[circIdx][CNS][0] = UserEvent(context);
-        evt[circIdx][CNS][0].setCallback(CL_COMPLETE, cpu_consume_callback,
+        evt[circIdx][RD ][0].setCallback(CL_COMPLETE, cpu_consume_callback,
                                          conarg);
 
+        evt[circIdx][CNS][0] = UserEvent(context);
         UserEvent *tmp_ev2 = new UserEvent(context);
         *tmp_ev2 = (UserEvent &) evt[circIdx][CNS][0];  // retain this event
         evt[circIdx][RD][0].setCallback(CL_COMPLETE, complete_user_event,

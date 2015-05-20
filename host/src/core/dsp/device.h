@@ -87,6 +87,7 @@ class DSPDevice : public DeviceInterface, public Lockable
         bool   stop();
         bool   availableEvent();
         Event *getEvent(bool &stop);
+        void   push_frontEvent(Event *event);
 
         bool hostSchedule() const;
         unsigned int numDSPs() const;
@@ -133,6 +134,7 @@ class DSPDevice : public DeviceInterface, public Lockable
         void push_complete_pending(uint32_t idx, class Event* const data,
                                    unsigned int cnt = 1);
         bool get_complete_pending(uint32_t idx, class Event* &data);
+        int  num_complete_pending();
         void dump_complete_pending();
         bool any_complete_pending();
         bool gotEnoughToWorkOn();
@@ -161,7 +163,8 @@ class DSPDevice : public DeviceInterface, public Lockable
         unsigned int       p_cores;
         unsigned int       p_num_events;
         float              p_dsp_mhz;
-        pthread_t          p_worker;
+        pthread_t          p_worker_dispatch;
+        pthread_t          p_worker_completion;
         std::list<Event *> p_events;
         pthread_cond_t     p_events_cond;
         pthread_mutex_t    p_events_mutex;

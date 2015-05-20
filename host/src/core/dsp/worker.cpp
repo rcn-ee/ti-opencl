@@ -51,6 +51,14 @@ using namespace Coal;
 
 #define ERR(status, msg) if (status) { printf("OCL ERROR: %s\n", msg); exit(-1); }
 
+#if defined(DEVICE_AM57)
+#define MAX_NUM_COMPLETION_PENDING  16
+#elif defined(DEVICE_K2H) || defined(DSPC868X)
+#define MAX_NUM_COMPLETION_PENDING  32
+#else
+#error  MAX_NUM_COMPLETION_PENDING not determined for the platform.
+#endif
+
 /******************************************************************************
 * handle_event_completion
 ******************************************************************************/
@@ -108,6 +116,20 @@ bool handle_event_dispatch(DSPDevice *device)
     * Get info about the event and its command queue
     *--------------------------------------------------------------------*/
     Event::Type                 t = event->type();
+
+    /*---------------------------------------------------------------------
+    * If there are enough MSGs in the mail for DSP to run, do not dispatch.
+    * Otherwise, we might overrun the available mail slots, MPM mail (K2H)
+    * will be busy waiting until an empty mail slot becomes available, while
+    * MessageQ mail (AM57) will cause a hang in events conformance test.
+    *--------------------------------------------------------------------*/
+    if ((t == Event::NDRangeKernel || t == Event::TaskKernel) &&
+        device->num_complete_pending() >= MAX_NUM_COMPLETION_PENDING)
+    {
+        device->push_frontEvent(event);
+        return false;
+    }
+
     CommandQueue *              queue = 0;
     cl_command_queue_properties queue_props = 0;
 
@@ -479,9 +501,9 @@ bool handle_event_dispatch(DSPDevice *device)
 }
 
 /******************************************************************************
-* dsp_worker
+* dsp_worker_event_dispatch
 ******************************************************************************/
-void *dsp_worker(void *data)
+void *dsp_worker_event_dispatch(void *data)
 {
     char *str_nice  = getenv("TI_OCL_WORKER_NICE");
     char *str_sleep = getenv("TI_OCL_WORKER_SLEEP");
@@ -494,16 +516,42 @@ void *dsp_worker(void *data)
 
     while (true)
     {
+        bool stop = device->stop();
+
+        if (!stop && device->availableEvent())
+            stop |= handle_event_dispatch(device);
+
+        if (stop) break;
+
+        if (env_sleep >= 0) usleep(env_sleep);
+    }
+}
+
+/******************************************************************************
+* dsp_worker_event_dispatch
+******************************************************************************/
+void *dsp_worker_event_completion(void *data)
+{
+    char *str_nice  = getenv("TI_OCL_WORKER_NICE");
+    char *str_sleep = getenv("TI_OCL_WORKER_SLEEP");
+    int   env_nice  = (str_nice)  ? atoi(str_nice)  : 4;
+    int   env_sleep = (str_sleep) ? atoi(str_sleep) : 1;
+    pid_t tid       = syscall(SYS_gettid);
+
+    setpriority(PRIO_PROCESS, tid, env_nice);
+    DSPDevice *device = (DSPDevice *)data;
+
+    while (true)
+    {
         if (device->any_complete_pending() && device->mail_query()) 
             handle_event_completion(device);
 
         bool stop = device->stop();
 
-        if (!stop && (!device->any_complete_pending() || device->availableEvent()))
-            stop |= handle_event_dispatch(device);
-
         if (stop && !device->any_complete_pending()) break;
 
-        if (env_sleep >= 0) usleep(env_sleep);
+        // Need a min sleep of 1us for K2H mailbox. Will move 
+        // into K2H MBox implementation.
+        usleep(env_sleep);
     }
 }

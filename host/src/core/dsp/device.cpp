@@ -109,7 +109,8 @@ unsigned dsp_speed()
 /*-----------------------------------------------------------------------------
 * Declare our threaded dsp handler function
 *----------------------------------------------------------------------------*/
-void *dsp_worker(void* data);
+void *dsp_worker_event_dispatch   (void* data);
+void *dsp_worker_event_completion (void* data);
 void HOSTwait   (unsigned char dsp_id);
 
 
@@ -186,7 +187,8 @@ void DSPDevice::init()
     *------------------------------------------------------------------------*/
     pthread_cond_init(&p_events_cond, 0);
     pthread_mutex_init(&p_events_mutex, 0);
-    pthread_create(&p_worker, 0, &dsp_worker, this);
+    pthread_create(&p_worker_dispatch,   0, &dsp_worker_event_dispatch,   this);
+    pthread_create(&p_worker_completion, 0, &dsp_worker_event_completion, this);
 
     p_initialized = true;
 }
@@ -230,7 +232,8 @@ DSPDevice::~DSPDevice()
     pthread_cond_broadcast(&p_events_cond);
     pthread_mutex_unlock(&p_events_mutex);
 
-    pthread_join(p_worker, 0);
+    pthread_join(p_worker_dispatch, 0);
+    pthread_join(p_worker_completion, 0);
 
     pthread_mutex_destroy(&p_events_mutex);
     pthread_cond_destroy(&p_events_cond);
@@ -358,6 +361,20 @@ void DSPDevice::pushEvent(Event *event)
     pthread_mutex_unlock(&p_events_mutex);
 }
 
+void DSPDevice::push_frontEvent(Event *event)
+{
+    /*-------------------------------------------------------------------------
+    * Add an event in the list, at FRONT
+    *------------------------------------------------------------------------*/
+    pthread_mutex_lock(&p_events_mutex);
+
+    p_events.push_front(event);
+    p_num_events++;                 // Way faster than STL list::size() !
+
+    pthread_cond_broadcast(&p_events_cond);
+    pthread_mutex_unlock(&p_events_mutex);
+}
+
 bool DSPDevice::stop()           { return p_stop; }
 bool DSPDevice::availableEvent() { return p_num_events > 0; }
 
@@ -397,6 +414,9 @@ void DSPDevice::push_complete_pending(uint32_t idx, Event* const data,
 
 bool DSPDevice::get_complete_pending(uint32_t idx, Event*& data)
     { return p_complete_pending.try_pop(idx, data); }
+
+int  DSPDevice::num_complete_pending()
+    { return p_complete_pending.size(); }
 
 void DSPDevice::dump_complete_pending() { p_complete_pending.dump(); }
 
@@ -654,7 +674,17 @@ int DSPDevice::mail_to(Msg_t &msg, unsigned int core)
                 return numDSPs();
             }
             // fall through
-            
+
+       case TASK:
+           if (hostSchedule() && IS_OOO_TASK(msg))
+           {
+               static int counter = 0;
+               int dsp_id = ((counter++ & 0x1) == 0) ? 0 : 1;
+               p_mb->to((uint8_t*)&msg, sizeof(Msg_t), dsp_id);
+               return 1;
+           }
+           // fall through
+          
         /*---------------------------------------------------------------------
         * otherwise send it to the designated core
         *--------------------------------------------------------------------*/
@@ -829,10 +859,16 @@ cl_int DSPDevice::info(cl_device_info param_name,
 
         /*---------------------------------------------------------------------
         * Capped at 1GB, primarily because that is the max buffer that can be 
-        * mapped into DSP addr space using mpax.
+        * mapped into DSP addr space using mpax.  If there are no extended
+        * memory available, reserve 16MB for loading OCL program code.
         *--------------------------------------------------------------------*/
         case CL_DEVICE_MAX_MEM_ALLOC_SIZE:
-            SIMPLE_ASSIGN(cl_ulong, std::min(p_device_ddr_heap1.size(), (cl_ulong)1ul << 30)); 
+            if (p_device_ddr_heap2.size() + p_device_ddr_heap3.size() > 0)
+                SIMPLE_ASSIGN(cl_ulong, std::min(p_device_ddr_heap1.size(),
+                                                 (cl_ulong)1ul << 30))
+            else
+                SIMPLE_ASSIGN(cl_ulong, std::min(p_device_ddr_heap1.size()
+                                      - (1<<24), (cl_ulong)1ul << 30))
             break;
 
         case CL_DEVICE_IMAGE2D_MAX_WIDTH:

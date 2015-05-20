@@ -43,7 +43,7 @@ const char * kernelStr =
     "    c[id] = a[id] + b[id];\n"
     "}\n";
 
-const int NumElements     = 8*1024;
+const int NumElements     = 8*1024*1024;  // 8 Mb
 const int NumWorkGroups   = 256;
 const int VectorElements  = 4;
 const int NumVecElements  = NumElements / VectorElements;
@@ -75,6 +75,9 @@ int main(int argc, char *argv[])
      std::string str;
      devices[d].getInfo(CL_DEVICE_NAME, &str);
      cout << "DEVICE: " << str << endl << endl;
+
+     cout << "Offloading vector addition of " << NumElements/1024;
+     cout << "K elements..." << endl << endl;
 
      Buffer bufA   (context, CL_MEM_READ_ONLY,  bufsize);
      Buffer bufB   (context, CL_MEM_READ_ONLY,  bufsize);

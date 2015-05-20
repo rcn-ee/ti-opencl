@@ -27,12 +27,12 @@
  *****************************************************************************/
 #include "dsp.h"
 
-void __sem_lock(int);
-void __sem_unlock(int);
+uint __sem_lock(int);
+void __sem_unlock(int, uint);
 void __inv(char*, int);
 
-#define LOCK_GLOBAL   		__sem_lock(1)
-#define UNLOCK_GLOBAL 		__sem_unlock(1)
+#define LOCK_GLOBAL   		uint lvInt = __sem_lock(1)
+#define UNLOCK_GLOBAL 		__sem_unlock(1, lvInt)
 #define INV_GLOBAL(p, sz)	__inv((char*)(p), (sz))
 #define WB_GLOBAL(p, sz)	
 

@@ -695,21 +695,23 @@ int Event::setStatusHelper(Status status)
     p_status = status;
     num_dependent_events = p_dependent_events.size();
 
-    pthread_cond_broadcast(&p_state_change_cond);
-
-    // Find and Call the callbacks
+    // Find the callbacks, retain event if there are callbacks
     std::multimap<Status, CallbackData>::const_iterator it;
     std::pair<std::multimap<Status, CallbackData>::const_iterator,
               std::multimap<Status, CallbackData>::const_iterator> ret;
     ret = p_callbacks.equal_range(status > 0 ? status : Complete);
     for (it=ret.first; it!=ret.second; ++it)
         callbacks.push_back((*it).second);
+    if (!callbacks.empty())  clRetainEvent((cl_event) this);
 
+    pthread_cond_broadcast(&p_state_change_cond);
     pthread_mutex_unlock(&p_state_mutex);
 
+    // Call the callbacks, release event afterwards
     for (std::list<CallbackData>::iterator C = callbacks.begin(),
                                            E = callbacks.end(); C != E; ++C)
         (*C).callback((cl_event)this, p_status, (*C).user_data);
+    if (!callbacks.empty())  clReleaseEvent((cl_event) this);
 
     return num_dependent_events;
 }

@@ -1,12 +1,13 @@
 OPENCL_SRC_DIR = ../host
 PDK_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/pdk_am57xx_8_00_00_00
-IPC_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/ipc_3_35_00_05
+IPC_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/ipc_3_35_01_07
 XDC_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/xdctools_3_30_06_67
 BIOS_DIR       ?= $(DEFAULT_DEV_INSTALL_DIR)/bios_6_41_02_41
 FC_DIR         ?= $(DEFAULT_DEV_INSTALL_DIR)/framework_components_3_40_00_01_eng
 EDMA3LLD_DIR   ?= $(DEFAULT_DEV_INSTALL_DIR)/edma3_lld_02_12_00_20
 XDAIS_DIR      ?= $(DEFAULT_DEV_INSTALL_DIR)/xdais_7_24_00_04
 ULM_DIR        ?= $(LINUX_DEVKIT_ROOT)/usr/share/ti/ulm
+GDB_SERVER_DIR ?= $(LINUX_DEVKIT_ROOT)/usr/share/ti/gdbc6x
 
 export XDC_DIR := $(XDC_DIR)
 
@@ -17,6 +18,8 @@ endif
 PLATFORM  = am57x
 PROJECT   = monitor
 DEVICE    = DEVICE_AM572x
+SOC       = SOC_AM572x
+
 
 ## !Need -O* to inline CACHE_* functions!
 CC= cl6x -o3 -mv6600 --abi=eabi --gcc --mem_model:const=data --mem_model:data=far
@@ -27,13 +30,16 @@ INCLUDES += -i $(PDK_DIR)/packages -i $(TI_OCL_CGT_INSTALL)/include \
 	    -i $(BIOS_DIR)/packages -i $(EDMA3LLD_DIR)/packages     \
 	    -i $(FC_DIR)/packages -i $(XDAIS_DIR)/packages
 INCLUDES += -D$(DEVICE)
-## INCLUDES += -i $(ULM_DIR) -DULM_ENABLED
+INCLUDES += -D$(SOC)
+INCLUDES += -i $(ULM_DIR) -DULM_ENABLED
+INCLUDES += -i $(GDB_SERVER_DIR)/include -DGDB_ENABLED
 
 SOURCES = monitor.c util.c dsp_rpc.asm touch.asm builtins.c edma.c \
           edma3_config.c
 HEADERS = edma.h monitor.h util.h trace.h custom_rsc_table_vayu_dsp.h
 LIBS    = monitor.cmd
-## LIBS   += $(ULM_DIR)/libtiulm.ae66
+LIBS   += $(ULM_DIR)/libtiulm.ae66
+LIBS   += $(GDB_SERVER_DIR)/lib/gdb_server.ae66
 OBJS1   = $(patsubst %.c,%.obj,$(SOURCES))
 OBJS    = $(patsubst %.asm,%.obj,$(OBJS1))
 

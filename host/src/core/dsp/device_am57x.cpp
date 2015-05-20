@@ -36,7 +36,8 @@ DSPDevice::DSPDevice(unsigned char dsp_id)
       p_cores           (2), 
       p_num_events      (0), 
       p_dsp_mhz         (600), // 600 MHz 
-      p_worker          (0), 
+      p_worker_dispatch  (0), 
+      p_worker_completion(0), 
       p_stop            (false),
       p_initialized     (false), 
       p_dsp_id          (dsp_id), 
@@ -101,6 +102,7 @@ DSPDevice::DSPDevice(unsigned char dsp_id)
     p_device_ddr_heap2.configure(global2,          gsize2, true);
     p_device_ddr_heap3.configure(global3,          gsize3, true);
     p_device_l2_heap.configure  (p_addr_local_mem, p_size_local_mem);
+    p_device_msmc_heap.configure(p_addr_msmc_mem,  p_size_msmc_mem);
 
     init_ulm(gsize1, gsize2, gsize3);
 
