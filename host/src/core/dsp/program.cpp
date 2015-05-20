@@ -98,7 +98,8 @@ using namespace Coal;
 
 DSPProgram::DSPProgram(DSPDevice *device, Program *program)
 : DeviceProgram(), p_device(device), p_program(program), p_program_handle(-1),
-  p_loaded(false), p_keep_files(false), p_cache_kernels(false)
+  p_loaded(false), p_keep_files(false), p_cache_kernels(false), p_debug(false),
+  p_info(false)
 {
     char *keep = getenv("TI_OCL_KEEP_FILES");
     if (keep) p_keep_files = true;
