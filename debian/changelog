@@ -1,3 +1,9 @@
+ti-opencl (01.01.02.00-0ubuntu0~ppa1) trusty; urgency=medium
+
+  * AM57x : enabled dispatch of out of order tasks to both DSP cores
+
+ -- TI Keystone PPA <ti-keystone-ppa@list.ti.com>  Wed, 20 May 2015 10:38:59 -0500
+
 ti-opencl (01.01.01.02-0ubuntu0~ppa1) trusty; urgency=medium
 
   * Give larger alignment to buffers allocated in extended memory to help MPAX
