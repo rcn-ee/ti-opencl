@@ -71,6 +71,20 @@ BUILTINS_DIR=../builtins
 BUILTINS=$(BUILTINS_DIR)/dsp.lib
 
 
+#---------------------------------------------------------------------------
+# Function to create the dsp symbols database
+#----------------------------------------------------------------------------
+define create_dsp_syms
+	@echo Creating $(2)
+	@nm6x -l $(1) | grep PROT | awk -F\| '{ print "\t.weak "$$8"\n"$$8"\t.set "$$2 };' >  $(2).asm
+	@nm6x -l $(1) | grep FUNC | grep -fexport_syms | awk -F\| '{ print "\t.weak "$$8"\n"$$8"\t.set "$$2 };' >> $(2).asm
+	@$(CC) $(2).asm
+	@cp dsp_link_commands $(2)
+	@rm -f $(1).syms.tmp* $(1).asm
+endef
+
+
+
 .PHONY: all dsp0 dsp1
 all: dsp0 dsp1
 	@diff -q dsp0.syms dsp1.syms
@@ -93,12 +107,7 @@ dsp1.out: custom_rsc_table_vayu_dsp1.obj $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD)
 	$(CC) -z --priority -w -x -m$@.map --define=DDR3_FCSECTION=DDR3_FC1 $^ -I$(TI_OCL_CGT_INSTALL)/lib -llibc.a -o $@
 
 %.syms: %.out
-	@echo Creating $@
-	@nm6x -l $^ | grep PROT | awk -F\| '{ print $$8"="$$2";" };' >  $^.syms.tmp
-	@nm6x -l $^ | grep FUNC | grep -fexport_syms | awk -F\| '{ print $$8"="$$2";" };' >> $^.syms.tmp
-	@sort $^.syms.tmp | uniq > $^.syms.tmp1
-	@cat $^.syms.tmp1 dsp_link_commands >  $@
-	@rm -f $^.syms.tmp* library.fcns dsp.nm6x
+	$(call create_dsp_syms, $^, $@)
 
 $(LIBM): 
 	$(MAKE) -C $(LIBM_DIR) -j4 
