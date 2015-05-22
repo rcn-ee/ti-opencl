@@ -87,7 +87,6 @@ class DSPDevice : public DeviceInterface, public Lockable
         bool   stop();
         bool   availableEvent();
         Event *getEvent(bool &stop);
-        void   push_frontEvent(Event *event);
 
         bool hostSchedule() const;
         unsigned int numDSPs() const;
@@ -126,8 +125,8 @@ class DSPDevice : public DeviceInterface, public Lockable
         bool  clMallocQuery(void* ptr, DSPDevicePtr64* p_addr, size_t* p_size);
         bool  isInClMallocedRegion(void *ptr);
 
-
-        int   mail_to   (Msg_t& msg, unsigned core = 0);
+        int  numHostMails(Msg_t& msg) const;
+        void mail_to   (Msg_t& msg, unsigned core = 0);
         bool mail_query();
         int  mail_from ();
 
@@ -138,6 +137,8 @@ class DSPDevice : public DeviceInterface, public Lockable
         void dump_complete_pending();
         bool any_complete_pending();
         bool gotEnoughToWorkOn();
+        pthread_cond_t  *get_dispatch_cond()  { return &p_dispatch_cond;  }
+        pthread_mutex_t *get_dispatch_mutex() { return &p_dispatch_mutex; }
 
         std::string builtinsHeader(void) const { return "dsp.h"; }
 
@@ -168,6 +169,8 @@ class DSPDevice : public DeviceInterface, public Lockable
         std::list<Event *> p_events;
         pthread_cond_t     p_events_cond;
         pthread_mutex_t    p_events_mutex;
+        pthread_cond_t     p_dispatch_cond;
+        pthread_mutex_t    p_dispatch_mutex;
         bool               p_stop; 
         bool               p_initialized;
         unsigned char      p_dsp_id;

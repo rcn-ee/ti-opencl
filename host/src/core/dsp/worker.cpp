@@ -75,6 +75,14 @@ void handle_event_completion(DSPDevice *device)
     bool   done = device->get_complete_pending(k_id, event);
     if (!done) return;
 
+    /*-------------------------------------------------------------------------
+    * If a mailbox slot becomes available, signal the dispatch worker thread.
+    *------------------------------------------------------------------------*/
+    pthread_mutex_lock(device->get_dispatch_mutex());
+    if (device->num_complete_pending() < MAX_NUM_COMPLETION_PENDING)
+        pthread_cond_broadcast(device->get_dispatch_cond());
+    pthread_mutex_unlock(device->get_dispatch_mutex());
+
     KernelEvent    *e  = (KernelEvent *) event;
     DSPKernelEvent *ke = (DSPKernelEvent *)e->deviceData();
     ke->free_tmp_bufs();
@@ -122,13 +130,19 @@ bool handle_event_dispatch(DSPDevice *device)
     * Otherwise, we might overrun the available mail slots, MPM mail (K2H)
     * will be busy waiting until an empty mail slot becomes available, while
     * MessageQ mail (AM57) will cause a hang in events conformance test.
+    * Note that waiting here will NOT create a deadlock, for two reasons:
+    * 1) In critical section, it does not try to acquire another lock.
+    * 2) Only completion worker thread can wake up this thread.  Completion
+    *    worker thread will never wait for any other threads, except the mail
+    *    back from DSP.  num_complete_pending >= MAX_NUM_COMPLETION_PENDING
+    *    means that there will be mail back from DSP.
     *--------------------------------------------------------------------*/
-    if ((t == Event::NDRangeKernel || t == Event::TaskKernel) &&
-        device->num_complete_pending() >= MAX_NUM_COMPLETION_PENDING)
-    {
-        device->push_frontEvent(event);
-        return false;
-    }
+    pthread_mutex_lock(device->get_dispatch_mutex());
+    while ((t == Event::NDRangeKernel || t == Event::TaskKernel) &&
+           device->num_complete_pending() >= MAX_NUM_COMPLETION_PENDING)
+        pthread_cond_wait(device->get_dispatch_cond(),
+                          device->get_dispatch_mutex());
+    pthread_mutex_unlock(device->get_dispatch_mutex());
 
     CommandQueue *              queue = 0;
     cl_command_queue_properties queue_props = 0;
@@ -550,8 +564,6 @@ void *dsp_worker_event_completion(void *data)
 
         if (stop && !device->any_complete_pending()) break;
 
-        // Need a min sleep of 1us for K2H mailbox. Will move 
-        // into K2H MBox implementation.
-        usleep(env_sleep);
+        if (env_sleep >= 0) usleep(env_sleep);
     }
 }
