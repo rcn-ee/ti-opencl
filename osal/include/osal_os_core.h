@@ -95,7 +95,7 @@ int32 TI_OSAL_TaskSetPriority       (uint32 task_id, uint32 new_priority);
 int32 TI_OSAL_TaskRegister          (void);
 uint32 TI_OSAL_TaskGetId            (void);
 int32 TI_OSAL_TaskGetIdByName       (uint32 *task_id, const char *task_name);
-int32 TI_OSAL_TaskGetInfo           (uint32 task_id, OS_task_prop_t *task_prop);          
+int32 TI_OSAL_TaskGetInfo           (uint32 task_id, OSAL_task_prop_t *task_prop);
 
 /*
 ** Mutex API
@@ -106,13 +106,13 @@ int32 TI_OSAL_MutSemGive             (uint32 mut_id);
 int32 TI_OSAL_MutSemTake             (uint32 mut_id);
 int32 TI_OSAL_MutSemDelete           (uint32 mut_id);  
 int32 TI_OSAL_MutSemGetIdByName      (uint32 *mut_id, const char *mut_name); 
-int32 TI_OSAL_MutSemGetInfo          (uint32 mut_id, OS_mut_sem_prop_t *mut_prop);
+int32 TI_OSAL_MutSemGetInfo          (uint32 mut_id, OSAL_mut_sem_prop_t *mut_prop);
 
 /*
 ** Conditional Variable API
 */
 
-int32 TI_OSAL_ConVarCreate           (uint32 *cv_id, const char *cv_name, uint32 mut_id, uint32 options);
+int32 TI_OSAL_ConVarCreate           (uint32 *cv_id, const char *cv_name, uint32 options);
 int32 TI_OSAL_ConVarDelete           (uint32 cv_id);
 int32 TI_OSAL_ConVarSignal           (uint32 cv_id);
 int32 TI_OSAL_ConVarBroadcast        (uint32 cv_id);
