@@ -38,7 +38,7 @@ opencl: $(OCL_MONITOR_OUT) $(OCL_MONITOR_SYMS) $(OCL_MONITOR_SYMS_OBJ) $(OCL_BUI
 
 
 $(OCL_BUILD_DIR)/Makefile: $(filter-out $(wildcard $(OCL_BUILD_DIR)), $(OCL_BUILD_DIR)) 
-	cd $(OCL_BUILD_DIR); cmake $(OPENCL_CMAKE_OPTS) ../opencl
+	cd $(OCL_BUILD_DIR); cmake $(OPENCL_CMAKE_OPTS) ../host
 
 
 $(OCL_BUILD_DIR): 
