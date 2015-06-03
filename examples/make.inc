@@ -10,8 +10,19 @@ LIBS  = -lOpenCL -locl_util
 
 UNAME_M :=$(shell uname -m)
 
+# ----------------------------------------------------------------------------
+# If TI_OCL_INSTALL is set, setup make from that location
+# ----------------------------------------------------------------------------
+ifneq ($(TI_OCL_INSTALL),)
+    CPP        = g++
+    CPP_FLAGS += -I$(TI_OCL_INSTALL)/usr/include
+    LD_FLAGS  += -L$(TI_OCL_INSTALL)/usr/lib 
+    LIBS      += -lbfd
 
-ifneq (,$(findstring 86, $(UNAME_M)))
+# ----------------------------------------------------------------------------
+# Otherwise, if making on x86 assume cross compile for Arm host
+# ----------------------------------------------------------------------------
+else ifneq (,$(findstring 86, $(UNAME_M)))
     .DEFAULT_GOAL := cross
 
     # In a cross compile environment we are assuming that the EVM file system
@@ -55,7 +66,7 @@ endif
 
 $(EXE):
 
-cross: $(EXE)
+cross:     $(EXE)
 
 clean::
 	@rm -f $(EXE) *.o *.obj *.out *.asm *.if *.opt *.bc *.objc *.map *.bin *.dsp_h

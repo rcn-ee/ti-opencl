@@ -103,11 +103,9 @@ namespace Coal
     {
         p_lock_fd = begin_file_lock_crit_section("/var/lock/opencl");
 
-#if !defined(DSPC868X)
 	// For now, don't add the CPU device on K2H platforms unless it is
 	// asserted that we want to enable it (eg. the ooo example)
 	if (getenv("TI_OCL_CPU_DEVICE_ENABLE") != NULL)
-#endif
 	   p_devices.push_back((_cl_device_id*)new Coal::CPUDevice);
 
        for (int i = 0; i < Driver::instance()->num_dsps(); i++)

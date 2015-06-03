@@ -159,26 +159,14 @@ if (${BUILD_OUTPUT} STREQUAL "all" OR ${BUILD_OUTPUT} STREQUAL "lib")
   install(DIRECTORY DESTINATION /usr/include/CL                  ${OCL_DPERMS})
   install(FILES opencl-manifest.html  DESTINATION /usr/share/doc/ti-opencl 
                                                                  ${OCL_FPERMS})
-  install(FILES doc/opencl-1.1.pdf DESTINATION /usr/share/doc/ti-opencl 
-                                                                 ${OCL_FPERMS})
-  install(FILES doc/opencl-cplusplus-1.1.pdf DESTINATION 
-                                        /usr/share/doc/ti-opencl ${OCL_FPERMS})
   install(FILES     util/ocl_util.h  DESTINATION /usr/include    ${OCL_FPERMS})
   install(DIRECTORY include/CL       DESTINATION /usr/include    ${OCL_DPERMS})
 
   if (C6678_BUILD)
     install(DIRECTORY DESTINATION init                           ${OCL_DPERMS})
-    install(DIRECTORY scripts DESTINATION .                      ${OCL_DPERMS})
-    install(DIRECTORY cmem DESTINATION .                         ${OCL_DPERMS})
     install(FILES init/init_dspc8681.out DESTINATION lib         ${OCL_FPERMS})
     install(FILES init/init_dspc8682.out DESTINATION lib         ${OCL_FPERMS})
-    install(PROGRAMS bin/init_global_shared_mem DESTINATION bin  ${OCL_BPERMS})
     install(PROGRAMS bin/oclenv DESTINATION bin                  ${OCL_BPERMS})
-    install(FILES doc/readme_c6678.txt DESTINATION . RENAME readme.txt 
-                                                                 ${OCL_FPERMS})
-  elseif(HAWKING_BUILD)
-    install(FILES doc/opencl_readme.txt DESTINATION 
-                                        /usr/share/doc/ti-opencl ${OCL_FPERMS})
   endif()
 endif()
 

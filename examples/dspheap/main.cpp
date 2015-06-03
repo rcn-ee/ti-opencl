@@ -55,6 +55,7 @@ int main(int argc, char *argv[])
    {
      Context context(CL_DEVICE_TYPE_ACCELERATOR);
      std::vector<Device> devices = context.getInfo<CL_CONTEXT_DEVICES>();
+     devices.resize(1); // Only run on one device for demonstration 
 
      /*------------------------------------------------------------------------
      * Create the underlying memory store for the heaps with OpenCL Buffers

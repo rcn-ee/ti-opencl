@@ -25,18 +25,16 @@
  *   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  *   THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
-kernel void oclwrapper1(global char *buf)
+kernel void oclwrapper1(global char *buf, int size)
 {
-    int wg_sz = get_local_size(0);
     int wg_id = get_group_id(0);
 
-    ccode1(&buf[wg_id * wg_sz], wg_sz);
+    ccode1(&buf[wg_id * size], size);
 }
 
-kernel void oclwrapper2(global char *buf)
+kernel void oclwrapper2(global char *buf, int size)
 {
-    int wg_sz = get_local_size(0);
     int wg_id = get_group_id(0);
 
-    ccode2(&buf[wg_id * wg_sz], wg_sz);
+    ccode2(&buf[wg_id * size], size);
 }

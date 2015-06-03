@@ -37,6 +37,7 @@ libm.cmd
 libm.fcns
 builtins.cmd
 builtins.fcns
+builds/
 buildh/
 buildh_builtins/
 ti-opencl*.tar.gz

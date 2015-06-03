@@ -134,7 +134,7 @@ void Driver::reset_and_load(int chip)
 
     const char *board  = get_board(pDevices_info[chip].switch_device);
     std::string init(installation);
-    init += "/lib/init_";
+    init += "/usr/share/ti/opencl/init_";
     init += board;
     init += ".out";
  
@@ -158,7 +158,7 @@ void Driver::reset_and_load(int chip)
     * Load monitor on the devices
     *------------------------------------------------------------------------*/
     std::string monitor(installation);
-    monitor += "/opencl/dsp.out";
+    monitor += "/usr/share/ti/opencl/dsp.out";
 
     ret = dnldmgr_get_image(monitor.c_str(), &image_handle, &entry);
     ERR(ret, "Get DSP image failed");
@@ -175,7 +175,7 @@ void* Driver::create_image_handle(void)
     if (! installation)  ERR(1, "TI_OCL_INSTALL env variable not set");
 
     std::string monitor(installation);
-    monitor += "/opencl/dsp.out";
+    monitor += "/usr/share/ti/opencl/dsp.out";
 
     void * image_handle;
     uint32_t entry;

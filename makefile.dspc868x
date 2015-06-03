@@ -1,11 +1,12 @@
 OCL_BUILD_ROOT= $(shell pwd)
 OCL_MAJ_VER=1
 OCL_VER=$(OCL_MAJ_VER).1.3
+PATCH=.0
 .SILENT:
 LLVM_VER=3.3
 
 # Needed by sub target makes
-export DESTDIR=$(HOME)/opencl-dspc8681-$(OCL_VER)
+export DESTDIR=$(HOME)/opencl-dspc8681_$(OCL_VER)$(PATCH)
 
 OCL_BUILD_DIR    = builds
 OCL_SRC_DIR      = host
@@ -17,11 +18,10 @@ OCL_MONITOR_OUT       = $(OCL_MONITOR_DIR)/dsp.out
 OCL_MONITOR_SYMS      = $(OCL_MONITOR_DIR)/dsp.syms
 OCL_MONITOR_SYMS_OBJ  = $(OCL_MONITOR_DIR)/dsp_syms.obj
 
-OCL_EXAMPLES = edmamgr matmpy simple dsplib_fft mandelbrot mandelbrot_native \
-               offline offline_embed platforms ccode null ooo vecadd         \
-               vecadd_openmp vecadd_openmp_t dspheap sgemm
+OCL_EXAMPLES = simple dsplib_fft mandelbrot dspheap vecadd \
+               offline offline_embed platforms ccode null ooo_callback 
 
-OCL_OMP_EXAMPLES = vecadd_openmp vecadd_openmp_t dgemm
+OCL_OMP_EXAMPLES = vecadd_openmp vecadd_openmp_t 
 
 
 .PHONY: all clean opencl install clone
@@ -35,6 +35,7 @@ all: opencl
 opencl: $(OCL_MONITOR_OUT) $(OCL_MONITOR_SYMS) $(OCL_MONITOR_SYMS_OBJ) $(OCL_BUILD_DIR)/Makefile 
 	$(MAKE) -C $(OCL_MONITOR_DIR)
 	$(MAKE) -C $(OCL_BUILD_DIR) -j4
+	$(MAKE) -C ${OCL_SRC_DIR}/init
 
 
 $(OCL_BUILD_DIR)/Makefile: $(filter-out $(wildcard $(OCL_BUILD_DIR)), $(OCL_BUILD_DIR)) 
@@ -49,37 +50,38 @@ $(OCL_MONITOR_OUT) $(OCL_MONITOR_SYMS) $(OCL_MONITOR_SYMS_OBJ):
 	$(MAKE) -C $(OCL_MONITOR_DIR)
 
 
-install:
-	install -m 755 -d ${DESTDIR}/bin
-	install -m 755 -d ${DESTDIR}/include
-	install -m 755 -d ${DESTDIR}/lib
-	install -m 755 -d ${DESTDIR}/opencl
+install: opencl
+	echo installing to ${DESTDIR}
+	install -m 755 -d ${DESTDIR}/usr/bin
+	install -m 755 -d ${DESTDIR}/usr/include
+	install -m 755 -d ${DESTDIR}/usr/lib
+	install -m 755 -d ${DESTDIR}/usr/share/ti/opencl
 	install -m 755 -d ${DESTDIR}/examples/opencl
 	install -m 755 -d ${DESTDIR}/examples/opencl+openmp
-	install -m 755 -d ${DESTDIR}/scripts
-	install -m 755 -d ${DESTDIR}/cmem
 
-	cp ${OCL_SRC_DIR}/init/init_dspc868*.out ${DESTDIR}/lib
-	cp ${OCL_SRC_DIR}/bin/*                  ${DESTDIR}/bin
-	cp ${OCL_SRC_DIR}/doc/readme_c6678.txt   ${DESTDIR}/readme.txt
-	cp ${OCL_SRC_DIR}/scripts/*              ${DESTDIR}/scripts/
-	cp ${OCL_SRC_DIR}/cmem/*.ko              ${DESTDIR}/cmem/
-	cp ${OCL_SRC_DIR}/cmem/*.sh              ${DESTDIR}/cmem/
+	cp ${OCL_SRC_DIR}/opencl-manifest.html  ${DESTDIR}
 
-	cp ${OCL_SRC_DIR}/clocl/x86/clocl       ${DESTDIR}/bin
-	cp -r ${OCL_SRC_DIR}/include/CL         ${DESTDIR}/include
-	cp -r ${OCL_BUILTINS_DIR}/include/*     ${DESTDIR}/opencl
-	cp ${OCL_SRC_DIR}/util/ocl_util.h       ${DESTDIR}/include
-	cp ${OCL_BUILD_DIR}/lib/libocl_util.a   ${DESTDIR}/lib
-	cp ${OCL_BUILD_DIR}/lib/libOpenCL.so.${OCL_VER}	 ${DESTDIR}/lib
-	cp -P ${OCL_BUILD_DIR}/lib/libOpenCL.so ${DESTDIR}/lib
-	cp -P ${OCL_BUILD_DIR}/lib/libOpenCL.so.${OCL_MAJ_VER}  ${DESTDIR}/lib
-	cp ${OCL_MONITOR_OUT}    	        ${DESTDIR}/opencl
-	cp ${OCL_MONITOR_SYMS}   	        ${DESTDIR}/opencl
-	cp ${OCL_MONITOR_SYMS_OBJ}   	        ${DESTDIR}/opencl
+	cp ${OCL_SRC_DIR}/bin/*                 ${DESTDIR}/usr/bin
+	cp ${OCL_SRC_DIR}/clocl/x86/clocl       ${DESTDIR}/usr/bin
+
+	cp -r ${OCL_SRC_DIR}/include/CL         ${DESTDIR}/usr/include
+	cp ${OCL_SRC_DIR}/util/ocl_util.h       ${DESTDIR}/usr/include
+
+	cp ${OCL_BUILD_DIR}/lib/libocl_util.a                   ${DESTDIR}/usr/lib
+	cp ${OCL_BUILD_DIR}/lib/libOpenCL.so.${OCL_VER}	        ${DESTDIR}/usr/lib
+	cp -P ${OCL_BUILD_DIR}/lib/libOpenCL.so                 ${DESTDIR}/usr/lib
+	cp -P ${OCL_BUILD_DIR}/lib/libOpenCL.so.${OCL_MAJ_VER}  ${DESTDIR}/usr/lib
+
+	cp -r ${OCL_BUILTINS_DIR}/include/*      ${DESTDIR}/usr/share/ti/opencl
+	cp ${OCL_MONITOR_OUT}    	         ${DESTDIR}/usr/share/ti/opencl
+	cp ${OCL_MONITOR_SYMS}   	         ${DESTDIR}/usr/share/ti/opencl
+	cp ${OCL_MONITOR_SYMS_OBJ}   	         ${DESTDIR}/usr/share/ti/opencl
+	cp ${OCL_SRC_DIR}/init/init_dspc868*.out ${DESTDIR}/usr/share/ti/opencl
+
 	for dir in $(OCL_EXAMPLES); do \
           cp -r  ${OCL_EXAMPLES_DIR}/$$dir ${DESTDIR}/examples/opencl; \
 	done
+
 	for dir in $(OCL_OMP_EXAMPLES); do \
           cp -r  ${OCL_EXAMPLES_DIR}/$$dir ${DESTDIR}/examples/opencl+openmp; \
 	done
@@ -92,6 +94,7 @@ install:
 clean:
 	$(MAKE) -C $(OCL_SRC_DIR)/clocl clean
 	$(MAKE) -C $(OCL_MONITOR_DIR) clean
+	$(MAKE) -C ${OCL_SRC_DIR}/init clean
 	rm -rf $(OCL_BUILD_DIR)
 
 
