@@ -16,7 +16,7 @@ ifeq ($(TI_OCL_CGT_INSTALL),)
   $(error Monitor requires TI_OCL_CGT_INSTALL to point to C6000 Codegen tools)
 endif
 
-SDK_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/desktop-linux-sdk_01_00_00_07
+SDK_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/desktop-linux-sdk_01_00_03_00
 MPM_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/mpm_2.00.01.04
 BIOS_DIR       ?= $(DEFAULT_DEV_INSTALL_DIR)/bios_6_37_00_20
 OMP_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/openmp_dsp_2_01_16_03

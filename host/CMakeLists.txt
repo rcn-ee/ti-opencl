@@ -5,7 +5,7 @@ project(ti-opencl)
 
 if (${BUILD_TARGET} MATCHES "DSPC868x")
     set(C6678_BUILD on)
-    set(SDK "/opt/ti/desktop-linux-sdk_01_00_00_07")
+    set(SDK "/opt/ti/desktop-linux-sdk_01_00_03_00")
     MESSAGE(STATUS "Build Target Is C6678")
 elseif (${BUILD_TARGET} MATCHES "ARM_K2H")
     set(HAWKING_BUILD on)
