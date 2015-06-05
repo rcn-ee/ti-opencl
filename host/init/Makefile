@@ -1,7 +1,7 @@
 PDK= /opt/ti/pdk_C6678_1_1_2_5
-SDK= /opt/ti/desktop-linux-sdk_01_00_00_07
+SDK= /opt/ti/desktop-linux-sdk_01_00_03_00
 CG=${TI_OCL_CGT_INSTALL}
-CC= $(CG)/bin/cl6x -g -k -mv6600 --abi=eabi --mem_model:const=data 
+CC= $(CG)/bin/cl6x -g -mv6600 --abi=eabi --mem_model:const=data 
 
 INCLUDES= -i $(PDK)/packages/ti/platform \
           -i $(PDK)/packages \

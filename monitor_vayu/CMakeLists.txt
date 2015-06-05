@@ -9,5 +9,6 @@ endif()
 
 install(FILES dsp0.out  DESTINATION /usr/share/ti/opencl RENAME dsp.out  ${OCL_FPERMS})
 install(FILES dsp0.syms DESTINATION /usr/share/ti/opencl RENAME dsp.syms ${OCL_FPERMS})
+install(FILES dsp0.syms.obj DESTINATION /usr/share/ti/opencl RENAME dsp_syms.obj ${OCL_FPERMS})
 install(FILES dsp0.out DESTINATION /lib/firmware RENAME dra7-dsp1-fw.xe66 ${OCL_FPERMS})
 install(FILES dsp1.out DESTINATION /lib/firmware RENAME dra7-dsp2-fw.xe66 ${OCL_FPERMS})

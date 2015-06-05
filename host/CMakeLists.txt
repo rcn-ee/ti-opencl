@@ -5,7 +5,7 @@ project(ti-opencl)
 
 if (${BUILD_TARGET} MATCHES "DSPC868x")
     set(C6678_BUILD on)
-    set(SDK "/opt/ti/desktop-linux-sdk_01_00_00_07")
+    set(SDK "/opt/ti/desktop-linux-sdk_01_00_03_00")
     MESSAGE(STATUS "Build Target Is C6678")
 elseif (${BUILD_TARGET} MATCHES "ARM_K2H")
     set(HAWKING_BUILD on)
@@ -30,7 +30,7 @@ set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/modules)
 # debian/changelog!!!
 SET(OCL_SPEC_MAJOR_VERSION 1)
 SET(OCL_SPEC_MINOR_VERSION 1)
-SET(RELEASE_VERSION 2)
+SET(RELEASE_VERSION 3)
 # use 2-digits to specify patch version as there is no need to convert
 # to library versioning
 SET(PATCH_VERSION   00)
@@ -159,26 +159,14 @@ if (${BUILD_OUTPUT} STREQUAL "all" OR ${BUILD_OUTPUT} STREQUAL "lib")
   install(DIRECTORY DESTINATION /usr/include/CL                  ${OCL_DPERMS})
   install(FILES opencl-manifest.html  DESTINATION /usr/share/doc/ti-opencl 
                                                                  ${OCL_FPERMS})
-  install(FILES doc/opencl-1.1.pdf DESTINATION /usr/share/doc/ti-opencl 
-                                                                 ${OCL_FPERMS})
-  install(FILES doc/opencl-cplusplus-1.1.pdf DESTINATION 
-                                        /usr/share/doc/ti-opencl ${OCL_FPERMS})
   install(FILES     util/ocl_util.h  DESTINATION /usr/include    ${OCL_FPERMS})
   install(DIRECTORY include/CL       DESTINATION /usr/include    ${OCL_DPERMS})
 
   if (C6678_BUILD)
     install(DIRECTORY DESTINATION init                           ${OCL_DPERMS})
-    install(DIRECTORY scripts DESTINATION .                      ${OCL_DPERMS})
-    install(DIRECTORY cmem DESTINATION .                         ${OCL_DPERMS})
     install(FILES init/init_dspc8681.out DESTINATION lib         ${OCL_FPERMS})
     install(FILES init/init_dspc8682.out DESTINATION lib         ${OCL_FPERMS})
-    install(PROGRAMS bin/init_global_shared_mem DESTINATION bin  ${OCL_BPERMS})
     install(PROGRAMS bin/oclenv DESTINATION bin                  ${OCL_BPERMS})
-    install(FILES doc/readme_c6678.txt DESTINATION . RENAME readme.txt 
-                                                                 ${OCL_FPERMS})
-  elseif(HAWKING_BUILD)
-    install(FILES doc/opencl_readme.txt DESTINATION 
-                                        /usr/share/doc/ti-opencl ${OCL_FPERMS})
   endif()
 endif()
 

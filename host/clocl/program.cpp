@@ -90,7 +90,7 @@ std::string get_ocl_dsp()
     if (target_rootdir) stdpath = target_rootdir + stdpath;
 
     const char *ocl_install = getenv("TI_OCL_INSTALL");
-    if (ocl_install) { stdpath = ocl_install; stdpath += "/opencl"; }
+    if (ocl_install) { stdpath = ocl_install; stdpath += "/usr/share/ti/opencl"; }
 
     struct stat st;
     stat(stdpath.c_str(), &st);

@@ -37,7 +37,8 @@ using namespace cl;
 using namespace std;
 
 char    data [1 << 20];
-#define WGSZ (1 << 12)
+#define BYTES_PER_WG (1 << 12)
+#define WGS (sizeof(data)/ BYTES_PER_WG)
 
 /******************************************************************************
 * main
@@ -85,9 +86,10 @@ int main(int argc, char *argv[])
         *--------------------------------------------------------------------*/
         Kernel kernel1(program, "oclwrapper1");
         kernel1.setArg(0, buffer);
+        kernel1.setArg(1, BYTES_PER_WG);
         Q.enqueueNDRangeKernel(kernel1, NDRange(0),            // offset
-                                        NDRange(sizeof(data)), // global size
-                                        NDRange(WGSZ));        // WG size
+                                        NDRange(WGS), // global size
+                                        NDRange(1));        // WG size
 
         /*---------------------------------------------------------------------
         * Call the second kernel -> c code function. 
@@ -100,9 +102,10 @@ int main(int argc, char *argv[])
         *--------------------------------------------------------------------*/
         Kernel kernel2(program, "oclwrapper2");
         kernel2.setArg(0, buffer);
+        kernel2.setArg(1, BYTES_PER_WG);
         Q.enqueueNDRangeKernel(kernel2, NDRange(0),            // offset
-                                        NDRange(sizeof(data)), // global size
-                                        NDRange(WGSZ));        // WG size
+                                        NDRange(WGS), // global size
+                                        NDRange(1));        // WG size
 
         /*---------------------------------------------------------------------
         * Read the buffer back into host memory

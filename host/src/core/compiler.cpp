@@ -132,7 +132,11 @@ bool Compiler::compile(const std::string &options,
     p_device->info(CL_DEVICE_TYPE, sizeof(devtype), &devtype, 0);
 
     if (devtype == CL_DEVICE_TYPE_CPU)
+#if defined(__x86_64__) && defined(DSPC868X)
+       target_opts.Triple = "x86_64-unknown-linux-gnu";
+#else
        target_opts.Triple = "spir-unknown-unknown-unknown";
+#endif
 
 #if 0
     // Originally: target_opts.Triple = llvm::sys::getHostTriple();
