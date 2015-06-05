@@ -4,9 +4,10 @@ OCL_VER=$(OCL_MAJ_VER).1.4
 PATCH=.0
 .SILENT:
 LLVM_VER=3.3
+MACHINE := $(shell uname -m)
 
 # Needed by sub target makes
-export DESTDIR=$(HOME)/opencl-dspc8681_$(OCL_VER)$(PATCH)
+export DESTDIR=$(HOME)/opencl-dspc8681_$(OCL_VER)$(PATCH)_linux_$(MACHINE)
 
 OCL_BUILD_DIR    = builds
 OCL_SRC_DIR      = host
