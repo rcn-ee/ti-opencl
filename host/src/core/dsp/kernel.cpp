@@ -656,10 +656,13 @@ cl_int DSPKernelEvent::run(Event::Type evtype)
     * For host scheduled devices, i.e. AM57, NDRkernels send to all cores.
     * The monitor will determine how to divide the work. Need to wait on 
     * all replies.
+    * Order!! After switching to two worker threads, we must push the complete
+    * pending first, then send out the mails, to prevent the extrememly fast
+    * DSP reply that has no corresponding complete pending from happening.
     *--------------------------------------------------------------------*/
-    int num_return_mails = p_device->mail_to(p_msg);
-
-    p_device->push_complete_pending(p_kernel_id, p_event, num_return_mails);
+    p_device->push_complete_pending(p_kernel_id, p_event,
+                                    p_device->numHostMails(p_msg));
+    p_device->mail_to(p_msg);
 
     /*-------------------------------------------------------------------------
     * Do not wait for completion
