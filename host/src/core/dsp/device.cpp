@@ -187,8 +187,8 @@ void DSPDevice::init()
     *------------------------------------------------------------------------*/
     pthread_cond_init(&p_events_cond, 0);
     pthread_mutex_init(&p_events_mutex, 0);
-    pthread_cond_init(&p_dispatch_cond, 0);
-    pthread_mutex_init(&p_dispatch_mutex, 0);
+    pthread_cond_init(&p_worker_cond, 0);
+    pthread_mutex_init(&p_worker_mutex, 0);
     pthread_create(&p_worker_dispatch,   0, &dsp_worker_event_dispatch,   this);
     pthread_create(&p_worker_completion, 0, &dsp_worker_event_completion, this);
 
@@ -204,6 +204,27 @@ DSPDevice::~DSPDevice()
     * Inform the cores on the device to stop listening for commands
     *------------------------------------------------------------------------*/
     mail_to(exitMsg);
+
+    if (p_initialized)
+    {
+        /*---------------------------------------------------------------------
+        * Terminate the workers and wait for them
+        *--------------------------------------------------------------------*/
+        pthread_mutex_lock(&p_events_mutex);
+
+        p_stop = true;
+
+        pthread_cond_broadcast(&p_events_cond);
+        pthread_mutex_unlock(&p_events_mutex);
+
+        pthread_join(p_worker_dispatch, 0);
+        pthread_join(p_worker_completion, 0);
+
+        pthread_mutex_destroy(&p_events_mutex);
+        pthread_cond_destroy(&p_events_cond);
+        pthread_mutex_destroy(&p_worker_mutex);
+        pthread_cond_destroy(&p_worker_cond);
+    }
 
     delete p_mb;
     p_mb = NULL;
@@ -221,26 +242,6 @@ DSPDevice::~DSPDevice()
 #if defined(DEVICE_K2H)
     free_ocl_qmss_res();
 #endif
-
-    if (!p_initialized) return;
-
-    /*-------------------------------------------------------------------------
-    * Terminate the workers and wait for them
-    *------------------------------------------------------------------------*/
-    pthread_mutex_lock(&p_events_mutex);
-
-    p_stop = true;
-
-    pthread_cond_broadcast(&p_events_cond);
-    pthread_mutex_unlock(&p_events_mutex);
-
-    pthread_join(p_worker_dispatch, 0);
-    pthread_join(p_worker_completion, 0);
-
-    pthread_mutex_destroy(&p_events_mutex);
-    pthread_cond_destroy(&p_events_cond);
-    pthread_mutex_destroy(&p_dispatch_mutex);
-    pthread_cond_destroy(&p_dispatch_cond);
 }
 
 /******************************************************************************

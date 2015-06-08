@@ -61,27 +61,58 @@ using namespace Coal;
 
 /******************************************************************************
 * handle_event_completion
+* Blocks on: 1) worker_cond: not stop and no complete_pending is available
+*            2) MessageQ: mail_from() on AM57 if no mail is available
+* Signals to: 1) worker_cond: after a mail slot becomes available
+*                             (could wake up handle_dispatch thread)
+*             2) events_cond: when completing current event triggers more
+*                             events being pushed to device queue
+*                             (could wake up handle_dispatch thread)
 ******************************************************************************/
-void handle_event_completion(DSPDevice *device)
+bool handle_event_completion(DSPDevice *device)
 {
+    /*---------------------------------------------------------------------
+    * If device is not stopping, and there is no complete_pending available,
+    * wait. The handle_dispatch thread will wake me up when either stop is
+    * true or complete_pending becomes available.
+    *--------------------------------------------------------------------*/
+    pthread_mutex_lock(device->get_worker_mutex());
+    while ((! device->stop()) && device->num_complete_pending() == 0)
+        pthread_cond_wait(device->get_worker_cond(),
+                          device->get_worker_mutex());
+    pthread_mutex_unlock(device->get_worker_mutex());
+    if (device->stop() && !device->any_complete_pending())  return true;
+
+    /*---------------------------------------------------------------------
+    * When we can make mail_from() blocking wait on mpm mailbox (K2H), there
+    * will be no need to mail_query and sleep here.  Stay tuned. (TODO)
+    *--------------------------------------------------------------------*/
+    if (! device->mail_query())
+    {
+#if defined(DEVICE_K2H) || defined(DSPC868X)
+        usleep(1);
+#endif
+        return false;
+    }
+
     int k_id  = device->mail_from();
 
     /*-------------------------------------------------------------------------
     * If this is a false completion message due to prinft traffic, etc.
     *------------------------------------------------------------------------*/
-    if (k_id < 0) return;
+    if (k_id < 0) return false;
 
     Event* event;
     bool   done = device->get_complete_pending(k_id, event);
-    if (!done) return;
+    if (!done) return false;
 
     /*-------------------------------------------------------------------------
-    * If a mailbox slot becomes available, signal the dispatch worker thread.
+    * A mailbox slot just becomes available, signal the handle_dispatch thread.
     *------------------------------------------------------------------------*/
-    pthread_mutex_lock(device->get_dispatch_mutex());
+    pthread_mutex_lock(device->get_worker_mutex());
     if (device->num_complete_pending() < MAX_NUM_COMPLETION_PENDING)
-        pthread_cond_broadcast(device->get_dispatch_cond());
-    pthread_mutex_unlock(device->get_dispatch_mutex());
+        pthread_cond_broadcast(device->get_worker_cond());
+    pthread_mutex_unlock(device->get_worker_mutex());
 
     KernelEvent    *e  = (KernelEvent *) event;
     DSPKernelEvent *ke = (DSPKernelEvent *)e->deviceData();
@@ -100,11 +131,19 @@ void handle_event_completion(DSPDevice *device)
     if (queue_props & CL_QUEUE_PROFILING_ENABLE)
        event->updateTiming(Event::End);
     event->setStatus(Event::Complete);
+
+    return false;
 }
 
 
 /******************************************************************************
 * handle_event_dispatch
+* Blocks on: 1) events_cond: when no available events are in device queue
+*            2) worker_cond: number of msgs in mail has exceeded threshold
+* Signals to: 1) worker_cond: after stop becomes true
+*                             (could wake up handle_completion thread)
+*             2) worker_cond: after an event is dispatch to device
+*                             (could wake up handle_completion thread)
 ******************************************************************************/
 bool handle_event_dispatch(DSPDevice *device)
 {
@@ -112,12 +151,23 @@ bool handle_event_dispatch(DSPDevice *device)
     cl_int     errcode;
     Event *    event;
 
+    /*---------------------------------------------------------------------
+    * Blocking if no available event in device queue.  This handle_dispatch
+    * will be waken up once events are pushed into device queue.
+    *--------------------------------------------------------------------*/
     event = device->getEvent(stop);
 
     /*---------------------------------------------------------------------
-    * Ensure we have a good event and we don't have to stop
+    * Ensure we have a good event and we don't have to stop.
+    * When we need to stop, also signal the handle_completion thread.
     *--------------------------------------------------------------------*/
-    if (stop)   return true;
+    if (stop)
+    {
+        pthread_mutex_lock(device->get_worker_mutex());
+        pthread_cond_broadcast(device->get_worker_cond());
+        pthread_mutex_unlock(device->get_worker_mutex());
+        return true;
+    }
     if (!event) return false;
 
     /*---------------------------------------------------------------------
@@ -132,17 +182,17 @@ bool handle_event_dispatch(DSPDevice *device)
     * MessageQ mail (AM57) will cause a hang in events conformance test.
     * Note that waiting here will NOT create a deadlock, for two reasons:
     * 1) In critical section, it does not try to acquire another lock.
-    * 2) Only completion worker thread can wake up this thread.  Completion
-    *    worker thread will never wait for any other threads, except the mail
-    *    back from DSP.  num_complete_pending >= MAX_NUM_COMPLETION_PENDING
-    *    means that there will be mail back from DSP.
+    * 2) Only handle_completion thread can wake up this thread.  Because
+    *    num_complete_pending >= MAX_NUM_COMPLETION_PENDING, handle_completion
+    *    thread will NOT be waiting for this handle_dispatch thread
+    *    and will be waiting for mails from DSP.
     *--------------------------------------------------------------------*/
-    pthread_mutex_lock(device->get_dispatch_mutex());
+    pthread_mutex_lock(device->get_worker_mutex());
     while ((t == Event::NDRangeKernel || t == Event::TaskKernel) &&
            device->num_complete_pending() >= MAX_NUM_COMPLETION_PENDING)
-        pthread_cond_wait(device->get_dispatch_cond(),
-                          device->get_dispatch_mutex());
-    pthread_mutex_unlock(device->get_dispatch_mutex());
+        pthread_cond_wait(device->get_worker_cond(),
+                          device->get_worker_mutex());
+    pthread_mutex_unlock(device->get_worker_mutex());
 
     CommandQueue *              queue = 0;
     cl_command_queue_properties queue_props = 0;
@@ -495,7 +545,17 @@ bool handle_event_dispatch(DSPDevice *device)
             DSPKernelEvent     *ke = (DSPKernelEvent *)e->deviceData();
 
             errcode = ke->run(t);
-            if (errcode == CL_SUCCESS) return false;
+            if (errcode == CL_SUCCESS)
+            {
+               /*-------------------------------------------------------------
+                * If handle_completion thread is waiting on complete_pending
+                * becoming available, now it is time to wake it up.
+                *------------------------------------------------------------*/
+                pthread_mutex_lock(device->get_worker_mutex());
+                pthread_cond_broadcast(device->get_worker_cond());
+                pthread_mutex_unlock(device->get_worker_mutex());
+                return false;
+            }
             break;
         }
         default: break;
@@ -530,12 +590,18 @@ void *dsp_worker_event_dispatch(void *data)
 
     while (true)
     {
-        bool stop = device->stop();
-
-        if (!stop && device->availableEvent())
-            stop |= handle_event_dispatch(device);
-
-        if (stop) break;
+        /*---------------------------------------------------------------------
+        * 1. Return true if device->stop() is true, time to stop working.
+        * 2. If there is available event, handle the event dispatch:
+        *    EITHER an event is dispatched, OR it waits for a mail slot to
+        *    become available to dispatch (will be waken up by the completion
+        *    thread).
+        * 3. If there is no available event, wait for an event to become
+        *    available (either the application thread the completion thread
+        *    will push more events onto the device queue), or wait for stop
+        *    command (will be waken up by application thread).
+        *--------------------------------------------------------------------*/
+        if (handle_event_dispatch(device))  break;
 
         if (env_sleep >= 0) usleep(env_sleep);
     }
@@ -549,7 +615,7 @@ void *dsp_worker_event_completion(void *data)
     char *str_nice  = getenv("TI_OCL_WORKER_NICE");
     char *str_sleep = getenv("TI_OCL_WORKER_SLEEP");
     int   env_nice  = (str_nice)  ? atoi(str_nice)  : 4;
-    int   env_sleep = (str_sleep) ? atoi(str_sleep) : 1;
+    int   env_sleep = (str_sleep) ? atoi(str_sleep) : -1;
     pid_t tid       = syscall(SYS_gettid);
 
     setpriority(PRIO_PROCESS, tid, env_nice);
@@ -557,12 +623,13 @@ void *dsp_worker_event_completion(void *data)
 
     while (true)
     {
-        if (device->any_complete_pending() && device->mail_query()) 
-            handle_event_completion(device);
-
-        bool stop = device->stop();
-
-        if (stop && !device->any_complete_pending()) break;
+        /*---------------------------------------------------------------------
+        * 1. Return true if device->stop() is true and there are no more
+        *    complete pending, time to stop working.
+        * 2. If there is complete pending, try receive mail and handle
+        *    completion.
+        *--------------------------------------------------------------------*/
+        if (handle_event_completion(device))  break;
 
         if (env_sleep >= 0) usleep(env_sleep);
     }

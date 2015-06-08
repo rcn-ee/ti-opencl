@@ -137,8 +137,8 @@ class DSPDevice : public DeviceInterface, public Lockable
         void dump_complete_pending();
         bool any_complete_pending();
         bool gotEnoughToWorkOn();
-        pthread_cond_t  *get_dispatch_cond()  { return &p_dispatch_cond;  }
-        pthread_mutex_t *get_dispatch_mutex() { return &p_dispatch_mutex; }
+        pthread_cond_t  *get_worker_cond()  { return &p_worker_cond;  }
+        pthread_mutex_t *get_worker_mutex() { return &p_worker_mutex; }
 
         std::string builtinsHeader(void) const { return "dsp.h"; }
 
@@ -169,8 +169,8 @@ class DSPDevice : public DeviceInterface, public Lockable
         std::list<Event *> p_events;
         pthread_cond_t     p_events_cond;
         pthread_mutex_t    p_events_mutex;
-        pthread_cond_t     p_dispatch_cond;
-        pthread_mutex_t    p_dispatch_mutex;
+        pthread_cond_t     p_worker_cond;
+        pthread_mutex_t    p_worker_mutex;
         bool               p_stop; 
         bool               p_initialized;
         unsigned char      p_dsp_id;
