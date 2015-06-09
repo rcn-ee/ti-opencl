@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2013-2014, Texas Instruments Incorporated - http://www.ti.com/
+ * Copyright (c) 2015, Texas Instruments Incorporated - http://www.ti.com/
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -25,6 +25,11 @@
  *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  *  THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
+
+/* Example documented at:
+ * http://processors.wiki.ti.com/index.php/OpenCL_float_compute_example
+ */
+
 #define __CL_ENABLE_EXCEPTIONS
 #include <CL/cl.hpp>
 #include <iostream>
@@ -53,38 +58,25 @@ float y_Golden[NumElements];
 static void compute_on_arm(float * __restrict__ in1,
                            float * __restrict__ in2,
                            float * __restrict__ out,
+                           int                  count,
                            float                C);
 
 static double clock_diff (struct timespec *t1, struct timespec *t2);
 static double average(double *array, int count);
 static void   print_results(double *arm_time, double *dsp_time, int count);
+static void   print_header();
+static void   print_footer();
 
 int main(int argc, char *argv[])
 {
-    cout << "This example computes y[i] = M[i] * x[i] + C on a "
-         << "single precision float point array of size " << NumElements
-         << endl
-         << " Computation on the ARM is parallelized across the 2 A15s"
-         << " using OpenMP."
-         << endl
-         << " Computation on the DSP is performed by dispatching an OpenCL"
-            " NDRange kernel across the 2 compute units (C66x cores) in the"
-            " compute device." << endl;
+    print_header();
 
-    // Allocate arrays in contiguous shared memory to avoid copies when 
-    // dispatching from ARM to DSP
-    cl_float *M = (cl_float *)__malloc_ddr(sizeof(float) * NumElements);
-    cl_float *x = (cl_float *)__malloc_ddr(sizeof(float) * NumElements);
-    cl_float *y = (cl_float *)__malloc_ddr(sizeof(float) * NumElements);
-
-    assert (M != NULL);
-    assert (x != NULL);
-    assert (y != NULL);
-
+    // OpenCL APIs in a try-catch block to detect errors
+    try {
+    
     // Create an OpenCL context with the accelerator device
     Context context(CL_DEVICE_TYPE_ACCELERATOR);
     std::vector<Device> devices = context.getInfo<CL_CONTEXT_DEVICES>();
-    devices.resize(1); // resize to 1 since we are only running on 1 DSP
      
     // Create the OpenCL program using the DSP binary
     char *bin;
@@ -98,6 +90,17 @@ int main(int argc, char *argv[])
          
     // Create an OpenCL command queue
     CommandQueue Q(context, devices[0]);
+
+
+    // Allocate arrays in contiguous shared memory to avoid copies when 
+    // dispatching from ARM to DSP
+    cl_float *M = (cl_float *)__malloc_ddr(sizeof(float) * NumElements);
+    cl_float *x = (cl_float *)__malloc_ddr(sizeof(float) * NumElements);
+    cl_float *y = (cl_float *)__malloc_ddr(sizeof(float) * NumElements);
+
+    assert (M != NULL);
+    assert (x != NULL);
+    assert (y != NULL);
 
 
     double arm_time[NUM_TRIES];
@@ -120,53 +123,42 @@ int main(int argc, char *argv[])
 
         clock_gettime(CLOCK_MONOTONIC, &tp_start);
 
-        compute_on_arm(M, x, y_Golden, C);
+        compute_on_arm(M, x, y_Golden, NumElements, C);
 
         clock_gettime(CLOCK_MONOTONIC, &tp_end);
 
         arm_time[run] = clock_diff (&tp_start, &tp_end);
 
         // Perform compute on OpenCL device
-        try 
-        {
-            const int BufSize = sizeof(float) * NumElements;
-            Buffer bufM(context,CL_MEM_READ_ONLY|CL_MEM_USE_HOST_PTR, 
-                        BufSize, M);
-            Buffer bufx(context,CL_MEM_READ_ONLY|CL_MEM_USE_HOST_PTR,
-                        BufSize, x);
-            Buffer bufy(context,CL_MEM_WRITE_ONLY|CL_MEM_USE_HOST_PTR,
-                        BufSize, y);
+        const int BufSize = sizeof(float) * NumElements;
+        Buffer bufM(context,CL_MEM_READ_ONLY|CL_MEM_USE_HOST_PTR,  BufSize, M);
+        Buffer bufx(context,CL_MEM_READ_ONLY|CL_MEM_USE_HOST_PTR,  BufSize, x);
+        Buffer bufy(context,CL_MEM_WRITE_ONLY|CL_MEM_USE_HOST_PTR, BufSize, y);
 
-            Kernel kernel(program, "dsp_compute");
-            kernel.setArg(0, bufM);
-            kernel.setArg(1, bufx);
-            kernel.setArg(2, C);
-            kernel.setArg(3, bufy);
-            kernel.setArg(4, __local(sizeof(cl_float2)*WorkGroupSize));
-            kernel.setArg(5, __local(sizeof(cl_float2)*WorkGroupSize));
-            kernel.setArg(6, __local(sizeof(cl_float2)*WorkGroupSize));
+        Kernel kernel(program, "dsp_compute");
+        kernel.setArg(0, bufM);
+        kernel.setArg(1, bufx);
+        kernel.setArg(2, C);
+        kernel.setArg(3, bufy);
+        kernel.setArg(4, __local(sizeof(cl_float2)*WorkGroupSize));
+        kernel.setArg(5, __local(sizeof(cl_float2)*WorkGroupSize));
+        kernel.setArg(6, __local(sizeof(cl_float2)*WorkGroupSize));
 
-            Event ev1;
-            clock_gettime(CLOCK_MONOTONIC, &tp_start);
+        Event ev1;
+        clock_gettime(CLOCK_MONOTONIC, &tp_start);
 
-            // Dispatch the kernel
-            Q.enqueueNDRangeKernel(kernel, NullRange, NDRange(NumVecElements), 
-                                   NDRange(WorkGroupSize), NULL, &ev1);
+        // Dispatch the kernel
+        Q.enqueueNDRangeKernel(kernel, NullRange, NDRange(NumVecElements), 
+                               NDRange(WorkGroupSize), NULL, &ev1);
 
-            // Wait fo the kernel to complete execution
-            ev1.wait();
+        // Wait fo the kernel to complete execution
+        ev1.wait();
 
-            clock_gettime(CLOCK_MONOTONIC, &tp_end);
+        clock_gettime(CLOCK_MONOTONIC, &tp_end);
 
-            dsp_time[run] = clock_diff (&tp_start, &tp_end);
+        dsp_time[run] = clock_diff (&tp_start, &tp_end);
 
-            cout << "." << flush;
-       }
-       catch (Error err) 
-       { 
-            cerr << "ERROR:" << err.what() << "(" << err.err() << ")" << endl; 
-            exit(1);
-       }
+        cout << "." << flush;
 
        // Check results
        for (int i=0; i < NumElements; ++i)
@@ -174,13 +166,20 @@ int main(int argc, char *argv[])
                { cout << "Failed at Element " << i << endl; return -1; }
     }
 
-    cout << endl;
-
     print_results (arm_time, dsp_time, NUM_TRIES);
+
+    print_footer();
 
     __free_ddr(M);
     __free_ddr(x);
     __free_ddr(y);
+
+    } // end try
+    catch (Error err) 
+    { 
+        cerr << "ERROR:" << err.what() << "(" << err.err() << ")" << endl; 
+        exit(1);
+    }
 
     return 0;
 }
@@ -188,10 +187,11 @@ int main(int argc, char *argv[])
 static void compute_on_arm(float * __restrict__ in1,
                            float * __restrict__ in2,
                            float * __restrict__ out,
+                           int                  count,
                            float                C)
 {
     #pragma omp parallel for num_threads(2)
-    for (int i=0; i < NumElements; ++i) 
+    for (int i=0; i < count; ++i) 
         out[i] = in1[i] * in2[i] + C; 
 }
 
@@ -217,6 +217,7 @@ static void print_results(double *arm_time, double *dsp_time, int count)
     double arm_ave = average(arm_time, count); 
     double dsp_ave = average(dsp_time, count);
 
+    cout << endl;
     cout << endl << "Average across " << NUM_TRIES << " runs: " << endl;
     cout << "ARM (2 OpenMP threads)         : " << 
                             fixed << arm_ave << " secs" << endl;
@@ -224,7 +225,31 @@ static void print_results(double *arm_time, double *dsp_time, int count)
                             fixed << dsp_ave << " secs" << endl;
     cout << "OpenCL-DSP speedup             : " << 
                             fixed << arm_ave/dsp_ave << endl;
+}
 
+static void print_header()
+{
+    cout << endl;
+    cout << "This example computes y[i] = M[i] * x[i] + C on "
+         << "single precision floating point arrays of size " << NumElements
+         << endl
+         << "- Computation on the ARM is parallelized across the 2 A15s"
+         << " using OpenMP."
+         << endl
+         << "- Computation on the DSP is performed by dispatching an OpenCL"
+            " NDRange kernel across the compute units (C66x cores) in the"
+            " compute device." << endl;
+
+    cout << endl << "Running" << flush;
+}
+
+static void print_footer()
+{
+    cout << endl;
+    cout << "For more information on:" << endl;
+    cout << "  * TI's OpenCL product, http://processors.wiki.ti.com/index.php/OpenCL" << endl;
+    cout << "  * This and other OpenCL examples, http://processors.wiki.ti.com/index.php/OpenCL_Examples" << endl;
+    cout << endl;
 }
 
 

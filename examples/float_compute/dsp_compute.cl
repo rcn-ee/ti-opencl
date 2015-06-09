@@ -25,6 +25,7 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
+
 kernel void dsp_compute(global const float2 *M, 
                         global const float2 *x,
                                const float   C,
