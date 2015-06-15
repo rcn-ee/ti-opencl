@@ -49,15 +49,17 @@ const int VectorElements  = 4;
 const int NumVecElements  = NumElements / VectorElements;
 const int WorkGroupSize   = NumVecElements / NumWorkGroups;
 
-cl_short srcA  [NumElements];
-cl_short srcB  [NumElements];
-cl_short dst   [NumElements];
 cl_short Golden[NumElements];
 
 int main(int argc, char *argv[])
 {
    cl_int err     = CL_SUCCESS;
-   int    bufsize = sizeof(srcA);
+   int    bufsize = sizeof(int) * NumElements;
+
+   cl_short *srcA  = (cl_short *)__malloc_ddr(bufsize);
+   cl_short *srcB  = (cl_short *)__malloc_ddr(bufsize);
+   cl_short *dst   = (cl_short *)__malloc_ddr(bufsize);
+
 
    for (int i=0; i < NumElements; ++i) 
    { 
@@ -79,9 +81,12 @@ int main(int argc, char *argv[])
      cout << "Offloading vector addition of " << NumElements/1024;
      cout << "K elements..." << endl << endl;
 
-     Buffer bufA   (context, CL_MEM_READ_ONLY,  bufsize);
-     Buffer bufB   (context, CL_MEM_READ_ONLY,  bufsize);
-     Buffer bufDst (context, CL_MEM_WRITE_ONLY, bufsize);
+     Buffer bufA   (context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
+                             bufsize, srcA);
+     Buffer bufB   (context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,  
+                             bufsize, srcB);
+     Buffer bufDst (context, CL_MEM_WRITE_ONLY| CL_MEM_USE_HOST_PTR, 
+                             bufsize, dst);
 
      Program::Sources    source(1, std::make_pair(kernelStr,strlen(kernelStr)));
      Program             program = Program(context, source);
@@ -92,20 +97,20 @@ int main(int argc, char *argv[])
      kernel.setArg(1, bufB);
      kernel.setArg(2, bufDst);
 
-     Event ev1,ev2,ev3,ev4;
+     Event ev1;
 
      CommandQueue Q(context, devices[d], CL_QUEUE_PROFILING_ENABLE);
 
-     Q.enqueueWriteBuffer(bufA, CL_FALSE, 0, bufsize, srcA, NULL, &ev1);
-     Q.enqueueWriteBuffer(bufB, CL_FALSE, 0, bufsize, srcB, NULL, &ev2);
      Q.enqueueNDRangeKernel(kernel, NullRange, NDRange(NumVecElements), 
-                            NDRange(WorkGroupSize), NULL, &ev3);
-     Q.enqueueReadBuffer (bufDst, CL_TRUE, 0, bufsize, dst, NULL, &ev4);
+                            NDRange(WorkGroupSize), NULL, &ev1);
+     ev1.wait();
 
-     ocl_event_times(ev1, "Write BufA ");
-     ocl_event_times(ev2, "Write BufB ");
-     ocl_event_times(ev3, "Kernel Exec");
-     ocl_event_times(ev4, "Read BufDst");
+     ocl_event_times(ev1, "Kernel Exec");
+
+     __free_ddr(srcA);
+     __free_ddr(srcB);
+     __free_ddr(dst);
+
    }
    catch (Error err) 
    { cerr << "ERROR: " << err.what() << "(" << err.err() << ")" << endl; }
