@@ -1,6 +1,6 @@
 OCL_BUILD_ROOT= $(shell pwd)
 .SILENT:
-OCL_VER=1.1.4
+OCL_VER=1.1.5
 LLVM_VER=33
 
 OCL_DPKG_NAME = ti-opencl
