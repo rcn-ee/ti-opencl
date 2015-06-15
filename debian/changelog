@@ -1,3 +1,11 @@
+ti-opencl (01.01.04.00-0ubuntu0~ppa1) UNRELEASED; urgency=medium
+
+  * Added an example, float_compute
+  * Removed busy waiting in the host runtime and fixed a race condition
+    related to mailbox communication 
+
+ -- Ajay Jayaraj <ajayj@uda0323430>  Mon, 15 Jun 2015 11:18:04 -0500
+
 ti-opencl (01.01.02.00-0ubuntu0~ppa1) trusty; urgency=medium
 
   * AM57x : enabled dispatch of out of order tasks to both DSP cores
