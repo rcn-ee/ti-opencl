@@ -20,7 +20,7 @@ install(FILES make.inc Makefile DESTINATION ${OCL_OMP_EXAMPLES_PATH} ${OCL_FPERM
 # Initially set this list to the examples that will be installed regardless
 # of the target platform.  Use the target build specific blocks below to add to
 # this list
-SET(OCL_EXAMPLES_INSTALL_LIST edmamgr matmpy simple dsplib_fft mandelbrot mandelbrot_native offline offline_embed platforms ccode null ooo vecadd dspheap)
+SET(OCL_EXAMPLES_INSTALL_LIST edmamgr matmpy simple dsplib_fft mandelbrot mandelbrot_native offline offline_embed platforms ccode null ooo vecadd dspheap float_compute)
 SET(OCL_OMP_EXAMPLES_INSTALL_LIST vecadd_openmp vecadd_openmp_t)
 
 # Install hawking specific examples

@@ -187,6 +187,8 @@ void DSPDevice::init()
     *------------------------------------------------------------------------*/
     pthread_cond_init(&p_events_cond, 0);
     pthread_mutex_init(&p_events_mutex, 0);
+    pthread_cond_init(&p_worker_cond, 0);
+    pthread_mutex_init(&p_worker_mutex, 0);
     pthread_create(&p_worker_dispatch,   0, &dsp_worker_event_dispatch,   this);
     pthread_create(&p_worker_completion, 0, &dsp_worker_event_completion, this);
 
@@ -202,6 +204,27 @@ DSPDevice::~DSPDevice()
     * Inform the cores on the device to stop listening for commands
     *------------------------------------------------------------------------*/
     mail_to(exitMsg);
+
+    if (p_initialized)
+    {
+        /*---------------------------------------------------------------------
+        * Terminate the workers and wait for them
+        *--------------------------------------------------------------------*/
+        pthread_mutex_lock(&p_events_mutex);
+
+        p_stop = true;
+
+        pthread_cond_broadcast(&p_events_cond);
+        pthread_mutex_unlock(&p_events_mutex);
+
+        pthread_join(p_worker_dispatch, 0);
+        pthread_join(p_worker_completion, 0);
+
+        pthread_mutex_destroy(&p_events_mutex);
+        pthread_cond_destroy(&p_events_cond);
+        pthread_mutex_destroy(&p_worker_mutex);
+        pthread_cond_destroy(&p_worker_cond);
+    }
 
     delete p_mb;
     p_mb = NULL;
@@ -219,24 +242,6 @@ DSPDevice::~DSPDevice()
 #if defined(DEVICE_K2H)
     free_ocl_qmss_res();
 #endif
-
-    if (!p_initialized) return;
-
-    /*-------------------------------------------------------------------------
-    * Terminate the workers and wait for them
-    *------------------------------------------------------------------------*/
-    pthread_mutex_lock(&p_events_mutex);
-
-    p_stop = true;
-
-    pthread_cond_broadcast(&p_events_cond);
-    pthread_mutex_unlock(&p_events_mutex);
-
-    pthread_join(p_worker_dispatch, 0);
-    pthread_join(p_worker_completion, 0);
-
-    pthread_mutex_destroy(&p_events_mutex);
-    pthread_cond_destroy(&p_events_cond);
 }
 
 /******************************************************************************
@@ -355,20 +360,6 @@ void DSPDevice::pushEvent(Event *event)
     pthread_mutex_lock(&p_events_mutex);
 
     p_events.push_back(event);
-    p_num_events++;                 // Way faster than STL list::size() !
-
-    pthread_cond_broadcast(&p_events_cond);
-    pthread_mutex_unlock(&p_events_mutex);
-}
-
-void DSPDevice::push_frontEvent(Event *event)
-{
-    /*-------------------------------------------------------------------------
-    * Add an event in the list, at FRONT
-    *------------------------------------------------------------------------*/
-    pthread_mutex_lock(&p_events_mutex);
-
-    p_events.push_front(event);
     p_num_events++;                 // Way faster than STL list::size() !
 
     pthread_cond_broadcast(&p_events_cond);
@@ -657,7 +648,14 @@ bool DSPDevice::isInClMallocedRegion(void *ptr)
     return clMallocQuery(ptr, NULL, NULL);
 }
 
-int DSPDevice::mail_to(Msg_t &msg, unsigned int core)
+int DSPDevice::numHostMails(Msg_t &msg) const
+{
+    if (hostSchedule() && (msg.command == EXIT || msg.command == CACHEINV ||
+                           msg.command == NDRKERNEL))  return numDSPs();
+    return 1;
+}
+
+void DSPDevice::mail_to(Msg_t &msg, unsigned int core)
 {
     switch(msg.command)
     {
@@ -671,7 +669,7 @@ int DSPDevice::mail_to(Msg_t &msg, unsigned int core)
             {
                 for (int i = 0; i < numDSPs(); i++)
                     p_mb->to((uint8_t*)&msg, sizeof(Msg_t), i);
-                return numDSPs();
+                return;
             }
             // fall through
 
@@ -681,7 +679,7 @@ int DSPDevice::mail_to(Msg_t &msg, unsigned int core)
                static int counter = 0;
                int dsp_id = ((counter++ & 0x1) == 0) ? 0 : 1;
                p_mb->to((uint8_t*)&msg, sizeof(Msg_t), dsp_id);
-               return 1;
+               return;
            }
            // fall through
           
@@ -690,7 +688,6 @@ int DSPDevice::mail_to(Msg_t &msg, unsigned int core)
         *--------------------------------------------------------------------*/
         default: 
             p_mb->to((uint8_t*)&msg, sizeof(Msg_t), core);
-            return 1;
     }
 }
 
