@@ -32,4 +32,6 @@ TI Specific OpenCL Documentation
    (66AK2H only)
 -  `OpenCL FAQ <OpenCL FAQ>`__
 
+.. image:: images/platform_red.png
+
 
