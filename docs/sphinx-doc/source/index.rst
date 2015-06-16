@@ -3,8 +3,9 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
+############################
 TI OpenCL v1.1.x
-****************
+############################
 
 Contents:
 
@@ -12,17 +13,18 @@ Contents:
    :maxdepth: 2
 
    intro
-   Getting Started <getting_started>
-   Understanding OpenCL compilation <compilation>
+   getting_started
+   compilation
+   memory
    extensions
    examples
    pyopencl
-   OpenCL v1.1 Reference <reference>
-
+   version
+   reference
 
 
 TI Specific OpenCL Documentation
-================================
+********************************************
 
 -  `Understanding OpenCL Memory Usage <Understanding OpenCL Memory Usage>`__
 -  `OpenCL Environment Variables <OpenCL Environment Variables>`__

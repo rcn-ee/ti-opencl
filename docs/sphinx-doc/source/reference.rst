@@ -1,8 +1,13 @@
-OpenCL 1.1 Reference Material
-*****************************
-OpenCL is an open standard and the TI OpenCL implementation conforms to the standard, all generic OpenCL documentation is applicable to the TI implementation. The section below OpenCL 1.1 Reference Material contains links to locations containing generic OpenCL documentation. 
+**************************************
+OpenCL 1.1 Generic Reference Material
+**************************************
+OpenCL is an open standard and the TI OpenCL implementation conforms to the
+standard, all generic OpenCL documentation is applicable to the TI
+implementation. The section below OpenCL 1.1 Reference Material contains links
+to locations containing generic OpenCL documentation. 
 
-OpenCL reference material can be found at the Khronos website. Some useful links are provided below. 
+OpenCL reference material can be found at the Khronos website. Some useful
+links are provided below. 
 
 .. image:: images/logo_opencl.png
 

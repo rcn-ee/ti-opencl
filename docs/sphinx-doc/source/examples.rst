@@ -1,5 +1,6 @@
+*****************
 OpenCL Examples
-***************
+*****************
 
 .. role:: cpp(code)
     :language: cpp
