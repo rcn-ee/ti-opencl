@@ -80,8 +80,8 @@ the four build scenarios and is included here once as a reference.  ::
 Create an OpenCL program from source, with embedded source 
 -----------------------------------------------------------
 
-This is the most common method used in on-line OpenCL examples.  It has the
-benefit of portability, because the compilation of the OpenCL C code is
+This is the most common method used OpenCL examples downloaded from the web.  
+It has the benefit of portability, because the compilation of the OpenCL C code is
 completely encapsulated in the OpenCL API calls.  Also, since the OpenCL C code
 i.e. embedded in the application, the resultant executable is standalone in that
 there is no dependency on another file containing OpenCL C code.  ::

@@ -2,24 +2,29 @@
 OpenCL Examples
 *****************
 
-.. role:: cpp(code)
-    :language: cpp
+There are several OpenCL examples that are part of the OpenCL package
+installation. They are located in the /usr/share/ti/examples/opencl[+openmp]
+directories on the target file system.
 
-There are several OpenCL examples that are part of the OpenCL package installation. They are located in the /usr/share/ti/examples/opencl[+openmp] directories on the target file system.
+The examples can be cross-compiled in an X86 development environment, or
+compiled native on the ARM A15, depending on the availability of native g++ or
+cross-compiled arm-linux-gnueabihf-g++ tool sets.
 
-The examples can be cross-compiled in an X86 development environment, or compiled native on the ARM A15, depending on the availability of native g++ or cross-compiled arm-linux-gnueabihf-g++ tool sets.
+On an X86 development environment the example makefiles are setup to
+cross-compile by default and assume an ARM cross-compile environment has been
+installed. If the cross compiler is not installed, execute the following
+command to install it:
 
-On an X86 development environment the example makefiles are setup to cross-compile by default and assume an ARM cross-compile environment has been installed. If the cross compiler is not installed, execute the following command to install it:
-
-:command:`sudo apt-get install g++-4.6-arm-linux-gnueabihf`
-
-The environment variables defined in [[OpenCL_Environment_Variables|Required Environment Variables]] are expected to be defined in order to compile and execute the examples.
+    :command:`sudo apt-get install g++-4.6-arm-linux-gnueabihf`
 
 Building and Running the Examples
 =================================
 
-All the examples can be built at one time by invoking 'make' from the top-level directory where the OpenCL examples are installed/copied to. Individual examples can be built by navigating to the desired directory and also issuing 'make'.
-<br>
+All the examples can be built at one time by invoking 'make' from the top-level
+directory where the OpenCL examples are installed/copied to. Individual
+examples can be built by navigating to the desired directory and also issuing
+'make'.
+
 
 Descriptions
 ============
@@ -60,7 +65,81 @@ Descriptions
 |                         | do not allocate device memory, change the cache structure, or use any resources already being  |
 |                         | used by the OpenCL runtime.                                                                    |
 +-------------------------+------------------------------------------------------------------------------------------------+
-
+| matmpy                  | This example performs a 1K x 1K matrix multiply using both OpenCL and a native ARM OpenMP      |
+|                         | implementation (GCC libgomp). The output is the execution time for each approach               |
+|                         | ( OpenCL dispatch to the DSP vs. OpenMP dispatching to the 4 ARM A15s ).                       |
++-------------------------+------------------------------------------------------------------------------------------------+
+| offline                 | This example performs a vector addition by pre-compiling an OpenCL kernel into a device        |
+|                         | executable file. The OpenCL program reads the file containing the pre-compiled kernel in and   |
+|                         | uses it directly. If you use offline compilation to generate a .out file containing the        |
+|                         | OpenCL C program and you subsequently move the executable, you will either need to move the    |
+|                         | .out as well or the application will need to specificy a non relative path to the .out file.   |
++-------------------------+------------------------------------------------------------------------------------------------+
+| vecadd_openmp           | This is an OpenCL + OpenMP example. OpenCL program is running on the host, managing data       |
+|                         | transfers, and dispatching an OpenCL wrapper kernel to the device. The OpenCL wrapper kernel   |
+|                         | will use the ccode mode (see ccode example) to call the C function that has been compiled with |
+|                         | OpenMP options (omp). To facilitate OpenMP mode, the OpenCL wrapper kernel needs to be         |
+|                         | dispatched as an OpenCL Task to an In-Order OpenCL Queue.                                      |
++-------------------------+------------------------------------------------------------------------------------------------+
+| vecadd_openmp_t         | This is another OpenCL + OpenMP example, similar to vecadd_openmp. The main difference w.r.t   |
+|                         | vecadd_openmp is that this example uses OpenMP tasks within the OpenMP parallel region to      |
+|                         | distribute computation across the DSP cores.                                                   |
++-------------------------+------------------------------------------------------------------------------------------------+
+| vecadd                  | The same functionality as the vecadd_openmp example, but expressed fully as an OpenCL          |
+|                         | application without OpenMP. Included for comparison purposes.                                  |
++-------------------------+------------------------------------------------------------------------------------------------+
+| vecadd_mpax             | The same functionality as the vecadd example, but with extended buffers. The example           |
+|                         | iteratively traverses smaller chunks (sub-buffers) of large buffers. During each iteration,    |
+|                         | the smaller chunks are mapped/unmapped for read/write. The sub-buffers are then passed to the  |
+|                         | kernels for processing. This example could also be converted to use a pipelined scheme where   |
+|                         | different iterations of CPU computation and device computation are overlapped. NOTE: The size  |
+|                         | of the buffers in the example (determined by the variable 'NumElements') is dependent on the   |
+|                         | available CMEM block size. Currently this example is configured to use buffers sizes for       |
+|                         | memory configurations that can support 1.5 GB total buffer size. The example can be modified   |
+|                         | to use more (or less) based on the platform memory configuration.                              |
++-------------------------+------------------------------------------------------------------------------------------------+
+| vecadd_mpax_openmp      | Similar to vecadd_mpax example, but used OpenMP to perform the parallelization and the         |
+|                         | computation. This example also illustrates that printf() could be used in OpenMP C code        |
+|                         | for debugging.                                                                                 |
++-------------------------+------------------------------------------------------------------------------------------------+
+| dsplib_fft              | An example to compute FFT's using a routine from the dsplib library. This illustrates calling  |
+|                         | a standard C library function from an OpenCL kernel.                                           |
++-------------------------+------------------------------------------------------------------------------------------------+
+| ooo, ooo_map            | This application illustrates several features of OpenCL.                                       |
+|                         |                                                                                                |
+|                         | - Using a combination of In-Order and Out-Of-Order queues                                      |
+|                         | - Using native kernels on the CPU                                                              |
+|                         | - Using events to manage dependencies among the tasks to be executed. A JPEG in this           |
+|                         |   directory illustrates the dependence graph being enforced in the application using events.   |
+|                         |                                                                                                |
+|                         | The ooo_map version additionally illustrates the use of OpenCL map and unmap operations for    |
+|                         | accessing shared memory between a host and a device. The Map/Unmap protocol can be used        |
+|                         | instead of read/write protocol on shared memory platforms.                                     |
+|                         |                                                                                                |
+|                         | Requires the  TI_OCL_CPU_DEVICE_ENABLE environment variable to be set. For details, refer      |
+|                         | :doc:`environment_variables`                                                                   |
++-------------------------+------------------------------------------------------------------------------------------------+
+| null                    | This application is intended to report the time overhead that OpenCL requires to submit and    |
+|                         | dispatch a kernel. A null(empty) kernel is created and dispatched so that the OpenCL profiling |
+|                         | times queried from the OpenCL events reflects only the OpenCL overhead necessary to submit and |
+|                         | execute the kernel on the device. This overhead is for the roundtrip for a single kernel       |
+|                         | dispatch. In practice, when multiple tasks are being enqueued, this overhead is pipelined      |
+|                         | with execution and can approach zero.                                                          |
++-------------------------+------------------------------------------------------------------------------------------------+
+| sgemm                   | This example illustrates how to efficiently offload the CBLAS SGEMM routine (single precision  |
+|                         | matrix multiply) to the DSPs using OpenCL. The results obtained on the DSP are compared        |
+|                         | against a cbas_sgemm call on the ARM. The example reports performance in GFlops for both DSP   |
+|                         | and ARM variants.                                                                              |
++-------------------------+------------------------------------------------------------------------------------------------+
+| dgemm                   | This example illustrates how to efficiently offload the CBLAS DGEMM routine (double precision  |
+|                         | matrix multiply) to the DSPs using OpenCL. The results obtained on the DSP are compared        |
+|                         | against a cbas_dgemm call on the ARM. The example reports performance in GFlops for both       |
+|                         | DSP and ARM variants.                                                                          |
++-------------------------+------------------------------------------------------------------------------------------------+
+| edmamgr                 | This application illustrates how to use the edmamgr api to asynchronously move data around     |
+|                         | the DSP memory hierarchy from OpenCL C kernels. The edmamgr.h header file in this directory    |
+|                         | enumerates the APIs available from the edmamgr package.                                        |
++-------------------------+------------------------------------------------------------------------------------------------+
 
 .. note:: 
 
@@ -71,5 +150,3 @@ Descriptions
    * vecadd_mpax, vecadd_mpax_openmp
    * sgemm
    * dgemm
-
-

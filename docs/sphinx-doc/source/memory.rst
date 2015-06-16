@@ -45,7 +45,8 @@ fixed as follows for each C66 core:
 | L2 available for OpenCL local buffers | 768KB  | 128KB |
 +---------------------------------------+--------+-------+
 
-    Note: The amount of Local, MSMC and DDR that is available for OpenCL use
+.. Note::
+    The amount of Local, MSMC and DDR that is available for OpenCL use
     may change from release to release.  The amount available for OpenCL use
     can be queried from the OpenCL runtime.  This is illustrated in the
     platform example shipped with the product:
@@ -122,7 +123,8 @@ The default partition of 1.5GB Linux system memory and 6.48GB CMEM provides a
 minimum suggested Linux system memory size and a larger area for OpenCL buffer
 and program space.<br>
 
-    Note: The m800 K2H system ships with 8GB of DDR3. The K2H EVM ships with
+.. Note::
+    The m800 K2H system ships with 8GB of DDR3. The K2H EVM ships with
     2GB of DDR3 and can be upgraded to 8GB by replacing the DIMM
 
 AM57
@@ -229,10 +231,13 @@ With the context parameter now fixed to the context ``ctx``, and default
 parameters of NULL for host_ptr and err, buffer creation is dependent on the
 flags argument and the size argument. The size argument is relatively
 straightforward as well. It should always be specified and represents the size
-**in bytes** of the buffer. Note: The size of a buffer is in bytes. It is a
-frequent error to attempt to specify the size in number of elements. For
-example, if a buffer of 100 ints is required, you need to pass in 400 or
-sizeof(int)*100 as the size and not just 100.
+**in bytes** of the buffer. 
+
+.. Note::
+    The size of a buffer is in bytes. It is a frequent error to attempt to
+    specify the size in number of elements. For example, if a buffer of 100
+    ints is required, you need to pass in 400 or sizeof(int)*100 as the size
+    and not just 100.
 
 The flags argument defines some important properties for the buffer. Section
 5.2.1 in the OpenCL 1.1 spec defines the flag values. They are also listed
