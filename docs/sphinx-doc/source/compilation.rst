@@ -68,14 +68,7 @@ of Devices will be required. The code to create these items is invariant
 across the four build scenarios and is included here once as a
 reference.
 
-.. role:: cpp(code)
-    :language: cpp
-
-.. highlight:: cpp
-
-Inline code :cpp:`c = b + c`.
-
-.. code-block:: cpp
+::
 
     Context             context(CL_DEVICE_TYPE_ACCELERATOR);
     std::vector<Device> devices = context.getInfo<CL_CONTEXT_DEVICES>();
@@ -90,7 +83,7 @@ OpenCL C code ie embedded in the application, the resultant executable
 is standalone in that there is no dependency on another file containing
 OpenCL C code.
 
-.. code-block:: cpp
+::
 
     const char * kernStr = "kernel void devset(global char* buf) {}"
 
