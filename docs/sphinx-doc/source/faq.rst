@@ -12,6 +12,8 @@ Frequently Asked Questions
 #. Does pyopencl work with the TI OpenCL implmentation?
     Yes. See the page :doc:`pyopencl`.
 
+#. Do you have guidelines for developers porting stand-alone DSP applications?
+    Yes. See the page :doc:`standalone-app-diffs`.
 
 #. Can multiple OpenMP threads in the host application submit to OpenCL queues?
     Yes, each thread could have a private queue or the threads could share a
