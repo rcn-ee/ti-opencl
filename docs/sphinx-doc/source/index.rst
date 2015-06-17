@@ -1,13 +1,8 @@
-.. MC documentation master file, created by
-   sphinx-quickstart on Fri Jun 12 17:27:12 2015.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
 ############################
 TI OpenCL v1.1.x
 ############################
 
-Contents:
+TI |OpenCL (TM)| Runtime Documentation Contents:
 
 .. toctree::
    :maxdepth: 2
@@ -20,6 +15,11 @@ Contents:
    memory/memory
    extensions
    environment_variables
-   examples
+   examples/index.rst
    pyopencl
    faq
+
+.. image:: images/platform_red.png
+
+.. |OpenCL (TM)| unicode:: OpenCL U+2122
+>>>>>>> a3001af24504bab27ffa96c3c683a46a55ecd450
