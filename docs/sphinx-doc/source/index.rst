@@ -8,15 +8,12 @@ TI |OpenCL (TM)| Runtime Documentation Contents:
    :maxdepth: 2
 
    intro
-   getting_started
    reference
-   version
    compilation
-   memory/memory
+   memory/index
    extensions
    environment_variables
-   examples/index.rst
-   pyopencl
+   examples/index
    faq
 
 .. image:: images/platform_red.png

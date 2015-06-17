@@ -1,5 +1,5 @@
 **************************************
-OpenCL 1.1 Generic Reference Material
+OpenCL 1.1 Reference Material
 **************************************
 
 OpenCL is an open standard and the TI OpenCL implementation conforms to the

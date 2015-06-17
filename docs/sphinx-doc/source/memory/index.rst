@@ -1,5 +1,5 @@
 ######################################################
-Understanding OpenCL Memory Usage
+TI OpenCL Memory Usage
 ######################################################
 
 .. toctree::
@@ -7,6 +7,7 @@ Understanding OpenCL Memory Usage
 
    device-memory
    ddr-partition
+   host-malloc-extension
    memory-model
    buffers
    access-model

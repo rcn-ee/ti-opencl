@@ -1,5 +1,5 @@
 ********************************
-Understanding OpenCL Compilation 
+TI OpenCL Compilation 
 ********************************
 
 A discussion of OpenCL compilation could describe either; compiling the host

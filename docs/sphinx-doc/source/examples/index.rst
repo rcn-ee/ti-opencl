@@ -1,6 +1,6 @@
-########
-Examples
-########
+###################
+TI OpenCL Examples
+###################
 
 .. toctree::
    :glob:

@@ -1,5 +1,6 @@
-Environment Variables
-*********************
+*********************************************
+TI OpenCL Environment Variables
+*********************************************
 
 These environment variables can be used to control OpenCL behavior and provide visibility for debugging.
 
@@ -143,4 +144,12 @@ These environment variables can be used to control OpenCL behavior and provide v
     kernels is also supported from x86 Ubuntu machines and in that use case, it
     is required that this environment variable is set to the top level
     directory path where the C66 cross compiler tools are installed. 
+
+.. envvar::  TI_OCL_DSP_1_25GHZ         
+
+    Initialize the C66 DSPs to run at 1.25 Ghz rather than the default 1.00 Ghz.
+
+    The TI_OCL_DSP_1_25GHZ environment variable is only applicable to the 
+    DSPC8681 OpenCL Implementation.  The DSP frequency on the other platforms 
+    is determined at Linux boot time.
 

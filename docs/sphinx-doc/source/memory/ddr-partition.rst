@@ -1,6 +1,9 @@
+
 ******************************************************
 How DDR3 is Partitioned for Linux System and OpenCL
 ******************************************************
+
+.. _CMEM:
 
 The DDR3 is partitioned into three components:
 

@@ -22,7 +22,7 @@ OpenCL.
 +----------------------------------+-----------+----------------+
 | DDR3 available                   | up to 8GB | 2GB            |
 +----------------------------------+-----------+----------------+
-| On-chip shared memory            | 6MB       | None Available |
+| On-chip shared memory            | 6MB       | N/A            |
 +----------------------------------+-----------+----------------+
 
 The L1 and L2 memory areas in the C66 cores can be configured as all cache, all

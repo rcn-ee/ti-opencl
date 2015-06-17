@@ -33,14 +33,3 @@ Which TI OpenCL Version is Installed?
     cl::Platform::get(&platforms);
     platforms[0].getInfo(CL_PLATFORM_VERSION, &str);
     std::cout <<  str << std::endl;
-
-
-
-============ ==============================
-Device        Platform 
-============ ==============================
-66AK2H        HP m800
-66AK2H        K2H EVM
-AM57          Beagle X15 EVM
-TMS320C6678   Advantech DSPC8681 PCIe card
-============ ==============================

@@ -1,5 +1,5 @@
 *****************************
-TI Specific OpenCL extensions
+TI OpenCL Extensions
 *****************************
 
 TI's OpenCL implementation has been extended with a set of features beyond the OpenCL 1.1 specification. These features were added in order to better support the execution of code on the C66 DSP, to enable existing DSP libraries, and to better map to TI's devices.  
@@ -61,39 +61,8 @@ TI's OpenCL implementation has been extended with a set of features beyond the O
    the C6000 Compiler User's Guide for a list of these intrinsic
    functions.
 
-6. Additionally these non standard OpenCL C built-in functions are
-   supported:
-   ::
-
-       uint32_t __core_num     (void);
-       uint32_t __clock        (void);
-       uint64_t __clock64      (void);
-       void     __cycle_delay  (uint64_t cyclesToDelay);
-       void     __mfence       (void);
-
-   ``__core_num`` returns [0-7] depending on which DSP core executes the
-   function.
-
-   ``__clock`` return a 32-bit time-stamp value, subtracting two values
-   returned by ``__clock`` gives the number of elapsed DSP cycles
-   between the two. This equates to the C66 device's TSCL register.
-
-   ``__clock64`` return a 64-bit time-stamp value similar to ``__clock``
-   but with more granularity to avoid potential overflow of a 32 bit
-   counter. This equates to the C66 device's TSCH:TSCL register pair.
-
-   ``__cycle_delay`` takes a specified number of cycles to delay and
-   will busy loop for that many cycles (approximately) before returning.
-
-   ``__mfence`` is a memory fence for the C66x dsp. Under typical OpenCL
-   use, this will not be needed. However, when incorporating EDMA usage
-   into OpenCL C kernels, it may be needed.
-
-.. note::
-   In standard C for C66 a uint32\_t is an unsigned int and a
-   uint64\_t is an unsigned long long. In OpenCL C for C66 a uint32\_t
-   is an unsigned int and a uint64\_t is an unsigned long.
-
+6. Additional non standard OpenCL C built-in functions are
+   supported. Please refer to :doc:`opencl-c-builtin-function-extensions`
 
 7. This OpenCL implementation also supports direct access to the EDMA
    system from the DSP and OpenCL C kernels. A wide range of EDMA
@@ -122,4 +91,5 @@ TI's OpenCL implementation has been extended with a set of features beyond the O
    the DSP on these sub-buffers, cumulatively resulting in the entire
    large buffer being processed.
 
+9. :doc:`memory/host-malloc-extension`
 
