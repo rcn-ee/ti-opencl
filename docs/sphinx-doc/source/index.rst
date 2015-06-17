@@ -22,4 +22,3 @@ TI |OpenCL (TM)| Runtime Documentation Contents:
 .. image:: images/platform_red.png
 
 .. |OpenCL (TM)| unicode:: OpenCL U+2122
->>>>>>> a3001af24504bab27ffa96c3c683a46a55ecd450
