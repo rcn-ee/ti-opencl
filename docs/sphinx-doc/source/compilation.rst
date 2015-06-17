@@ -16,9 +16,9 @@ From the host or CPU application side, OpenCL was designed as a pure library,
 meaning that it allows a user of OpenCL to simply include the appropriate
 header file in their source and to link the application against an OpenCL
 library.  For example, if a file program.cpp already exists and is compiled
-with the command ``g++ -O3 program.c``, that file could be OpenCL enabled by simply
-adding ``#include <CL/cl.h>`` to the file and compiling with the command ``g++
--O3 program.c -lOpenCL``.  The ``CL/cl.h`` header file is used to compile host OpenCL
+with the command :command:`g++ -O3 program.c`, that file could be OpenCL enabled by simply
+adding ``#include <CL/cl.h>`` to the file and compiling with the command :command:`g++
+-O3 program.c -lOpenCL`.  The ``CL/cl.h`` header file is used to compile host OpenCL
 applications using the C API.  If using the C++ bindings instead, then add
 ``#include <CL/cl.hpp>`` to your file.  Additionally, if using C++ and you would 
 like to let the C++ exception handler catch OpenCL API errors, then you
@@ -139,10 +139,10 @@ Create an OpenCL program from binary, with binary in a file
 -----------------------------------------------------------
 
 For this build scenario, offline compilation is used to create a binary file
-from an OpenCL C source file.  An offline compiler called ``clocl`` is
+from an OpenCL C source file.  An offline compiler called :command:`clocl` is
 shipped with the TI OpenCL product. To take a file named kernel.cl containing
 OpenCL C source and create a binary called kernel.out, simply invoke clocl with
-the input file name: ``clocl kernel.cl``.  This step would typically be
+the input file name: :command:`clocl kernel.cl`.  This step would typically be
 part of a makefile and is completed at application build time.  Refer to the
 section on clocl for more details on clocl options.  This build scenario
 protects IP better than the on-line compilation models, since the OpenCL C
@@ -216,10 +216,10 @@ Create an OpenCL program from binary, with embedded binary
 -----------------------------------------------------------
 
 For this OpenCL program build scenario, offline compilation is again used, but
-an option is given to the offline compiler ``clocl`` to instruct it to
+an option is given to the offline compiler :command:`clocl` to instruct it to
 create a text based file that can be used as a header file rather than a binary
 out file.  The text file is simply the binary data in an initialized char
-array. Invoking clocl like this: ``clocl -t kernel.cl`` will compile
+array. Invoking clocl like this: :command:`clocl -t kernel.cl` will compile
 ``kernel.cl`` into ``kernel.out`` and the create ``kernel.dsp_h`` that will be
 a file containing the initialized array ``kernel_dsp_bin`` which can be used
 directly to create an OpenCL Program::Binaries object.  This build method is
@@ -232,7 +232,7 @@ are required.  ::
     Program           program = Program(context, devices, binary);
     program.build(devices);
 
-Line 1 includes the file created by ``clocl -t``. Line 2 creates the
+Line 1 includes the file created by :command:`clocl -t`. Line 2 creates the
 ``Program::Binaries`` object from the array defined in ``kernel.dsp_h``.  Line 4
 creates the OpenCL C program from the binary and Line 5 builds the program.
 
@@ -255,20 +255,19 @@ implementation does provide a mechanism where the result of an on-line compile
 can be cached on the system and the time delay for compilation is paid once for
 a the first invocation of a compile but subsequent invocations are short
 circuited and the cached result is used instead.  This behavior is controlled
-through the environment variable ``TI_OCL_CACHE_KERNELS``.  See [[OpenCL
-Environment Variables]] for more details.
+through the environment variable :envvar:`TI_OCL_CACHE_KERNELS`. 
 
 
 The TI offline OpenCL C compiler: clocl
 =======================================================
 
-Executing ``clocl`` with the ``-h`` option will print the help screen.  Clocl
+Executing :command:`clocl -h` will print the help screen.  Clocl
 contains two sets of options to control behavior. The first set of options is
 clocl and TI OpenCL specific.  They include the option -t which is used to
 generate an embeddable OpenCL C program binary array.  The second set of
 options are generic OpenCL options as specified by the OpenCL 1.1
 specification.  I refer the reader to the specification for more details on
-those options.  ::
+those options.  
 
     Usage: clocl [options] <OpenCL C file> [<link files>]
 
@@ -277,27 +276,31 @@ those options.  ::
     options.
 
     The clocl behavior options are:
-       -h, --help    : Print this help screen
-       -v, --verbose : Print verbose messages
-       -k, --keep    : Do not delete temp compilation files
-       -g, --debug   : Generate debug symbols
-       -t, --txt     : Generate object in header form
-       -l, --lib     : Do not link. Stop after compilation.
-       -a            : Allow kernel buffer arguments to overlap.
-       --version     : Print OpenCL product.
+       =============== =========================================
+       -h, --help      Print this help screen
+       -v, --verbose   Print verbose messages
+       -k, --keep      Do not delete temp compilation files
+       -g, --debug     Generate debug symbols
+       -t, --txt       Generate object in header form
+       -l, --lib       Do not link. Stop after compilation
+       -a              Allow kernel buffer arguments to overlap
+       --version       Print OpenCL product
+       =============== =========================================
 
     The OpenCL 1.1 build options. Refer to 1.1 spec for desc:
-       -D<name>
-       -D<name>=<val>
-       -I<dir>
-       -w
-       -Werror
-       -cl-single-precision-constant
-       -cl-denorms-are-zero
-       -cl-opt-disable
-       -cl-mad-enable
-       -cl-no-signed-zeros
-       -cl-unsafe-math-optimizations
-       -cl-finite-math-only
-       -cl-fast-relaxed-math
-       -cl-std=<val>
+       ===============================  ========================================================
+       -D<name>                         Create a preprocessor symbol <name>
+       -D<name>=<val>                   Assign <val> to preprocessor symbol <name>
+       -I<dir>                          Add <dir> to the list of paths to search for headers
+       -w                               Inhibit all warning messages
+       -Werror                          Make all warnings into errors
+       -cl-single-precision-constant    Treat double FP constant as single FP constant
+       -cl-denorms-are-zero             Enabe flush to zero FP behavior
+       -cl-opt-disable                  Disables all optimizations
+       -cl-mad-enable                   Allow a * b + c to be replaced by a mad
+       -cl-no-signed-zeros              Allow opts for FP math that ignore sign of zero
+       -cl-unsafe-math-optimizations    Allow opts for FP math that may violate standards
+       -cl-finite-math-only             Allow opts for FP math that assumes operands are finite
+       -cl-fast-relaxed-math            Choose fast FP opreations over compliant FP opreations
+       -cl-std=<val>                    Determine the OpenCL C language version to use 
+       ===============================  ========================================================

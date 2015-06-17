@@ -19,7 +19,7 @@ OpenCL is installed as a component in the MCSDK-HPC product from TI.
   http://processors.wiki.ti.com/index.php/MCSDK_HPC_3.x_Getting_Started_Guide_for_HP_ProLiant_m800
 
 A mapping of MCSDK-HPC versions to the versions of its components, including
-OpenCL, can be found `here <MCSDK HPC to component version map>`__.
+OpenCL, can be found here: :doc:`mcsdk-hpc-version-map`.
 
 AM57 
 -------------------------------------------------------
