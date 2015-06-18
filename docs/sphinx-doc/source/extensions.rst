@@ -25,6 +25,7 @@ TI's OpenCL implementation has been extended with a set of features beyond the O
    `vecadd\_openmp <OpenCL_Examples#vecadd_openmp_example>`__,
    `vecadd\_openmp\_t <OpenCL_Examples#vecadd_openmp_t_example>`__ or
    `openmpbench\_C\_v3 <OpenCL_Examples#openmpbench_C_v3_example>`__.
+   Please refer to :doc:`openmp_dsp_dispatch` for details. 
 
 3. A printf capability has been added for kernels running on the DSP.
    OpenCL C kernels or standard C code called from an OpenCL C kernel
