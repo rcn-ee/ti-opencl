@@ -33,14 +33,16 @@
 #include <llvm/IR/BasicBlock.h>
 #include <llvm/IR/DataLayout.h>
 #include <llvm/Support/raw_ostream.h>
-#include <llvm/Support/InstIterator.h>
+#include <llvm/IR/InstIterator.h>
 #include <llvm/IR/IntrinsicInst.h>
-#include "llvm/Support/CFG.h"
+#include "llvm/IR/CFG.h"
 #include "llvm/ADT/DepthFirstIterator.h"
 #include "llvm/ADT/GraphTraits.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include "llvm/Transforms/Utils/UnifyFunctionExitNodes.h"
-#include "llvm/DebugInfo.h"
+#include "llvm/IR/DebugInfo.h"
+#include <llvm/IR/Dominators.h>
+#include <llvm/Analysis/LoopInfo.h>
 #include "../util.h"
 #include "boost/assign/std/set.hpp"
 #include <stdio.h>
@@ -671,7 +673,7 @@ void TIOpenclWorkGroupAggregation::add_loop(Function &F, int dimIdx,
    *---------------------------------------------------------------------*/
    if (regLocals)
    {
-       MDNode *dummy = MDNode::getTemporary(ctx, ArrayRef<Value*>());
+       MDNode *dummy = MDNode::getTemporary(ctx, ArrayRef<Metadata*>());
        MDNode *loopmeta = MDNode::get(ctx, dummy);
        loopmeta->replaceOperandWith(0, loopmeta);
        MDNode::deleteTemporary(dummy);

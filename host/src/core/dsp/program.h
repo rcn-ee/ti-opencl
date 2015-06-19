@@ -66,7 +66,7 @@ class DSPProgram : public DeviceProgram
         const char* outfile_name() const;
         void createOptimizationPasses(llvm::PassManager *manager,
                                       bool optimize, bool hasBarrier=false);
-        bool build(llvm::Module *module, std::string *binary_str,
+        bool build(llvm::Module *module, std::string *binary_str, 
                    char *binary_filename=NULL);
         bool ExtractMixedBinary(std::string *binary_str,
                                 std::string *bitcode, std::string *native);

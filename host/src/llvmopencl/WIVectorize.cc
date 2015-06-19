@@ -34,34 +34,6 @@
 #define DEBUG_TYPE WIV_NAME
 #include "config.h"
 #include "pocl.h"
-#ifdef LLVM_3_1
-#include "llvm/Support/IRBuilder.h"
-#include "llvm/Support/TypeBuilder.h"
-#include "llvm/Target/TargetData.h"
-#include "llvm/Constants.h"
-#include "llvm/DerivedTypes.h"
-#include "llvm/Function.h"
-#include "llvm/Instructions.h"
-#include "llvm/IntrinsicInst.h"
-#include "llvm/Intrinsics.h"
-#include "llvm/LLVMContext.h"
-#include "llvm/Type.h"
-#include "llvm/Metadata.h"
-#elif defined LLVM_3_2
-#include "llvm/IRBuilder.h"
-#include "llvm/TypeBuilder.h"
-#include "llvm/DataLayout.h"
-#include "llvm/Constants.h"
-#include "llvm/DerivedTypes.h"
-#include "llvm/Function.h"
-#include "llvm/Instructions.h"
-#include "llvm/IntrinsicInst.h"
-#include "llvm/Intrinsics.h"
-#include "llvm/LLVMContext.h"
-#include "llvm/Type.h"
-#include "llvm/Metadata.h"
-#include "llvm/TargetTransformInfo.h"
-#else
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/TypeBuilder.h"
 #include "llvm/IR/DataLayout.h"
@@ -75,7 +47,6 @@
 #include "llvm/IR/Type.h"
 #include "llvm/IR/Metadata.h"
 #include "llvm/Analysis/TargetTransformInfo.h"
-#endif
 #include "llvm/Pass.h"
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/DenseSet.h"
@@ -91,7 +62,7 @@
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/raw_ostream.h"
-#include "llvm/Support/ValueHandle.h"
+#include "llvm/IR/ValueHandle.h"
 #include "llvm/Transforms/Vectorize.h"
 #include <algorithm>
 #include <map>
@@ -200,17 +171,9 @@ namespace {
 
     AliasAnalysis *AA;
     ScalarEvolution *SE;
-#ifdef LLVM_3_1
-    TargetData *TD;
-#elif defined LLVM_3_2
-    DataLayout *TD;
-    TargetTransformInfo *TTI;
-    const VectorTargetTransformInfo *VTTI;    
-#else
-    DataLayout *TD;
+    const DataLayout *TD;
     TargetTransformInfo *TTI;
     const TargetTransformInfo *VTTI;
-#endif
     DenseMap<Value*, Value*> storedSources;
     DenseMap<std::pair<int,int>, ValueVector*> stridedOps;    
     std::multimap<Value*, Value*> flippedStoredSources;
@@ -373,19 +336,11 @@ namespace {
         
       AA = &getAnalysis<AliasAnalysis>();
       SE = &getAnalysis<ScalarEvolution>();
-#ifdef LLVM_3_1
-      TD = getAnalysisIfAvailable<TargetData>();
-#elif defined LLVM_3_2
-      TD = getAnalysisIfAvailable<DataLayout>();
-      TTI = IgnoreTargetInfo ? 0 :
-        getAnalysisIfAvailable<TargetTransformInfo>();
-      VTTI = TTI ? TTI->getVectorTargetTransformInfo() : 0;        
-#else
-      TD = getAnalysisIfAvailable<DataLayout>();
+      llvm::DataLayoutPass *TDP = getAnalysisIfAvailable<DataLayoutPass>();
+      TD = &TDP->getDataLayout();
       TTI = IgnoreTargetInfo ? 0 :
         getAnalysisIfAvailable<TargetTransformInfo>();
       VTTI = TTI;
-#endif
       
       bool changed = false;      
       for (Function::iterator i = Func.begin();
@@ -564,9 +519,6 @@ namespace {
     // Returns the cost of the provided instruction using VTTI.
     // This does not handle loads and stores.
     unsigned getInstrCost(unsigned Opcode, Type *T1, Type *T2) {
-#ifdef LLVM_3_1
-        return 1;
-#else
       switch (Opcode) {
       default: break;
       case Instruction::GetElementPtr:
@@ -617,7 +569,6 @@ namespace {
         return VTTI->getCastInstrCost(Opcode, T1, T2);
       }
       return 1;
-#endif      
     }     
     // This determines the relative offset of two loads or stores, returning
     // true if the offset could be determined to be some constant value.
@@ -750,18 +701,17 @@ namespace {
         BasicBlock::iterator Start = BB.getFirstInsertionPt();
         BasicBlock::iterator End = BB.end();
         for (BasicBlock::iterator I = Start; I != End; ++I) {
-            BasicBlock::iterator J = llvm::next(I);
-            
+            BasicBlock::iterator J = std::next(I);
             for ( ; J != End; ) {
                 
                 if (isa<AllocaInst>(I) || !I->isIdenticalTo(J)) {
-                    J = llvm::next(J);
+                    J = std::next(J);
                     continue;
                 } else {
                     J->replaceAllUsesWith(I);
                     AA->replaceWithNewValue(J, I);  
                     SE->forgetValue(J);
-                    BasicBlock::iterator K = llvm::next(J);
+                    BasicBlock::iterator K = std::next(J);
                     J->eraseFromParent();
                     J = K;
                 }
@@ -781,7 +731,7 @@ namespace {
             PHINode* node = dyn_cast<PHINode>(I);
             if (node) {
                 ValueVector* candidateVector = new ValueVector;
-                for (BasicBlock::iterator J = llvm::next(I);
+                for (BasicBlock::iterator J = std::next(I);
                     J != End; ++J) {
                     PHINode* node2 = dyn_cast<PHINode>(J);
                     if (node2) {
@@ -868,7 +818,7 @@ namespace {
             // We have to extract it from same position of the vector phi node.
             Instruction::use_iterator useiter = orig->use_begin();            
             while (useiter != orig->use_end()) {
-                llvm::User* tmp = *useiter;
+                llvm::User* tmp = useiter->getUser();
                 if (isa<InsertElementInst>(tmp)) {
                     Value* in = tmp->getOperand(2);
                     if (isa<ConstantInt>(in)) {
@@ -897,7 +847,7 @@ namespace {
                 // We have to extract it from same position of the vector phi node.                
                 Instruction::use_iterator ui = tmp->use_begin();                
                 while (ui != tmp->use_end()) {
-                    llvm::User* user = *ui;
+                    llvm::User* user = ui->getUser();
                     if (isa<InsertElementInst>(user)) {
                         Value* in = user->getOperand(2);
                         if (isa<ConstantInt>(in)) {
@@ -1133,14 +1083,26 @@ namespace {
         assert(iXYZ->getNumOperands() == 4);
         assert(jXYZ->getNumOperands() == 4);
         
-        ConstantInt *CIX = dyn_cast<ConstantInt>(iXYZ->getOperand(1));
-        ConstantInt *CJX = dyn_cast<ConstantInt>(jXYZ->getOperand(1));
+        ConstantInt *CIX = dyn_cast<ConstantInt>(
+              dyn_cast<ConstantAsMetadata>(
+                 iXYZ->getOperand(1))->getValue());
+        ConstantInt *CJX = dyn_cast<ConstantInt>(
+              dyn_cast<ConstantAsMetadata>(
+              jXYZ->getOperand(1))->getValue());
         
-        ConstantInt *CIY = dyn_cast<ConstantInt>(iXYZ->getOperand(2));
-        ConstantInt *CJY = dyn_cast<ConstantInt>(jXYZ->getOperand(2));
+        ConstantInt *CIY = dyn_cast<ConstantInt>(
+              dyn_cast<ConstantAsMetadata>(
+              iXYZ->getOperand(2))->getValue());
+        ConstantInt *CJY = dyn_cast<ConstantInt>(
+              dyn_cast<ConstantAsMetadata>(
+              jXYZ->getOperand(2))->getValue());
         
-        ConstantInt *CIZ = dyn_cast<ConstantInt>(iXYZ->getOperand(3));
-        ConstantInt *CJZ = dyn_cast<ConstantInt>(jXYZ->getOperand(3));
+        ConstantInt *CIZ = dyn_cast<ConstantInt>(
+              dyn_cast<ConstantAsMetadata>(
+              iXYZ->getOperand(3))->getValue());
+        ConstantInt *CJZ = dyn_cast<ConstantInt>(
+              dyn_cast<ConstantAsMetadata>(
+              jXYZ->getOperand(3))->getValue());
         
         if ( CIX->getValue() == CJX->getValue()
             && CIY->getValue() == CJY->getValue()
@@ -1151,8 +1113,12 @@ namespace {
         mi = I->getMetadata("wi_counter");
         mj = J->getMetadata("wi_counter");
                 
-        ConstantInt *CI = dyn_cast<ConstantInt>(mi->getOperand(1));
-        ConstantInt *CJ = dyn_cast<ConstantInt>(mj->getOperand(1));
+        ConstantInt *CI = dyn_cast<ConstantInt>(
+              dyn_cast<ConstantAsMetadata>(
+              mi->getOperand(1))->getValue());
+        ConstantInt *CJ = dyn_cast<ConstantInt>(
+              dyn_cast<ConstantAsMetadata>(
+              mj->getOperand(1))->getValue());
         if (CI->getValue() != CJ->getValue()) {
           // different line in the original work item
           // we do not want to vectorize operations that do not match
@@ -1230,7 +1196,6 @@ namespace {
                     return false;
                 }
             }
-#ifndef LLVM_3_1            
             if (VTTI) {
               unsigned ICost = VTTI->getMemoryOpCost(I->getOpcode(), I->getType(),
                                                      IAlignment, IAddressSpace);
@@ -1252,7 +1217,6 @@ namespace {
                 return false;
 
             }   
-#endif                     
       } else if(foundPointer && abs64(OffsetInElmts)>1){
           if (isa<GetElementPtrInst>(I)) {
               return true;
@@ -1265,9 +1229,13 @@ namespace {
               MDNode* mdRegion = dyn_cast<MDNode>(md->getOperand(1));
       
               unsigned CI = 
-                cast<ConstantInt>(mdCounter->getOperand(1))->getZExtValue();
+                (cast<ConstantInt>(
+                      llvm::dyn_cast<ConstantAsMetadata>(
+                      mdCounter->getOperand(1))->getValue()))->getZExtValue();
               unsigned RI = 
-                cast<ConstantInt>(mdRegion->getOperand(1))->getZExtValue();
+                (cast<ConstantInt>(
+                      llvm::dyn_cast<ConstantAsMetadata>(
+                      mdRegion->getOperand(1))->getValue()))->getZExtValue();
               std::pair<int, int> index = std::pair<int,int>(RI,CI);
               DenseMap<std::pair<int,int>, ValueVector*>::iterator it = 
                 stridedOps.find(index);
@@ -1291,9 +1259,6 @@ namespace {
       return isa<Constant>(I->getOperand(2)) &&
              isa<Constant>(J->getOperand(2));
       // FIXME: We may want to vectorize non-constant shuffles also.
-#ifdef LLVM_3_1             
-    }
-#else    
     }  else if (VTTI) {
       unsigned ICost = getInstrCost(I->getOpcode(), IT1, IT2);
       unsigned JCost = getInstrCost(J->getOpcode(), JT1, JT2);
@@ -1316,7 +1281,6 @@ namespace {
 
       //CostSavings = ICost + JCost - VCost;
     }
-#endif    
     // The powi intrinsic is special because only the first argument is
     // vectorized, the second arguments must be equal.
     CallInst *CI = dyn_cast<CallInst>(I);
@@ -1408,8 +1372,14 @@ namespace {
         MDNode* mdCounter = I->getMetadata("wi_counter");
         MDNode* mdRegion = dyn_cast<MDNode>(md->getOperand(1));
         
-        unsigned CI = cast<ConstantInt>(mdCounter->getOperand(1))->getZExtValue();
-        unsigned RI = cast<ConstantInt>(mdRegion->getOperand(1))->getZExtValue();
+        unsigned CI = 
+                (cast<ConstantInt>(
+                  llvm::dyn_cast<ConstantAsMetadata>(
+                    mdCounter->getOperand(1))->getValue()))->getZExtValue();
+        unsigned RI = 
+                (cast<ConstantInt>(
+                  llvm::dyn_cast<ConstantAsMetadata>(
+                    mdRegion->getOperand(1))->getValue()))->getZExtValue();
         
         std::multimap<int,ValueVector*>::iterator itb = temporary.lower_bound(CI);
         std::multimap<int,ValueVector*>::iterator ite = temporary.upper_bound(CI);
@@ -1421,7 +1391,9 @@ namespace {
                     cast<Instruction>((*(*itb).second)[0])->getMetadata("wi");
                 MDNode* tmpRINode = dyn_cast<MDNode>(tmpMD->getOperand(1));
                 unsigned tmpRI = 
-                    cast<ConstantInt>(tmpRINode->getOperand(1))->getZExtValue();                
+                  (cast<ConstantInt>(
+                    llvm::dyn_cast<ConstantAsMetadata>(
+                      tmpRINode->getOperand(1))->getValue()))->getZExtValue();                
                 if (RI == tmpRI)
                     tmpVec = (*itb).second;
             }
@@ -1498,19 +1470,26 @@ namespace {
                     MDNode* xyz = dyn_cast<MDNode>(md->getOperand(2));
                     MDNode* region = dyn_cast<MDNode>(md->getOperand(1));
                     ConstantInt *CIX = 
-                        dyn_cast<ConstantInt>(xyz->getOperand(1));    
+                        dyn_cast<ConstantInt>(
+                          dyn_cast<ConstantAsMetadata>(
+                            xyz->getOperand(1))->getValue());    
                     ConstantInt *CIY = 
-                        dyn_cast<ConstantInt>(xyz->getOperand(2));        
+                        dyn_cast<ConstantInt>(
+                          dyn_cast<ConstantAsMetadata>(
+                              xyz->getOperand(2))->getValue());        
                     ConstantInt *CIZ = 
-                        dyn_cast<ConstantInt>(xyz->getOperand(3));
+                        dyn_cast<ConstantInt>(
+                          dyn_cast<ConstantAsMetadata>(
+                              xyz->getOperand(3))->getValue());
                     if (CIX->getValue() == 1) {
-                        Value *v2[] = {
+                        Metadata *v2[] = {
                             MDString::get(context, "WI_xyz"),      
-                            ConstantInt::get(Type::getInt32Ty(context), 0),
-                            CIY,      
-                            CIZ};                 
+                            llvm::ConstantAsMetadata::get(
+                            ConstantInt::get(Type::getInt32Ty(context), 0)),
+                            llvm::ConstantAsMetadata::get(CIY),      
+                            llvm::ConstantAsMetadata::get(CIZ)};                
                         MDNode* newXYZ = MDNode::get(context, v2);
-                        Value *v[] = {
+                        Metadata *v[] = {
                             MDString::get(context, "WI_data"),      
                             region,
                             newXYZ};
@@ -1563,7 +1542,7 @@ namespace {
                                 }
                             }
                             if (!usedInVec) {
-                                usesToReplace.push_back(*it);
+                                usesToReplace.push_back(it->getUser());
                             }
                         }
                     }                    
@@ -1731,7 +1710,7 @@ namespace {
 
       DenseSet<Value *> Users;
       AliasSetTracker WriteSet(*AA);
-      for (BasicBlock::iterator J = llvm::next(I); J != E; ++J)
+      for (BasicBlock::iterator J = std::next(I); J != E; ++J)
         (void) trackUsesOfI(Users, WriteSet, I, J);
 
       for (DenseSet<Value *>::iterator U = Users.begin(), E = Users.end();
@@ -2103,11 +2082,7 @@ namespace {
              << *J->first << " <-> " << *J->second << "} of depth " <<
              MaxDepth << " and size " << PrunedTree.size() <<
             " (effective size: " << EffSize << ")\n");
-#if defined LLVM_3_1      
-      if (MaxDepth >= ReqChainDepth && EffSize > BestEffSize) {
-#else          
-      if ((VTTI || MaxDepth >= ReqChainDepth) && EffSize > BestEffSize) {          
-#endif          
+      if ((VTTI || MaxDepth >= ReqChainDepth) && EffSize > BestEffSize) {
         BestMaxDepth = MaxDepth;
         BestEffSize = EffSize;
         BestTree = PrunedTree;
@@ -2684,7 +2659,7 @@ namespace {
                      Instruction *&InsertionPt,
                      Instruction *I, Instruction *J) {
     // Skip to the first instruction past I.
-    BasicBlock::iterator L = llvm::next(BasicBlock::iterator(I));
+    BasicBlock::iterator L = std::next(BasicBlock::iterator(I));
 
     DenseSet<Value *> Users;
     AliasSetTracker WriteSet(*AA);
@@ -2711,7 +2686,7 @@ namespace {
                      std::multimap<Value *, Value *> &LoadMoveSet,
                      Instruction *I) {
     // Skip to the first instruction past I.
-    BasicBlock::iterator L = llvm::next(BasicBlock::iterator(I));
+    BasicBlock::iterator L = std::next(BasicBlock::iterator(I));
 
     DenseSet<Value *> Users;
     AliasSetTracker WriteSet(*AA);
@@ -2882,7 +2857,7 @@ namespace {
       }
 
       // Before removing I, set the iterator to the next instruction.
-      PI = llvm::next(BasicBlock::iterator(I));
+      PI = std::next(BasicBlock::iterator(I));
       if (cast<Instruction>(PI) == J)
         ++PI;
 
@@ -2899,7 +2874,7 @@ namespace {
     do{
         BasicBlock::iterator J = BB.end();     
         changed = false;
-        BasicBlock::iterator I = llvm::prior(J);        
+        BasicBlock::iterator I = std::prev(J);        
         while (I != BB.begin()) {
         
             if (isa<ShuffleVectorInst>(*I) ||
@@ -2915,10 +2890,10 @@ namespace {
                     // removed instruction could have messed up things
                     // start again from the end
                     I = BB.end();
-                    J = llvm::prior(I);
+                    J = std::prev(I);
                     changed = true;
                 } else {
-                    J = llvm::prior(I);      		
+                    J = std::prev(I);      		
                 }	  
             } else if (GlobalToExtras && 
                 (isa<LoadInst>(*I) || isa<StoreInst>(*I))) {
@@ -2961,9 +2936,9 @@ namespace {
                         changed = true;
                     }
                 }                                                   
-                J = llvm::prior(I);                         
+                J = std::prev(I);                         
             } else {
-                J = llvm::prior(I);      		
+                J = std::prev(I);      		
             }
             I = J;      
         }
@@ -2974,13 +2949,13 @@ namespace {
     Instruction::use_iterator useiter = oldAlloca.use_begin();                
 
     while (useiter != oldAlloca.use_end()) {
-        llvm::User* user = *useiter;
+        llvm::User* user = useiter->getUser();
         
         if (isa<BitCastInst>(user)) {
             BitCastInst* bitCast = cast<BitCastInst>(user);
             Instruction::use_iterator useIterBC = bitCast->use_begin();
             while (useIterBC != bitCast->use_end()) {
-                llvm::User* bcUser = *useIterBC;
+                llvm::User* bcUser = useIterBC->getUser();
                 if (isa<CallInst>(bcUser)) {
                     // TODO: check if it is llvm.lifetime.end() or
                     // llvm.lifetime.start()
@@ -3009,7 +2984,7 @@ namespace {
     Instruction::use_iterator useiter = oldAlloca.use_begin();                
 
     while (useiter != oldAlloca.use_end()) {
-        llvm::User* tmp = *useiter;
+        llvm::User* tmp = useiter->getUser();
         
         if (isa<BitCastInst>(tmp)) {
             // Create new bitcast from new alloca to same type
@@ -3269,7 +3244,9 @@ namespace {
         MDNode* iXYZ= dyn_cast<MDNode>(mi->getOperand(2));
         assert(iXYZ->getNumOperands() == 4);
         
-        int index = dyn_cast<ConstantInt>(iXYZ->getOperand(1))->getZExtValue();        
+        int index = (dyn_cast<ConstantInt>(
+                      llvm::dyn_cast<ConstantAsMetadata>(
+              iXYZ->getOperand(1))->getValue()))->getZExtValue();        
         
         replaceUses(BB, *I, *alloca, index);
         SE->forgetValue(I);
@@ -3283,7 +3260,9 @@ namespace {
             MDNode* jXYZ= dyn_cast<MDNode>(mj->getOperand(2));
             assert(jXYZ->getNumOperands() == 4);            
             int index = 
-                dyn_cast<ConstantInt>(jXYZ->getOperand(1))->getZExtValue();        
+                (dyn_cast<ConstantInt>(
+                      llvm::dyn_cast<ConstantAsMetadata>(
+                      jXYZ->getOperand(1))->getValue()))->getZExtValue();        
             
             replaceUses(BB, *J, *alloca, index);
             SE->forgetValue(J);
@@ -3314,9 +3293,14 @@ namespace {
         MDNode* mdCounter = I->getMetadata("wi_counter");
         MDNode* mdRegion = dyn_cast<MDNode>(md->getOperand(1));
         
-        unsigned CI = cast<ConstantInt>(mdCounter->getOperand(1))->getZExtValue();
-        unsigned RI = cast<ConstantInt>(mdRegion->getOperand(1))->getZExtValue();
-        
+        unsigned CI = 
+                 (cast<ConstantInt>(
+                   llvm::dyn_cast<ConstantAsMetadata>(
+                     mdCounter->getOperand(1))->getValue()))->getZExtValue();
+        unsigned RI = 
+                 (cast<ConstantInt>(
+                   llvm::dyn_cast<ConstantAsMetadata>(
+                     mdRegion->getOperand(1))->getValue()))->getZExtValue();
         std::multimap<int,ValueVector*>::iterator itb = temporary.lower_bound(CI);
         std::multimap<int,ValueVector*>::iterator ite = temporary.upper_bound(CI);
         ValueVector* tmpVec = NULL;   
@@ -3327,7 +3311,9 @@ namespace {
                     cast<Instruction>((*(*itb).second)[0])->getMetadata("wi");
                 MDNode* tmpRINode = dyn_cast<MDNode>(tmpMD->getOperand(1));
                 unsigned tmpRI = 
-                    cast<ConstantInt>(tmpRINode->getOperand(1))->getZExtValue();                
+                    (cast<ConstantInt>(
+                      llvm::dyn_cast<ConstantAsMetadata>(
+                          tmpRINode->getOperand(1))->getValue()))->getZExtValue();                
                 if (RI == tmpRI)
                     tmpVec = (*itb).second;
             }

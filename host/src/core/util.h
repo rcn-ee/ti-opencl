@@ -32,7 +32,7 @@
 
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Module.h>
-#include <llvm/DebugInfo.h>
+#include <llvm/IR/DebugInfo.h>
 
 #ifndef _UTIL_H
 #define _UTIL_H

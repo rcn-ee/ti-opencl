@@ -27,7 +27,7 @@
  *****************************************************************************/
 #include <llvm/PassManager.h>
 #include <llvm/Analysis/Passes.h>
-#include <llvm/Analysis/Verifier.h>
+#include <llvm/IR/Verifier.h>
 #include <llvm/Transforms/Scalar.h>
 #include <llvm/Transforms/IPO.h>
 #include <llvm/Transforms/Utils/UnifyFunctionExitNodes.h>
@@ -76,7 +76,9 @@ const char *get_cgt_install()
  
        abort();
     }
-    else return DEFAULT_TI_CGT_INSTALL_PATH;
+    else 
+       install = const_cast<char*>(DEFAULT_TI_CGT_INSTALL_PATH);
+    return install;
 }
 
 /******************************************************************************

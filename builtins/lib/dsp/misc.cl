@@ -69,19 +69,19 @@ _CLC_OVERLOAD _CLC_PROTECTED void wait_group_events(int num_events, event_t *eve
 #define TEMPLATE(gentype) \
 _CLC_OVERLOAD _CLC_PROTECTED event_t async_work_group_copy(local gentype *dst, \
               const global gentype *src, size_t num_gentypes, event_t event) \
-{ return __copy_1D1D(event, (void *)dst,(void *)src,num_gentypes * sizeof(gentype)); } \
+{ return __copy_1D1D(event, (local void *)dst,(global void *)src,num_gentypes * sizeof(gentype)); } \
 _CLC_OVERLOAD _CLC_PROTECTED event_t async_work_group_copy(global gentype *dst, \
               const local gentype *src, size_t num_gentypes, event_t event) \
-{ return __copy_1D1D(event, (void *)dst,(void *)src,num_gentypes * sizeof(gentype)); } \
+{ return __copy_1D1D(event, (global void *)dst,(local void *)src,num_gentypes * sizeof(gentype)); } \
 _CLC_OVERLOAD _CLC_PROTECTED event_t async_work_group_copy(global gentype *dst, \
               const global gentype *src, size_t num_gentypes, event_t event) \
-{ return __copy_1D1D(event, (void *)dst,(void *)src,num_gentypes * sizeof(gentype)); } \
+{ return __copy_1D1D(event, (global void *)dst,(global void *)src,num_gentypes * sizeof(gentype)); } \
 _CLC_OVERLOAD _CLC_PROTECTED event_t async_work_group_strided_copy(local gentype *dst, \
         const global gentype *src, size_t num_gentypes, size_t src_stride, event_t event) \
-{ return __copy_2D1D(event, (void *)dst,(void *)src,sizeof(gentype),num_gentypes,src_stride); } \
+{ return __copy_2D1D(event, (local void *)dst,(global void *)src,sizeof(gentype),num_gentypes,src_stride); } \
 _CLC_OVERLOAD _CLC_PROTECTED event_t async_work_group_strided_copy(global gentype *dst, \
         const local gentype *src, size_t num_gentypes, size_t dst_stride, event_t event) \
-{ return __copy_1D2D(event, (void *)dst,(void *)src,sizeof(gentype),num_gentypes,dst_stride); }
+{ return __copy_1D2D(event, (global void *)dst,(local void *)src,sizeof(gentype),num_gentypes,dst_stride); }
 
 CROSS_TYPES()
 

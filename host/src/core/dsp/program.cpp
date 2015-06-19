@@ -33,7 +33,7 @@
 
 #include <llvm/PassManager.h>
 #include <llvm/Analysis/Passes.h>
-#include <llvm/Analysis/Verifier.h>
+#include <llvm/IR/Verifier.h>
 #include <llvm/Transforms/Scalar.h>
 #include <llvm/Transforms/IPO.h>
 #include <llvm/Transforms/Utils/UnifyFunctionExitNodes.h>
@@ -231,7 +231,7 @@ void DSPProgram::createOptimizationPasses(llvm::PassManager *manager,
     if (hasBarrier)
     {
         manager->add(    llvm::createPromoteMemoryToRegisterPass());
-        manager->add(new llvm::DominatorTree());
+        manager->add(new llvm::DominatorTreeWrapperPass());
         manager->add(new pocl::WorkitemHandlerChooser());
         manager->add(new       BreakConstantGEPs());   // from pocl
         //       add(new       GenerateHeader());      // no need

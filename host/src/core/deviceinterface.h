@@ -38,6 +38,9 @@
 #include <string>
 #include "object.h"
 
+/* This pulls in legacy::PassManager when using LLVM >= 3.5 */
+#include <llvm/PassManager.h>
+
 namespace llvm
 {
     class PassManager;

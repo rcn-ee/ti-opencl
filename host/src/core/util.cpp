@@ -40,7 +40,8 @@
 
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/DataLayout.h>
-#include <llvm/Support/InstIterator.h>
+#include <llvm/IR/InstIterator.h>
+#include <llvm/IR/Constants.h>
 
 
 using namespace llvm;
@@ -143,7 +144,7 @@ bool isKernelFunction(llvm::Function &F)
     llvm::NamedMDNode *ks = F.getParent()->getNamedMetadata("opencl.kernels");
     if (ks == NULL)  return false;
     for (unsigned int i = 0; i < ks->getNumOperands(); ++i)
-        if (llvm::Value *value = ks->getOperand(i)->getOperand(0))
+        if (llvm::Value *value = dyn_cast<llvm::ValueAsMetadata>(ks->getOperand(i)->getOperand(0))->getValue())
             if (llvm::cast<llvm::Function>(value) == &F)
                 return true;
     return false;
@@ -159,22 +160,22 @@ bool getReqdWGSize(llvm::Function &F, int wgsizes[3])
     for (unsigned int i = 0; i < ks->getNumOperands(); ++i)
     {
         MDNode *ker = ks->getOperand(i);
-        if (llvm::Value *value = ker->getOperand(0))
+        if (llvm::Value *value = dyn_cast<llvm::ValueAsMetadata>(ker->getOperand(0))->getValue())
         {
             if (llvm::cast<llvm::Function>(value) == &F)
             {
                 if (ker->getNumOperands() <= 1) return false;
                 MDNode *meta = llvm::cast<MDNode>(ker->getOperand(1));
                 if (meta->getNumOperands() == 4 &&
-                    meta->getOperand(0)->getName().str()
+                    llvm::cast<llvm::MDString>(meta->getOperand(0))->getString().str()
                     == std::string("reqd_work_group_size"))
                 {
-                    wgsizes[0] = llvm::cast<ConstantInt>(
-                            meta->getOperand(1))->getValue().getLimitedValue();
-                    wgsizes[1] = llvm::cast<ConstantInt>(
-                            meta->getOperand(2))->getValue().getLimitedValue();
-                    wgsizes[2] = llvm::cast<ConstantInt>(
-                            meta->getOperand(3))->getValue().getLimitedValue();
+                    wgsizes[0] = llvm::mdconst::dyn_extract<ConstantInt>(
+                            meta->getOperand(1))->getLimitedValue();
+                    wgsizes[1] = llvm::mdconst::dyn_extract<ConstantInt>(
+                            meta->getOperand(2))->getLimitedValue();
+                    wgsizes[2] = llvm::mdconst::dyn_extract<ConstantInt>(
+                            meta->getOperand(3))->getLimitedValue();
                     return true;
                 }
                 return false;
@@ -195,11 +196,8 @@ llvm::MDNode* getDebugInfo(llvm::Function &F, unsigned int &scope_line_num)
     *------------------------------------------------------------------------*/
     DebugInfoFinder di_finder;
     di_finder.processModule(* F.getParent());
-    for (DebugInfoFinder::iterator i = di_finder.subprogram_begin(),
-                                   e = di_finder.subprogram_end();
-                                   i != e; i++)
+    for (DISubprogram sub : di_finder.subprograms())
     {
-        DISubprogram sub(*i);
         if (sub.describes(&F))
         {
             scope_line_num = sub.getScopeLineNumber();

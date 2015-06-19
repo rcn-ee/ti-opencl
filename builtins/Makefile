@@ -50,24 +50,24 @@ dsp.lib: $(OBJECTS)
 pch: 
 	mkdir -p usr/share/ti/opencl
 	cp include/clc.h usr/share/ti/opencl
-	$(CLANG) -cc1 -v -O2 -triple=spir-unknown-unknown-unknown -Fvisibility=protected -x cl -fno-builtin -ffp-contract=off --relocatable-pch -emit-pch -isysroot ${CURDIR} usr/share/ti/opencl/clc.h -o clc.h.pch 
+	$(CLANG) -cc1 -v -O2 -triple=c6000-unknown-unknown-unknown -Fvisibility=protected -x cl -fno-builtin -ffp-contract=off -fno-trigraphs --relocatable-pch -emit-pch -isysroot ${CURDIR} usr/share/ti/opencl/clc.h -o clc.h.pch 
 
 #------------------------------------------------------------------------
 # Uncomment to use clocl to compile instead of clang + cl6x direct
 #------------------------------------------------------------------------
-#CLOCL        = clocl
-#CLOCL_CFLAGS = -l -b
-#%.obj: %.cl
-#	@echo $< Clocl
-#	@$(CLOCL) $(CLOCL_CFLAGS)  $< 
+CLOCL        = clocl
+CLOCL_CFLAGS = -l -b
+%.obj: %.cl
+	@echo $< Clocl
+	$(CLOCL) $(CLOCL_CFLAGS)  $< 
 
-%.bc: %.cl
-	@echo $< Parsing
-	@$(CLANG) $(CLANG_CFLAGS) -emit-llvm-bc $< -o $@
+#%.bc: %.cl
+#	@echo $< Parsing
+#	@$(CLANG) $(CLANG_CFLAGS) -emit-llvm-bc $< -o $@
 
-%.obj: %.bc
-	@echo $< Generating
-	@$(CL6X) $(CL6X_CFLAGS) $<
+#%.obj: %.bc
+#	@echo $< Generating
+#	@$(CL6X) $(CL6X_CFLAGS) $<
 
 clean:
 	@rm -rf *.obj* *.bc *.asm *.ll *.if *.opt *.lib *.map *.out include/clc.h.pch *.h

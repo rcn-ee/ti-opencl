@@ -1,7 +1,7 @@
 OCL_BUILD_ROOT= $(shell pwd)
 .SILENT:
 OCL_VER=1.1.6
-LLVM_VER=33
+LLVM_VER=36
 
 OCL_DPKG_NAME = ti-opencl
 OCL_VERSIONED_NAME  = $(OCL_DPKG_NAME)_$(OCL_VER)
@@ -15,7 +15,7 @@ OCL_EXAMPLES_DIR = examples
 
 LLVM_X86_INSTALL_DIR = llvm$(LLVM_VER)-install-x86
 
-REPOS = $(LLVM_X86_INSTALL_DIR) 
+#REPOS = $(LLVM_X86_INSTALL_DIR) 
 CLEAN_DIRS = host monitor builtins examples libm
 
 # Needed by sub target makes

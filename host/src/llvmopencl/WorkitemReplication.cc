@@ -33,25 +33,11 @@
 #include "llvm/Analysis/LoopInfo.h"
 #include "llvm/Support/CommandLine.h"
 #include "config.h"
-#ifdef LLVM_3_1
-#include "llvm/Support/IRBuilder.h"
-#include "llvm/Target/TargetData.h"
-#include "llvm/Instructions.h"
-#include "llvm/Module.h"
-#include "llvm/ValueSymbolTable.h"
-#elif defined LLVM_3_2
-#include "llvm/IRBuilder.h"
-#include "llvm/DataLayout.h"
-#include "llvm/Instructions.h"
-#include "llvm/Module.h"
-#include "llvm/ValueSymbolTable.h"
-#else
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/ValueSymbolTable.h"
-#endif
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include "WorkitemHandlerChooser.h"
 
@@ -84,15 +70,17 @@ char WorkitemReplication::ID = 0;
 void
 WorkitemReplication::getAnalysisUsage(AnalysisUsage &AU) const
 {
-  AU.addRequired<DominatorTree>();
+  AU.addRequired<DominatorTreeWrapperPass>();
   AU.addRequired<LoopInfo>();
 
 // TODO - removed due to compilation error 
 #if 0
 #ifdef LLVM_3_1
   AU.addRequired<TargetData>();
-#else
+#elif defined LLVM_3_3
   AU.addRequired<DataLayout>();
+#else
+  AU.addRequired<DataLayoutPass>();
 #endif
 #endif
   AU.addRequired<pocl::WorkitemHandlerChooser>();
@@ -108,7 +96,8 @@ WorkitemReplication::runOnFunction(Function &F)
       pocl::WorkitemHandlerChooser::POCL_WIH_FULL_REPLICATION)
     return false;
 
-  DT = &getAnalysis<DominatorTree>();
+  DTP = &getAnalysis<DominatorTreeWrapperPass>();
+  DT = &DTP->getDomTree();
   LI = &getAnalysis<LoopInfo>();
 
   bool changed = ProcessFunction(F);
@@ -117,7 +106,7 @@ WorkitemReplication::runOnFunction(Function &F)
   cfgPrinter->runOnFunction(F);
 #endif
 
-  changed |= fixUndominatedVariableUses(DT, F);
+  changed |= fixUndominatedVariableUses(DTP, F);
   return changed;
 }
 
@@ -163,11 +152,7 @@ WorkitemReplication::ProcessFunction(Function &F)
 #endif
   
   // Measure the required context (variables alive in more than one region).
-#ifdef LLVM_3_1
-  TargetData &TD = getAnalysis<TargetData>();
-#else
-  DataLayout &TD = getAnalysis<DataLayout>();
-#endif
+  const DataLayout &TD = getAnalysis<DataLayoutPass>().getDataLayout();
 
   for (SmallVector<ParallelRegion *, 8>::iterator
          i = original_parallel_regions->begin(), 
@@ -184,7 +169,7 @@ WorkitemReplication::ProcessFunction(Function &F)
         for (Value::use_iterator i4 = i3->use_begin(), e4 = i3->use_end();
              i4 != e4; ++i4) {
           // Instructions can only be used by instructions.
-          Instruction *user = cast<Instruction> (*i4);
+          Instruction *user = cast<Instruction> (i4->getUser());
           
           if (find (pr->begin(), pr->end(), user->getParent()) ==
               pr->end()) {

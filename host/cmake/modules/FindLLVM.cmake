@@ -45,7 +45,7 @@ if(IS_X86_64_HOST)
 endif()
 
 # Version of LLVM we are currently based off of
-set(LLVM_VERSION 33) 
+set(LLVM_VERSION 360) 
 
 
 # Set up llvm paths, using environment variables if defined
@@ -146,7 +146,8 @@ elseif(HAWKING_BUILD OR AM57_BUILD)
   set (LLVM_LIB_TARGET ARM)
 endif()
 
-exec_program(${LLVM_CONFIG_EXECUTABLE} ARGS --libs  ${LLVM_LIB_TARGET} asmparser native bitwriter tablegen mcjit debuginfo interpreter linker irreader instrumentation ipo mcdisassembler OUTPUT_VARIABLE LLVM_LIBS_CORE )
+exec_program(${LLVM_CONFIG_EXECUTABLE} ARGS --libs  OUTPUT_VARIABLE LLVM_LIBS_CORE )
+#exec_program(${LLVM_CONFIG_EXECUTABLE} ARGS --libs  ${LLVM_LIB_TARGET} asmparser native bitwriter tablegen mcjit debuginfo interpreter linker irreader instrumentation ipo mcdisassembler OUTPUT_VARIABLE LLVM_LIBS_CORE )
 MESSAGE(STATUS "LLVM core libs: " ${LLVM_LIBS_CORE})
 
 if(LLVM_INCLUDE_DIR)

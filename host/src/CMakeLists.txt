@@ -32,10 +32,12 @@ include_directories (
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-variable")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-literal-suffix")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fpermissive")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_FILE_OFFSET_BITS=64")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_PRODUCT_VERSION=${${PROJECT_NAME}_PKG_VERSION}")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DLLVM_3_3")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 
 # bfd.h has a check to ensure that config.h is included
 # We don't require config.h (autotools) so we bypass this check by defining

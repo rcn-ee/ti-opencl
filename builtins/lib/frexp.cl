@@ -30,377 +30,480 @@
 _CLC_PROTECTED float  frexpf(float  x, int * ptr);
 _CLC_PROTECTED double frexpd(double x, int * ptr);
 
-_CLC_OVERLOAD _CLC_DEF float frexp(float x, global  int * ptr) { return frexpf(x, (int*)ptr); }
-_CLC_OVERLOAD _CLC_DEF float frexp(float x, local   int * ptr) { return frexpf(x, (int*)ptr); }
-_CLC_OVERLOAD _CLC_DEF float frexp(float x, private int * ptr) { return frexpf(x, (int*)ptr); }
+_CLC_OVERLOAD _CLC_DEF float frexp(float x, global  int * ptr) 
+{ 
+   float temp;
+   int itemp;
+   temp = frexpf(x, (int*)&itemp); 
+   *ptr = itemp;
+   return temp;
+}
+_CLC_OVERLOAD _CLC_DEF float frexp(float x, local   int * ptr) 
+{ 
+   float temp;
+   int itemp;
+   temp = frexpf(x, (int*)&itemp); 
+   *ptr = itemp;
+   return temp;
+}
+_CLC_OVERLOAD _CLC_DEF float frexp(float x, private int * ptr) 
+{ 
+   float temp;
+   int itemp;
+   temp = frexpf(x, (int*)&itemp); 
+   *ptr = itemp;
+   return temp;
+}
 
 _CLC_OVERLOAD _CLC_DEF float2 frexp(float2 x, global  int2 * ptr) 
 {
     float2 temp;
-    temp.s0 = frexpf(x.s0, &(((int*)ptr)[0]));
-    temp.s1 = frexpf(x.s1, &(((int*)ptr)[1]));
+    int2 itemp;
+    temp.s0 = frexpf(x.s0, &(((int*)&itemp)[0]));
+    temp.s1 = frexpf(x.s1, &(((int*)&itemp)[1]));
+    *ptr=itemp;
     return temp;
 }
+
 
 _CLC_OVERLOAD _CLC_DEF float2 frexp(float2 x, local   int2 * ptr) 
 {
     float2 temp;
-    temp.s0 = frexpf(x.s0, &(((int*)ptr)[0]));
-    temp.s1 = frexpf(x.s1, &(((int*)ptr)[1]));
+    int2 itemp;
+    temp.s0 = frexpf(x.s0, &(((int*)&itemp)[0]));
+    temp.s1 = frexpf(x.s1, &(((int*)&itemp)[1]));
+    *ptr=itemp;
     return temp;
 }
 
 _CLC_OVERLOAD _CLC_DEF float2 frexp(float2 x, private int2 * ptr) 
 {
     float2 temp;
-    temp.s0 = frexpf(x.s0, &(((int*)ptr)[0]));
-    temp.s1 = frexpf(x.s1, &(((int*)ptr)[1]));
+    int2 itemp;
+    temp.s0 = frexpf(x.s0, &(((int*)&itemp)[0]));
+    temp.s1 = frexpf(x.s1, &(((int*)&itemp)[1]));
+    *ptr=itemp;
     return temp;
 }
 
 _CLC_OVERLOAD _CLC_DEF float3 frexp(float3 x, global  int3 * ptr) 
 {
     float3 temp;
-    temp.s0 = frexpf(x.s0, &(((int*)ptr)[0]));
-    temp.s1 = frexpf(x.s1, &(((int*)ptr)[1]));
-    temp.s2 = frexpf(x.s2, &(((int*)ptr)[2]));
+    int3 itemp;
+    temp.s0 = frexpf(x.s0, &(((int*)&itemp)[0]));
+    temp.s1 = frexpf(x.s1, &(((int*)&itemp)[1]));
+    temp.s2 = frexpf(x.s2, &(((int*)&itemp)[2]));
+    *ptr=itemp;
     return temp;
 }
 _CLC_OVERLOAD _CLC_DEF float3 frexp(float3 x, local   int3 * ptr) 
 {
     float3 temp;
-    temp.s0 = frexpf(x.s0, &(((int*)ptr)[0]));
-    temp.s1 = frexpf(x.s1, &(((int*)ptr)[1]));
-    temp.s2 = frexpf(x.s2, &(((int*)ptr)[2]));
+    int3 itemp;
+    temp.s0 = frexpf(x.s0, &(((int*)&itemp)[0]));
+    temp.s1 = frexpf(x.s1, &(((int*)&itemp)[1]));
+    temp.s2 = frexpf(x.s2, &(((int*)&itemp)[2]));
+    *ptr=itemp;
     return temp;
 }
 _CLC_OVERLOAD _CLC_DEF float3 frexp(float3 x, private int3 * ptr) 
 {
     float3 temp;
-    temp.s0 = frexpf(x.s0, &(((int*)ptr)[0]));
-    temp.s1 = frexpf(x.s1, &(((int*)ptr)[1]));
-    temp.s2 = frexpf(x.s2, &(((int*)ptr)[2]));
+    int3 itemp;
+    temp.s0 = frexpf(x.s0, &(((int*)&itemp)[0]));
+    temp.s1 = frexpf(x.s1, &(((int*)&itemp)[1]));
+    temp.s2 = frexpf(x.s2, &(((int*)&itemp)[2]));
+    *ptr=itemp;
     return temp;
 }
 
 _CLC_OVERLOAD _CLC_DEF float4 frexp(float4 x, global  int4 * ptr)
 {
     float4 temp;
-    temp.s0 = frexpf(x.s0, &(((int*)ptr)[0]));
-    temp.s1 = frexpf(x.s1, &(((int*)ptr)[1]));
-    temp.s2 = frexpf(x.s2, &(((int*)ptr)[2]));
-    temp.s3 = frexpf(x.s3, &(((int*)ptr)[3]));
+    int4 itemp;
+    temp.s0 = frexpf(x.s0, &(((int*)&itemp)[0]));
+    temp.s1 = frexpf(x.s1, &(((int*)&itemp)[1]));
+    temp.s2 = frexpf(x.s2, &(((int*)&itemp)[2]));
+    temp.s3 = frexpf(x.s3, &(((int*)&itemp)[3]));
+    *ptr=itemp;
     return temp;
 }
 _CLC_OVERLOAD _CLC_DEF float4 frexp(float4 x, local   int4 * ptr)
 {
     float4 temp;
-    temp.s0 = frexpf(x.s0, &(((int*)ptr)[0]));
-    temp.s1 = frexpf(x.s1, &(((int*)ptr)[1]));
-    temp.s2 = frexpf(x.s2, &(((int*)ptr)[2]));
-    temp.s3 = frexpf(x.s3, &(((int*)ptr)[3]));
+    int4 itemp;
+    temp.s0 = frexpf(x.s0, &(((int*)&itemp)[0]));
+    temp.s1 = frexpf(x.s1, &(((int*)&itemp)[1]));
+    temp.s2 = frexpf(x.s2, &(((int*)&itemp)[2]));
+    temp.s3 = frexpf(x.s3, &(((int*)&itemp)[3]));
+    *ptr=itemp;
     return temp;
 }
 _CLC_OVERLOAD _CLC_DEF float4 frexp(float4 x, private int4 * ptr)
 {
     float4 temp;
-    temp.s0 = frexpf(x.s0, &(((int*)ptr)[0]));
-    temp.s1 = frexpf(x.s1, &(((int*)ptr)[1]));
-    temp.s2 = frexpf(x.s2, &(((int*)ptr)[2]));
-    temp.s3 = frexpf(x.s3, &(((int*)ptr)[3]));
+    int4 itemp;
+    temp.s0 = frexpf(x.s0, &(((int*)&itemp)[0]));
+    temp.s1 = frexpf(x.s1, &(((int*)&itemp)[1]));
+    temp.s2 = frexpf(x.s2, &(((int*)&itemp)[2]));
+    temp.s3 = frexpf(x.s3, &(((int*)&itemp)[3]));
+    *ptr=itemp;
     return temp;
 }
 
 _CLC_OVERLOAD _CLC_DEF float8 frexp(float8 x, global  int8 * ptr) 
 {
     float8 temp;
-    temp.s0 = frexpf(x.s0, &(((int*)ptr)[0]));
-    temp.s1 = frexpf(x.s1, &(((int*)ptr)[1]));
-    temp.s2 = frexpf(x.s2, &(((int*)ptr)[2]));
-    temp.s3 = frexpf(x.s3, &(((int*)ptr)[3]));
-    temp.s4 = frexpf(x.s4, &(((int*)ptr)[4]));
-    temp.s5 = frexpf(x.s5, &(((int*)ptr)[5]));
-    temp.s6 = frexpf(x.s6, &(((int*)ptr)[6]));
-    temp.s7 = frexpf(x.s7, &(((int*)ptr)[7]));
+    int8 itemp;
+    temp.s0 = frexpf(x.s0, &(((int*)&itemp)[0]));
+    temp.s1 = frexpf(x.s1, &(((int*)&itemp)[1]));
+    temp.s2 = frexpf(x.s2, &(((int*)&itemp)[2]));
+    temp.s3 = frexpf(x.s3, &(((int*)&itemp)[3]));
+    temp.s4 = frexpf(x.s4, &(((int*)&itemp)[4]));
+    temp.s5 = frexpf(x.s5, &(((int*)&itemp)[5]));
+    temp.s6 = frexpf(x.s6, &(((int*)&itemp)[6]));
+    temp.s7 = frexpf(x.s7, &(((int*)&itemp)[7]));
+    *ptr=itemp;
     return temp;
 }
 
 _CLC_OVERLOAD _CLC_DEF float8 frexp(float8 x, local   int8 * ptr) 
 {
     float8 temp;
-    temp.s0 = frexpf(x.s0, &(((int*)ptr)[0]));
-    temp.s1 = frexpf(x.s1, &(((int*)ptr)[1]));
-    temp.s2 = frexpf(x.s2, &(((int*)ptr)[2]));
-    temp.s3 = frexpf(x.s3, &(((int*)ptr)[3]));
-    temp.s4 = frexpf(x.s4, &(((int*)ptr)[4]));
-    temp.s5 = frexpf(x.s5, &(((int*)ptr)[5]));
-    temp.s6 = frexpf(x.s6, &(((int*)ptr)[6]));
-    temp.s7 = frexpf(x.s7, &(((int*)ptr)[7]));
+    int8 itemp;
+    temp.s0 = frexpf(x.s0, &(((int*)&itemp)[0]));
+    temp.s1 = frexpf(x.s1, &(((int*)&itemp)[1]));
+    temp.s2 = frexpf(x.s2, &(((int*)&itemp)[2]));
+    temp.s3 = frexpf(x.s3, &(((int*)&itemp)[3]));
+    temp.s4 = frexpf(x.s4, &(((int*)&itemp)[4]));
+    temp.s5 = frexpf(x.s5, &(((int*)&itemp)[5]));
+    temp.s6 = frexpf(x.s6, &(((int*)&itemp)[6]));
+    temp.s7 = frexpf(x.s7, &(((int*)&itemp)[7]));
+    *ptr=itemp;
     return temp;
 }
 _CLC_OVERLOAD _CLC_DEF float8 frexp(float8 x, private int8 * ptr) 
 {
     float8 temp;
-    temp.s0 = frexpf(x.s0, &(((int*)ptr)[0]));
-    temp.s1 = frexpf(x.s1, &(((int*)ptr)[1]));
-    temp.s2 = frexpf(x.s2, &(((int*)ptr)[2]));
-    temp.s3 = frexpf(x.s3, &(((int*)ptr)[3]));
-    temp.s4 = frexpf(x.s4, &(((int*)ptr)[4]));
-    temp.s5 = frexpf(x.s5, &(((int*)ptr)[5]));
-    temp.s6 = frexpf(x.s6, &(((int*)ptr)[6]));
-    temp.s7 = frexpf(x.s7, &(((int*)ptr)[7]));
+    int8 itemp;
+    temp.s0 = frexpf(x.s0, &(((int*)&itemp)[0]));
+    temp.s1 = frexpf(x.s1, &(((int*)&itemp)[1]));
+    temp.s2 = frexpf(x.s2, &(((int*)&itemp)[2]));
+    temp.s3 = frexpf(x.s3, &(((int*)&itemp)[3]));
+    temp.s4 = frexpf(x.s4, &(((int*)&itemp)[4]));
+    temp.s5 = frexpf(x.s5, &(((int*)&itemp)[5]));
+    temp.s6 = frexpf(x.s6, &(((int*)&itemp)[6]));
+    temp.s7 = frexpf(x.s7, &(((int*)&itemp)[7]));
+    *ptr=itemp;
     return temp;
 }
 
 _CLC_OVERLOAD _CLC_DEF float16 frexp(float16 x, global  int16 * ptr) 
 {
     float16 temp;
-    temp.s0 = frexpf(x.s0, &(((int*)ptr)[0]));
-    temp.s1 = frexpf(x.s1, &(((int*)ptr)[1]));
-    temp.s2 = frexpf(x.s2, &(((int*)ptr)[2]));
-    temp.s3 = frexpf(x.s3, &(((int*)ptr)[3]));
-    temp.s4 = frexpf(x.s4, &(((int*)ptr)[4]));
-    temp.s5 = frexpf(x.s5, &(((int*)ptr)[5]));
-    temp.s6 = frexpf(x.s6, &(((int*)ptr)[6]));
-    temp.s7 = frexpf(x.s7, &(((int*)ptr)[7]));
-    temp.s8 = frexpf(x.s8, &(((int*)ptr)[8]));
-    temp.s9 = frexpf(x.s9, &(((int*)ptr)[9]));
-    temp.sa = frexpf(x.sa, &(((int*)ptr)[10]));
-    temp.sb = frexpf(x.sb, &(((int*)ptr)[11]));
-    temp.sc = frexpf(x.sc, &(((int*)ptr)[12]));
-    temp.sd = frexpf(x.sd, &(((int*)ptr)[13]));
-    temp.se = frexpf(x.se, &(((int*)ptr)[14]));
-    temp.sf = frexpf(x.sf, &(((int*)ptr)[15]));
+    int16 itemp;
+    temp.s0 = frexpf(x.s0, &(((int*)&itemp)[0]));
+    temp.s1 = frexpf(x.s1, &(((int*)&itemp)[1]));
+    temp.s2 = frexpf(x.s2, &(((int*)&itemp)[2]));
+    temp.s3 = frexpf(x.s3, &(((int*)&itemp)[3]));
+    temp.s4 = frexpf(x.s4, &(((int*)&itemp)[4]));
+    temp.s5 = frexpf(x.s5, &(((int*)&itemp)[5]));
+    temp.s6 = frexpf(x.s6, &(((int*)&itemp)[6]));
+    temp.s7 = frexpf(x.s7, &(((int*)&itemp)[7]));
+    temp.s8 = frexpf(x.s8, &(((int*)&itemp)[8]));
+    temp.s9 = frexpf(x.s9, &(((int*)&itemp)[9]));
+    temp.sa = frexpf(x.sa, &(((int*)&itemp)[10]));
+    temp.sb = frexpf(x.sb, &(((int*)&itemp)[11]));
+    temp.sc = frexpf(x.sc, &(((int*)&itemp)[12]));
+    temp.sd = frexpf(x.sd, &(((int*)&itemp)[13]));
+    temp.se = frexpf(x.se, &(((int*)&itemp)[14]));
+    temp.sf = frexpf(x.sf, &(((int*)&itemp)[15]));
+    *ptr=itemp;
     return temp;
 }
 _CLC_OVERLOAD _CLC_DEF float16 frexp(float16 x, local   int16 * ptr) 
 {
     float16 temp;
-    temp.s0 = frexpf(x.s0, &(((int*)ptr)[0]));
-    temp.s1 = frexpf(x.s1, &(((int*)ptr)[1]));
-    temp.s2 = frexpf(x.s2, &(((int*)ptr)[2]));
-    temp.s3 = frexpf(x.s3, &(((int*)ptr)[3]));
-    temp.s4 = frexpf(x.s4, &(((int*)ptr)[4]));
-    temp.s5 = frexpf(x.s5, &(((int*)ptr)[5]));
-    temp.s6 = frexpf(x.s6, &(((int*)ptr)[6]));
-    temp.s7 = frexpf(x.s7, &(((int*)ptr)[7]));
-    temp.s8 = frexpf(x.s8, &(((int*)ptr)[8]));
-    temp.s9 = frexpf(x.s9, &(((int*)ptr)[9]));
-    temp.sa = frexpf(x.sa, &(((int*)ptr)[10]));
-    temp.sb = frexpf(x.sb, &(((int*)ptr)[11]));
-    temp.sc = frexpf(x.sc, &(((int*)ptr)[12]));
-    temp.sd = frexpf(x.sd, &(((int*)ptr)[13]));
-    temp.se = frexpf(x.se, &(((int*)ptr)[14]));
-    temp.sf = frexpf(x.sf, &(((int*)ptr)[15]));
+    int16 itemp;
+    temp.s0 = frexpf(x.s0, &(((int*)&itemp)[0]));
+    temp.s1 = frexpf(x.s1, &(((int*)&itemp)[1]));
+    temp.s2 = frexpf(x.s2, &(((int*)&itemp)[2]));
+    temp.s3 = frexpf(x.s3, &(((int*)&itemp)[3]));
+    temp.s4 = frexpf(x.s4, &(((int*)&itemp)[4]));
+    temp.s5 = frexpf(x.s5, &(((int*)&itemp)[5]));
+    temp.s6 = frexpf(x.s6, &(((int*)&itemp)[6]));
+    temp.s7 = frexpf(x.s7, &(((int*)&itemp)[7]));
+    temp.s8 = frexpf(x.s8, &(((int*)&itemp)[8]));
+    temp.s9 = frexpf(x.s9, &(((int*)&itemp)[9]));
+    temp.sa = frexpf(x.sa, &(((int*)&itemp)[10]));
+    temp.sb = frexpf(x.sb, &(((int*)&itemp)[11]));
+    temp.sc = frexpf(x.sc, &(((int*)&itemp)[12]));
+    temp.sd = frexpf(x.sd, &(((int*)&itemp)[13]));
+    temp.se = frexpf(x.se, &(((int*)&itemp)[14]));
+    temp.sf = frexpf(x.sf, &(((int*)&itemp)[15]));
+    *ptr=itemp;
     return temp;
 }
 _CLC_OVERLOAD _CLC_DEF float16 frexp(float16 x, private int16 * ptr) 
 {
     float16 temp;
-    temp.s0 = frexpf(x.s0, &(((int*)ptr)[0]));
-    temp.s1 = frexpf(x.s1, &(((int*)ptr)[1]));
-    temp.s2 = frexpf(x.s2, &(((int*)ptr)[2]));
-    temp.s3 = frexpf(x.s3, &(((int*)ptr)[3]));
-    temp.s4 = frexpf(x.s4, &(((int*)ptr)[4]));
-    temp.s5 = frexpf(x.s5, &(((int*)ptr)[5]));
-    temp.s6 = frexpf(x.s6, &(((int*)ptr)[6]));
-    temp.s7 = frexpf(x.s7, &(((int*)ptr)[7]));
-    temp.s8 = frexpf(x.s8, &(((int*)ptr)[8]));
-    temp.s9 = frexpf(x.s9, &(((int*)ptr)[9]));
-    temp.sa = frexpf(x.sa, &(((int*)ptr)[10]));
-    temp.sb = frexpf(x.sb, &(((int*)ptr)[11]));
-    temp.sc = frexpf(x.sc, &(((int*)ptr)[12]));
-    temp.sd = frexpf(x.sd, &(((int*)ptr)[13]));
-    temp.se = frexpf(x.se, &(((int*)ptr)[14]));
-    temp.sf = frexpf(x.sf, &(((int*)ptr)[15]));
+    int16 itemp;
+    temp.s0 = frexpf(x.s0, &(((int*)&itemp)[0]));
+    temp.s1 = frexpf(x.s1, &(((int*)&itemp)[1]));
+    temp.s2 = frexpf(x.s2, &(((int*)&itemp)[2]));
+    temp.s3 = frexpf(x.s3, &(((int*)&itemp)[3]));
+    temp.s4 = frexpf(x.s4, &(((int*)&itemp)[4]));
+    temp.s5 = frexpf(x.s5, &(((int*)&itemp)[5]));
+    temp.s6 = frexpf(x.s6, &(((int*)&itemp)[6]));
+    temp.s7 = frexpf(x.s7, &(((int*)&itemp)[7]));
+    temp.s8 = frexpf(x.s8, &(((int*)&itemp)[8]));
+    temp.s9 = frexpf(x.s9, &(((int*)&itemp)[9]));
+    temp.sa = frexpf(x.sa, &(((int*)&itemp)[10]));
+    temp.sb = frexpf(x.sb, &(((int*)&itemp)[11]));
+    temp.sc = frexpf(x.sc, &(((int*)&itemp)[12]));
+    temp.sd = frexpf(x.sd, &(((int*)&itemp)[13]));
+    temp.se = frexpf(x.se, &(((int*)&itemp)[14]));
+    temp.sf = frexpf(x.sf, &(((int*)&itemp)[15]));
+    *ptr=itemp;
     return temp;
 }
 
 
 
 
-_CLC_OVERLOAD _CLC_DEF double frexp(double x, global  int * ptr) { return frexpd(x, (int*)ptr); }
-_CLC_OVERLOAD _CLC_DEF double frexp(double x, local   int * ptr) { return frexpd(x, (int*)ptr); }
-_CLC_OVERLOAD _CLC_DEF double frexp(double x, private int * ptr) { return frexpd(x, (int*)ptr); }
+_CLC_OVERLOAD _CLC_DEF double frexp(double x, global  int * ptr) 
+{ 
+   float temp;
+   int itemp;
+   temp = frexpd(x, (int*)&itemp); 
+   *ptr = itemp;
+   return temp;
+}
+_CLC_OVERLOAD _CLC_DEF double frexp(double x, local   int * ptr)
+{ 
+   float temp;
+   int itemp;
+   temp = frexpd(x, (int*)&itemp); 
+   *ptr = itemp;
+   return temp;
+}
+_CLC_OVERLOAD _CLC_DEF double frexp(double x, private int * ptr)
+{ 
+   float temp;
+   int itemp;
+   temp = frexpd(x, (int*)&itemp); 
+   *ptr = itemp;
+   return temp;
+}
 
 _CLC_OVERLOAD _CLC_DEF double2 frexp(double2 x, global  int2 * ptr) 
 {
     double2 temp;
-    temp.s0 = frexpd(x.s0, &(((int*)ptr)[0]));
-    temp.s1 = frexpd(x.s1, &(((int*)ptr)[1]));
+    int2 itemp;
+    temp.s0 = frexpd(x.s0, &(((int*)&itemp)[0]));
+    temp.s1 = frexpd(x.s1, &(((int*)&itemp)[1]));
+    *ptr=itemp;
     return temp;
 }
 
 _CLC_OVERLOAD _CLC_DEF double2 frexp(double2 x, local   int2 * ptr) 
 {
     double2 temp;
-    temp.s0 = frexpd(x.s0, &(((int*)ptr)[0]));
-    temp.s1 = frexpd(x.s1, &(((int*)ptr)[1]));
+    int2 itemp;
+    temp.s0 = frexpd(x.s0, &(((int*)&itemp)[0]));
+    temp.s1 = frexpd(x.s1, &(((int*)&itemp)[1]));
+    *ptr=itemp;
     return temp;
 }
 
 _CLC_OVERLOAD _CLC_DEF double2 frexp(double2 x, private int2 * ptr) 
 {
     double2 temp;
-    temp.s0 = frexpd(x.s0, &(((int*)ptr)[0]));
-    temp.s1 = frexpd(x.s1, &(((int*)ptr)[1]));
+    int2 itemp;
+    temp.s0 = frexpd(x.s0, &(((int*)&itemp)[0]));
+    temp.s1 = frexpd(x.s1, &(((int*)&itemp)[1]));
+    *ptr=itemp;
     return temp;
 }
 
 _CLC_OVERLOAD _CLC_DEF double3 frexp(double3 x, global  int3 * ptr) 
 {
     double3 temp;
-    temp.s0 = frexpd(x.s0, &(((int*)ptr)[0]));
-    temp.s1 = frexpd(x.s1, &(((int*)ptr)[1]));
-    temp.s2 = frexpd(x.s2, &(((int*)ptr)[2]));
+    int3 itemp;
+    temp.s0 = frexpd(x.s0, &(((int*)&itemp)[0]));
+    temp.s1 = frexpd(x.s1, &(((int*)&itemp)[1]));
+    temp.s2 = frexpd(x.s2, &(((int*)&itemp)[2]));
+    *ptr=itemp;
     return temp;
 }
 _CLC_OVERLOAD _CLC_DEF double3 frexp(double3 x, local   int3 * ptr) 
 {
     double3 temp;
-    temp.s0 = frexpd(x.s0, &(((int*)ptr)[0]));
-    temp.s1 = frexpd(x.s1, &(((int*)ptr)[1]));
-    temp.s2 = frexpd(x.s2, &(((int*)ptr)[2]));
+    int3 itemp;
+    temp.s0 = frexpd(x.s0, &(((int*)&itemp)[0]));
+    temp.s1 = frexpd(x.s1, &(((int*)&itemp)[1]));
+    temp.s2 = frexpd(x.s2, &(((int*)&itemp)[2]));
+    *ptr=itemp;
     return temp;
 }
 _CLC_OVERLOAD _CLC_DEF double3 frexp(double3 x, private int3 * ptr) 
 {
     double3 temp;
-    temp.s0 = frexpd(x.s0, &(((int*)ptr)[0]));
-    temp.s1 = frexpd(x.s1, &(((int*)ptr)[1]));
-    temp.s2 = frexpd(x.s2, &(((int*)ptr)[2]));
+    int3 itemp;
+    temp.s0 = frexpd(x.s0, &(((int*)&itemp)[0]));
+    temp.s1 = frexpd(x.s1, &(((int*)&itemp)[1]));
+    temp.s2 = frexpd(x.s2, &(((int*)&itemp)[2]));
+    *ptr=itemp;
     return temp;
 }
 
 _CLC_OVERLOAD _CLC_DEF double4 frexp(double4 x, global  int4 * ptr)
 {
     double4 temp;
-    temp.s0 = frexpd(x.s0, &(((int*)ptr)[0]));
-    temp.s1 = frexpd(x.s1, &(((int*)ptr)[1]));
-    temp.s2 = frexpd(x.s2, &(((int*)ptr)[2]));
-    temp.s3 = frexpd(x.s3, &(((int*)ptr)[3]));
+    int4 itemp;
+    temp.s0 = frexpd(x.s0, &(((int*)&itemp)[0]));
+    temp.s1 = frexpd(x.s1, &(((int*)&itemp)[1]));
+    temp.s2 = frexpd(x.s2, &(((int*)&itemp)[2]));
+    temp.s3 = frexpd(x.s3, &(((int*)&itemp)[3]));
+    *ptr=itemp;
     return temp;
 }
 _CLC_OVERLOAD _CLC_DEF double4 frexp(double4 x, local   int4 * ptr)
 {
     double4 temp;
-    temp.s0 = frexpd(x.s0, &(((int*)ptr)[0]));
-    temp.s1 = frexpd(x.s1, &(((int*)ptr)[1]));
-    temp.s2 = frexpd(x.s2, &(((int*)ptr)[2]));
-    temp.s3 = frexpd(x.s3, &(((int*)ptr)[3]));
+    int4 itemp;
+    temp.s0 = frexpd(x.s0, &(((int*)&itemp)[0]));
+    temp.s1 = frexpd(x.s1, &(((int*)&itemp)[1]));
+    temp.s2 = frexpd(x.s2, &(((int*)&itemp)[2]));
+    temp.s3 = frexpd(x.s3, &(((int*)&itemp)[3]));
+    *ptr=itemp;
     return temp;
 }
 _CLC_OVERLOAD _CLC_DEF double4 frexp(double4 x, private int4 * ptr)
 {
     double4 temp;
-    temp.s0 = frexpd(x.s0, &(((int*)ptr)[0]));
-    temp.s1 = frexpd(x.s1, &(((int*)ptr)[1]));
-    temp.s2 = frexpd(x.s2, &(((int*)ptr)[2]));
-    temp.s3 = frexpd(x.s3, &(((int*)ptr)[3]));
+    int4 itemp;
+    temp.s0 = frexpd(x.s0, &(((int*)&itemp)[0]));
+    temp.s1 = frexpd(x.s1, &(((int*)&itemp)[1]));
+    temp.s2 = frexpd(x.s2, &(((int*)&itemp)[2]));
+    temp.s3 = frexpd(x.s3, &(((int*)&itemp)[3]));
+    *ptr=itemp;
     return temp;
 }
 
 _CLC_OVERLOAD _CLC_DEF double8 frexp(double8 x, global  int8 * ptr) 
 {
     double8 temp;
-    temp.s0 = frexpd(x.s0, &(((int*)ptr)[0]));
-    temp.s1 = frexpd(x.s1, &(((int*)ptr)[1]));
-    temp.s2 = frexpd(x.s2, &(((int*)ptr)[2]));
-    temp.s3 = frexpd(x.s3, &(((int*)ptr)[3]));
-    temp.s4 = frexpd(x.s4, &(((int*)ptr)[4]));
-    temp.s5 = frexpd(x.s5, &(((int*)ptr)[5]));
-    temp.s6 = frexpd(x.s6, &(((int*)ptr)[6]));
-    temp.s7 = frexpd(x.s7, &(((int*)ptr)[7]));
+    int8 itemp;
+    temp.s0 = frexpd(x.s0, &(((int*)&itemp)[0]));
+    temp.s1 = frexpd(x.s1, &(((int*)&itemp)[1]));
+    temp.s2 = frexpd(x.s2, &(((int*)&itemp)[2]));
+    temp.s3 = frexpd(x.s3, &(((int*)&itemp)[3]));
+    temp.s4 = frexpd(x.s4, &(((int*)&itemp)[4]));
+    temp.s5 = frexpd(x.s5, &(((int*)&itemp)[5]));
+    temp.s6 = frexpd(x.s6, &(((int*)&itemp)[6]));
+    temp.s7 = frexpd(x.s7, &(((int*)&itemp)[7]));
+    *ptr=itemp;
     return temp;
 }
 
 _CLC_OVERLOAD _CLC_DEF double8 frexp(double8 x, local   int8 * ptr) 
 {
     double8 temp;
-    temp.s0 = frexpd(x.s0, &(((int*)ptr)[0]));
-    temp.s1 = frexpd(x.s1, &(((int*)ptr)[1]));
-    temp.s2 = frexpd(x.s2, &(((int*)ptr)[2]));
-    temp.s3 = frexpd(x.s3, &(((int*)ptr)[3]));
-    temp.s4 = frexpd(x.s4, &(((int*)ptr)[4]));
-    temp.s5 = frexpd(x.s5, &(((int*)ptr)[5]));
-    temp.s6 = frexpd(x.s6, &(((int*)ptr)[6]));
-    temp.s7 = frexpd(x.s7, &(((int*)ptr)[7]));
+    int8 itemp;
+    temp.s0 = frexpd(x.s0, &(((int*)&itemp)[0]));
+    temp.s1 = frexpd(x.s1, &(((int*)&itemp)[1]));
+    temp.s2 = frexpd(x.s2, &(((int*)&itemp)[2]));
+    temp.s3 = frexpd(x.s3, &(((int*)&itemp)[3]));
+    temp.s4 = frexpd(x.s4, &(((int*)&itemp)[4]));
+    temp.s5 = frexpd(x.s5, &(((int*)&itemp)[5]));
+    temp.s6 = frexpd(x.s6, &(((int*)&itemp)[6]));
+    temp.s7 = frexpd(x.s7, &(((int*)&itemp)[7]));
+    *ptr=itemp;
     return temp;
 }
 _CLC_OVERLOAD _CLC_DEF double8 frexp(double8 x, private int8 * ptr) 
 {
     double8 temp;
-    temp.s0 = frexpd(x.s0, &(((int*)ptr)[0]));
-    temp.s1 = frexpd(x.s1, &(((int*)ptr)[1]));
-    temp.s2 = frexpd(x.s2, &(((int*)ptr)[2]));
-    temp.s3 = frexpd(x.s3, &(((int*)ptr)[3]));
-    temp.s4 = frexpd(x.s4, &(((int*)ptr)[4]));
-    temp.s5 = frexpd(x.s5, &(((int*)ptr)[5]));
-    temp.s6 = frexpd(x.s6, &(((int*)ptr)[6]));
-    temp.s7 = frexpd(x.s7, &(((int*)ptr)[7]));
+    int8 itemp;
+    temp.s0 = frexpd(x.s0, &(((int*)&itemp)[0]));
+    temp.s1 = frexpd(x.s1, &(((int*)&itemp)[1]));
+    temp.s2 = frexpd(x.s2, &(((int*)&itemp)[2]));
+    temp.s3 = frexpd(x.s3, &(((int*)&itemp)[3]));
+    temp.s4 = frexpd(x.s4, &(((int*)&itemp)[4]));
+    temp.s5 = frexpd(x.s5, &(((int*)&itemp)[5]));
+    temp.s6 = frexpd(x.s6, &(((int*)&itemp)[6]));
+    temp.s7 = frexpd(x.s7, &(((int*)&itemp)[7]));
+    *ptr=itemp;
     return temp;
 }
 
 _CLC_OVERLOAD _CLC_DEF double16 frexp(double16 x, global  int16 * ptr) 
 {
     double16 temp;
-    temp.s0 = frexpd(x.s0, &(((int*)ptr)[0]));
-    temp.s1 = frexpd(x.s1, &(((int*)ptr)[1]));
-    temp.s2 = frexpd(x.s2, &(((int*)ptr)[2]));
-    temp.s3 = frexpd(x.s3, &(((int*)ptr)[3]));
-    temp.s4 = frexpd(x.s4, &(((int*)ptr)[4]));
-    temp.s5 = frexpd(x.s5, &(((int*)ptr)[5]));
-    temp.s6 = frexpd(x.s6, &(((int*)ptr)[6]));
-    temp.s7 = frexpd(x.s7, &(((int*)ptr)[7]));
-    temp.s8 = frexpd(x.s8, &(((int*)ptr)[8]));
-    temp.s9 = frexpd(x.s9, &(((int*)ptr)[9]));
-    temp.sa = frexpd(x.sa, &(((int*)ptr)[10]));
-    temp.sb = frexpd(x.sb, &(((int*)ptr)[11]));
-    temp.sc = frexpd(x.sc, &(((int*)ptr)[12]));
-    temp.sd = frexpd(x.sd, &(((int*)ptr)[13]));
-    temp.se = frexpd(x.se, &(((int*)ptr)[14]));
-    temp.sf = frexpd(x.sf, &(((int*)ptr)[15]));
+    int16 itemp;
+    temp.s0 = frexpd(x.s0, &(((int*)&itemp)[0]));
+    temp.s1 = frexpd(x.s1, &(((int*)&itemp)[1]));
+    temp.s2 = frexpd(x.s2, &(((int*)&itemp)[2]));
+    temp.s3 = frexpd(x.s3, &(((int*)&itemp)[3]));
+    temp.s4 = frexpd(x.s4, &(((int*)&itemp)[4]));
+    temp.s5 = frexpd(x.s5, &(((int*)&itemp)[5]));
+    temp.s6 = frexpd(x.s6, &(((int*)&itemp)[6]));
+    temp.s7 = frexpd(x.s7, &(((int*)&itemp)[7]));
+    temp.s8 = frexpd(x.s8, &(((int*)&itemp)[8]));
+    temp.s9 = frexpd(x.s9, &(((int*)&itemp)[9]));
+    temp.sa = frexpd(x.sa, &(((int*)&itemp)[10]));
+    temp.sb = frexpd(x.sb, &(((int*)&itemp)[11]));
+    temp.sc = frexpd(x.sc, &(((int*)&itemp)[12]));
+    temp.sd = frexpd(x.sd, &(((int*)&itemp)[13]));
+    temp.se = frexpd(x.se, &(((int*)&itemp)[14]));
+    temp.sf = frexpd(x.sf, &(((int*)&itemp)[15]));
+    *ptr=itemp;
     return temp;
 }
 _CLC_OVERLOAD _CLC_DEF double16 frexp(double16 x, local   int16 * ptr) 
 {
     double16 temp;
-    temp.s0 = frexpd(x.s0, &(((int*)ptr)[0]));
-    temp.s1 = frexpd(x.s1, &(((int*)ptr)[1]));
-    temp.s2 = frexpd(x.s2, &(((int*)ptr)[2]));
-    temp.s3 = frexpd(x.s3, &(((int*)ptr)[3]));
-    temp.s4 = frexpd(x.s4, &(((int*)ptr)[4]));
-    temp.s5 = frexpd(x.s5, &(((int*)ptr)[5]));
-    temp.s6 = frexpd(x.s6, &(((int*)ptr)[6]));
-    temp.s7 = frexpd(x.s7, &(((int*)ptr)[7]));
-    temp.s8 = frexpd(x.s8, &(((int*)ptr)[8]));
-    temp.s9 = frexpd(x.s9, &(((int*)ptr)[9]));
-    temp.sa = frexpd(x.sa, &(((int*)ptr)[10]));
-    temp.sb = frexpd(x.sb, &(((int*)ptr)[11]));
-    temp.sc = frexpd(x.sc, &(((int*)ptr)[12]));
-    temp.sd = frexpd(x.sd, &(((int*)ptr)[13]));
-    temp.se = frexpd(x.se, &(((int*)ptr)[14]));
-    temp.sf = frexpd(x.sf, &(((int*)ptr)[15]));
+    int16 itemp;
+    temp.s0 = frexpd(x.s0, &(((int*)&itemp)[0]));
+    temp.s1 = frexpd(x.s1, &(((int*)&itemp)[1]));
+    temp.s2 = frexpd(x.s2, &(((int*)&itemp)[2]));
+    temp.s3 = frexpd(x.s3, &(((int*)&itemp)[3]));
+    temp.s4 = frexpd(x.s4, &(((int*)&itemp)[4]));
+    temp.s5 = frexpd(x.s5, &(((int*)&itemp)[5]));
+    temp.s6 = frexpd(x.s6, &(((int*)&itemp)[6]));
+    temp.s7 = frexpd(x.s7, &(((int*)&itemp)[7]));
+    temp.s8 = frexpd(x.s8, &(((int*)&itemp)[8]));
+    temp.s9 = frexpd(x.s9, &(((int*)&itemp)[9]));
+    temp.sa = frexpd(x.sa, &(((int*)&itemp)[10]));
+    temp.sb = frexpd(x.sb, &(((int*)&itemp)[11]));
+    temp.sc = frexpd(x.sc, &(((int*)&itemp)[12]));
+    temp.sd = frexpd(x.sd, &(((int*)&itemp)[13]));
+    temp.se = frexpd(x.se, &(((int*)&itemp)[14]));
+    temp.sf = frexpd(x.sf, &(((int*)&itemp)[15]));
+    *ptr=itemp;
     return temp;
 }
 _CLC_OVERLOAD _CLC_DEF double16 frexp(double16 x, private int16 * ptr) 
 {
     double16 temp;
-    temp.s0 = frexpd(x.s0, &(((int*)ptr)[0]));
-    temp.s1 = frexpd(x.s1, &(((int*)ptr)[1]));
-    temp.s2 = frexpd(x.s2, &(((int*)ptr)[2]));
-    temp.s3 = frexpd(x.s3, &(((int*)ptr)[3]));
-    temp.s4 = frexpd(x.s4, &(((int*)ptr)[4]));
-    temp.s5 = frexpd(x.s5, &(((int*)ptr)[5]));
-    temp.s6 = frexpd(x.s6, &(((int*)ptr)[6]));
-    temp.s7 = frexpd(x.s7, &(((int*)ptr)[7]));
-    temp.s8 = frexpd(x.s8, &(((int*)ptr)[8]));
-    temp.s9 = frexpd(x.s9, &(((int*)ptr)[9]));
-    temp.sa = frexpd(x.sa, &(((int*)ptr)[10]));
-    temp.sb = frexpd(x.sb, &(((int*)ptr)[11]));
-    temp.sc = frexpd(x.sc, &(((int*)ptr)[12]));
-    temp.sd = frexpd(x.sd, &(((int*)ptr)[13]));
-    temp.se = frexpd(x.se, &(((int*)ptr)[14]));
-    temp.sf = frexpd(x.sf, &(((int*)ptr)[15]));
+    int16 itemp;
+    temp.s0 = frexpd(x.s0, &(((int*)&itemp)[0]));
+    temp.s1 = frexpd(x.s1, &(((int*)&itemp)[1]));
+    temp.s2 = frexpd(x.s2, &(((int*)&itemp)[2]));
+    temp.s3 = frexpd(x.s3, &(((int*)&itemp)[3]));
+    temp.s4 = frexpd(x.s4, &(((int*)&itemp)[4]));
+    temp.s5 = frexpd(x.s5, &(((int*)&itemp)[5]));
+    temp.s6 = frexpd(x.s6, &(((int*)&itemp)[6]));
+    temp.s7 = frexpd(x.s7, &(((int*)&itemp)[7]));
+    temp.s8 = frexpd(x.s8, &(((int*)&itemp)[8]));
+    temp.s9 = frexpd(x.s9, &(((int*)&itemp)[9]));
+    temp.sa = frexpd(x.sa, &(((int*)&itemp)[10]));
+    temp.sb = frexpd(x.sb, &(((int*)&itemp)[11]));
+    temp.sc = frexpd(x.sc, &(((int*)&itemp)[12]));
+    temp.sd = frexpd(x.sd, &(((int*)&itemp)[13]));
+    temp.se = frexpd(x.se, &(((int*)&itemp)[14]));
+    temp.sf = frexpd(x.sf, &(((int*)&itemp)[15]));
+    *ptr=itemp;
     return temp;
 }

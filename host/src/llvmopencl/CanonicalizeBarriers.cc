@@ -29,13 +29,9 @@
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include <iostream>
 
-#if (defined LLVM_3_1 or defined LLVM_3_2)
-#include "llvm/Instructions.h"
-#include "llvm/Module.h"
-#else
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Module.h"
-#endif
+#include "llvm/IR/Dominators.h"
 
 using namespace llvm;
 using namespace pocl;
@@ -51,6 +47,13 @@ char CanonicalizeBarriers::ID = 0;
 void
 CanonicalizeBarriers::getAnalysisUsage(AnalysisUsage &AU) const
 {
+#if (defined LLVM_3_3)
+   AU.addRequired<DominatorTree>();
+#else
+   AU.addRequired<DominatorTreeWrapperPass>();
+   //TODO Dunni: What does this do?
+   //AU.addPreserved<VariableUniformityAnalysis>();
+#endif
 }
 
 bool
@@ -92,13 +95,13 @@ CanonicalizeBarriers::runOnFunction(Function &F)
     }
   }
 
-  DT = getAnalysisIfAvailable<DominatorTree>();
+  DT = &getAnalysis<DominatorTreeWrapperPass>().getDomTree();
   LI = getAnalysisIfAvailable<LoopInfo>();
 
   bool changed = ProcessFunction(F);
 
   if (DT)
-    DT->verifyAnalysis();
+    DT->verifyDomTree();
   if (LI)
     LI->verifyAnalysis();
 

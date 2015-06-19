@@ -36,7 +36,7 @@
 #include <llvm/Bitcode/ReaderWriter.h>
 #include <llvm/PassManager.h>
 #include <llvm/Analysis/Passes.h>
-#include <llvm/Analysis/Verifier.h>
+#include <llvm/IR/Verifier.h>
 #include <llvm/Transforms/Scalar.h>
 #include <llvm/Transforms/IPO.h>
 #include <llvm/Transforms/Utils/UnifyFunctionExitNodes.h>
@@ -48,11 +48,11 @@
 #include <llvm/Bitcode/ReaderWriter.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
-#include <llvm/Linker.h>
+#include <llvm/Linker/Linker.h>
 #include <llvm/IR/Metadata.h>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Instructions.h>
-#include <llvm/Support/InstIterator.h>
+#include <llvm/IR/InstIterator.h>
 
 #include "compiler.h"
 #include "wga.h"
@@ -104,8 +104,9 @@ string bc_filename(string filename)
 
 void write_bitcode(string bc_file, Module* module)
 {
-    string err_info;
-    llvm::raw_fd_ostream file_ostream(bc_file.c_str(), err_info);
+   std::error_code err_info;
+    llvm::raw_fd_ostream file_ostream(bc_file.c_str(), err_info,
+                                      sys::fs::F_Append);
     llvm::WriteBitcodeToFile(module, file_ostream);
     file_ostream.flush();
 }
@@ -177,10 +178,10 @@ bool run_clang(string filename, string source, Compiler &compiler,
     const StringRef s_data(source);
     const StringRef s_name("<source>");
 
-    MemoryBuffer *buffer = MemoryBuffer::getMemBuffer(s_data, s_name);
+    std::unique_ptr<MemoryBuffer> buffer = MemoryBuffer::getMemBuffer(s_data, s_name);
 
     if (opt_verbose) cout << "clang options: " << cl_options << endl;
-    if (!compiler.compile(cl_options, buffer, filename)) 
+    if (!compiler.compile(cl_options, buffer.get(), filename)) 
         return false;
 
     *module = compiler.module();
@@ -202,7 +203,7 @@ bool llvm_xforms(Module *module, bool optimize)
     for (unsigned int i=0; kern_meta && i < kern_meta->getNumOperands(); ++i)
     {
         llvm::MDNode *node  = kern_meta->getOperand(i);
-        llvm::Value  *value = node->getOperand(0);
+        llvm::Value  *value = dyn_cast<llvm::ValueAsMetadata>(node->getOperand(0))->getValue();
         if (!llvm::isa<llvm::Function>(value)) continue;
 
         llvm::Function *f = llvm::cast<llvm::Function>(value);
@@ -216,6 +217,9 @@ bool llvm_xforms(Module *module, bool optimize)
 
     // Optimize code
     llvm::PassManager *manager = new llvm::PassManager();
+
+    //TODO: Dunni. Is this necessary?
+    manager->add(new DataLayoutPass());
 
     // Common passes (primary goal : remove unused stdlib functions)
     manager->add(llvm::createTypeBasedAliasAnalysisPass());
@@ -236,7 +240,7 @@ bool llvm_xforms(Module *module, bool optimize)
     if (hasBarrier)
     {
         manager->add(    llvm::createPromoteMemoryToRegisterPass());
-        manager->add(new llvm::DominatorTree());
+        manager->add(new llvm::DominatorTreeWrapperPass());
         manager->add(new pocl::WorkitemHandlerChooser());
         manager->add(new       BreakConstantGEPs());   // from pocl
         //       add(new       GenerateHeader());      // no need

@@ -140,3 +140,6 @@ SECTIONS
 --symbol_map=__ocl_cache_l1d_std=__cache_l1d_all
 --symbol_map=__ocl_cache_l1d_half=__cache_l1d_16k
 --symbol_map=__ocl_cache_l1d_wbinvall=__cache_l1d_flush
+--symbol_map=_Z11__copy_1D1DP11__ocl_eventPU7CLlocalvPU8CLglobalvj=__copy_1D1D
+--symbol_map=_Z11__copy_1D1DP11__ocl_eventPU8CLglobalvPU7CLlocalvj=__copy_1D1D
+--symbol_map=_Z11__copy_1D1DP11__ocl_eventPU8CLglobalvS2_j=__copy_1D1D

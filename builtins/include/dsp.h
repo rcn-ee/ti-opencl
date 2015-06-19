@@ -42,9 +42,11 @@ typedef struct __ocl_event* __ocl_event_t;
 /*-----------------------------------------------------------------------------
 * The extended TI built-in function set
 *----------------------------------------------------------------------------*/
-event_t  __copy_1D1D(event_t event, void *dst, void *src, uint32_t bytes);
-event_t  __copy_2D1D(event_t event, void *dst, void *src, uint32_t bytes, uint32_t num_lines, int32_t pitch); 
-event_t  __copy_1D2D(event_t event, void *dst, void *src, uint32_t bytes, uint32_t num_lines, int32_t pitch); 
+_CLC_OVERLOAD event_t  __copy_1D1D(event_t event, local void *dst, global void *src, uint32_t bytes);
+_CLC_OVERLOAD event_t  __copy_1D1D(event_t event, global void *dst, local void *src, uint32_t bytes);
+_CLC_OVERLOAD event_t  __copy_1D1D(event_t event, global void *dst, global void *src, uint32_t bytes);
+event_t  __copy_2D1D(event_t event, local void *dst, global void *src, uint32_t bytes, uint32_t num_lines, int32_t pitch); 
+event_t  __copy_1D2D(event_t event, global void *dst, local void *src, uint32_t bytes, uint32_t num_lines, int32_t pitch); 
 void     __copy_wait(event_t event);
 void     __touch(const __global char *p, uint32_t size);
 
