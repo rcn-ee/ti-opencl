@@ -828,6 +828,9 @@ KernelEvent::KernelEvent(CommandQueue *parent,
                 *errcode_ret = CL_MISALIGNED_SUB_BUFFER_OFFSET;
                 return;
             }
+
+            clRetainMemObject((cl_mem) buffer);
+            p_mem_objects.push_back((MemObject *) buffer);
         }
         else if (a.kind() == Kernel::Arg::Image2D)
         {
@@ -847,6 +850,9 @@ KernelEvent::KernelEvent(CommandQueue *parent,
                 *errcode_ret = CL_INVALID_IMAGE_SIZE;
                 return;
             }
+
+            clRetainMemObject((cl_mem) image);
+            p_mem_objects.push_back((MemObject *) image);
         }
         else if (a.kind() == Kernel::Arg::Image3D)
         {
@@ -869,12 +875,18 @@ KernelEvent::KernelEvent(CommandQueue *parent,
                 *errcode_ret = CL_INVALID_IMAGE_SIZE;
                 return;
             }
+
+            clRetainMemObject((cl_mem) image);
+            p_mem_objects.push_back((MemObject *) image);
         }
     }
 }
 
 KernelEvent::~KernelEvent()
 {
+    for (MemObject *mem_object : p_mem_objects)
+        clReleaseMemObject((cl_mem) mem_object);
+
     clReleaseKernel((cl_kernel) p_kernel);
 }
 
