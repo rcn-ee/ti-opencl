@@ -37,7 +37,7 @@
 #include "commandqueue.h"
 #include <core/config.h>
 
-#include <vector>
+#include <list>
 
 namespace Coal
 {
@@ -621,6 +621,7 @@ class KernelEvent : public Event
                p_max_work_item_sizes[MAX_WORK_DIMS];
         Kernel *p_kernel;
         DeviceKernel *p_dev_kernel;
+        std::list<MemObject *> p_mem_objects;
 };
 
 /**

@@ -20,7 +20,9 @@ TI's OpenCL implementation has been extended with a set of features beyond the O
    OpenCL will dispatch the kernel to one compute unit of the DSP
    accelerator and the OpenMP runtime will manage distribution of tasks
    across the compute units. Please see
-   :ref:`vecadd_openmp-example` and :ref:`vecadd_openmp_t-example`.
+   :ref:`vecadd_openmp-example`, :ref:`vecadd_openmp_t-example` or
+   `openmpbench\_C\_v3 <OpenCL_Examples#openmpbench_C_v3_example>`__.
+   Please refer to :doc:`openmp_dsp_dispatch` for details. 
 
 #. A printf capability has been added for kernels running on the DSP.
    OpenCL C kernels or standard C code called from an OpenCL C kernel
