@@ -1,5 +1,5 @@
 ###################
-TI OpenCL Examples
+Examples
 ###################
 
 .. toctree::

@@ -6,6 +6,7 @@ TI |OpenCL (TM)| Runtime Documentation Contents:
 
 .. toctree::
    :maxdepth: 2
+   :numbered:
 
    intro
    reference

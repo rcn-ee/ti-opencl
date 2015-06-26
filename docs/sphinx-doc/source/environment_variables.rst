@@ -1,5 +1,5 @@
 *********************************************
-TI OpenCL Environment Variables
+Environment Variables
 *********************************************
 
 These environment variables can be used to control OpenCL behavior and provide visibility for debugging.

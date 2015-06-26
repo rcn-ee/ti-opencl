@@ -1,5 +1,5 @@
 ######################################################
-TI OpenCL Memory Usage
+Memory Usage
 ######################################################
 
 .. toctree::
@@ -15,3 +15,4 @@ TI OpenCL Memory Usage
    cache-coherency
    dma
    extended-memory
+   dsp-malloc-extension

@@ -17,8 +17,24 @@ TODO list of documentation needs.
 - disabling write through
 - disabling prefetch
 - warning on stack usage
-- how different than stand alone application on dsps
 - opencl execution model
 - profiling OpenCL applications
 - debugging OpenCL applications
 - Optimization guide
+
+
+Indirect References Only. 
+==============================
+These are here to quiet the Makefile
+
+.. toctree::
+   :maxdepth: 1
+
+   host-omp-interop
+   dspc8681-getting-started
+   mcsdk-hpc-version-map
+   opencl-c-builtin-function-extensions
+   pyopencl
+   standalone-app-diffs
+   version
+   memory/edmamgr

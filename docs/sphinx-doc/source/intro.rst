@@ -8,7 +8,7 @@ Khronos `OpenCL 1.1 specification`_. The Texas Instruments OpenCL implementation
 currently supported on the following systems):
 
 ============= =============================== ============================== =========================
-SoC           System                          Khronos Conformance            Installation Instructions                  
+SoC           System                          Khronos Conformance            Installation Instructions
 ============= =============================== ============================== =========================
 66AK2H_       `66AK2H EVM`_                   OpenCL v1.1 Conformant         `MCSDK-HPC for EVM`_
 66AK2H_       `HP m800 Moonshot`_             OpenCL v1.1 Conformant         `MCSDK-HPC for m800`_
