@@ -12,6 +12,7 @@ TI |OpenCL (TM)| Runtime Documentation Contents:
    reference
    compilation
    memory/index
+   execution/index
    extensions
    environment_variables
    examples/index

@@ -21,7 +21,7 @@ TI's OpenCL implementation has been extended with a set of features beyond the O
    accelerator and the OpenMP runtime will manage distribution of tasks
    across the compute units. Please see
    :ref:`vecadd_openmp-example`, :ref:`vecadd_openmp_t-example` or
-   `openmpbench\_C\_v3 <OpenCL_Examples#openmpbench_C_v3_example>`__.
+   :ref:`openmpbench_C_v3-example`.
    Please refer to :doc:`openmp_dsp_dispatch` for details. 
 
 #. A printf capability has been added for kernels running on the DSP.

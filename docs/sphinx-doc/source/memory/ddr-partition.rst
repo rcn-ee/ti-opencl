@@ -76,19 +76,21 @@ and program space.<br>
     The m800 K2H system ships with 8GB of DDR3. The K2H EVM ships with
     2GB of DDR3 and can be upgraded to 8GB by replacing the DIMM
 
-AM57
-=====================================================
-The 2GB of attached DDR3 memory is accessible to the AM57 device through a
-32-bit bus. The 2GB of DDR3 is populated in the 32-bit address space at
-locations 8000:0000 through FFFF:FFFF. The default partition is 1.5GB for Linux
-system memory and 512MB of CMEM. ::
+.. only:: am57
 
-    80000000-9fffffff : System RAM
-      80008000-808470b3 : Kernel code
-      808a0000-80945a8b : Kernel data
-    a0000000-bfffffff : CMEM
-    c0000000-ffdfffff : System RAM
-    fff00000-ffffefff : System RAM
+    AM57
+    =====================================================
+    The 2GB of attached DDR3 memory is accessible to the AM57 device through a
+    32-bit bus. The 2GB of DDR3 is populated in the 32-bit address space at
+    locations 8000:0000 through FFFF:FFFF. The default partition is 1.5GB for Linux
+    system memory and 512MB of CMEM. ::
 
-The holes in System RAM ranges (e.g. FFE0:0000 to FFEF:FFFF, 1MB and FFFF:F000
-to FFFF:FFFF, 4KB) are reserved memory ranges.
+        80000000-9fffffff : System RAM
+          80008000-808470b3 : Kernel code
+          808a0000-80945a8b : Kernel data
+        a0000000-bfffffff : CMEM
+        c0000000-ffdfffff : System RAM
+        fff00000-ffffefff : System RAM
+
+    The holes in System RAM ranges (e.g. FFE0:0000 to FFEF:FFFF, 1MB and FFFF:F000
+    to FFFF:FFFF, 4KB) are reserved memory ranges.
