@@ -98,6 +98,7 @@ exclude_patterns = []
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'trac'
 highlight_language = 'cpp'
+numfig = True
 
 # A list of ignored prefixes for module index sorting.
 #modindex_common_prefix = []
@@ -225,7 +226,7 @@ latex_elements = {
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
   (master_doc, 'OpenCL.tex', u'TI OpenCL Documentation',
-   u'Texas Instruments Incorporated' u'manual'),
+   u'Texas Instruments Incorporated', u'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of

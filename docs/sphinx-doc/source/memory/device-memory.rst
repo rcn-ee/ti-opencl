@@ -95,4 +95,3 @@ OpenCL global buffers may reside in either DDR or MSMC. OpenCL local buffers res
 
 .. Image:: ../images/opencl_memory_cache.png
 
-

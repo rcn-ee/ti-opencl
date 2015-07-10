@@ -84,7 +84,10 @@ This is the most common method used OpenCL examples downloaded from the web.
 It has the benefit of portability, because the compilation of the OpenCL C code is
 completely encapsulated in the OpenCL API calls.  Also, since the OpenCL C code
 i.e. embedded in the application, the resultant executable is standalone in that
-there is no dependency on another file containing OpenCL C code.  ::
+there is no dependency on another file containing OpenCL C code.
+
+.. code-block:: cpp
+  :linenos:
 
     const char * kernStr = "kernel void devset(global char* buf) {}"
 
@@ -119,7 +122,10 @@ portable.  Since the OpenCL C code is in a file, however, this build scenario
 can be useful when in OpenCL kernel development mode.  Because the OpenCL C
 file is read and compiled for the devices at host application run time, the
 OpenCL C code can be edited and re-run without requiring the host application
-to be re-compiled.  ::
+to be re-compiled.
+
+.. code-block:: cpp
+  :linenos:
 
     ifstream t("./kernel.cl");
     if (!t) { cout << "Error Opening Kernel Source file\n"; exit(-1); }
@@ -150,7 +156,10 @@ source is not required for running the application, only for building the
 application.  It also results in faster runtime, since the time delay for
 on-line compilation will not be experienced.  It does, however, expose
 implementation specific details of offline compilation and therefore impacts
-portability.  ::
+portability. 
+
+.. code-block:: cpp
+  :linenos:
 
     #include "ocl_util.h"
 
@@ -190,7 +199,11 @@ The binaries vector should then correspondingly have one pair representing the
 pointer and length of the binary data for that device. 
 
 For reference, the implementation of the ocl_read_binary function is given
-below.  ::
+below.
+
+.. code-block:: cpp
+  :linenos:
+
 
     #include <iostream>
     #include <fstream>
@@ -224,7 +237,10 @@ array. Invoking clocl like this: :command:`clocl -t kernel.cl` will compile
 a file containing the initialized array ``kernel_dsp_bin`` which can be used
 directly to create an OpenCL Program::Binaries object.  This build method is
 the fastest of the four because neither on-line compilation nor reading the file
-are required.  ::
+are required.
+
+.. code-block:: cpp
+  :linenos:
 
     #include "kernel.dsp_h"
 
