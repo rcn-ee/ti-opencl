@@ -2,6 +2,8 @@
 Examples
 ###################
 
+.. ref:: _ti-opencl-examples 
+
 .. toctree::
    :glob:
    :maxdepth: 2
