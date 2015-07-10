@@ -462,5 +462,11 @@ _CLC_INLINE  size_t  get_global_id    (uint dim) { return __get_global_first(dim
 _CLC_INLINE  size_t  get_group_id     (uint dim) 
                      { return (__get_global_first(dim) - get_global_offset(dim)) / get_local_size(dim); }
 
-#endif //_DSP_CLC_H_
+/*-----------------------------------------------------------------------------
+* Non OpenCL extensions
+*----------------------------------------------------------------------------*/
+_CLC_OVERLOAD _CLC_INLINE uint dot(uchar4 a, uchar4 b) { return _dotpu4 (as_int(a), as_int(b)); }
+_CLC_OVERLOAD _CLC_INLINE int  dot(char4  a, uchar4 b) { return _dotpsu4(as_int(a), as_int(b)); }
+_CLC_OVERLOAD _CLC_INLINE int  dot(short2 a, short2 b) { return _dotp2  (as_int(a), as_int(b)); }
 
+#endif //_DSP_CLC_H_
