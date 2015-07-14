@@ -73,7 +73,7 @@ clean-prebuild:
 prebuild: clone pull
 	$(MAKE) -s -C $(OCL_MONITOR_DIR) k2h
 	ln -s . $(OCL_VERSIONED_NAME) 
-	tar czvf $(OCL_VERSIONED_NAME).tar.gz --exclude='.git' --exclude='init_global_shared_mem' --transform='s/makefile.arm/makefile/g' $(OCL_VERSIONED_NAME)/${OCL_SRC_DIR} $(OCL_VERSIONED_NAME)/debian $(OCL_VERSIONED_NAME)/${OCL_EXAMPLES_DIR} $(OCL_VERSIONED_NAME)/$(OCL_MONITOR_DIR) $(OCL_VERSIONED_NAME)/makefile.arm $(OCL_VERSIONED_NAME)/$(OCL_BUILTINS_DIR)
+	tar czf $(OCL_VERSIONED_NAME).tar.gz --exclude='.git' --exclude='init_global_shared_mem' --transform='s/makefile.arm/makefile/g' $(OCL_VERSIONED_NAME)/${OCL_SRC_DIR} $(OCL_VERSIONED_NAME)/debian $(OCL_VERSIONED_NAME)/${OCL_EXAMPLES_DIR} $(OCL_VERSIONED_NAME)/$(OCL_MONITOR_DIR) $(OCL_VERSIONED_NAME)/makefile.arm $(OCL_VERSIONED_NAME)/$(OCL_BUILTINS_DIR)
 	rm $(OCL_VERSIONED_NAME)
 
 install:
