@@ -7,12 +7,12 @@ else
     CMAKE_DEFINES = -DDEFAULT_DEV_INSTALL_DIR=/opt/ti
 endif
 
-# Default to K2H build. If BUILD_AM57 is set, build for AM57.
+# Default to K2X build. If BUILD_AM57 is set, build for AM57.
 ifeq ($(BUILD_AM57),1)
 CMAKE_DEFINES += -DBUILD_TARGET=ARM_AM57
 OCL_BUILD_DIR  = builda
 else
-CMAKE_DEFINES += -DBUILD_TARGET=ARM_K2H
+CMAKE_DEFINES += -DBUILD_TARGET=ARM_K2X
 OCL_BUILD_DIR  = buildh
 endif
 

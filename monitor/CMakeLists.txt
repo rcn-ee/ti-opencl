@@ -1,7 +1,7 @@
 # Make and install appropriate monitor executable
 if (C6678_BUILD)
    install(CODE "execute_process(COMMAND make -j4 WORKING_DIRECTORY ${OCL_MONITOR_DIR})")
-elseif(HAWKING_BUILD)
+elseif(K2X_BUILD)
    # Currently the monitor must be built in an X86 cross-compile environment
    # If doing an opencl build/install on an ARM platform the monitor files
    # must be copied over.

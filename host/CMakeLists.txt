@@ -1,15 +1,15 @@
 cmake_minimum_required(VERSION 2.6)
 #Project needs to be set early or CMAKE_SYSTEM_PROCESSOR doesn't get 
-#reliably set. Commit to C6678 and then change below if we build for HAWKING
+#reliably set. Commit to C6678 and then change below if we build for K2X
 project(ti-opencl)
 
 if (${BUILD_TARGET} MATCHES "DSPC868x")
     set(C6678_BUILD on)
     set(SDK "/opt/ti/desktop-linux-sdk_01_00_03_00")
     MESSAGE(STATUS "Build Target Is C6678")
-elseif (${BUILD_TARGET} MATCHES "ARM_K2H")
-    set(HAWKING_BUILD on)
-    MESSAGE(STATUS "Build Target Is  HAWKING")
+elseif (${BUILD_TARGET} MATCHES "ARM_K2X")
+    set(K2X_BUILD on)
+    MESSAGE(STATUS "Build Target Is  K2X")
 elseif (${BUILD_TARGET} MATCHES "ARM_AM57")
     set(AM57_BUILD on)
     MESSAGE(STATUS "Build Target Is  AM57")
@@ -116,7 +116,7 @@ set(OCL_EXAMPLES_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../examples)
 endif()
 
 if (NOT OCL_MONITOR_DIR)
-    if (HAWKING_BUILD OR C6678_BUILD)
+    if (K2X_BUILD OR C6678_BUILD)
      set(OCL_MONITOR_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../monitor)
     else()
      set(OCL_MONITOR_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../monitor_vayu)
@@ -133,7 +133,7 @@ install(DIRECTORY DESTINATION ${SHARE_PATH} ${OCL_DPERMS})
 
 # For now, pick default ULM configurations for each target
 if(NOT DEFINED ENABLE_ULM)
-  if (HAWKING_BUILD)
+  if (K2X_BUILD)
     set(ENABLE_ULM on)
   elseif(C6678_BUILD)
     set(ENABLE_ULM off)
@@ -177,7 +177,7 @@ endif()
 if (BUILD_OUTPUT STREQUAL "all" OR BUILD_OUTPUT STREQUAL "clocl")
   add_subdirectory(clocl)
 
-  if (HAWKING_BUILD OR AM57_BUILD)
+  if (K2X_BUILD OR AM57_BUILD)
     add_custom_target(arm_clocl_build ALL DEPENDS arm_clocl)
   endif()
 

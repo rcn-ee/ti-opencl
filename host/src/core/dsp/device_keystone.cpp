@@ -31,7 +31,7 @@
 
 #include "mbox_impl_mpm.h"
 
-#if defined(DEVICE_K2H)
+#if defined(DEVICE_K2X)
 extern "C" {
     extern int get_ocl_qmss_res(int *);
 }
@@ -75,7 +75,7 @@ DSPDevice::DSPDevice(unsigned char dsp_id)
     uint64_t       gsize3  = 0;
 #ifndef DSPC868X
     /*-------------------------------------------------------------------------
-    * On K2H, these 4 variables are determined by query of the CMEM system.
+    * On K2X, these 4 variables are determined by query of the CMEM system.
     *------------------------------------------------------------------------*/
     p_addr64_global_mem = 0;
     p_size64_global_mem = 0;
@@ -110,7 +110,7 @@ DSPDevice::DSPDevice(unsigned char dsp_id)
     *------------------------------------------------------------------------*/
     setup_mailbox();
 
-#if defined(DEVICE_K2H)
+#if defined(DEVICE_K2X)
     // Keystone2: get QMSS resources from RM, mail to DSP monitor
     Msg_t oclQmssMsg = {READY};
     if (get_ocl_qmss_res(((int *)&oclQmssMsg) + 1) == 0)

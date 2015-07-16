@@ -46,7 +46,7 @@
 
 #include "driver.h"
 
-#if defined(DEVICE_K2H)
+#if defined(DEVICE_K2X)
 extern "C"
 {
     #include <ti/runtime/mmap/include/mmap_resource.h>
@@ -114,7 +114,7 @@ void *dsp_worker_event_completion (void* data);
 void HOSTwait   (unsigned char dsp_id);
 
 
-#if defined (DSPC868X) || defined (DEVICE_K2H)
+#if defined (DSPC868X) || defined (DEVICE_K2X)
 #include "device_keystone.cpp"
 #elif defined (DEVICE_AM57)
 #include "device_am57x.cpp"
@@ -239,7 +239,7 @@ DSPDevice::~DSPDevice()
     *------------------------------------------------------------------------*/
     if (p_dsp_id == 0) Driver::instance()->close(); 
 
-#if defined(DEVICE_K2H)
+#if defined(DEVICE_K2X)
     free_ocl_qmss_res();
 #endif
 }
@@ -718,7 +718,7 @@ int DSPDevice::mail_from()
     return trans_id_rx;
 }
 
-#if defined(DEVICE_K2H)
+#if defined(DEVICE_K2X)
 /******************************************************************************
 * void* DSPDevice::get_mpax_default_res, only need to be computed once
 ******************************************************************************/
@@ -746,7 +746,7 @@ void* DSPDevice::get_mpax_default_res()
     }
     return p_mpax_default_res;
 }
-#endif  // #ifdef DEVICE_K2H
+#endif  // #ifdef DEVICE_K2X
 
 /******************************************************************************
 * cl_int DSPDevice::info

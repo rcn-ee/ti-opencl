@@ -54,7 +54,7 @@
 #include <sys/mman.h>
 #include <sys/param.h>
 
-#if defined(DEVICE_K2H)
+#if defined(DEVICE_K2X)
 extern "C"
 {
     #include <ti/runtime/mmap/include/mmap_resource.h>
@@ -889,7 +889,7 @@ cl_int DSPKernelEvent::setup_extended_memory_mappings()
 {
     p_msg.u.k.flush.num_mpaxs = 0;
     uint32_t num_64bit_bufs = p_64bit_bufs.size();
-#if defined(DEVICE_K2H)
+#if defined(DEVICE_K2X)
     if (num_64bit_bufs > 0)
     {
         uint64_t *phys_addrs = new uint64_t[num_64bit_bufs];

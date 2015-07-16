@@ -53,7 +53,7 @@ using namespace Coal;
 
 #if defined(DEVICE_AM57)
 #define MAX_NUM_COMPLETION_PENDING  16
-#elif defined(DEVICE_K2H) || defined(DSPC868X)
+#elif defined(DEVICE_K2X) || defined(DSPC868X)
 #define MAX_NUM_COMPLETION_PENDING  32
 #else
 #error  MAX_NUM_COMPLETION_PENDING not determined for the platform.
@@ -84,12 +84,12 @@ bool handle_event_completion(DSPDevice *device)
     if (device->stop() && !device->any_complete_pending())  return true;
 
     /*---------------------------------------------------------------------
-    * When we can make mail_from() blocking wait on mpm mailbox (K2H), there
+    * When we can make mail_from() blocking wait on mpm mailbox (K2X), there
     * will be no need to mail_query and sleep here.  Stay tuned. (TODO)
     *--------------------------------------------------------------------*/
     if (! device->mail_query())
     {
-#if defined(DEVICE_K2H) || defined(DSPC868X)
+#if defined(DEVICE_K2X) || defined(DSPC868X)
         usleep(1);
 #endif
         return false;
@@ -177,7 +177,7 @@ bool handle_event_dispatch(DSPDevice *device)
 
     /*---------------------------------------------------------------------
     * If there are enough MSGs in the mail for DSP to run, do not dispatch.
-    * Otherwise, we might overrun the available mail slots, MPM mail (K2H)
+    * Otherwise, we might overrun the available mail slots, MPM mail (K2X)
     * will be busy waiting until an empty mail slot becomes available, while
     * MessageQ mail (AM57) will cause a hang in events conformance test.
     * Note that waiting here will NOT create a deadlock, for two reasons:

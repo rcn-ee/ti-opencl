@@ -103,7 +103,7 @@ namespace Coal
     {
         p_lock_fd = begin_file_lock_crit_section("/var/lock/opencl");
 
-	// For now, don't add the CPU device on K2H platforms unless it is
+	// For now, don't add the CPU device on K2X platforms unless it is
 	// asserted that we want to enable it (eg. the ooo example)
 	if (getenv("TI_OCL_CPU_DEVICE_ENABLE") != NULL)
 	   p_devices.push_back((_cl_device_id*)new Coal::CPUDevice);
@@ -172,7 +172,7 @@ namespace Coal
                 break;
 
             case CL_PLATFORM_NAME:
-#if defined(DEVICE_K2H)
+#if defined(DEVICE_K2X)
                 STRING_ASSIGN("TI KeyStone II");
 #elif defined(DEVICE_AM57)
                 STRING_ASSIGN("TI AM57x");
