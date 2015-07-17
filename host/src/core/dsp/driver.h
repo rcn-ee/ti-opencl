@@ -48,6 +48,7 @@ class Driver : public Lockable_off
   public:
    ~Driver() { close(); }
    int32_t num_dsps() const { return pNum_dsps; }
+   std::string dsp_monitor(int dsp);
    int cores_per_dsp(int dsp);
    int32_t close();
 
@@ -55,7 +56,7 @@ class Driver : public Lockable_off
    int32_t read (int32_t dsp, DSPDevicePtr64 addr, uint8_t *buf, uint32_t sz);
 
    void         reset_and_load   (int chip);
-   void*        create_image_handle(void);
+   void*        create_image_handle(int chip);
    void         free_image_handle(void *handle);
    void         cmem_init(DSPDevicePtr64 *addr1, uint64_t *size1,
                           DSPDevicePtr   *addr2, uint32_t *size2,

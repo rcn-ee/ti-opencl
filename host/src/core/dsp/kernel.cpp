@@ -580,15 +580,18 @@ cl_int DSPKernelEvent::callArgs(unsigned max_args_size)
 static void debug_pause(uint32_t entry, uint32_t dsp_id, 
                         const char* outfile, char *name, DSPDevicePtr load_addr)
 {
+    Driver *driver = Driver::instance();
+
     printf("gdbc6x -q "
            "-iex \"target remote /dev/gdbtty%d\" "
            "-iex \"set confirm off\" "
-           "-iex \"symbol-file /usr/share/ti/opencl/dsp.out\" "
+           "-iex \"symbol-file %s\" "
            "-iex \"add-symbol-file %s 0x%08x\" "
            "-iex \"b exit\" "
            "-iex \"b %s\" "
            "\n",
-            dsp_id, outfile, load_addr, name);
+            dsp_id, driver->dsp_monitor(dsp_id).c_str(),
+            outfile, load_addr, name);
 
     printf("Press any key, then enter to continue\n");
     do { char t; std::cin >> t; } while(0);

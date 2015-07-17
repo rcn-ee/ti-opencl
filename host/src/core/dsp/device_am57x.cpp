@@ -54,7 +54,7 @@ DSPDevice::DSPDevice(unsigned char dsp_id)
 
     p_cores = driver->cores_per_dsp(dsp_id);
 
-    void *hdl = driver->create_image_handle();
+    void *hdl = driver->create_image_handle(dsp_id);
 
     p_addr_local_mem     = driver->get_symbol(hdl, "ocl_local_mem_start");
     p_size_local_mem     = driver->get_symbol(hdl, "ocl_local_mem_size");

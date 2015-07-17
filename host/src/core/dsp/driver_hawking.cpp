@@ -74,6 +74,12 @@ Driver* Driver::instance ()
     return tmp;
 }
 
+std::string Driver::dsp_monitor(int dsp)
+{
+    std::string get_ocl_dsp();
+    return get_ocl_dsp() + "/dsp.out";
+}
+
 int Driver::cores_per_dsp(int dsp)
 {
 #if defined(DEVICE_AM57)
@@ -122,9 +128,7 @@ void Driver::reset_and_load(int chip)
     int error_code_msg[50];
     char curr_core[10];
 
-    std::string get_ocl_dsp();
-    std::string monitor = get_ocl_dsp() + "/dsp.out";
-
+    std::string monitor = dsp_monitor(chip);
     int n_cores = cores_per_dsp(chip);
 
     for (int core=0; core < n_cores; core++)
@@ -411,10 +415,9 @@ int32_t Driver::read(int32_t dsp_id, DSPDevicePtr64 addr, uint8_t *buf,
 /******************************************************************************
 * Driver::create_image_handle
 ******************************************************************************/
-void* Driver::create_image_handle(void) 
+void* Driver::create_image_handle(int chip)
 {
-    std::string get_ocl_dsp();
-    std::string monitor = get_ocl_dsp() + "/dsp.out";
+    std::string monitor = dsp_monitor(chip);
 
     bfd *dsp_bfd = bfd_openr(monitor.c_str(), NULL);
 

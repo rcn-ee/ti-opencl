@@ -66,7 +66,7 @@ DSPDevice::DSPDevice(unsigned char dsp_id)
 
     driver->reset_and_load(dsp_id);
 
-    void *hdl = driver->create_image_handle();
+    void *hdl = driver->create_image_handle(dsp_id);
 
     p_addr_kernel_config = driver->get_symbol(hdl, "kernel_config_l2");
     p_addr_local_mem     = driver->get_symbol(hdl, "ocl_local_mem_start");
