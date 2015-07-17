@@ -74,19 +74,14 @@ Driver* Driver::instance ()
     return tmp;
 }
 
-/******************************************************************************
-* Convert pci data into a recognizable board name for a device
-******************************************************************************/
-const char *get_board(unsigned switch_device)
+int Driver::cores_per_dsp(int dsp)
 {
-    switch (switch_device)
-    {
-        case 0x8624: return "dspc8681";
-        case 0x8748: return "dspc8682";
-        default    : ERR(1, "Unsupported device"); return "unknown";
-    }
+#if defined(DEVICE_AM57)
+    return 2;
+#else
+    return 8;
+#endif
 }
-
 
 /******************************************************************************
 * wait_for_ready
@@ -130,7 +125,9 @@ void Driver::reset_and_load(int chip)
     std::string get_ocl_dsp();
     std::string monitor = get_ocl_dsp() + "/dsp.out";
 
-    for (int core=0; core< TOTAL_NUM_CORES_PER_CHIP; core++)
+    int n_cores = cores_per_dsp(chip);
+
+    for (int core=0; core < n_cores; core++)
     {
         snprintf(curr_core, 5, "dsp%d", core);
 
@@ -147,7 +144,7 @@ void Driver::reset_and_load(int chip)
     /*-------------------------------------------------------------------------
     * Load monitor on the devices
     *------------------------------------------------------------------------*/
-    for (int core=0; core< TOTAL_NUM_CORES_PER_CHIP; core++)
+    for (int core=0; core < n_cores; core++)
     {
         snprintf(curr_core, 5,"dsp%d", core);
         ret = mpm_load(curr_core, const_cast<char*>(monitor.c_str()), 
@@ -163,7 +160,7 @@ void Driver::reset_and_load(int chip)
     /*-------------------------------------------------------------------------
     * Run monitor on the devices
     *------------------------------------------------------------------------*/
-    for (int core=0; core< TOTAL_NUM_CORES_PER_CHIP; core++)
+    for (int core=0; core < n_cores; core++)
     {
         snprintf(curr_core, 5,"dsp%d", core);
         ret = mpm_run(curr_core, &error_code);
@@ -310,18 +307,24 @@ shmem* Driver::get_memory_region(DSPDevicePtr64 addr)
 int32_t Driver::write(int32_t dsp_id, DSPDevicePtr64 addr, uint8_t *buf,
                       uint32_t size)
 { 
-    int core;
+    int n_cores = cores_per_dsp(dsp_id);
+
     /*-------------------------------------------------------------------------
     * if the write is to L2, then write for each core
     *------------------------------------------------------------------------*/
     if ((addr >> 20) == 0x008)
-        for (core=0; core< TOTAL_NUM_CORES_PER_CHIP; core++)
+    {
+        for (int core = 0; core < n_cores; core++)
+        {
 #if !defined (DEVICE_AM57)
             write_core(dsp_id, ((0x10 + core) << 24) + addr, buf, size);
 #else
             write_core(dsp_id, ((0x80 + core) << (3+20)) + addr, buf, size);
 #endif
-    else write_core(dsp_id, addr, buf, size);
+        }
+    }
+    else
+        write_core(dsp_id, addr, buf, size);
 }
 
 /******************************************************************************

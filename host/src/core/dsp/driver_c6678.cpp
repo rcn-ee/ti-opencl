@@ -79,6 +79,11 @@ const char *get_board(unsigned switch_device)
     }
 }
 
+int Driver::cores_per_dsp(int dsp)
+{
+    return 8;
+}
+
 
 /******************************************************************************
 * wait_for_ready
@@ -86,10 +91,12 @@ const char *get_board(unsigned switch_device)
 bool Driver::wait_for_ready(int chip)
 {
     int execution_wait_count = 0;
+    int n_cores = cores_per_dsp(chip);
+
     while (1)
     {
         int core;
-        for (core=0; core< TOTAL_NUM_CORES_PER_CHIP; core++)
+        for (core = 0; core < n_cores; core++)
         {
             uint32_t boot_entry_value;
             int ret = pciedrv_dsp_read(chip, 
@@ -100,7 +107,7 @@ bool Driver::wait_for_ready(int chip)
             if (boot_entry_value != 0) break;
         }
 
-        if (core == TOTAL_NUM_CORES_PER_CHIP) return true; 
+        if (core == n_cores) return true; 
         if (++execution_wait_count > 1000)    return false;
 
         usleep(1000);
@@ -240,14 +247,24 @@ int32_t Driver::close()
 int32_t Driver::write(int32_t dsp_id, DSPDevicePtr64 addr, uint8_t *buf, 
                       uint32_t size)
 { 
-    int core;
+    int n_cores = cores_per_dsp(chip);
+
     /*-------------------------------------------------------------------------
     * if the write is to L2, then write for each core
     *------------------------------------------------------------------------*/
     if ((addr >> 20) == 0x008)
-        for (core=0; core< TOTAL_NUM_CORES_PER_CHIP; core++)
+    {
+        for (int core = 0; core < n_cores; core++)
+        {
+#if !defined (DEVICE_AM57)
             write_core(dsp_id, ((0x10 + core) << 24) + addr, buf, size);
-    else write_core(dsp_id, addr, buf, size);
+#else
+            write_core(dsp_id, ((0x80 + core) << (3+20)) + addr, buf, size);
+#endif
+        }
+    }
+    else
+        write_core(dsp_id, addr, buf, size);
 }
 
 

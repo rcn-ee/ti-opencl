@@ -43,7 +43,7 @@ extern "C" {
 DSPDevice::DSPDevice(unsigned char dsp_id)
     : DeviceInterface   (), 
       p_core_mail       (0), 
-      p_cores           (8), 
+      p_cores           (0),
       p_num_events      (0), 
       p_dsp_mhz         (1000), // 1.00 GHz
       p_worker_dispatch  (0), 
@@ -61,6 +61,8 @@ DSPDevice::DSPDevice(unsigned char dsp_id)
       p_mpax_default_res(NULL)
 { 
     Driver *driver = Driver::instance();
+
+    p_cores = driver->cores_per_dsp(dsp_id);
 
     driver->reset_and_load(dsp_id);
 

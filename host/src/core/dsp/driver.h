@@ -43,17 +43,12 @@ extern "C"
 #include "shmem.h"
 #endif
 
-#if !defined(DEVICE_AM57)
-#define TOTAL_NUM_CORES_PER_CHIP 8
-#else
-#define TOTAL_NUM_CORES_PER_CHIP 2
-#endif
-
 class Driver : public Lockable_off
 {
   public:
    ~Driver() { close(); }
    int32_t num_dsps() const { return pNum_dsps; }
+   int cores_per_dsp(int dsp);
    int32_t close();
 
    int32_t write(int32_t dsp, DSPDevicePtr64 addr, uint8_t *buf, uint32_t sz);
