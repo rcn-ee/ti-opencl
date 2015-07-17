@@ -89,7 +89,7 @@ class DSPDevice : public DeviceInterface, public Lockable
         Event *getEvent(bool &stop);
 
         bool hostSchedule() const;
-        unsigned int numDSPs() const;
+        unsigned int dspCores() const;
         float dspMhz() const;
         unsigned char dspID() const;
         DLOAD_HANDLE dload_handle() const;

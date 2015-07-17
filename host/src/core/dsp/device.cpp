@@ -158,7 +158,7 @@ void DSPDevice::setup_memory(DSPDevicePtr64 &global1, DSPDevicePtr64 &global2,
     // driver->shmem_configure(p_addr_mbox_d2h_phys, p_size_mbox_d2h);
     // driver->shmem_configure(p_addr_mbox_h2d_phys, p_size_mbox_h2d);
 
-    for (int core=0; core < numDSPs(); core++)
+    for (int core=0; core < dspCores(); core++)
         driver->shmem_configure(((0x10 + core) << 24) + p_addr_local_mem,    
                                 p_size_local_mem);
 
@@ -424,7 +424,7 @@ bool DSPDevice::gotEnoughToWorkOn() { return p_num_events > 0; }
 * Getter functions
 ******************************************************************************/
 bool          DSPDevice::hostSchedule() const { return p_core_mail;   }
-unsigned int  DSPDevice::numDSPs()      const { return p_cores;   }
+unsigned int  DSPDevice::dspCores()      const { return p_cores;   }
 float         DSPDevice::dspMhz()       const { return p_dsp_mhz; }
 unsigned char DSPDevice::dspID()        const { return p_dsp_id;  }
 DLOAD_HANDLE  DSPDevice::dload_handle() const { return p_dload_handle;  }
@@ -651,7 +651,7 @@ bool DSPDevice::isInClMallocedRegion(void *ptr)
 int DSPDevice::numHostMails(Msg_t &msg) const
 {
     if (hostSchedule() && (msg.command == EXIT || msg.command == CACHEINV ||
-                           msg.command == NDRKERNEL))  return numDSPs();
+                           msg.command == NDRKERNEL))  return dspCores();
     return 1;
 }
 
@@ -667,7 +667,7 @@ void DSPDevice::mail_to(Msg_t &msg, unsigned int core)
         case NDRKERNEL:
             if (hostSchedule())
             {
-                for (int i = 0; i < numDSPs(); i++)
+                for (int i = 0; i < dspCores(); i++)
                     p_mb->to((uint8_t*)&msg, sizeof(Msg_t), i);
                 return;
             }
@@ -789,7 +789,7 @@ cl_int DSPDevice::info(cl_device_info param_name,
             break;
 
         case CL_DEVICE_MAX_COMPUTE_UNITS:
-            SIMPLE_ASSIGN(cl_uint, numDSPs());
+            SIMPLE_ASSIGN(cl_uint, dspCores());
             break;
 
         case CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS:

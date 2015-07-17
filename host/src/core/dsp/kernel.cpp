@@ -164,7 +164,7 @@ size_t DSPKernel::guessWorkGroupSize(cl_uint num_dims, cl_uint dim,
                                      size_t global_work_size) const
 {
     // ASW TODO - what the ????
-    unsigned int dsps = p_device->numDSPs();
+    unsigned int dsps = p_device->dspCores();
 
     /*-------------------------------------------------------------------------
     * Find the divisor of global_work_size the closest to dsps but >= than it
@@ -767,7 +767,7 @@ cl_int DSPKernelEvent::init_kernel_runtime_variables(Event::Type evtype,
 
     if (cfg->WG_alloca_size > 0)
     {
-        uint32_t chip_alloca_size = cfg->WG_alloca_size * p_device->numDSPs();
+        uint32_t chip_alloca_size = cfg->WG_alloca_size * p_device->dspCores();
         if (cfg->WG_alloca_size <= remaining_l2_size)
         {
             p_WG_alloca_start = local_scratch;

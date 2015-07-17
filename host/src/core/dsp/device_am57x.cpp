@@ -93,7 +93,7 @@ DSPDevice::DSPDevice(unsigned char dsp_id)
     if (gsize2 > 0) driver->shmem_configure(global2, gsize2, 0);
     if (gsize3 > 0) driver->shmem_configure(global3, gsize3, 0);
 
-    for (int core = 0; core < numDSPs(); core++)
+    for (int core = 0; core < dspCores(); core++)
         driver->shmem_configure(((0x80 + core) << (3+20)) + p_addr_local_mem,
                                 p_size_local_mem);
 
