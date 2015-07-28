@@ -27,5 +27,4 @@ accomplished on compute devices and is the main topic for this chapter.
 
    device-discovery
    
-Kernels
-****************************
+.. Kernels

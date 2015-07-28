@@ -2,7 +2,7 @@
 Examples
 ###################
 
-.. ref:: _ti-opencl-examples 
+.. _ti-opencl-examples: 
 
 .. toctree::
    :glob:

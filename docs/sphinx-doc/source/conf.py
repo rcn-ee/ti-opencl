@@ -293,4 +293,4 @@ texinfo_documents = [
 def setup(app):
     app.add_stylesheet("custom.css")
 
-#tags.add('am57')
+tags.add('am57')
