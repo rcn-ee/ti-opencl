@@ -30,11 +30,11 @@ programs.
 The reserved memory is a very small portion of the DDR3 memory that is used in
 the OpenCL implementation and is exposed to neither CMEM nor Linux.
 
-66AK2H
+66AK2x
 =====================================================
 
-The 8GB of attached DDR3 memory is accessible to the K2H device through a
-64-bit bus. The 8GB of DDR3 is populated in the K2H 36-bit address space at
+The 8GB of attached DDR3 memory is accessible to the K2x device through a
+64-bit bus. The 8GB of DDR3 is populated in the K2x 36-bit address space at
 locations 8:0000:0000 through 9:FFFF:FFFF.
 
 The first 2GB of DDR3 are fixed in usage to the following:

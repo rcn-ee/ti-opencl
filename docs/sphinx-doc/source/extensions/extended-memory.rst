@@ -1,10 +1,10 @@
 ********************************************
-Using Extended Memory on the 66AK2H device
+Using Extended Memory on the 66AK2x device
 ********************************************
 
-An extended memory feature is supported on the 66AK2H implementation
+An extended memory feature is supported on the 66AK2x implementation
 of OpenCL. The C66 DSP is a 32-bit architecture and has a limit of
-2GB of DDR that it can access at any given time. The 66AK2H platforms
+2GB of DDR that it can access at any given time. The 66AK2x platforms
 can support up to 8GB of DDR3. To enable usage of DDRs greater than
 2GB, this OpenCL implementation can use a hardware mapping feature to
 move windows over the 8GB DDR into the 32-bit DSP address space.
