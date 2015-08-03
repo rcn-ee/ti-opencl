@@ -26,7 +26,7 @@
  *   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  *   THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
-#include "clc.h"
+#include "dsp.h"
 
 #define VLOAD_VECTORIZE(PRIM_TYPE, ADDR_SPACE) \
   _CLC_OVERLOAD _CLC_DEF PRIM_TYPE##3 vload3(size_t offset, const ADDR_SPACE PRIM_TYPE *x) { \
