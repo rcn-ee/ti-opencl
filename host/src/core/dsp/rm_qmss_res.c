@@ -59,6 +59,7 @@
 #include <ti/drv/rm/rm_transport.h>
 #include <ti/drv/rm/rm_services.h>
 
+#include "message.h"
 
 /**********************************************************************
  ****************************** Defines *******************************
@@ -818,8 +819,18 @@ void free_ocl_qmss_res()
 /*----------------------------------------------------------------------------
 * Return 1 if succeed, 0 if failed, -1 if no RmServer to talk to
 *----------------------------------------------------------------------------*/
-int get_ocl_qmss_res(int *res)
+int get_ocl_qmss_res(Msg_t *msg)
 {
+    msg->u.configure_monitor.ocl_qmss_hw_queue_base_idx =
+        RM_RESOURCE_BASE_UNSPECIFIED;
+
+    msg->u.configure_monitor.ocl_qmss_first_memory_region_idx =
+        RM_RESOURCE_BASE_UNSPECIFIED;
+
+    msg->u.configure_monitor.ocl_qmss_first_desc_idx_in_linking_ram =
+        RM_RESOURCE_BASE_UNSPECIFIED;
+
+    int res[3];
     res[0] = res[1] = res[2] = RM_RESOURCE_BASE_UNSPECIFIED;
     if (initRm() != 0)  return 0;
 
@@ -850,6 +861,10 @@ int get_ocl_qmss_res(int *res)
         }
     }
 
+    msg->u.configure_monitor.ocl_qmss_hw_queue_base_idx = res[0];
+    msg->u.configure_monitor.ocl_qmss_first_memory_region_idx = res[1];
+    msg->u.configure_monitor.ocl_qmss_first_desc_idx_in_linking_ram = res[2];
+
     if (res[0] != RM_RESOURCE_BASE_UNSPECIFIED &&
         res[1] != RM_RESOURCE_BASE_UNSPECIFIED &&
         res[2] != RM_RESOURCE_BASE_UNSPECIFIED)  return 1;
@@ -858,4 +873,3 @@ int get_ocl_qmss_res(int *res)
     free_ocl_qmss_res();
     return 0;
 }
-

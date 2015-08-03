@@ -119,7 +119,7 @@ EXPORT void __cache_l2_flush()
     _restore_interrupts(lvInt);
 }
 
-#ifndef TI_66AK2H
+#ifndef TI_66AK2X
 EXPORT void  __copy_wait(void *event)  { return; }
 EXPORT void* __copy_1D1D(void *event, void *dst, void *src, uint32_t bytes)
 {

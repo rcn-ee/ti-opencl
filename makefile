@@ -7,13 +7,25 @@ else
     CMAKE_DEFINES = -DDEFAULT_DEV_INSTALL_DIR=/opt/ti
 endif
 
-# Default to K2X build. If BUILD_AM57 is set, build for AM57.
+# Default to K2H build. If BUILD_AM57 is set, build for AM57.
 ifeq ($(BUILD_AM57),1)
 CMAKE_DEFINES += -DBUILD_TARGET=ARM_AM57
-OCL_BUILD_DIR  = builda
+OCL_BUILD_DIR  = build/am57
+else ifeq ($(BUILD_K2L),1)
+CMAKE_DEFINES += -DBUILD_TARGET=ARM_K2L
+OCL_BUILD_DIR  = build/k2l
+else ifeq ($(BUILD_K2E),1)
+CMAKE_DEFINES += -DBUILD_TARGET=ARM_K2E
+OCL_BUILD_DIR  = build/k2e
+else ifeq ($(BUILD_K2H),1)
+CMAKE_DEFINES += -DBUILD_TARGET=ARM_K2H
+OCL_BUILD_DIR  = build/k2h
 else
-CMAKE_DEFINES += -DBUILD_TARGET=ARM_K2X
-OCL_BUILD_DIR  = buildh
+$(error must specify one of: \
+BUILD_K2H=1 \
+BUILD_K2L=1 \
+BUILD_K2E=1 \
+BUILD_AM57=1)
 endif
 
 ifeq (,$(OCL_BUILD_DIR))
@@ -23,19 +35,19 @@ endif
 CLEAN_DIRS = monitor monitor_vayu builtins examples libm host/clocl
 
 install: $(OCL_BUILD_DIR)
-	cd $(OCL_BUILD_DIR); cmake $(CMAKE_DEFINES) ../host; make -j4 install;
+	cd $(OCL_BUILD_DIR); cmake $(CMAKE_DEFINES) ../../host; make -j4 install;
 
 build: $(OCL_BUILD_DIR)
-	cd $(OCL_BUILD_DIR); cmake $(CMAKE_DEFINES) ../host; make -j4;
+	cd $(OCL_BUILD_DIR); cmake $(CMAKE_DEFINES) ../../host; make -j4;
 
 package: $(OCL_BUILD_DIR)
-	cd $(OCL_BUILD_DIR); cmake $(CMAKE_DEFINES) ../host; make -j4 package;
+	cd $(OCL_BUILD_DIR); cmake $(CMAKE_DEFINES) ../../host; make -j4 package;
 
 clean:
 	for dir in $(CLEAN_DIRS); do \
 	   $(MAKE) -C $$dir clean; \
 	done
-	rm -rf $(OCL_BUILD_DIR)/*
+	rm -rf build
 
 fresh: clean install
 

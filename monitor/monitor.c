@@ -49,7 +49,7 @@
 *----------------------------------------------------------------------------*/
 #include "monitor.h"
 #include "util.h"
-#ifdef TI_66AK2H
+#ifdef TI_66AK2X
 #include "edma.h"
 #endif
 #include "trace.h"
@@ -74,7 +74,7 @@
 /*-----------------------------------------------------------------------------
 * Application headers
 *----------------------------------------------------------------------------*/
-#ifdef TI_66AK2H
+#ifdef TI_66AK2X
     #include "mpm_mailbox.h"
 #else
     #include "mailBox.h"
@@ -102,6 +102,17 @@
 #if defined(GDB_ENABLED)
 #include "GDB_server.h"
 DDR (EdmaMgr_Handle, gdb_channel) = NULL;
+#endif
+
+/*-----------------------------------------------------------------------------
+* Monitor configuration
+*----------------------------------------------------------------------------*/
+FAST_SHARED(int, n_cores) = -1;
+
+#ifdef TI_66AK2X
+int OCL_QMSS_HW_QUEUE_BASE_IDX             = 7300;
+int OCL_QMSS_FIRST_DESC_IDX_IN_LINKING_RAM = 8192;
+int OCL_QMSS_FIRST_MEMORY_REGION_IDX       = 16;
 #endif
 
 /*-----------------------------------------------------------------------------
@@ -139,6 +150,7 @@ FAST_SHARED(kernel_config_t, task_config) =
 ******************************************************************************/
 static int initialize_memory        (void);
 static int initialize_host_mailboxes(void);
+static int initialize_configuration (void);
 static int initialize_cores         (void);
 static int initialize_qmss          (void);
 static int initialize_bios_tasks    (void);
@@ -221,11 +233,12 @@ int main(void)
 {
     if (!initialize_memory())           ERROR("Could not init Memory");
     if (!initialize_host_mailboxes())   ERROR("Could not init Mailboxes");
+    if (!initialize_configuration())    ERROR("Could not init Configuration");
     if (!initialize_cores())            ERROR("Could not init Cores");
     if (!initialize_qmss())             ERROR("Could not init QMSS");
     if (!initialize_bios_tasks())       ERROR("Could not init BIOS tasks");
     if (tomp_initOpenMPforOpenCL() < 0) ERROR("Could not init OpenMP");
-#ifdef TI_66AK2H
+#ifdef TI_66AK2X
     if (!initialize_edmamgr())          ERROR("Could not init EdmaMgr"); 
 #endif
     if (!initialize_gdbserver())        ERROR("Could not init GDB Server"); 
@@ -500,7 +513,7 @@ static int process_exit_command(void)
     int i;
     rx_mbox = NULL;  // One extra guard to indicate: do NOT print anymore
 
-    for (i = 0; i < NUM_CORES - 1; i++)
+    for (i = 0; i < n_cores - 1; i++)
     {
         void* ptr = ocl_descriptorAlloc();
         ocl_descriptorPush(ocl_queues.exitQ, ptr);
@@ -524,7 +537,7 @@ static void broadcast(uint32_t flush_msg_id, flush_msg_t *f_msg)
     if (flush_msg_id == FLUSH_MSG_CACHEINV)
         { cache_op  = 1; num_mpaxs = 0; }
 
-    for (core = 0; core < NUM_CORES; core++)
+    for (core = 0; core < n_cores; core++)
     {
         broadcast_pkt_t* pkt = (broadcast_pkt_t*) ocl_descriptorAlloc();
 
@@ -728,7 +741,7 @@ EVENT_HANDLER(service_exit)
 { 
     TRACE(ULM_OCL_EXIT, 0, 0);
 
-#ifdef TI_66AK2H
+#ifdef TI_66AK2X
     waitAtCoreBarrier();
     if (MASTER_THREAD)
     {
@@ -775,7 +788,7 @@ static void all_core_copy(void *dest, void *src, size_t size)
 
     // assert(dest) is an L2 location
    
-    for (i = 0; i < NUM_CORES; i++)
+    for (i = 0; i < n_cores; i++)
     {
         void *gdest = (void*) ((0x10 + i) << 24 | (uint32_t)dest);
         memcpy(gdest, src, size);
@@ -821,7 +834,7 @@ static int initialize_memory(void)
         * Use segment 2 for PRIVID 8, 9 and 10 (QMSS)
         *--------------------------------------------------------------------*/
         set_MSMC_MPAX(8,  2, nc_virt, nc_size, nc_phys, DEFAULT_PERMISSION);
-#ifdef TI_66AK2H
+#ifdef TI_66AK2X
         set_MSMC_MPAX(9,  2, nc_virt, nc_size, nc_phys, DEFAULT_PERMISSION);
 #endif
         set_MSMC_MPAX(10, 2, nc_virt, nc_size, nc_phys, DEFAULT_PERMISSION);
@@ -848,7 +861,7 @@ static void reset_memory(void)
     if (MASTER_THREAD) 
     {
         reset_MSMC_MPAX(8,  2);
-#ifdef TI_66AK2H
+#ifdef TI_66AK2X
         reset_MSMC_MPAX(9,  2);
 #endif
         reset_MSMC_MPAX(10, 2);
@@ -909,7 +922,48 @@ static int initialize_host_mailboxes(void)
     return RETURN_OK;
 }
 
-#ifdef TI_66AK2H
+static int initialize_configuration(void)
+{
+    if (MASTER_THREAD)
+    {
+        while(!mpm_mailbox_query(rx_mbox))
+            continue;
+
+        Msg_t Msg;
+        uint32_t size, trans_id;
+        mpm_mailbox_read(rx_mbox, (uint8_t *)&Msg, &size, &trans_id);
+
+        if(Msg.command != CONFIGURE_MONITOR)
+            return RETURN_FAIL;
+
+#ifdef TI_66AK2X
+        if(Msg.u.configure_monitor.ocl_qmss_hw_queue_base_idx > 0)
+        {
+            OCL_QMSS_HW_QUEUE_BASE_IDX =
+                Msg.u.configure_monitor.ocl_qmss_hw_queue_base_idx;
+
+            OCL_QMSS_FIRST_DESC_IDX_IN_LINKING_RAM =
+                Msg.u.configure_monitor.ocl_qmss_first_desc_idx_in_linking_ram;
+
+            OCL_QMSS_FIRST_MEMORY_REGION_IDX =
+                Msg.u.configure_monitor.ocl_qmss_first_memory_region_idx;
+        }
+#endif
+
+        /* update n_cores last to trigger other cores' monitors to continue */
+        *(int volatile *)&n_cores = Msg.u.configure_monitor.n_cores;
+    }
+    else
+    {
+        /* other cores wait until configuration is complete */
+        while(*(int volatile *)&n_cores == -1)
+            continue;
+    }
+
+    return RETURN_OK;
+}
+
+#ifdef TI_66AK2X
 static int initialize_cores() { return RETURN_OK; }
 #else
 
@@ -938,7 +992,7 @@ static int initialize_cores()
     *--------------------------------------------------------------------*/
     int core;
     if (MASTER_THREAD)
-        for (core = 1; core < 8; core++)
+        for (core = 1; core < n_cores; core++)
         {
             DEVICE_REG32_W(IPCGR(core), 1);
             cycle_delay(1000000);
@@ -952,31 +1006,8 @@ static int initialize_cores()
 * initialize_qmss
 * Keystone 2 needs to get QMSS resources allocated by RM on ARM
 ******************************************************************************/
-#ifdef TI_66AK2H
-int OCL_QMSS_HW_QUEUE_BASE_IDX             = 7300;
-int OCL_QMSS_FIRST_DESC_IDX_IN_LINKING_RAM = 8192;
-int OCL_QMSS_FIRST_MEMORY_REGION_IDX       = 16;
-#endif
 static int initialize_qmss(void)
 {
-#ifdef TI_66AK2H
-    if (MASTER_THREAD)
-    {
-        uint32_t size, trans_id;
-        int      mail_available;
-        do mail_available = mpm_mailbox_query(rx_mbox);
-        while (!mail_available);
-        Msg_t Msg;
-        mpm_mailbox_read(rx_mbox, (uint8_t *)&Msg, &size, &trans_id);
-        if (((int *)&Msg)[1] > 0)
-        {
-            OCL_QMSS_HW_QUEUE_BASE_IDX             = ((int *)&Msg)[1];
-            OCL_QMSS_FIRST_DESC_IDX_IN_LINKING_RAM = ((int *)&Msg)[3];
-            OCL_QMSS_FIRST_MEMORY_REGION_IDX       = ((int *)&Msg)[2];
-        }
-    }
-#endif
-
     if (MASTER_THREAD && !ocl_initGlobalQMSS())   return RETURN_FAIL; 
     waitAtCoreBarrier();
     if (!ocl_initLocalQMSS())                 return RETURN_FAIL; 

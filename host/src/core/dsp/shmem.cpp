@@ -363,7 +363,8 @@ void shmem_cmem::cmem_init(DSPDevicePtr64 *addr1, uint64_t *size1,
     /*-------------------------------------------------------------------------
     * Debug to see in cmem init was correct
     * Valid CMEM configurations: last block for MPI (hyperlink/SRIO) buffers
-    *     DDR1(OCL), MSMC2(OCL), DDR3(MPI)
+    *     DDR1(OCL), MSMC2(OCL)
+    * or  DDR1(OCL), MSMC2(OCL), DDR3(MPI)
     * or  DDR1(OCL), MSMC2(OCL), DDR3(OCL), DDR4(MPI)
     *------------------------------------------------------------------------*/
     int num_Blocks = 0;

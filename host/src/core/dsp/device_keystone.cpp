@@ -33,7 +33,7 @@
 
 #if defined(DEVICE_K2X)
 extern "C" {
-    extern int get_ocl_qmss_res(int *);
+    extern int get_ocl_qmss_res(Msg_t *msg);
 }
 #endif
 
@@ -112,19 +112,27 @@ DSPDevice::DSPDevice(unsigned char dsp_id)
     *------------------------------------------------------------------------*/
     setup_mailbox();
 
+    /*-------------------------------------------------------------------------
+    * Send monitor configuration
+    *------------------------------------------------------------------------*/
+    Msg_t msg = {CONFIGURE_MONITOR};
+    msg.u.configure_monitor.n_cores = dspCores();
+
 #if defined(DEVICE_K2X)
     // Keystone2: get QMSS resources from RM, mail to DSP monitor
-    Msg_t oclQmssMsg = {READY};
-    if (get_ocl_qmss_res(((int *)&oclQmssMsg) + 1) == 0)
+    if (get_ocl_qmss_res(&msg) == 0)
     {
         printf("Unable to allocate resource from RM server!\n");
         exit(-1);
     }
-    mail_to(oclQmssMsg);
 #endif
 
-    setup_dsp_mhz();
+    mail_to(msg);
 
+    /*-------------------------------------------------------------------------
+    * Query DSP frequency; monitor is in message loop task after this point.
+    *------------------------------------------------------------------------*/
+    setup_dsp_mhz();
 }
 
 void DSPDevice::setup_mailbox(void)

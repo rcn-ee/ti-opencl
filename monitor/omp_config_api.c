@@ -43,7 +43,7 @@
  */
 void __TI_omp_configure(void)
 {
-    __TI_omp_config_cores (0 /*master_core_idx*/, 8 /*num_cores*/);
+    __TI_omp_config_cores (0 /*master_core_idx*/, n_cores);
 
     __TI_omp_config_hw_semaphores(/*hw_sem_base_idx=*/3);
 

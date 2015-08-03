@@ -32,6 +32,8 @@
 #include <cstdio>
 #include <cstdlib>
 #include <sys/stat.h>
+#include <sys/types.h>
+#include <dirent.h>
 #include <string>
 #include <bfd.h>
 
@@ -85,7 +87,27 @@ int Driver::cores_per_dsp(int dsp)
 #if defined(DEVICE_AM57)
     return 2;
 #else
-    return 8;
+    static int n = 0;
+
+    if(n == 0)
+    {
+        DIR *dir = opendir("/dev");
+        if(!dir)
+            ERR(1, "failed to open /dev\n");
+
+        while(dirent *entry = readdir(dir))
+        {
+            if(entry->d_name[0] && entry->d_name[0] == 'd' &&
+               entry->d_name[1] && entry->d_name[1] == 's' &&
+               entry->d_name[2] && entry->d_name[2] == 'p' &&
+               entry->d_name[3] && isdigit(entry->d_name[3]))
+                ++n;
+        }
+
+        closedir(dir);
+    }
+
+    return n;
 #endif
 }
 
