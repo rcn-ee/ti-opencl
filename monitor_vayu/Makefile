@@ -25,6 +25,7 @@ AM57_PDK_DIR   ?= $(DEFAULT_DEV_INSTALL_DIR)/pdk_am57xx_1_0_0
 IPC_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/ipc_3_40_01_08
 XDC_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/xdctools_3_31_02_38_core
 BIOS_DIR       ?= $(DEFAULT_DEV_INSTALL_DIR)/bios_6_42_02_29
+OMP_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/openmp_dsp_2_01_16_03
 FC_DIR         ?= $(DEFAULT_DEV_INSTALL_DIR)/framework_components_3_40_01_04
 EDMA3LLD_DIR   ?= $(DEFAULT_DEV_INSTALL_DIR)/edma3_lld_02_12_01_22
 XDAIS_DIR      ?= $(DEFAULT_DEV_INSTALL_DIR)/xdais_7_24_00_04
@@ -67,7 +68,7 @@ LINK_CMD  = $(PROJECT)/linker.cmd
 #----------------------------------------------------------------------------
 # XDC stuff
 #----------------------------------------------------------------------------
-XDCPATH = ./;$(IPC_DIR)/packages;$(BIOS_DIR)/packages;$(EDMA3LLD_DIR)/packages;$(FC_DIR)/packages;$(XDAIS_DIR)/packages
+XDCPATH = ./;$(IPC_DIR)/packages;$(BIOS_DIR)/packages;$(EDMA3LLD_DIR)/packages;$(FC_DIR)/packages;$(XDAIS_DIR)/packages;$(OMP_DIR)/packages;$(AM57_PDK_DIR)/packages;
 
 XDCTARGET = ti.targets.elf.C66
 

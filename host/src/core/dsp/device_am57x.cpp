@@ -26,6 +26,7 @@
  *   THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
 #include "mbox_impl_msgq.h"
+#include "dspmem.h"
 
 /******************************************************************************
 * DSPDevice::DSPDevice(unsigned char dsp_id)
@@ -76,6 +77,13 @@ DSPDevice::DSPDevice(unsigned char dsp_id)
     driver->cmem_init(&p_addr64_global_mem, &p_size64_global_mem,
                           &p_addr_msmc_mem,     &p_size_msmc_mem,
                           &global3,             &gsize3);
+    //
+    // Reserve The first 32MB for the monitor.  We use this memory
+    // for a shared heap and nocache DDR memory.  The KSII monitor does
+    // something similar in the function 'split_ddr_memory' which for
+    // AM572 seems to do nothing.  We should generalize 'split_ddr_memory'.
+    p_addr64_global_mem = p_addr64_global_mem + RESERVED_CMEM_SIZE;
+    p_size64_global_mem = p_size64_global_mem - RESERVED_CMEM_SIZE;
 
 
     // cmem_init returns 0xA000_0000 as the base address. This corresponds to

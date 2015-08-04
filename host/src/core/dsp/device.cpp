@@ -677,12 +677,24 @@ void DSPDevice::mail_to(Msg_t &msg, unsigned int core)
             // fall through
 
        case TASK:
-           if (hostSchedule() && IS_OOO_TASK(msg))
+           if (hostSchedule())
            {
-               static int counter = 0;
-               int dsp_id = ((counter++ & 0x1) == 0) ? 0 : 1;
-               p_mb->to((uint8_t*)&msg, sizeof(Msg_t), dsp_id);
-               return;
+                if (IS_OOO_TASK(msg))
+                {
+                    static int counter = 0;
+                    int dsp_id = ((counter++ & 0x1) == 0) ? 0 : 1;
+                    p_mb->to((uint8_t*)&msg, sizeof(Msg_t), dsp_id);
+                    return;
+                }
+                else
+                {
+                    /*---------------------------------------------------------
+                    * For an in-order task send a message to both all cores.
+                    * This is a trick to enable the OpenMP runtime.  OpenMP
+                    * kernels run as in-order tasks.
+                    *---------------------------------------------------------*/
+                    p_mb->to((uint8_t*)&msg, sizeof(Msg_t), 1);
+                }
            }
            // fall through
           

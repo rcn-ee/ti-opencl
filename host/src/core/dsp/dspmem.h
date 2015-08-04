@@ -34,9 +34,19 @@ typedef uint32_t	DSPDevicePtr;
 typedef uint64_t	DSPDevicePtr64;
 typedef uint32_t	DSPVirtPtr;
 // typedef uint64_t	DSPVirtPtr64;  // for future C7x?
+//
+/*****************************************************************************
+ * AM5327 - DSP Device Memory Physical Addreess (8GB)
+ * 0x0:8000_0000 - 0x0:800F_FFFF: 16MB shared heap
+ * 0x0:8010_0000 - 0x0:801F_FFFF: 16MB DDR no cache
+ * 0x0:8020_0000 - 0x0:BFFF_FFFF: ~1G - 32MB General Purpose CMEM memory
+ *
+ * The first 32MB of CMEM are reserved for the monitor.
+ *****************************************************************************/
+#define RESERVED_CMEM_SIZE 0x02000000
 
 /*****************************************************************************
- * DSP Device Memory Physical Addreess (8GB)
+ * Keystone (II?) - DSP Device Memory Physical Addreess (8GB)
  * 0x8:0000_0000 - 0x8:1FFF_FFFF: Linux reserved
  * 0x8:2000_0000 - 0x8:21FF_FFFF: OCL runtime reserved
  *                                using default MPAX translation, map to

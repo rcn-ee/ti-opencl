@@ -38,7 +38,7 @@
 #include <xdc/runtime/Log.h>
 #include <xdc/runtime/Registry.h>
 #include <xdc/runtime/System.h>
-
+ 
 /*-----------------------------------------------------------------------------
 * IPC header files
 *----------------------------------------------------------------------------*/
@@ -50,6 +50,7 @@
 *----------------------------------------------------------------------------*/
 #include <ti/sysbios/BIOS.h>
 #include <ti/sysbios/knl/Task.h>
+#include <ti/sysbios/knl/Semaphore.h>
 
 /*-----------------------------------------------------------------------------
 * C standard library
@@ -91,6 +92,8 @@ DDR (Registry_Desc, Registry_CURDESC);
 PRIVATE (bool,              enable_printf) = false;
 PRIVATE (OCL_MessageQueues, ocl_queues);
 
+extern Semaphore_Handle higherSem;
+
 /******************************************************************************
 * Defines a fixed area of 64 bytes at the start of L2, where the kernels will
 * resolve the get_global_id type calls
@@ -127,19 +130,33 @@ static int  setup_ndr_chunks      (int dims, uint32_t* limits, uint32_t* offsets
 
 
 
+/* BIOS_TASKS */
+/******************************************************************************
+* Bios Task and helper routines
+******************************************************************************/
 static void ocl_main(UArg arg0, UArg arg1);
+static void ocl_service_omp(UArg arg0, UArg arg1);
 static bool create_mqueue(void);
 static void ocl_monitor();
 
-
+extern tomp_initOpenMPforOpenCL(void);
+extern tomp_exitOpenMPforOpenCL(void);
+extern void tomp_dispatch_once(void);
+extern void tomp_dispatch_finish(void);
+extern void tomp_dispatch_finish(void);
+extern bool tomp_dispatch_is_finished(void);
 
 // Prevent RTS versions of malloc etc. from getting pulled into link
-void _minit(void) { }
+//void _minit(void) { }
 
+/*******************************************************************************
+* MASTER_THREAD : One core acts as a master.  This macro identifies that thread
+*******************************************************************************/
+#define MASTER_THREAD (DNUM == 0)
 
-#define SERVICE_STACK_SIZE 0x2800
-PRIVATE_1D(char, sstack, SERVICE_STACK_SIZE);
-
+#define LISTEN_STACK_SIZE 0x2800
+#define SERVICE_STACK_SIZE 0x10000
+PRIVATE_1D(char, lstack, LISTEN_STACK_SIZE);
 
 /******************************************************************************
 * main
@@ -157,26 +174,40 @@ int main(int argc, char* argv[])
     initialize_edmamgr();
     initialize_gdbserver();
 
-    Error_Block     eb;
     Task_Params     taskParams;
-
+    Error_Block     eb;
     Log_print0(Diags_ENTRY, "--> main:");
 
-    /* Initialize the error block before using it */
-    Error_init(&eb);
-
     /* Create main thread (interrupts not enabled in main on BIOS) */
+    Error_init(&eb);
     Task_Params_init(&taskParams);
     taskParams.instance->name = "ocl_main";
     taskParams.arg0 = (UArg)argc;
     taskParams.arg1 = (UArg)argv;
-    taskParams.stackSize = SERVICE_STACK_SIZE;
-    taskParams.stack = (xdc_Ptr)sstack;
+    taskParams.priority = 3; // LOWER_PRIORITY
+    taskParams.stackSize = LISTEN_STACK_SIZE;
+    taskParams.stack = (xdc_Ptr)lstack; // L2 private
     Task_create(ocl_main, &taskParams, &eb);
-
     if (Error_check(&eb)) {
         System_abort("main: failed to create ocl_main thread");
     }
+
+    /* Create a task to service OpenMP kernels */
+    Error_init(&eb);
+    Task_Params_init(&taskParams);
+    taskParams.instance->name = "ocl_service_omp";
+    taskParams.arg0 = (UArg)argc;
+    taskParams.arg1 = (UArg)argv;
+    taskParams.priority = 5; // HIGHER_PRIORITY
+    taskParams.stackSize = SERVICE_STACK_SIZE;
+    taskParams.stack = (xdc_Ptr)malloc(SERVICE_STACK_SIZE); // ddr shared
+    Task_create(ocl_service_omp, &taskParams, &eb);
+    if (Error_check(&eb)) {
+        System_abort("main: failed to create ocl_service_omp thread");
+    }
+
+    if (tomp_initOpenMPforOpenCL() < 0)
+       /* Error */ ;
 
     /* Start scheduler, this never returns */
     BIOS_start();
@@ -185,7 +216,6 @@ int main(int argc, char* argv[])
     Log_print0(Diags_EXIT, "<-- main:");
     return (0);
 }
-
 
 /******************************************************************************
 * ocl_main
@@ -228,8 +258,8 @@ void ocl_monitor()
                 
         Log_print0(Diags_INFO, "ocl_monitor: Waiting for message");
 
-        /* Wait for inbound message from host*/
         ocl_msgq_message_t *msgq_pkt;
+
         MessageQ_get(ocl_queues.dspQue, (MessageQ_Msg *)&msgq_pkt, 
                      MessageQ_FOREVER);
 
@@ -285,6 +315,8 @@ void ocl_monitor()
 }
 
 
+PRIVATE(ocl_msgq_message_t*, omp_msgq_pkt) = NULL;
+
 /******************************************************************************
 * process_task_command
 ******************************************************************************/
@@ -324,21 +356,85 @@ static void process_task_command(ocl_msgq_message_t* msgq_pkt)
     uint32_t more_args_size = Msg->u.k.kernel.args_on_stack_size;
     void *   more_args      = (void *) Msg->u.k.kernel.args_on_stack_addr;
 
-    TRACE(is_inorder ? ULM_OCL_IOT_KERNEL_START
-                     : ULM_OCL_OOT_KERNEL_START, kernel_id, 0);
-    dsp_rpc(&((kernel_msg_t *)&Msg->u.k.kernel)->entry_point,
-            more_args, more_args_size);
-    TRACE(is_inorder ? ULM_OCL_IOT_KERNEL_COMPLETE
-                     : ULM_OCL_OOT_KERNEL_COMPLETE, kernel_id, 0);
+    if (is_inorder)
+    {
+       omp_msgq_pkt = msgq_pkt;
+       Semaphore_post(higherSem);
+       /* in order task was completed by ocl_service_omp task*/
+       if (omp_msgq_pkt != NULL)
+          /* Error */; 
+    }
+    else
+    {
+       TRACE(ULM_OCL_OOT_KERNEL_START, kernel_id, 0);
+       dsp_rpc(&((kernel_msg_t *)&Msg->u.k.kernel)->entry_point,
+               more_args, more_args_size);
+       TRACE(ULM_OCL_OOT_KERNEL_COMPLETE, kernel_id, 0);
 
-    respond_to_host(msgq_pkt, kernel_id);
+       respond_to_host(msgq_pkt, kernel_id);
 
-    flush_msg_t*  flushMsgPtr  = &Msg->u.k.flush;
-    flush_buffers(flushMsgPtr);
-    TRACE(is_inorder ? ULM_OCL_IOT_CACHE_COHERENCE_COMPLETE
-                     : ULM_OCL_OOT_CACHE_COHERENCE_COMPLETE, kernel_id, 0);
+       flush_msg_t*  flushMsgPtr  = &Msg->u.k.flush;
+       flush_buffers(flushMsgPtr);
+       TRACE(ULM_OCL_OOT_CACHE_COHERENCE_COMPLETE, kernel_id, 0);
+    }
 
     return;
+}
+
+/******************************************************************************
+* ocl_service_omp - This is it's own task to switch the stack to DDR.
+******************************************************************************/
+void ocl_service_omp(UArg arg0, UArg arg1)
+{
+    Log_print0(Diags_ENTRY | Diags_INFO, "--> ocl_service_omp:");
+
+    while (true)
+    {
+       Semaphore_pend(higherSem, BIOS_WAIT_FOREVER);
+
+       if (omp_msgq_pkt != NULL)
+       {
+          /*-------------------------------------------------------------------
+          * Run the in order Task.  OpenMP kernels run here. 
+          *-------------------------------------------------------------------*/
+          Msg_t* Msg = &(omp_msgq_pkt->message);
+          uint32_t kernel_id = Msg->u.k.kernel.Kernel_id;
+          uint32_t more_args_size = Msg->u.k.kernel.args_on_stack_size;
+          void* more_args = (void *) Msg->u.k.kernel.args_on_stack_addr;
+
+          if (MASTER_THREAD)
+          {
+             TRACE(ULM_OCL_IOT_KERNEL_START, kernel_id, 0);
+             dsp_rpc(&((kernel_msg_t *)&Msg->u.k.kernel)->entry_point,
+                     more_args, more_args_size);
+             TRACE(ULM_OCL_IOT_KERNEL_COMPLETE, kernel_id, 0);
+             tomp_dispatch_finish();
+
+             respond_to_host(omp_msgq_pkt, kernel_id);
+          }
+          else
+          {
+             do
+             {
+                 tomp_dispatch_once();
+             } 
+             while (!tomp_dispatch_is_finished());
+
+             /* Not sending a response to host, delete the msg */
+             MessageQ_free((MessageQ_Msg)omp_msgq_pkt);
+          }
+
+          flush_msg_t*  flushMsgPtr = &Msg->u.k.flush;
+          flush_buffers(flushMsgPtr);
+          TRACE(ULM_OCL_IOT_CACHE_COHERENCE_COMPLETE, kernel_id, 0);
+
+          omp_msgq_pkt = NULL;
+       }
+       else
+       {
+          /* Error */;
+       }
+    } /* while (true) */
 }
 
 
@@ -464,9 +560,13 @@ void initialize_memory(void)
 {
     extern uint32_t nocache_virt_start;
     extern uint32_t nocache_size;
+    extern uint32_t nocache2_virt_start;
+    extern uint32_t nocache2_size;
 
     uint32_t nc_virt = (uint32_t) &nocache_virt_start;
     uint32_t nc_size = (uint32_t) &nocache_size;
+    uint32_t nc2_virt = (uint32_t) &nocache2_virt_start;
+    uint32_t nc2_size = (uint32_t) &nocache2_size;
 
     int32_t mask = _disable_interrupts();
 
@@ -475,6 +575,7 @@ void initialize_memory(void)
     enableCache (0x40, 0x40); // enable write through for OCMC
     enableCache (0x80, 0xFF);
     disableCache(nc_virt >> 24, (nc_virt+nc_size-1) >> 24);
+    disableCache(nc2_virt >> 24, (nc2_virt+nc2_size-1) >> 24);
 
     _restore_interrupts(mask);
 
@@ -639,5 +740,3 @@ void ocl_set_multiproc_id()
     else if (dsp_id == 1) MultiProc_setLocalId(MultiProc_getId("DSP2"));
     else    assert(0);
 }
-
-

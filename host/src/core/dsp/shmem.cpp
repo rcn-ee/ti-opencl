@@ -487,7 +487,8 @@ void shmem_cmem_persistent::configure(DSPDevicePtr64 dsp_addr, uint64_t size)
     p_size     = size;
     DSPDevicePtr64 cmem_addr = p_dsp_addr;
 #if defined (DEVICE_AM57)
-    if ( dsp_addr >= 0x80000000 ) cmem_addr = dsp_addr + 0x20000000;
+    if (dsp_addr >= 0x80000000) 
+        cmem_addr = dsp_addr + 0x20000000;
 #else
     if (p_dsp_addr >= 0xA0000000 && p_dsp_addr < 0xFFFFFFFF)
         cmem_addr = p_dsp_addr - 0xA0000000 + 0x820000000ULL;
@@ -511,7 +512,8 @@ shmem_cmem_persistent::~shmem_cmem_persistent()
     params.flags = CMEM_CACHED;
     DSPDevicePtr64 cmem_addr = p_dsp_addr;
 #if defined (DEVICE_AM57)
-    if (p_dsp_addr >= 0x80000000 ) cmem_addr = p_dsp_addr + 0x20000000;
+    if (p_dsp_addr >= 0x80000000 ) cmem_addr = p_dsp_addr + 0x20000000
+                                               - RESERVED_CMEM_SIZE;
 #else
     if (p_dsp_addr > 0xA0000000 && p_dsp_addr < 0xFFFFFFFF)
         cmem_addr = p_dsp_addr - 0xA0000000 + 0x820000000ULL;
