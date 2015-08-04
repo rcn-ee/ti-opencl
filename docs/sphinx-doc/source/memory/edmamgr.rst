@@ -1,6 +1,19 @@
 *****************************************
-EdmaMgr
+DMA Control Using EdmaMgr Functions
 *****************************************
+
+This OpenCL implementation also supports direct access to the EDMA system from
+the DSP and OpenCL C kernels. A wide range of EDMA constructs are supported.
+These include 1D to 1D, 1D to 2D, 2D to 1D, and chained transfers. See below
+for prototypes for these additional EDMA OpenCL C builtins.  Also refer to
+:ref:`edmamgr-example` for example usage.
+
+The standard OpenCL C builtin functions async_work_group_copy and
+async_strided_work_group_copy will also utilize the on-chip DMA and can be used
+freely in combination with the EdmaMgr functions.  The EdmaMgr functions are
+provided for additional capability over the standard OpenCL C built-in
+functions.
+
 .. c:type:: EdmaMgr
     typedef void *EdmaMgr_Handle;
 

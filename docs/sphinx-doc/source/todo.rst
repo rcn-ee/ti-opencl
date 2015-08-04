@@ -10,7 +10,6 @@ TODO list of documentation needs.
 - EDMA usage
     - Async_work_group_copy
     - the layer under async
-    - edmamgr
     - edmalld on the ARM side
 - Relative performance of the different memory hieracrchy
 - cache builtin functions

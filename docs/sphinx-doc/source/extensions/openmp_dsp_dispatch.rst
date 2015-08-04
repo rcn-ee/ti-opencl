@@ -15,14 +15,14 @@ main thread on DSP Core 0. When an OpenMP region is encountered while executing
 the main thread, DSP Core 0 along with the other DSPs work together to execute
 the OpenMP region.
 
-.. figure:: images/openmp_dsp_dispatch_with_opencl.png
+.. figure:: ../images/openmp_dsp_dispatch_with_opencl.png
    :align: center
    :width: 450px
    :alt:  OpenMP dispatch from OpenCL
 
 Structure of an OpenCL + OpenMP Application
 ===========================================
-This section uses the :doc:`vecadd\_openmp <examples/overview>`
+This section uses the :doc:`vecadd\_openmp <../examples/overview>`
 example in the OpenCL package to describes the structure of an OpenCL + OpenMP application.
 
 Host Code
