@@ -93,3 +93,12 @@ you have two options.
 
 OpenCL dynamically loads OpenCL C code (including any called standard C code) so 
 any attempt to bind to specific addresses in your linker command file will be ignored.
+
+.. Note::
+
+   Any code or data placed in the .mem_xxx section will reserve memory from the
+   specified memory range for the lifetime of the OpenCL C program in which it
+   exists.  For example, if the .mem_l2 section is used to place a data table
+   of size 64Kb, then from the time the OpenCL C program is loaded until it is
+   unloaded, the amount of L2 memory available for local buffers will be
+   reduced by 64Kb.
