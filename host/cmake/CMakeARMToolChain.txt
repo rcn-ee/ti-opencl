@@ -22,7 +22,8 @@ endif()
 # Point to the development kit file system where we should get ARM
 # libraries and headers
 if ("$ENV{LINUX_DEVKIT_ROOT}" STREQUAL "")
-   SET(LINUX_DEVKIT_ROOT ${DEFAULT_DEV_INSTALL_DIR}/mcsdk_linux_3_00_04_18/linux-devkit/arago-2013.12/sysroots/cortexa15hf-vfp-neon-3.8-oe-linux-gnueabi)
+   SET(LINUX_DEVKIT_ROOT
+${DEFAULT_DEV_INSTALL_DIR}/mcsdk_linux_3_01_04_07/linux-devkit/arago-2015.05/sysroots/cortexa15t2hf-vfp-neon-linux-gnueabi)
    MESSAGE(STATUS "Environment variable LINUX_DEVKIT_ROOT not set. "
                   "Assuming the linux devkit filesystem is installed "
                   "at ${LINUX_DEVKIT_ROOT}")
