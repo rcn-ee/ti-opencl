@@ -10,7 +10,7 @@ Heap Memory Management
 Within an OpenCL application, memory management for the C66 DSP is most
 naturally accomplished through the use of OpenCL buffers defined in the host
 application.  OpenCL buffers can be defined in DDR, MSMC, and L2 memory
-regions. See :doc:`memory/buffers` for details.  If OpenCL buffers are use, this
+regions. See :doc:`../memory/buffers` for details.  If OpenCL buffers are use, this
 eliminates the need for heap management on the DSP, i.e. calls to malloc, call,
 free, etc...  
 
@@ -25,7 +25,7 @@ synchronization to preent race conditions.
 If the size of the small heap is insufficient for your needs or you would like
 a heap in on-chip shared memory, We have added some additional built-in
 functions that allow you to create your own dynamically size heaps using a
-Buffer passed into your kernel.  Please see :doc:`memory/dsp-malloc-extension` for
+Buffer passed into your kernel.  Please see :doc:`../memory/dsp-malloc-extension` for
 details.
 
 .. Note::
@@ -43,7 +43,7 @@ is not allowed in OpenCL C code.  If OpenCL C code calls standard C code, then
 recursion should not be used in the standard C code.
 
 .. Note::
-    The size of the stakc may vary from platform to platform and possibly
+    The size of the stack may vary from platform to platform and possibly
     from release to release on the same platform.
 
 Boot Routine Dependencies

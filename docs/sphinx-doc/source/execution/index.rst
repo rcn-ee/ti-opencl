@@ -25,6 +25,7 @@ accomplished on compute devices and is the main topic for this chapter.
 .. toctree::
    :maxdepth: 2
 
+   terminology
    device-discovery
    
 .. Kernels

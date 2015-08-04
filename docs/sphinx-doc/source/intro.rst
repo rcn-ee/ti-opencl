@@ -2,6 +2,7 @@
 Introduction
 ************
 
+
 OpenCL is a framework for writing programs that execute across heterogeneous
 systems. This documentation describes the TI implementation of the 
 Khronos `OpenCL 1.1 specification`_. The Texas Instruments OpenCL implementation is currently supported on the following systems:

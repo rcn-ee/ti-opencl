@@ -1,6 +1,6 @@
-**********************
-Python OpenCL Bindings
-**********************
+*********************************************************
+Using Python OpenCL with the TI OpenCL implementation
+*********************************************************
 
 There is a python OpenCL binding called pyopencl. Using pyopencl, you can use all the scripting and existing libraries of python in combination with the power of compute offload DSPs on an HP m800 cartridge.
 

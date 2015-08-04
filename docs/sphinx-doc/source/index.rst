@@ -18,7 +18,7 @@ TI |OpenCL (TM)| Runtime Documentation Contents:
    extensions
    environment_variables
    examples/index
-   faq
+   faq/index
 
 .. image:: images/platform_red.png
 
