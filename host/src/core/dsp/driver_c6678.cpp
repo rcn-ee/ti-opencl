@@ -182,7 +182,7 @@ void Driver::reset_and_load(int chip)
 
 void* Driver::create_image_handle(int chip)
 {
-    std::string monitor = dsp_monitor(X);
+    std::string monitor = dsp_monitor(chip);
 
     void * image_handle;
     uint32_t entry;
