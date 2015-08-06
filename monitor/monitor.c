@@ -924,6 +924,7 @@ static int initialize_host_mailboxes(void)
 
 static int initialize_configuration(void)
 {
+#ifdef TI_66AK2X
     if (MASTER_THREAD)
     {
         while(!mpm_mailbox_query(rx_mbox))
@@ -936,7 +937,6 @@ static int initialize_configuration(void)
         if(Msg.command != CONFIGURE_MONITOR)
             return RETURN_FAIL;
 
-#ifdef TI_66AK2X
         if(Msg.u.configure_monitor.ocl_qmss_hw_queue_base_idx > 0)
         {
             OCL_QMSS_HW_QUEUE_BASE_IDX =
@@ -948,7 +948,6 @@ static int initialize_configuration(void)
             OCL_QMSS_FIRST_MEMORY_REGION_IDX =
                 Msg.u.configure_monitor.ocl_qmss_first_memory_region_idx;
         }
-#endif
 
         /* update n_cores last to trigger other cores' monitors to continue */
         *(int volatile *)&n_cores = Msg.u.configure_monitor.n_cores;
@@ -959,6 +958,11 @@ static int initialize_configuration(void)
         while(*(int volatile *)&n_cores == -1)
             continue;
     }
+
+#else
+    n_cores = 8;
+
+#endif
 
     return RETURN_OK;
 }
