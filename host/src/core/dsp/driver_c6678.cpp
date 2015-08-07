@@ -81,10 +81,8 @@ const char *get_board(unsigned switch_device)
 
 std::string Driver::dsp_monitor(int dsp)
 {
-    char *installation = getenv("TI_OCL_INSTALL");
-    if (! installation)  ERR(1, "TI_OCL_INSTALL env variable not set");
-
-    return std::string(installation) + "/usr/share/ti/opencl/dsp.out";
+    std::string get_ocl_dsp();
+    return get_ocl_dsp() + "/dsp.out";
 }
 
 int Driver::cores_per_dsp(int dsp)
