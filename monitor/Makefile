@@ -211,7 +211,9 @@ $(BUILD)/ocl_qmss.obj: $(OPENCL_SRC_DIR)/src/core/dsp/message.h
 # generate and build config packages
 #--------------------------------------------------------------------------
 
-$(LINK_CMD) $(COMP_OPTS): \
+$(COMP_OPTS): $(LINK_CMD)
+
+$(LINK_CMD): \
     monitor.cfg \
     ocl_platforms/$(PLATFORM)/package/package_ocl_platforms.$(PLATFORM).c
 	@echo Making $(BUILD) files
