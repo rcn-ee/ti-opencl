@@ -32,7 +32,6 @@ ifneq (,$(findstring 86, $(UNAME_M)))
         TARGET := x86
         LLVM_DIR = $(X86_LLVM_DIR)
         LLVM_CONFIG_NAME = llvm-config
-	LLVM_LDFLAGS = -m32
    else ifeq ($(findstring arm-linux, $(CXX)), arm-linux) 
         TARGET := arm
    endif

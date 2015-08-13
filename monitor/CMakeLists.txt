@@ -1,10 +1,6 @@
 # Build monitor
 
-# Currently the K2X monitor must be built in an X86 cross-compile environment
-# If doing an opencl build/install on an ARM platform the monitor files must be
-# copied over.
-
-if(CROSS_COMPILE AND BUILD_OUTPUT STREQUAL "all" )
+if(BUILD_OUTPUT STREQUAL "all" )
     install(CODE "execute_process(COMMAND make -j4 BUILD_TARGET=${BUILD_TARGET} WORKING_DIRECTORY ${OCL_MONITOR_DIR})")
 endif()
 

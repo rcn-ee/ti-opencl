@@ -1,10 +1,11 @@
 .SILENT:
 
 # Determine if cross-compiling and set appropriate CMAKE options
+CMAKE_DEFINES = -DDEFAULT_DEV_INSTALL_DIR=/opt/ti
+ifneq ($(BUILD_DSPC),1)
 ifneq (,$(findstring 86, $(shell uname -m)))
     CMAKE_DEFINES = -DCMAKE_TOOLCHAIN_FILE=../host/cmake/CMakeARMToolChain.txt
-else
-    CMAKE_DEFINES = -DDEFAULT_DEV_INSTALL_DIR=/opt/ti
+endif
 endif
 
 ifeq ($(BUILD_AM57),1)
@@ -19,15 +20,19 @@ else ifeq ($(BUILD_K2E),1)
 else ifeq ($(BUILD_K2H),1)
     CMAKE_DEFINES += -DBUILD_TARGET=ARM_K2H
     OCL_BUILD_DIR  = build/k2h
+else ifeq ($(BUILD_DSPC),1)
+    CMAKE_DEFINES += -DBUILD_TARGET=DSPC868x
+    OCL_BUILD_DIR  = build/dspc
 else
     ifeq ($(MAKECMDGOALS),clean)
     else ifeq ($(MAKECMDGOALS),realclean)
     else
         $(error must specify one of: \
+            BUILD_AM57=1 \
             BUILD_K2H=1 \
             BUILD_K2L=1 \
             BUILD_K2E=1 \
-            BUILD_AM57=1)
+            BUILD_DSPC=1)
     endif
 endif
 
