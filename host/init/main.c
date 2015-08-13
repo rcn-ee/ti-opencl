@@ -47,7 +47,7 @@
 #include "sdk/inc/initcfg.h"
 
 #define BOOT_MAGIC_ADDR               0x87FFFC    // boot add - end of L2 
-#define BOOT_MAGIC_CONTENTS           (*((unsigned int *)BOOT_MAGIC_ADDR))
+#define BOOT_MAGIC_CONTENTS           (*((volatile unsigned int *)BOOT_MAGIC_ADDR))
 #define DEF_INIT_CONFIG_UART_BAUDRATE 115200
 #define BOOTROM_RESET_VECTOR_LOCATION 0x20b0fc00
 #define DEVICE_INTCTL_BASE            0x1800000
@@ -308,14 +308,14 @@ void wait_for_interrupt()
     if (DNUM == 0)
     {
         /* clear PCIe interrupt A */
-        *((unsigned int *)LEGACY_A_IRQ_STATUS) = 0x1;
-        *((unsigned int *)TI667X_IRQ_EOI)      = 0x0;
+        *((volatile unsigned int *)LEGACY_A_IRQ_STATUS) = 0x1;
+        *((volatile unsigned int *)TI667X_IRQ_EOI)      = 0x0;
 
-        while (*((unsigned int *)LEGACY_A_IRQ_STATUS_RAW) != 0x1);
+        while (*((volatile unsigned int *)LEGACY_A_IRQ_STATUS_RAW) != 0x1);
 
         /* clear PCIe interrupt A */
-        *((unsigned int *)LEGACY_A_IRQ_STATUS) = 0x1;
-        *((unsigned int *)TI667X_IRQ_EOI)      = 0x0;
+        *((volatile unsigned int *)LEGACY_A_IRQ_STATUS) = 0x1;
+        *((volatile unsigned int *)TI667X_IRQ_EOI)      = 0x0;
     }
     else idle_till_wakeup();
 }
