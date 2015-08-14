@@ -46,10 +46,8 @@ LLVM_CONFIG_PREFIX = $(LLVM_DIR)/bin/
 LLVM_CONFIG_EXE ?= $(LLVM_CONFIG_PREFIX)$(LLVM_CONFIG_NAME)
 LLVM_CXXFLAGS = `$(LLVM_CONFIG_EXE) --cxxflags`
 
-
-# Cannot use llvm-config --ldflags because it includes -lz which is not 
-# available on arago
-LLVM_LDFLAGS += -L `$(LLVM_CONFIG_EXE) --libdir` -lpthread -lrt -ldl -lm
+# -lz is not available on arago
+LLVM_LDFLAGS = $(subst -lz,,$(shell $(LLVM_CONFIG_EXE) --ldflags))
 LLVM_LIBS = `$(LLVM_CONFIG_EXE) --libs $(TARGET) asmparser bitwriter tablegen mcjit debuginfo interpreter irreader jit linker instrumentation ipo mcdisassembler`
 
 UTILDIR         = ../src/core

@@ -1,7 +1,9 @@
 .SILENT:
 
+DEFAULT_DEV_INSTALL_DIR ?= /opt/ti
+
 # Determine if cross-compiling and set appropriate CMAKE options
-CMAKE_DEFINES = -DDEFAULT_DEV_INSTALL_DIR=/opt/ti
+CMAKE_DEFINES = -DDEFAULT_DEV_INSTALL_DIR=$(DEFAULT_DEV_INSTALL_DIR)
 ifneq ($(BUILD_DSPC),1)
 ifneq (,$(findstring 86, $(shell uname -m)))
     CMAKE_DEFINES = -DCMAKE_TOOLCHAIN_FILE=../host/cmake/CMakeARMToolChain.txt

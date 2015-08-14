@@ -88,25 +88,23 @@ INCLUDES=  -i $(OPENCL_SRC_DIR)/src/core/dsp \
            -D MAILBOX_ON_HOST 
 
 XDCTARGET= ti.targets.elf.C66
-XDCPATH_K2X = ./;$(PDK_DIR)/packages;$(BIOS_DIR)/packages;$(OMP_DIR)/packages;$(EDMA3LLD_DIR)/packages;$(IPC_DIR)/packages;$(FC_DIR)/packages;$(XDAIS_DIR)/packages;
+XDCPATH_K2X = ./;$(C6636_PDK_DIR)/packages;$(BIOS_DIR)/packages;$(OMP_DIR)/packages;$(EDMA3LLD_DIR)/packages;$(IPC_DIR)/packages;$(FC_DIR)/packages;$(XDAIS_DIR)/packages;
 LIBS_K2X  = monitor.cmd $(MPM_DIR)/lib_c66x/mpmmailbox.ae66 $(ULM_DIR)/libtiulm.ae66 $(GDB_SERVER_DIR)/lib/gdb_server.ae66
 
 ifeq ($(BUILD_TARGET),DSPC868x)
     PLATFORM = dspc868x
-    PDK_DIR = $(C6678_PDK_DIR)
-    XDCPATH = ./;$(PDK_DIR)/packages;$(BIOS_DIR)/packages;$(OMP_DIR)/packages;$(IPC_DIR)/packages
+    XDCPATH = ./;$(C6678_PDK_DIR)/packages;$(BIOS_DIR)/packages;$(OMP_DIR)/packages;$(IPC_DIR)/packages
     INCLUDES += -DTI_C6678 \
                 -i $(SDK_DIR)/sdk/pciedrv \
                 -i $(SDK_DIR)/sdk/mailBox \
                 -i $(SDK_DIR)/sdk/mailBox/inc \
                 -i $(SDK_DIR)/sdk/buffmgr \
                 -i $(SDK_DIR)/sdk/config \
-                -i $(PDK_DIR)/packages/ti/drv/qmss
+                -i $(C6678_PDK_DIR)/packages/ti/drv/qmss
     LIBS = monitor_k1.cmd $(SDK_DIR)/sdk/mailBox/c66x/lib/mailBox.a
 
 else ifeq ($(BUILD_TARGET),ARM_K2H)
     PLATFORM = evmk2h
-    PDK_DIR = $(C6636_PDK_DIR)
     XDCPATH  = $(XDCPATH_K2X)
     INCLUDES += -DDEVICE_K2K -DTI_66AK2X -DK2_PG1_MSMC_STALL_WA \
                 -i $(MPM_DIR)/include -i$(ULM_DIR) -DULM_ENABLED \
@@ -115,7 +113,6 @@ else ifeq ($(BUILD_TARGET),ARM_K2H)
 
 else ifeq ($(BUILD_TARGET),ARM_K2L)
     PLATFORM = evmk2l
-    PDK_DIR = $(C6636_PDK_DIR)
     XDCPATH  = $(XDCPATH_K2X)
     INCLUDES += -DDEVICE_K2K -DTI_66AK2X -DK2_PG1_MSMC_STALL_WA \
                 -i $(MPM_DIR)/include -i$(ULM_DIR) -DULM_ENABLED \
@@ -124,7 +121,6 @@ else ifeq ($(BUILD_TARGET),ARM_K2L)
 
 else ifeq ($(BUILD_TARGET),ARM_K2E)
     PLATFORM = evmk2e
-    PDK_DIR = $(C6636_PDK_DIR)
     XDCPATH  = $(XDCPATH_K2X)
     INCLUDES += -DDEVICE_K2K -DTI_66AK2X -DK2_PG1_MSMC_STALL_WA \
                 -i $(MPM_DIR)/include -i$(ULM_DIR) -DULM_ENABLED \
