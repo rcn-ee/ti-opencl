@@ -1,6 +1,6 @@
 # If not specified, pick a default location for TI dependent packages
 LLVM_MAJOR_VERSION = 3
-LLVM_MINOR_VERSION = 3
+LLVM_MINOR_VERSION = 6
 
 ifeq ($(DEFAULT_DEV_INSTALL_DIR),)
    DEFAULT_DEV_INSTALL_DIR = /opt
@@ -30,7 +30,7 @@ CL6X    = cl6x
 
 CL6X_CFLAGS   = -q -o3 -mv6600 --abi=eabi --use_g3 -mt -mo 
 CL6X_CFLAGS  += --mem_model:code=far --mem_model:data=far
-CLANG_CFLAGS  = -cc1 -O2 -triple=spir-unknown-unknown-unknown -Fvisibility=protected
+CLANG_CFLAGS  = -cc1 -O2 -triple=c6000-unknown-unknown-unknown -Fvisibility=protected
 CLANG_CFLAGS += -x cl -cl-std=CL1.2 -fno-builtin -ffp-contract=off 
 CLANG_CFLAGS += -Iinclude 
 
@@ -55,19 +55,19 @@ pch:
 #------------------------------------------------------------------------
 # Uncomment to use clocl to compile instead of clang + cl6x direct
 #------------------------------------------------------------------------
-CLOCL        = clocl
-CLOCL_CFLAGS = -l -b
-%.obj: %.cl
-	@echo $< Clocl
-	$(CLOCL) $(CLOCL_CFLAGS)  $< 
+#CLOCL        = clocl
+#CLOCL_CFLAGS = -l -b
+#%.obj: %.cl
+#	@echo $< Clocl
+#	$(CLOCL) $(CLOCL_CFLAGS)  $< 
 
-#%.bc: %.cl
-#	@echo $< Parsing
-#	@$(CLANG) $(CLANG_CFLAGS) -emit-llvm-bc $< -o $@
+%.bc: %.cl
+	@echo $< Parsing
+	$(CLANG) $(CLANG_CFLAGS) -emit-llvm-bc $< -o $@
 
-#%.obj: %.bc
-#	@echo $< Generating
-#	@$(CL6X) $(CL6X_CFLAGS) $<
+%.obj: %.bc
+	@echo $< Generating
+	$(CL6X) $(CL6X_CFLAGS) $<
 
 clean:
 	@rm -rf *.obj* *.bc *.asm *.ll *.if *.opt *.lib *.map *.out include/clc.h.pch *.h

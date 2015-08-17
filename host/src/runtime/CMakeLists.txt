@@ -2,7 +2,7 @@
 # Needs to match what's used when using clang to build the kernel
 # See compiler.cpp 
 if (HAWKING_BUILD OR AM57_BUILD)
-   set(HOST_TARGET -target spir-unknown-unknown-unknown)
+   set(HOST_TARGET -target c6000-unknown-unknown-unknown)
 endif()
 
 add_custom_command(
