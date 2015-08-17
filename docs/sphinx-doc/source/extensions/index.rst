@@ -21,3 +21,4 @@ better map to TI's devices.
    opencl-c-builtin-function-extensions
    ../memory/host-malloc-extension
    ../memory/dsp-malloc-extension
+   ../memory/cache-operations

@@ -2,12 +2,12 @@
 Alternate Host malloc/free Extension for Zero Copy OpenCL Kernels
 *****************************************************************
 
-The TI OpenCL implementation adds 4 new host functions::
+The TI OpenCL implementation adds 4 new host functions
 
-         void* __malloc_ddr (size_t size); 
-         void  __free_ddr   (void* p); 
-         void* __malloc_msmc(size_t size);
-         void  __free_msmc  (void* p);
+.. cpp:function:: void* __malloc_ddr (size_t size)
+.. cpp:function:: void  __free_ddr   (void* p)
+.. cpp:function:: void* __malloc_msmc(size_t size)
+.. cpp:function:: void  __free_msmc  (void* p)
 
 These new API's in the TI OpenCL implementation are not specified as part of
 OpenCL specification, but are TI extensions that are roughly modeled after
