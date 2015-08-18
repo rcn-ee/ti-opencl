@@ -45,7 +45,7 @@ clone:
 	-for dir in $(REPOS); do \
 	if [ ! -d ./$$dir ]; then \
           echo "=============== " git cloning $$dir " =================" ; \
-          git clone git@gitorious.design.ti.com:ocl/$$dir.git; \
+          git clone git://gitorious.design.ti.com/ocl/$$dir.git; \
 	fi \
         done
 
@@ -58,7 +58,7 @@ pull:
         done
 
 checkout:
-        for dir in $(REPOS); do \
+	for dir in $(REPOS); do \
           echo "=============== " $$dir " =================" ; \
           cd $$dir ; \
           git checkout $(TAG) ; \
