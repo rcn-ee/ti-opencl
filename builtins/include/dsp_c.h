@@ -51,6 +51,9 @@ uint64_t __clock64         (void);
 void     __cycle_delay     (uint64_t cyclesToDelay);
 void     __mfence          (void);
 
+void*    __scratch_l1d_start(void);
+uint32_t __scratch_l1d_size (void);
+
 void     __cache_l1d_none  (void);
 void     __cache_l1d_all   (void);
 void     __cache_l1d_4k    (void);

@@ -34,12 +34,27 @@
 #include <ti/csl/csl_cacheAux.h>
 #include "util.h"
 
+extern uint32_t ocl_l1d_mem_start;
+extern uint32_t ocl_l1d_mem_size;
+
+void*     far l1d_start = (void*)    &ocl_l1d_mem_start;
+uint32_t  far l1d_size  = (uint32_t) &ocl_l1d_mem_size;
+
 extern cregister volatile unsigned int DNUM;
 
 /******************************************************************************
 * __core_num()
 ******************************************************************************/
 EXPORT int __core_num() { return get_dsp_id(); }
+
+/*-----------------------------------------------------------------------------
+ * Variant across DSP cores. Place in nocache msmc to avoid false sharing.
+ *----------------------------------------------------------------------------*/
+static far PRIVATE(size_t, l1d_scratch_size) = 0;
+
+EXPORT void*  __scratch_l1d_base() { return l1d_start; }
+EXPORT size_t __scratch_l1d_size() { return l1d_scratch_size; }
+
 
 PRIVATE(int32_t, _local_id_x)      EXPORT = 0;
 PRIVATE(int32_t, _local_id_y)      EXPORT = 0;
@@ -51,12 +66,14 @@ EXPORT void __cache_l1d_none()
     __mfence();
     CACHE_setL1DSize(CACHE_L1_0KCACHE);
     CACHE_getL1DSize();
+    l1d_scratch_size = l1d_size;
 }
 
 EXPORT void __cache_l1d_all()
 {
     CACHE_setL1DSize(CACHE_L1_32KCACHE);
     CACHE_getL1DSize();
+    l1d_scratch_size = 0;
 }
 
 EXPORT void __cache_l1d_4k()
@@ -65,6 +82,7 @@ EXPORT void __cache_l1d_4k()
     __mfence();
     CACHE_setL1DSize(CACHE_L1_4KCACHE);
     CACHE_getL1DSize();
+    l1d_scratch_size = l1d_size - (4 << 10);
 }
 
 EXPORT void __cache_l1d_8k()
@@ -73,6 +91,7 @@ EXPORT void __cache_l1d_8k()
     __mfence();
     CACHE_setL1DSize(CACHE_L1_8KCACHE);
     CACHE_getL1DSize();
+    l1d_scratch_size = l1d_size - (8 << 10);
 }
 
 EXPORT void __cache_l1d_16k()
@@ -81,6 +100,7 @@ EXPORT void __cache_l1d_16k()
     __mfence();
     CACHE_setL1DSize(CACHE_L1_16KCACHE);
     CACHE_getL1DSize();
+    l1d_scratch_size = l1d_size - (16 << 10);
 }
 
 EXPORT void __cache_l1d_flush()
