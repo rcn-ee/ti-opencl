@@ -225,6 +225,8 @@ below.
         catch(...) { std::cout << "Binary read function failure" << std::endl; }
     }
 
+.. _offline-embedded:
+
 Create an OpenCL program from binary, with embedded binary
 -----------------------------------------------------------
 
