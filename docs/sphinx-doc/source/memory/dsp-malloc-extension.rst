@@ -18,17 +18,17 @@ allocating, reallocating and freeing from these heaps.
 
 The following three built-in functions create user defined heaps.
 
-.. cpp:function::    void __heap_init_ddr (void *ptr, int size)
+.. c:function::    void __heap_init_ddr (void *ptr, int size)
 
     Initialize a user defined heap in DDR of *size* bytes.  The memory that
     *ptr* points to should be DDR. 
 
-.. cpp:function::    void __heap_init_msmc(void *ptr, int size)
+.. c:function::    void __heap_init_msmc(void *ptr, int size)
 
     Initialize a user defined heap in MSMC of *size* bytes.  The memory that
     *ptr* points to should be MSMC. 
 
-.. cpp:function::    void __heap_init_l2  (void *ptr, int size)
+.. c:function::    void __heap_init_l2  (void *ptr, int size)
 
     Initialize a user defined heap in L2 of *size* bytes.  The memory that
     *ptr* points to should be L2. 
@@ -66,27 +66,27 @@ to initialize internal heap data structures before making any __malloc_l2 calls.
 The following five built-in functions replace the C standard library functions:
 malloc, calloc, realloc, free, and memalign for user defined heaps in DDR.
 
-.. cpp:function:: void *__malloc_ddr   (size_t size)
-.. cpp:function:: void *__calloc_ddr   (size_t num, size_t size)
-.. cpp:function:: void *__realloc_ddr  (void *ptr,  size_t size)
-.. cpp:function:: void  __free_ddr     (void *ptr)
-.. cpp:function:: void *__memalign_ddr (size_t alignment, size_t size)
+.. c:function:: void *__malloc_ddr   (size_t size)
+.. c:function:: void *__calloc_ddr   (size_t num, size_t size)
+.. c:function:: void *__realloc_ddr  (void *ptr,  size_t size)
+.. c:function:: void  __free_ddr     (void *ptr)
+.. c:function:: void *__memalign_ddr (size_t alignment, size_t size)
 
 The following five built-in functions replace the C standard library functions:
 malloc, calloc, realloc, free, and memalign for user defined heaps in MSMC.
 
-.. cpp:function:: void *__malloc_msmc   (size_t size)
-.. cpp:function:: void *__calloc_msmc   (size_t num, size_t size)
-.. cpp:function:: void *__realloc_msmc  (void *ptr, size_t size)
-.. cpp:function:: void  __free_msmc     (void *ptr)
-.. cpp:function:: void *__memalign_msmc (size_t alignment, size_t size)
+.. c:function:: void *__malloc_msmc   (size_t size)
+.. c:function:: void *__calloc_msmc   (size_t num, size_t size)
+.. c:function:: void *__realloc_msmc  (void *ptr, size_t size)
+.. c:function:: void  __free_msmc     (void *ptr)
+.. c:function:: void *__memalign_msmc (size_t alignment, size_t size)
 
 The following built-in function replaces the C standard library functions:
 malloc for user defined heaps in L2. __free_l2() is not provided as the L2
 user defined heaps are deallocated as a whole at the end of every kernel 
 execution.
 
-.. cpp:function:: void *__malloc_l2 (size_t size)
+.. c:function:: void *__malloc_l2 (size_t size)
 
      return a pointer to L2 memory.  The pointer returned is aligned 
      to an 8 byte boundary. Malloced memory from L2 will cease to exist at 

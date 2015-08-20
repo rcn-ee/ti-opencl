@@ -27,5 +27,6 @@ accomplished on compute devices and is the main topic for this chapter.
 
    terminology
    device-discovery
+   kernels-workgroups-workitems
    
 .. Kernels

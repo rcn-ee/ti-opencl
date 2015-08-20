@@ -12,7 +12,7 @@ Memory Usage
    buffers
    access-model
    discovery
-   cache-coherency
+   cache-operations
    dma
    extended-memory
    dsp-malloc-extension
