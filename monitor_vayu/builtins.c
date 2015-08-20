@@ -50,11 +50,13 @@ EXPORT void __cache_l1d_none()
     CACHE_wbInvAllL1d(CACHE_NOWAIT);
     __mfence();
     CACHE_setL1DSize(CACHE_L1_0KCACHE);
+    CACHE_getL1DSize();
 }
 
 EXPORT void __cache_l1d_all()
 {
     CACHE_setL1DSize(CACHE_L1_32KCACHE);
+    CACHE_getL1DSize();
 }
 
 EXPORT void __cache_l1d_4k()
@@ -62,6 +64,7 @@ EXPORT void __cache_l1d_4k()
     CACHE_wbInvAllL1d(CACHE_NOWAIT);
     __mfence();
     CACHE_setL1DSize(CACHE_L1_4KCACHE);
+    CACHE_getL1DSize();
 }
 
 EXPORT void __cache_l1d_8k()
@@ -69,6 +72,7 @@ EXPORT void __cache_l1d_8k()
     CACHE_wbInvAllL1d(CACHE_NOWAIT);
     __mfence();
     CACHE_setL1DSize(CACHE_L1_8KCACHE);
+    CACHE_getL1DSize();
 }
 
 EXPORT void __cache_l1d_16k()
@@ -76,6 +80,7 @@ EXPORT void __cache_l1d_16k()
     CACHE_wbInvAllL1d(CACHE_NOWAIT);
     __mfence();
     CACHE_setL1DSize(CACHE_L1_16KCACHE);
+    CACHE_getL1DSize();
 }
 
 EXPORT void __cache_l1d_flush()
@@ -94,6 +99,7 @@ EXPORT void __cache_l2_none()
     CACHE_wbInvAllL2(CACHE_NOWAIT);
     __mfence();
     CACHE_setL2Size (CACHE_0KCACHE);
+    CACHE_getL2Size ();
 }
 
 EXPORT void __cache_l2_128k()
@@ -101,6 +107,7 @@ EXPORT void __cache_l2_128k()
     CACHE_wbInvAllL2(CACHE_NOWAIT);
     __mfence();
     CACHE_setL2Size (CACHE_128KCACHE);
+    CACHE_getL2Size ();
 }
 
 EXPORT void __cache_l2_256k()
@@ -108,6 +115,7 @@ EXPORT void __cache_l2_256k()
     CACHE_wbInvAllL2(CACHE_NOWAIT);
     __mfence();
     CACHE_setL2Size (CACHE_256KCACHE);
+    CACHE_getL2Size ();
 }
 
 EXPORT void __cache_l2_512k()
@@ -115,6 +123,7 @@ EXPORT void __cache_l2_512k()
     CACHE_wbInvAllL2(CACHE_NOWAIT);
     __mfence();
     CACHE_setL2Size (CACHE_512KCACHE);
+    CACHE_getL2Size ();
 }
 
 EXPORT void __cache_l2_flush()

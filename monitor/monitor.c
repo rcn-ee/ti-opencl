@@ -729,17 +729,24 @@ EVENT_HANDLER(service_exit)
     TRACE(ULM_OCL_EXIT, 0, 0);
 
 #ifdef TI_66AK2H
+    free_edma_channel_pool();
     waitAtCoreBarrier();
     if (MASTER_THREAD)
     {
         tomp_exitOpenMPforOpenCL();
         ocl_exitGlobalQMSS();
     }
-    free_edma_channel_pool();
 #endif
 #if defined(GDB_ENABLED)
     if (MASTER_THREAD && gdb_channel != NULL) EdmaMgr_free(gdb_channel);
 #endif
+    /* Send final exiting acknowledgement back to host */
+    if (MASTER_THREAD)
+    {
+        rx_mbox = rx_mbox_mem;
+        mail_safely((uint8_t*)&exitMsg, sizeof(Msg_t), 42);
+        rx_mbox = NULL;
+    }
     cacheWbInvAllL2();
     reset_memory();
     exit(0); 
@@ -801,9 +808,7 @@ static int initialize_memory(void)
 
     int32_t mask = _disable_interrupts();
 
-    CACHE_setL1DSize(CACHE_L1_32KCACHE);
-    CACHE_setL1PSize(CACHE_L1_32KCACHE);
-    CACHE_setL2Size (CACHE_128KCACHE);
+    /***  BIOS is configuring the default cache sizes, see Platform.xdc ***/
 
     enableCache (0x0C, 0x0C); // enable write through for msmc
     enableCache (0x80, 0xFF);
@@ -840,8 +845,11 @@ static void reset_memory(void)
     int32_t mask = _disable_interrupts();
 
     CACHE_setL1DSize(CACHE_L1_32KCACHE);
+    CACHE_getL1DSize();
     CACHE_setL1PSize(CACHE_L1_32KCACHE);
+    CACHE_getL1PSize();
     CACHE_setL2Size (CACHE_0KCACHE);
+    CACHE_getL2Size ();
 
     disableCache (0x80, 0xFF);
     reset_MPAX(2);

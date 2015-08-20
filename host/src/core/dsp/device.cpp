@@ -226,6 +226,17 @@ DSPDevice::~DSPDevice()
         pthread_cond_destroy(&p_worker_cond);
     }
 
+#if defined(DEVICE_K2H) || defined(DSPC868X)
+    /*-------------------------------------------------------------------------
+    * Wait for the EXIT acknowledgement from device
+    *------------------------------------------------------------------------*/
+    while (! p_exit_acked)
+    {
+        while (! mail_query()) usleep(1);
+        mail_from();
+    }
+#endif
+
     delete p_mb;
     p_mb = NULL;
 
@@ -712,6 +723,12 @@ int DSPDevice::mail_from()
     if (rxmsg.command == PRINT)
     {
         printf("[core %c] %s", rxmsg.u.message[0], rxmsg.u.message+1);
+        return -1;
+    }
+
+    if (rxmsg.command == EXIT)
+    {
+        p_exit_acked = true;
         return -1;
     }
 
