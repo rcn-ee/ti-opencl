@@ -37,8 +37,8 @@
 extern uint32_t ocl_l1d_mem_start;
 extern uint32_t ocl_l1d_mem_size;
 
-void*     far l1d_start = (void*)    &ocl_l1d_mem_start;
-uint32_t  far l1d_size  = (uint32_t) &ocl_l1d_mem_size;
+far void*     l1d_start = (void*)    &ocl_l1d_mem_start;
+far uint32_t l1d_size   = (uint32_t) &ocl_l1d_mem_size;
 
 extern cregister volatile unsigned int DNUM;
 
