@@ -31,6 +31,7 @@ ULM_DIR        ?= $(LINUX_DEVKIT_ROOT)/usr/share/ti/ulm
 GDB_SERVER_DIR ?= $(LINUX_DEVKIT_ROOT)/usr/share/ti/gdbc6x
 
 export XDC = $(XDC_DIR)
+export BIOS_DIR = $(BIOS_DIR)
 
 # Verify that the dependencies exist where stated
 ifneq ($(MAKECMDGOALS),clean)
