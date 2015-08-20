@@ -28,13 +28,13 @@ XDAIS_DIR      ?= $(DEFAULT_DEV_INSTALL_DIR)/xdais_7_24_00_04
 ULM_DIR        ?= $(LINUX_DEVKIT_ROOT)/usr/share/ti/ulm
 GDB_SERVER_DIR ?= $(LINUX_DEVKIT_ROOT)/usr/share/ti/gdbc6x
 
-export XDC_DIR := $(XDC_DIR)
+export XDC_DIR = $(XDC_DIR)
+export BIOS_DIR = $(BIOS_DIR)
 
 PLATFORM  = am57x
 PROJECT   = monitor
 DEVICE    = DEVICE_AM572x
 SOC       = SOC_AM572x
-
 
 ## !Need -O* to inline CACHE_* functions!
 CC= cl6x -o3 -mv6600 --abi=eabi --gcc --mem_model:const=data --mem_model:data=far

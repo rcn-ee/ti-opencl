@@ -30,7 +30,8 @@ XDC_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/xdctools_3_31_02_38_core
 ULM_DIR        ?= $(LINUX_DEVKIT_ROOT)/usr/share/ti/ulm
 GDB_SERVER_DIR ?= $(LINUX_DEVKIT_ROOT)/usr/share/ti/gdbc6x
 
-export XDC = $(XDC_DIR)
+export XDC_DIR = $(XDC_DIR)
+export BIOS_DIR = $(BIOS_DIR)
 
 # Verify that the dependencies exist where stated
 ifneq ($(MAKECMDGOALS),clean)
@@ -213,7 +214,7 @@ $(LINK_CMD): \
     monitor.cfg \
     ocl_platforms/$(PLATFORM)/package/package_ocl_platforms.$(PLATFORM).c
 	@echo Making $(BUILD) files
-	@$(XDC)/xs --xdcpath "$(XDCPATH)" xdc.tools.configuro -c $(TI_OCL_CGT_INSTALL) --cb -t $(XDCTARGET) -p ocl_platforms.$(PLATFORM) -r $(BUILD_TYPE) -o $(BUILD) monitor.cfg
+	@$(XDC_DIR)/xs --xdcpath "$(XDCPATH)" xdc.tools.configuro -c $(TI_OCL_CGT_INSTALL) --cb -t $(XDCTARGET) -p ocl_platforms.$(PLATFORM) -r $(BUILD_TYPE) -o $(BUILD) monitor.cfg
 	@sed '/c6xabi\.exidx/d' $(LINK_CMD) > lnk_tmp
 	@mv lnk_tmp $(LINK_CMD)
 
