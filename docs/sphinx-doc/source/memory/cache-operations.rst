@@ -134,3 +134,8 @@ using local scratch buffers.
     functions and because it is also managing the L2 scratchpad memory for use as local
     buffers an opprtunity for resource conflict exists.  As a general rule of thumb, do 
     not increase L2 cache size in functions that are using local buffers.
+
+.. Warning::
+
+    The cache size reconfiguration functions should not be used in kernels with
+    > 1 work-item per work-group.
