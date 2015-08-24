@@ -1,7 +1,7 @@
 .. _ti-opencl-home:
 
 ############################
-TI OpenCL v1.1.x
+TI OpenCL v01.01.05.xx
 ############################
 
 TI |OpenCL (TM)| Runtime Documentation Contents:
