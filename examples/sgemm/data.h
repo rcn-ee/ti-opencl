@@ -32,20 +32,22 @@
 #define CORE_PROCESS_ROWS 4
 #define CORE_PROCESS_COLS 8
 
-// partition in k dimension
+// partition in k dimension, 512 can fully use 16K L1D SRAM
 #define KPARTITION 512
 
-// number of panels of A to keep in MSMC SRAM
-// #define NUMAPANELS 64
-#define NUMAPANELS 32
-// number of panels of B to keep in L2 SRAM
-#define NUMBPANELS 8
+// have to reduce A,B PANLES so that they fit in 128K L2 SRAM on AM57
+//                                            or 512K L2 SRAM on Hawking
+// #define NUMAPANELS 8
+// #define NUMBPANELS 2
 
 // partition in m dimension
-#define MPARTITION (NUMAPANELS*CORE_PROCESS_ROWS)
+// #define MPARTITION (NUMAPANELS*CORE_PROCESS_ROWS)
 // partition in n dimension
-#define NPARTITION (NUMBPANELS*CORE_PROCESS_COLS)
+// #define NPARTITION (NUMBPANELS*CORE_PROCESS_COLS)
 
 void dataMoveB(float * restrict dst, float * restrict src, int k);
-void dataMoveA(float * restrict dst, float * restrict src, int m, int k);
+void dataMoveA(float * restrict dst, float * restrict src, int m, int k,
+               int MPARTITION);
+void dataMoveA_DDR2L2(float * restrict dst, float * restrict src, int m, int k,
+                      int lda);
 #endif

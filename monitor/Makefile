@@ -9,7 +9,7 @@ DEFAULT_DEV_INSTALL_DIR ?= /opt/ti
 UNAME_M :=$(shell uname -m)
 
 ifneq (,$(findstring 86, $(UNAME_M)))
-   LINUX_DEVKIT_ROOT ?= $(DEFAULT_DEV_INSTALL_DIR)/mcsdk_linux_3_00_04_18/linux-devkit/arago-2013.12/sysroots/cortexa15hf-vfp-neon-3.8-oe-linux-gnueabi
+   LINUX_DEVKIT_ROOT ?= $(DEFAULT_DEV_INSTALL_DIR)/mcsdk_linux_3_01_04_07/linux-devkit/arago-2015.05/sysroots/cortexa15t2hf-vfp-neon-linux-gnueabi
 endif
 
 ifeq ($(TI_OCL_CGT_INSTALL),)
@@ -17,20 +17,21 @@ ifeq ($(TI_OCL_CGT_INSTALL),)
 endif
 
 SDK_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/desktop-linux-sdk_01_00_03_00
-MPM_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/mpm_2.00.01.04
-BIOS_DIR       ?= $(DEFAULT_DEV_INSTALL_DIR)/bios_6_37_00_20
-OMP_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/openmp_dsp_2_01_16_03
-IPC_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/ipc_3_00_04_29
-FC_DIR         ?= $(DEFAULT_DEV_INSTALL_DIR)/framework_components_3_30_00_06
-EDMA3LLD_DIR   ?= $(DEFAULT_DEV_INSTALL_DIR)/edma3_lld_02_11_11_15
+MPM_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/mpm_2_00_01_10
+BIOS_DIR       ?= $(DEFAULT_DEV_INSTALL_DIR)/bios_6_41_04_54
+OMP_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/openmp_dsp_2_01_17_01
+IPC_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/ipc_3_36_02_13
+FC_DIR         ?= $(DEFAULT_DEV_INSTALL_DIR)/framework_components_3_40_00_02
+EDMA3LLD_DIR   ?= $(DEFAULT_DEV_INSTALL_DIR)/edma3_lld_02_11_13_17
 XDAIS_DIR      ?= $(DEFAULT_DEV_INSTALL_DIR)/xdais_7_24_00_04
 C6678_PDK_DIR  ?= $(DEFAULT_DEV_INSTALL_DIR)/pdk_C6678_2_1_3_7
-C6636_PDK_DIR  ?= $(DEFAULT_DEV_INSTALL_DIR)/pdk_keystone2_3_00_04_18
-XDC_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/xdctools_3_25_05_94
+C6636_PDK_DIR  ?= $(DEFAULT_DEV_INSTALL_DIR)/pdk_keystone2_3_01_04_07
+XDC_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/xdctools_3_31_02_38_core
 ULM_DIR        ?= $(LINUX_DEVKIT_ROOT)/usr/share/ti/ulm
 GDB_SERVER_DIR ?= $(LINUX_DEVKIT_ROOT)/usr/share/ti/gdbc6x
 
 export XDC = $(XDC_DIR)
+export BIOS_DIR
 
 # Verify that the dependencies exist where stated
 ifneq ($(MAKECMDGOALS),clean)
@@ -202,10 +203,10 @@ realclean: clean
 # Make sure the platform is built before we try to build the monitor.
 #--------------------------------------------------------------------------
 ocl_platforms/dspc868x/package/package_ocl_platforms.dspc868x.c: ocl_platforms/dspc868x/Platform.xdc
-	 $(MAKE) -C ocl_platforms/dspc868x 
+	 $(MAKE) BIOS_DIR=$(BIOS_DIR) -C ocl_platforms/dspc868x 
 
 ocl_platforms/evmk2h/package/package_ocl_platforms.evmk2h.c: ocl_platforms/evmk2h/Platform.xdc
-	 $(MAKE) -C ocl_platforms/evmk2h
+	 $(MAKE) BIOS_DIR=$(BIOS_DIR) -C ocl_platforms/evmk2h
 
 #--------------------------------------------------------------------------
 # generate and build config packages

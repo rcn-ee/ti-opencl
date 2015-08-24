@@ -8,6 +8,14 @@ config ti.platforms.generic.Platform.Instance CPU =
 
     customMemoryMap: 
     [ 
+      /*-----------------------------------------------------------------------
+      * L1D regions, both l1d cache and l1d scratchpad will reside within this
+      *----------------------------------------------------------------------*/
+      [ "L1DSRAM",       { name: "L1DSRAM", 
+                          base: 0x00F00000, 
+                          len:  0x00008000, 
+		          space: "code/data", 
+			  access: "RWX", } ], 
 
       /*-----------------------------------------------------------------------
       * L2 Related regions

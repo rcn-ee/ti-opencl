@@ -1,0 +1,11 @@
+<div role="navigation" aria-label="breadcrumbs navigation">
+    <img style="padding: 0px 0px 10px 0px;" src="{{ pathto('_images/platform_red.png', 1) }}" alt="Texas Instruments">
+  <ul class="wy-breadcrumbs">
+      <li><a href="{{ pathto(master_doc) }}">{{project }} Home</a> &raquo;</li>
+      {% for doc in parents %}
+          <li><a href="{{ doc.link|e }}">{{ doc.title }}</a> &raquo;</li>
+      {% endfor %}
+    <li>{{ title }}</li>
+  </ul>
+  <hr/>
+</div>

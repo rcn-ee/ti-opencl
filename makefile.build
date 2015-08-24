@@ -1,6 +1,6 @@
 OCL_BUILD_ROOT= $(shell pwd)
 .SILENT:
-OCL_VER=1.1.4
+OCL_VER=1.1.5
 LLVM_VER=33
 
 OCL_DPKG_NAME = ti-opencl
@@ -45,7 +45,7 @@ clone:
 	-for dir in $(REPOS); do \
 	if [ ! -d ./$$dir ]; then \
           echo "=============== " git cloning $$dir " =================" ; \
-          git clone git@gitorious.design.ti.com:ocl/$$dir.git; \
+          git clone git://gitorious.design.ti.com/ocl/$$dir.git; \
 	fi \
         done
 
@@ -58,7 +58,7 @@ pull:
         done
 
 checkout:
-        for dir in $(REPOS); do \
+	for dir in $(REPOS); do \
           echo "=============== " $$dir " =================" ; \
           cd $$dir ; \
           git checkout $(TAG) ; \
@@ -73,7 +73,7 @@ clean-prebuild:
 prebuild: clone pull
 	$(MAKE) -s -C $(OCL_MONITOR_DIR) k2h
 	ln -s . $(OCL_VERSIONED_NAME) 
-	tar czvf $(OCL_VERSIONED_NAME).tar.gz --exclude='.git' --exclude='init_global_shared_mem' --transform='s/makefile.arm/makefile/g' $(OCL_VERSIONED_NAME)/${OCL_SRC_DIR} $(OCL_VERSIONED_NAME)/debian $(OCL_VERSIONED_NAME)/${OCL_EXAMPLES_DIR} $(OCL_VERSIONED_NAME)/$(OCL_MONITOR_DIR) $(OCL_VERSIONED_NAME)/makefile.arm $(OCL_VERSIONED_NAME)/$(OCL_BUILTINS_DIR)
+	tar czf $(OCL_VERSIONED_NAME).tar.gz --exclude='.git' --exclude='init_global_shared_mem' --transform='s/makefile.arm/makefile/g' $(OCL_VERSIONED_NAME)/${OCL_SRC_DIR} $(OCL_VERSIONED_NAME)/debian $(OCL_VERSIONED_NAME)/${OCL_EXAMPLES_DIR} $(OCL_VERSIONED_NAME)/$(OCL_MONITOR_DIR) $(OCL_VERSIONED_NAME)/makefile.arm $(OCL_VERSIONED_NAME)/$(OCL_BUILTINS_DIR)
 	rm $(OCL_VERSIONED_NAME)
 
 install:

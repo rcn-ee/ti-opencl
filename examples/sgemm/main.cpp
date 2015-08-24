@@ -37,36 +37,51 @@
 #include <ocl_util.h>
 #include "kernel.dsp_h"
 
+extern "C" {
+#include "cblas.h"
+}
+
 using namespace std;
 using namespace cl;
 
 static double clock_diff (struct timespec *t1, struct timespec *t2)
 { return t2->tv_sec - t1->tv_sec + (t2->tv_nsec - t1->tv_nsec) / 1e9; }
 
-void PrintMatrix(float *mat, int rows, int cols, int type);
-void MatmulHost(const float* A, const float *B, float *C, int M, int N, int P);
-void CheckForErrors(const float *Mat, const float *Golden, int M, int N, int P, int type);
-
+void PrintMatrix(float *mat, int rows, int cols, enum CBLAS_ORDER mem_order);
+void MatmulHost_ATLAS(enum CBLAS_ORDER mem_order,
+                const float* A, const float *B, float *C, int M, int N, int K,
+                float alpha, float beta);
+void MatmulHost_loopnest(enum CBLAS_ORDER mem_order,
+                const float* A, const float *B, float *C, int M, int N, int K,
+                float alpha, float beta);
+void CheckForErrors(const float *Mat, const float *Golden, int M, int N, int K,
+                    enum CBLAS_ORDER mem_order);
 
 /* ======================================================================== */
 /*  Global Variables                                                        */
 /* ======================================================================== */
-#define ROW_MAJOR                   0
-#define COL_MAJOR                   1
-#define L2_BUF_SIZE                 (768 << 10)
-// #define MSMC_SIZE_BYTES             (4 << 20)
-#define MSMC_SIZE_BYTES             (2 << 20)
 int M                               = 4096;
 int N                               = 4096;
-int P                               = 4096;
-bool check                          = true;
+int K                               = 4096;
+float alpha                         = 1.0f;
+float beta                          = 0.0f;
+enum CBLAS_ORDER order              = CblasColMajor;
+bool check                          = false;
 bool random_in                      = false;
+
+int L2_BUF_SIZE                     = 0;
+int MSMC_BUF_SIZE                   = 0;
+int NUMAPANELS                      = 0;
+int NUMBPANELS                      = 0;
+int NUMCOMPUNITS                    = 0;
+bool use_host_ATLAS                 = true;
 
 /* ======================================================================== */
 /*  Function Headers                                                        */
 /* ======================================================================== */
 void PrintUsageAndExit();
 void HandleOptions(int argc, char* argv[]);
+bool SetSgemmParams(std::string& platform_name);
 
 /* ======================================================================== */
 /*  MAIN                                                                    */
@@ -80,19 +95,45 @@ int main(int argc, char* argv[])
    signal(SIGTERM, exit);
 
     /* ---------------------------------------------------------------- */
-    /*  Handle command line options to get M,N,P                        */
+    /*  Handle command line options to get M,N,K                        */
     /* ---------------------------------------------------------------- */
     HandleOptions(argc,argv);
-    printf("C[%d,%d] = A[%d,%d] * B[%d,%d]\n\n", M,P,M,N,N,P);
+
+    int VALRANGE = 37;
+    if (random_in) 
+    {
+        srand(time(NULL));
+        alpha = (float) (rand() % VALRANGE + 1);
+        beta  = (float) (rand() % VALRANGE + 1);
+        printf("C[%d,%d] = alpha * A[%d,%d] * B[%d,%d] + beta * C[%d,%d], %s\n",
+               M,N,M,K,K,N, M,N,
+               (order == CblasRowMajor ? "use row-major storage"
+                                       : "use col-major storage"));
+        printf("alpha=%f, beta=%f\n\n", alpha, beta);
+    }
+    else
+        printf("C[%d,%d] = A[%d,%d] * B[%d,%d], %s\n\n", M,N,M,K,K,N,
+               (order == CblasRowMajor ? "use row-major storage"
+                                       : "use col-major storage"));
 
     double dsp_elapsed = 0;
-    double total_GFLOP = 2.0*M*N*P*1.0e-9;
+    double total_GFLOP = 2.0*M*N*K*1.0e-9;
 
     try 
     {
        Context context(CL_DEVICE_TYPE_ACCELERATOR);
        std::vector<Device> devices = context.getInfo<CL_CONTEXT_DEVICES>();
        CommandQueue Q(context, devices[0]);
+
+       /*---------------------------------------------------------------------
+       * Determine platform, set sgemm blocking/tiling parameters
+       *--------------------------------------------------------------------*/
+       std::vector<Platform> platforms;
+       Platform::get(&platforms);
+       std::string platform_name;
+       platforms[0].getInfo(CL_PLATFORM_NAME, &platform_name);
+       devices[0].getInfo(CL_DEVICE_MAX_COMPUTE_UNITS, &NUMCOMPUNITS);
+       if (! SetSgemmParams(platform_name) || NUMCOMPUNITS == 0)  return -1;
 
        /*---------------------------------------------------------------------
        * Compile the Kernel Source for the devices
@@ -105,25 +146,46 @@ int main(int argc, char* argv[])
        /* ---------------------------------------------------------------- */
        /*  Allocate Buffers:                                               */
        /* ---------------------------------------------------------------- */
-       Buffer bufA   (context, CL_MEM_READ_ONLY,  M*N*sizeof(float));
-       Buffer bufB   (context, CL_MEM_READ_ONLY,  N*P*sizeof(float));
-       Buffer bufC   (context, CL_MEM_READ_WRITE, M*P*sizeof(float));
-       Buffer bufMsmc(context, CL_MEM_READ_WRITE|CL_MEM_USE_MSMC_TI, MSMC_SIZE_BYTES);
+       Buffer bufA   (context, CL_MEM_READ_ONLY,  M*K*sizeof(float));
+       Buffer bufB   (context, CL_MEM_READ_ONLY,  K*N*sizeof(float));
+       Buffer bufC   (context, CL_MEM_READ_WRITE, M*N*sizeof(float));
+       Buffer *bufMsmc = NULL;
+       if (MSMC_BUF_SIZE != 0)
+           bufMsmc = new Buffer(context, CL_MEM_READ_WRITE|CL_MEM_USE_MSMC_TI,
+                                MSMC_BUF_SIZE);
+       else
+           bufMsmc = new Buffer(context, CL_MEM_READ_WRITE, 4); // dummy one
 
        /* ---------------------------------------------------------------- */
        /*  Initialized input arrays with random test data.                 */
        /* ---------------------------------------------------------------- */
-       float *A = (float*) Q.enqueueMapBuffer(bufA, CL_TRUE, CL_MAP_WRITE, 0, M*N*sizeof(float));
-       float *B = (float*) Q.enqueueMapBuffer(bufB, CL_TRUE, CL_MAP_WRITE, 0, N*P*sizeof(float));
-       float *C = (float*) Q.enqueueMapBuffer(bufC, CL_TRUE, CL_MAP_WRITE, 0, M*P*sizeof(float));
+       float *A = (float*) Q.enqueueMapBuffer(bufA, CL_TRUE, CL_MAP_WRITE, 0,
+                                              M*K*sizeof(float));
+       float *B = (float*) Q.enqueueMapBuffer(bufB, CL_TRUE, CL_MAP_WRITE, 0,
+                                              K*N*sizeof(float));
+       float *C = (float*) Q.enqueueMapBuffer(bufC, CL_TRUE, CL_MAP_WRITE, 0,
+                                              M*N*sizeof(float));
+       float *gold;
 
-       srand(time(NULL));
-       for (int i = 0; i < M*N; ++i) A[i] = random_in? (double)(rand() % 5 + 1): i & 7; 
-       for (int i = 0; i < N*P; ++i) B[i] = random_in? (double)(rand() % 5 + 1): i & 7; 
-       for (int i = 0; i < M*P; ++i) C[i] = 0;
+       for (int i = 0; i < M*K; ++i)
+           A[i] = random_in ? (float)(rand() % VALRANGE + 1) : i & 7; 
+       for (int i = 0; i < K*N; ++i)
+           B[i] = random_in ? (float)(rand() % VALRANGE + 1) : i & 7; 
+       for (int i = 0; i < M*N; ++i)
+           C[i] = random_in ? (float)(rand() % VALRANGE + 1) : 0;
+       if (check)
+       {
+           if ((gold = (float*) malloc(M*N*sizeof(float))) == NULL)
+           {
+               printf("Unable to allocate memory to verify results\n");
+               exit(-1);
+           }
+           memcpy(gold, C, M*N*sizeof(float));
+       }
 
-       PrintMatrix(A,M,N,COL_MAJOR);
-       PrintMatrix(B,N,P,COL_MAJOR);
+       PrintMatrix(A,M,K,order);
+       PrintMatrix(B,K,N,order);
+       if (random_in)  PrintMatrix(C,M,N,order);
 
        Q.enqueueUnmapMemObject(bufA, A);
        Q.enqueueUnmapMemObject(bufB, B);
@@ -133,48 +195,86 @@ int main(int argc, char* argv[])
        /*----------------------------------------------------------------------
        * Device: Do A*B = C
        *---------------------------------------------------------------------*/
-       Kernel kernel (program, "ocl_matmpy");
-       KernelFunctor matmul = kernel.bind(Q, NDRange(8), NDRange(1));
+       Kernel kernel (program, "K_ocl_sgemm_dsp");
+       KernelFunctor matmul = kernel.bind(Q, NDRange(NUMCOMPUNITS), NDRange(1));
 
        struct timespec t0,t1;
        clock_gettime(CLOCK_MONOTONIC, &t0);
 
-       matmul(bufA, bufB, bufC, M, N, P, bufMsmc, __local(L2_BUF_SIZE), MSMC_SIZE_BYTES).wait();
+       /*----------------------------------------------------------------------
+       * Convert RowMajor computation to ColumnMajor computation
+       * Fact: Mem_Layout(A_RowMajor) === Mem_Layout(Transpose(A)_ColMajor)
+       * Therefore: C_RowMajor = A_RowMajor * B_RowMajor
+       *            C[mxn] = A[mxk] * B[kxn]
+       * can be computed as:
+       * Transpose(C)_ColMajor = Transpose(B)_ColMajor * Transpose(A)_ColMajor
+       * C'[nxm] = B'[nxk] * A'[kxm],
+       * where ptrC' === ptrC, ptrA' === ptrA, ptrB' === ptrB
+       * So, all we need to do is to: swap(m, n), swap(a, b)
+       * ld_Transpose(a)_col = lda_row = k, 
+       * ld_Transpose(b)_col = ldb_row = n, 
+       * ld_Transpose(c)_col = ldc_row = n, 
+       *---------------------------------------------------------------------*/
+       if (order == CblasRowMajor)
+           matmul(N, M, K, alpha, bufB, N, bufA, K, beta, bufC, N,
+                  NUMAPANELS, NUMBPANELS,
+                  __local(L2_BUF_SIZE), *bufMsmc).wait();
+       else
+           matmul(M, N, K, alpha, bufA, M, bufB, K, beta, bufC, M,
+                  NUMAPANELS, NUMBPANELS,
+                  __local(L2_BUF_SIZE), *bufMsmc).wait();
 
        clock_gettime(CLOCK_MONOTONIC, &t1);
        dsp_elapsed = clock_diff (&t0, &t1);
 
        double gflops = total_GFLOP/dsp_elapsed;
-       printf("DSP: %.3f Gflops (%.6f s) \n", gflops, dsp_elapsed);
+       printf("%4d DSPs: %.3f Gflops (%.6f s) \n",
+              NUMCOMPUNITS, gflops, dsp_elapsed);
+
+       if (bufMsmc != NULL)  delete bufMsmc;
 
        /*----------------------------------------------------------------------
        * If checking results against a host matmul.  
        * This can be time consuming for large sizes.
        *---------------------------------------------------------------------*/
-       C = (float*) Q.enqueueMapBuffer(bufC, CL_TRUE, CL_MAP_READ, 0, M*P*sizeof(float));
+       C = (float*) Q.enqueueMapBuffer(bufC, CL_TRUE, CL_MAP_READ, 0,
+                                       M*N*sizeof(float));
 
        if (check)
        {
-           A = (float*) Q.enqueueMapBuffer(bufA, CL_TRUE, CL_MAP_READ, 0, M*N*sizeof(float));
-           B = (float*) Q.enqueueMapBuffer(bufB, CL_TRUE, CL_MAP_READ, 0, N*P*sizeof(float));
-	   float *gold = (float*)malloc(M*P*sizeof(float));
-           memset(gold, 0, M*P*sizeof(float));
+           A = (float*) Q.enqueueMapBuffer(bufA, CL_TRUE, CL_MAP_READ, 0,
+                                           M*K*sizeof(float));
+           B = (float*) Q.enqueueMapBuffer(bufB, CL_TRUE, CL_MAP_READ, 0,
+                                           K*N*sizeof(float));
            clock_gettime(CLOCK_MONOTONIC, &t0);
 
-           MatmulHost(A, B, gold, M, N, P);
+           bool atlas_called = false;
+           if (use_host_ATLAS)
+           {
+#ifdef ATLAS
+               MatmulHost_ATLAS(order, A, B, gold, M, N, K, alpha, beta);
+               atlas_called = true;
+#else
+               MatmulHost_loopnest(order, A, B, gold, M, N, K, alpha, beta);
+#endif
+           } else {
+               MatmulHost_loopnest(order, A, B, gold, M, N, K, alpha, beta);
+           }
 
            clock_gettime(CLOCK_MONOTONIC, &t1);
            dsp_elapsed = clock_diff (&t0, &t1);
 
            double gflops = total_GFLOP/dsp_elapsed;
-           printf("CPU: %.3f Gflops (%.6f s) \n\n", gflops, dsp_elapsed);
+           printf("Host CPUs: %.3f Gflops (%.6f s) with %s\n\n",
+                  gflops, dsp_elapsed,
+                  (atlas_called ? "ATLAS libray" : "3-level loop nest"));
            Q.enqueueUnmapMemObject(bufA, A);
            Q.enqueueUnmapMemObject(bufB, B);
-	   PrintMatrix(gold,M,P,ROW_MAJOR); 
-	   CheckForErrors(C, gold, M, N, P, COL_MAJOR);
+	   PrintMatrix(gold,M,N,order); 
+	   CheckForErrors(C, gold, M, N, K, order);
        }
 
-       PrintMatrix(C,M,P,COL_MAJOR); 
+       PrintMatrix(C,M,N,order); 
        Q.enqueueUnmapMemObject(bufC, C); Q.finish();
    }
    catch (Error err)
@@ -183,6 +283,7 @@ int main(int argc, char* argv[])
        exit(-1);
    }
 
+   return 0;
 }
 
 /******************************************************************************
@@ -191,15 +292,17 @@ int main(int argc, char* argv[])
 
 void PrintUsageAndExit()
 {
-    cout << "Matrix A[M,N] x B [N,P] = C [M,P]" << endl
-         << "Default value of M,N,P is " << M << endl 
-         << "Usage: matmul [options] " << endl
+    cout << "Matrix C[M,N] = A[M,K] * B [K,N]" << endl
+         << "Default value of M,N,K is " << M << endl 
+         << "Usage: sgemm [options] " << endl
          << "Options: " << endl
-         << "-M arg : Number of rows for array A" << endl
-         << "-N arg : Number of cols for array A, rows for array B" << endl
-         << "-P arg : Number of cols for array B" << endl
-         << "-c     : Check results" << endl
+         << "-M arg : Number of rows for array C and A" << endl
+         << "-K arg : Number of cols for array A, rows for array B" << endl
+         << "-N arg : Number of cols for array C and B" << endl
+         << "-c     : Check results against host computation" << endl
+         << "-l     : Host use 3-level loop nest to compute" << endl
          << "-r     : Generate random inputs" << endl
+         << "-or    : Use Row-Major storage (default is Col-Major)" << endl
          << "-h     : Show help message" 
          << endl;
     exit(0);
@@ -211,20 +314,23 @@ void HandleOptions(int argc, char* argv[])
 
     if (argc == 1) return;
     
-    while ((c = getopt (argc, argv, "M:N:P:hcr")) != -1)
+    while ((c = getopt (argc, argv, "o:M:K:N:hclr")) != -1)
         switch(c)
         {
+            case 'o': order = (*optarg == 'r') ? CblasRowMajor
+                                               : CblasColMajor; break;
             case 'M': M = abs(atoi(optarg)); break;
+            case 'K': K = abs(atoi(optarg)); break;
             case 'N': N = abs(atoi(optarg)); break;
-            case 'P': P = abs(atoi(optarg)); break;
             case 'h': PrintUsageAndExit();   break;
             case 'c': check = true;          break;
+            case 'l': use_host_ATLAS = false;break;
             case 'r': random_in = true;      break;
             default:  PrintUsageAndExit();
         }
 }
 
-void PrintMatrix(float *mat, int rows, int cols, int type)
+void PrintMatrix(float *mat, int rows, int cols, enum CBLAS_ORDER mem_order)
 {
     if (rows > 64) return;
     if (cols > 16) return;
@@ -234,8 +340,8 @@ void PrintMatrix(float *mat, int rows, int cols, int type)
     {
         for (int j=0; j<cols; j++)
         {
-            if (type == ROW_MAJOR) index = i*cols + j;
-            else                   index = j*rows + i;
+            if (mem_order == CblasRowMajor) index = i*cols + j;
+            else                            index = j*rows + i;
 
             cout << setprecision(9) << setw(10)
                  << mat[index] << " ";
@@ -246,24 +352,25 @@ void PrintMatrix(float *mat, int rows, int cols, int type)
 }
 
 #define EPISILON 0.00001
-void CheckForErrors(const float *Mat, const float *Golden, int M, int N, int P, int type)
+void CheckForErrors(const float *Mat, const float *Golden, int M, int N, int K,
+                    enum CBLAS_ORDER mem_order)
 {
     int       num_errors = 0, i, j;
     const int print_nerrors = 13;
     int       index;
 
     for (i=0; i<M; i++)
-        for (j=0; j<P; j++)
+        for (j=0; j<N; j++)
         {
-            if (type == ROW_MAJOR) index = i*P + j;
-            else                   index = j*M + i;
+            if (mem_order == CblasRowMajor) index = i*N + j;
+            else                            index = j*M + i;
 
-            float delta = Golden[i*P + j] - Mat[index];
+            float delta = Golden[index] - Mat[index];
 
             if (delta < -EPISILON || delta > EPISILON)
                 if ((num_errors += 1) < print_nerrors)
                     printf("Error [%d,%d]: %f <==> %f\n", i, j,
-                           Golden[i*P + j], Mat[index]);
+                           Golden[index], Mat[index]);
         }
 
     if (num_errors > 0)
@@ -275,37 +382,100 @@ void CheckForErrors(const float *Mat, const float *Golden, int M, int N, int P, 
 * If ATLAS sgemm is available, use it for the correctness test as it is faster
 *----------------------------------------------------------------------------*/
 #ifdef ATLAS
-extern "C" 
-{ 
-#include "cblas.h" 
-}
-
-void MatmulHost(const float*A, const float *B, float *C, int M, int N, int P)
+void MatmulHost_ATLAS(enum CBLAS_ORDER mem_order,
+                const float*A, const float *B, float *C, int M, int N, int K,
+                float alpha, float beta)
 {
-    float alpha = 1.0, beta = 0.0;
-    cblas_sgemm(CblasRowMajor, CblasTrans, CblasTrans,
-                 M, P, N, alpha,
-                 A, /* lda = */ M,
-                 B, /* ldb = */ N,
-                 beta,
-                 C, /* ldc = */ P
-                 );
-}
-#else
-void MatmulHost(const float*A, const float *B, float *C, int M, int N, int P)
-{
-    #pragma omp parallel for collapse(2) firstprivate(M,N,P) shared(A,B,C)
-    for (int i = 0; i < M; ++i) // M rows
-        for (int j = 0; j < P; ++j) // P columns
-        {
-            float sum = 0;
-            for (int k = 0; k < N; ++k)
-            {
-                sum +=   A[i + k*M] // Column Major
-                       * B[k + j*N]; // Column Major
-            }
-            C[i*P + j] = sum; // Store gold in Row Major
-        }
+    if (mem_order == CblasRowMajor)
+    {
+        cblas_sgemm(mem_order, CblasNoTrans, CblasNoTrans,
+                    M, N, K, alpha,
+                    A, /* lda = */ K,
+                    B, /* ldb = */ N,
+                    beta,
+                    C, /* ldc = */ N
+                   );
+    } else {
+        cblas_sgemm(mem_order, CblasNoTrans, CblasNoTrans,
+                    M, N, K, alpha,
+                    A, /* lda = */ M,
+                    B, /* ldb = */ K,
+                    beta,
+                    C, /* ldc = */ M
+                   );
+    }
+    
 }
 #endif
+
+
+void MatmulHost_loopnest(enum CBLAS_ORDER mem_order,
+                const float*A, const float *B, float *C, int M, int N, int K,
+                float alpha, float beta)
+{
+    if (mem_order == CblasRowMajor)
+    {
+        // Compute gold in Row Major
+        #pragma omp parallel for collapse(2) firstprivate(M,N,K) shared(A,B,C)
+        for (int i = 0; i < M; ++i) // M rows
+            for (int j = 0; j < N; ++j) // N columns
+            {
+                float sum = beta * C[i*N + j];
+                for (int k = 0; k < K; ++k)
+                {
+                    sum +=   alpha
+                           * A[i*K + k]  // Row Major
+                           * B[k*N + j]; // Row Major
+                }
+                C[i*N + j] = sum; // Store gold in Row Major
+            }
+    } else {
+        // Compute gold in Column Major
+        #pragma omp parallel for collapse(2) firstprivate(M,N,K) shared(A,B,C)
+        for (int j = 0; j < N; ++j) // N columns
+            for (int i = 0; i < M; ++i) // M rows
+            {
+                float sum = beta * C[j*M + i];
+                for (int k = 0; k < K; ++k)
+                {
+                    sum +=   alpha
+                           * A[i + k*M]  // Column Major
+                           * B[k + j*K]; // Column Major
+                }
+                C[j*M + i] = sum; // Store gold in Column Major
+            }
+    }
+}
+
+
+/* Check platform name, set sgemm blocking/tiling parameters accordingly
+*/
+bool SetSgemmParams(std::string& platform_name)
+{
+    // TODO: query the device about available L2 and MSMC, compute A/B Panels
+    if (platform_name == "TI KeyStone II")
+    {
+        L2_BUF_SIZE    = (512 << 10);  // 512KB L2 SRAM for scratch
+        MSMC_BUF_SIZE  = (2 << 20);    // 2MB MSMC for scratch, 256K each core
+        NUMAPANELS     = 32;
+        NUMBPANELS     = 8;
+#ifndef ATLAS
+        use_host_ATLAS = false;
+#endif
+        return true;
+    }
+    else if (platform_name == "TI AM57x")
+    {
+        L2_BUF_SIZE    = (128 << 10);  // 128KB L2 SRAM for scratch
+        MSMC_BUF_SIZE  = 0;
+        NUMAPANELS     = 8;
+        NUMBPANELS     = 2;
+        use_host_ATLAS = false;
+        return true;
+    }
+
+    printf("Unsupported platform: %s, for this sgemm example, exiting\n",
+           platform_name.c_str());
+    return false;
+}
 

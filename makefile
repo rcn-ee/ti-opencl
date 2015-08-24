@@ -20,7 +20,7 @@ ifeq (,$(OCL_BUILD_DIR))
 	$(error OCL_BUILD_DIR not defined)
 endif
 
-CLEAN_DIRS = host monitor monitor_vayu builtins examples libm host/clocl
+CLEAN_DIRS = monitor monitor_vayu builtins examples libm host/clocl
 
 install: $(OCL_BUILD_DIR)
 	cd $(OCL_BUILD_DIR); cmake $(CMAKE_DEFINES) ../host; make -j4 install;

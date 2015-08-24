@@ -424,34 +424,6 @@ _CLC_VECTOR_CONVERT_TO_SUFFIX(_rtz)
 _CLC_VECTOR_CONVERT_TO_SUFFIX(_rtp)
 _CLC_VECTOR_CONVERT_TO_SUFFIX()
 
-#define VLOAD_VECTORIZE(PRIM_TYPE, ADDR_SPACE) \
-  _CLC_OVERLOAD _CLC_INLINE PRIM_TYPE##2 vload2(size_t offset, const ADDR_SPACE PRIM_TYPE *x) \
-   { return (PRIM_TYPE##2)(x[offset<<1] , x[1+(offset<<1)]); } \
-  _CLC_OVERLOAD _CLC_DECL PRIM_TYPE##3 vload3(size_t offset, const ADDR_SPACE PRIM_TYPE *x); \
-  _CLC_OVERLOAD _CLC_DECL PRIM_TYPE##4 vload4(size_t offset, const ADDR_SPACE PRIM_TYPE *x); \
-  _CLC_OVERLOAD _CLC_DECL PRIM_TYPE##8 vload8(size_t offset, const ADDR_SPACE PRIM_TYPE *x); \
-  _CLC_OVERLOAD _CLC_DECL PRIM_TYPE##16 vload16(size_t offset, const ADDR_SPACE PRIM_TYPE *x);
-
-#define VLOAD_ADDR_SPACES(__CLC_SCALAR_GENTYPE) \
-    VLOAD_VECTORIZE(__CLC_SCALAR_GENTYPE, __private) \
-    VLOAD_VECTORIZE(__CLC_SCALAR_GENTYPE, __local) \
-    VLOAD_VECTORIZE(__CLC_SCALAR_GENTYPE, __constant) \
-    VLOAD_VECTORIZE(__CLC_SCALAR_GENTYPE, __global) \
-
-#define VLOAD_TYPES() \
-    VLOAD_ADDR_SPACES(char) \
-    VLOAD_ADDR_SPACES(uchar) \
-    VLOAD_ADDR_SPACES(short) \
-    VLOAD_ADDR_SPACES(ushort) \
-    VLOAD_ADDR_SPACES(int) \
-    VLOAD_ADDR_SPACES(uint) \
-    VLOAD_ADDR_SPACES(long) \
-    VLOAD_ADDR_SPACES(ulong) \
-    VLOAD_ADDR_SPACES(float) \
-    VLOAD_ADDR_SPACES(double)\
-
-VLOAD_TYPES()
-
 #define VLOAD_HALF_VECTORIZE(SPACE) \
 _CLC_OVERLOAD _CLC_DEF float  vload_half(size_t offset, const SPACE half *p);  \
 _CLC_OVERLOAD _CLC_DEF float2 vload_half2(size_t offset, const SPACE half *p); \
@@ -472,42 +444,7 @@ VLOAD_HALF_VECTORIZE(__private)
 #define vloada_half8 vload_half8
 #define vloada_half16 vload_half16
 
-#undef VLOAD_VECTORIZE
-#undef VLOAD_ADDR_SPACES
-#undef VLOAD_TYPES
 #undef VLOAD_HALF_VECTORIZE
-
-#define VSTORE_VECTORIZE(PRIM_TYPE, ADDR_SPACE) \
-  _CLC_OVERLOAD _CLC_INLINE void vstore2(PRIM_TYPE##2 vec, size_t offset, ADDR_SPACE PRIM_TYPE *mem) \
-                                              { mem[offset<<1] = vec.s0; mem[1+(offset<<1)] = vec.s1; } \
-  _CLC_OVERLOAD _CLC_DECL void vstore3(PRIM_TYPE##3 vec, size_t offset, ADDR_SPACE PRIM_TYPE *mem); \
-  _CLC_OVERLOAD _CLC_DECL void vstore4(PRIM_TYPE##4 vec, size_t offset, ADDR_SPACE PRIM_TYPE *mem); \
-  _CLC_OVERLOAD _CLC_DECL void vstore8(PRIM_TYPE##8 vec, size_t offset, ADDR_SPACE PRIM_TYPE *mem); \
-  _CLC_OVERLOAD _CLC_DECL void vstore16(PRIM_TYPE##16 vec, size_t offset, ADDR_SPACE PRIM_TYPE *mem); \
-
-#define VSTORE_ADDR_SPACES(__CLC_SCALAR___CLC_GENTYPE) \
-    VSTORE_VECTORIZE(__CLC_SCALAR___CLC_GENTYPE, __private) \
-    VSTORE_VECTORIZE(__CLC_SCALAR___CLC_GENTYPE, __local) \
-    VSTORE_VECTORIZE(__CLC_SCALAR___CLC_GENTYPE, __global) \
-
-#define VSTORE_TYPES() \
-    VSTORE_ADDR_SPACES(char) \
-    VSTORE_ADDR_SPACES(uchar) \
-    VSTORE_ADDR_SPACES(short) \
-    VSTORE_ADDR_SPACES(ushort) \
-    VSTORE_ADDR_SPACES(int) \
-    VSTORE_ADDR_SPACES(uint) \
-    VSTORE_ADDR_SPACES(long) \
-    VSTORE_ADDR_SPACES(ulong) \
-    VSTORE_ADDR_SPACES(float) \
-    VSTORE_ADDR_SPACES(double) \
-
-VSTORE_TYPES()
-
-#undef VSTORE_VECTORIZE
-#undef VSTORE_ADDR_SPACES
-#undef VSTORE_TYPES
-
 
 #define DECL_VSTORE_HALF_SPACE_ROUND(SPACE, ROUND, FUNC) \
    _CLC_OVERLOAD _CLC_DECL void vstore_half##ROUND(float data, size_t offset, SPACE half *p); \

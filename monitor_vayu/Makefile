@@ -9,7 +9,8 @@ XDAIS_DIR      ?= $(DEFAULT_DEV_INSTALL_DIR)/xdais_7_24_00_04
 ULM_DIR        ?= $(LINUX_DEVKIT_ROOT)/usr/share/ti/ulm
 GDB_SERVER_DIR ?= $(LINUX_DEVKIT_ROOT)/usr/share/ti/gdbc6x
 
-export XDC_DIR := $(XDC_DIR)
+export XDC_DIR
+export BIOS_DIR
 
 ifeq ($(TI_OCL_CGT_INSTALL),)
   $(error Monitor requires TI_OCL_CGT_INSTALL to point to C6000 Codegen tools)
