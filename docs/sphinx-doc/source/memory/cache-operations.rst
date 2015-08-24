@@ -58,6 +58,19 @@ is all cache and no scratchpad.
     User controlled, explicit L1D cache flush operation.  This will writeback
     any dirty lines in the L1D cache and will mark all lines as invalid.
 
+.. c:function:: void*      __scratch_l1d_start (void)
+
+    Returns the base address of the L1D SRAM memory region that can be used as
+    scratchpad memory.  Available starting in release 1.1.5.0.
+
+.. c:function:: uint32_t*  __scratch_l1d_size  (void)
+
+    Returns the size of the L1D SRAM memory region that can be used as
+    scratchpad memory.  By default, this will be 0, but if the L1D cache is
+    reduced, then the value returned by this function will increase.  The value
+    returned by this built-in function may vary from core to core because each
+    core independently sets an l1d cache size.  Available starting in release 1.1.5.0.
+
 L2 memory is similar to L1D in that it can be software partitioned between
 cache and scratchpad.  The below functions can be used to control that 
 partition.  However, there are some differences between L1D and L2.
@@ -121,3 +134,8 @@ using local scratch buffers.
     functions and because it is also managing the L2 scratchpad memory for use as local
     buffers an opprtunity for resource conflict exists.  As a general rule of thumb, do 
     not increase L2 cache size in functions that are using local buffers.
+
+.. Warning::
+
+    The cache size reconfiguration functions should not be used in kernels with
+    > 1 work-item per work-group.

@@ -49,6 +49,7 @@ DSPDevice::DSPDevice(unsigned char dsp_id)
       p_worker_dispatch  (0), 
       p_worker_completion(0), 
       p_stop            (false),
+      p_exit_acked      (false),
       p_initialized     (false), 
       p_dsp_id          (dsp_id), 
       p_device_msmc_heap(),

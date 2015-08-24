@@ -17,6 +17,7 @@ TI |OpenCL (TM)| Runtime Documentation Contents:
    execution/index
    extensions/index
    environment_variables
+   optimization
    examples/index
    faq/index
 

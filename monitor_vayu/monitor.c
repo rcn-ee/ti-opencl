@@ -466,11 +466,7 @@ void initialize_memory(void)
 
     int32_t mask = _disable_interrupts();
 
-    cacheWbInvAllL2();
-
-    CACHE_setL1DSize(CACHE_L1_32KCACHE);
-    CACHE_setL1PSize(CACHE_L1_32KCACHE);
-    CACHE_setL2Size (CACHE_128KCACHE);
+    /***  BIOS is configuring the default cache sizes, see Platform.xdc ***/
 
     enableCache (0x80, 0xFF);
     disableCache(nc_virt >> 24, (nc_virt+nc_size-1) >> 24);
@@ -507,8 +503,11 @@ static void reset_memory(void)
     int32_t mask = _disable_interrupts();
 
     CACHE_setL1DSize(CACHE_L1_32KCACHE);
+    CACHE_getL1DSize();
     CACHE_setL1PSize(CACHE_L1_32KCACHE);
+    CACHE_getL1PSize();
     CACHE_setL2Size (CACHE_0KCACHE);
+    CACHE_getL2Size ();
 
     disableCache (0x80, 0xFF);
 

@@ -84,6 +84,9 @@ SECTIONS
 /*-----------------------------------------------------------------------------
 * Define symbols that mark the OpenCL global and local memory ranges.
 *----------------------------------------------------------------------------*/
+ocl_l1d_mem_start    = start(L1DSRAM);
+ocl_l1d_mem_size     = size (L1DSRAM);
+
 ocl_local_mem_start  = start(OCL_LOCAL);
 ocl_local_mem_size   = size (OCL_LOCAL);
 
@@ -91,9 +94,10 @@ nocache_phys_start   = start(MSMC_NC_PHYS);
 nocache_virt_start   = start(MSMC_NC_VIRT);
 nocache_size         = size (MSMC_NC_PHYS);
 
+--export ocl_l1d_mem_start
+--export ocl_l1d_mem_size
 --export ocl_local_mem_start
 --export ocl_local_mem_size
-
 --export nocache_phys_start
 --export nocache_virt_start
 --export nocache_size

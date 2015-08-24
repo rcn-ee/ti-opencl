@@ -164,6 +164,11 @@ void disableCache(unsigned first, unsigned last)
 {
     volatile unsigned int *MAR = (volatile unsigned int *)0x1848000;
 
+    /*-------------------------------------------------------------------------
+    * Need to WbInv before changing MAR bits
+    *------------------------------------------------------------------------*/
+    cacheWbInvAllL2();
+
     int i;
     for (i = first; i <= last; ++i) MAR[i] = 0x0;
 }
@@ -174,6 +179,11 @@ void disableCache(unsigned first, unsigned last)
 void enableCache(unsigned first, unsigned last)
 {
     volatile unsigned int *MAR = (volatile unsigned int *)0x1848000;
+
+    /*-------------------------------------------------------------------------
+    * Need to WbInv before changing MAR bits
+    *------------------------------------------------------------------------*/
+    cacheWbInvAllL2();
 
     /*-------------------------------------------------------------------------
     * Cacheable, Prefetchable, Write through

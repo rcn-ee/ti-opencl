@@ -172,6 +172,7 @@ class DSPDevice : public DeviceInterface, public Lockable
         pthread_cond_t     p_worker_cond;
         pthread_mutex_t    p_worker_mutex;
         bool               p_stop; 
+        volatile bool      p_exit_acked;
         bool               p_initialized;
         unsigned char      p_dsp_id;
         dspheap            p_device_ddr_heap1;  // persistently mapped memory

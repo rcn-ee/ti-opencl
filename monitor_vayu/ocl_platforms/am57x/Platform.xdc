@@ -9,6 +9,15 @@ config ti.platforms.generic.Platform.Instance CPU =
     customMemoryMap: 
     [ 
       /*-----------------------------------------------------------------------
+      * L1D regions, both l1d cache and l1d scratchpad will reside within this
+      *----------------------------------------------------------------------*/
+      [ "L1DSRAM",       { name: "L1DSRAM",
+                          base: 0x00F00000,
+                          len:  0x00008000,
+                          space: "code/data",
+                          access: "RWX", } ],
+
+      /*-----------------------------------------------------------------------
       * L2SRAM : Memory range used by the runtime to store its state (32KB) 
       * OCL_GLOBAL : Memory range used for OpenCL local buffers (128KB)
       *   Note: base, len must be a multiple of Linux page size (shmem.cpp)
