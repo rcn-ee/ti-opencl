@@ -25,6 +25,7 @@
  *   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  *   THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
+#include <stddef.h>
 #include "monitor.h"
 #ifdef DEVICE_K2H
 #include <ti/csl/csl_semAux.h>
