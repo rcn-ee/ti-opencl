@@ -13,7 +13,7 @@ SoC           System                          Khronos Conformance            Ins
 66AK2H_       `66AK2H EVM`_                   OpenCL v1.1 Conformant         `MCSDK-HPC for EVM`_
 66AK2H_       `HP m800 Moonshot`_             OpenCL v1.1 Conformant         `MCSDK-HPC for m800`_
 TMS320C6678_  `Advantech DSPC8681`_           Not submitted for conformance  :doc:`dspc8681-getting-started`
-AM572x         Beagle Board X-15              Submitted for conformance      Coming Soon
+AM572x         Beagle Board X-15              OpenCL v1.1 Conformant         Coming Soon
 ============= =============================== ============================== =========================
 
 

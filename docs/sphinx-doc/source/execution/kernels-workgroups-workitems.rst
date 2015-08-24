@@ -136,13 +136,13 @@ Next example ::
     }
 
 
-How WG, WI/WG and ITER map to GPU
-***********************************
+.. How WG, WI/WG and ITER map to GPU
+.. ***********************************
 
-How WG, WI/WG and ITER map to DSP
-***********************************
+.. How WG, WI/WG and ITER map to DSP
+.. ***********************************
 
-The DSP transformation, turning WI/WG to ITER
-**********************************************
+.. The DSP transformation, turning WI/WG to ITER
+.. **********************************************
 
 
