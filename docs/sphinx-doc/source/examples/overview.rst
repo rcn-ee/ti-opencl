@@ -79,7 +79,7 @@ a device executable file. The OpenCL program reads the file containing the
 pre-compiled kernel in and uses it directly. If you use offline compilation to
 generate a .out file containing the OpenCL C program and you subsequently move
 the executable, you will either need to move the .out as well or the
-application will need to specificy a non relative path to the .out file.
+application will need to specify a non relative path to the .out file.
 
 .. _vecadd_openmp-example:
 
@@ -174,7 +174,7 @@ This application is intended to report the time overhead that OpenCL requires
 to submit and dispatch a kernel. A null(empty) kernel is created and dispatched
 so that the OpenCL profiling times queried from the OpenCL events reflects only
 the OpenCL overhead necessary to submit and execute the kernel on the device.
-This overhead is for the roundtrip for a single kernel dispatch. In practice,
+This overhead is for the round-trip for a single kernel dispatch. In practice,
 when multiple tasks are being enqueued, this overhead is pipelined with
 execution and can approach zero.
 
@@ -185,7 +185,7 @@ sgemm example
 
 This example illustrates how to efficiently offload the CBLAS SGEMM routine
 (single precision matrix multiply) to the DSPs using OpenCL. The results
-obtained on the DSP are compared against a cbas_sgemm call on the ARM. The
+obtained on the DSP are compared against a cblas_sgemm call on the ARM. The
 example reports performance in GFlops for both DSP and ARM variants.
 
 .. _dgemm example:
@@ -195,7 +195,7 @@ dgemm example
 
 This example illustrates how to efficiently offload the CBLAS DGEMM routine
 (double precision matrix multiply) to the DSPs using OpenCL. The results
-obtained on the DSP are compared against a cbas_dgemm call on the ARM. The
+obtained on the DSP are compared against a cblas_dgemm call on the ARM. The
 example reports performance in GFlops for both DSP and ARM variants.
 
 .. _edmamgr-example:
@@ -203,7 +203,7 @@ example reports performance in GFlops for both DSP and ARM variants.
 edmamgr example
 =================
 
-This application illustrates how to use the edmamgr api to asynchronously move
+This application illustrates how to use the edmamgr API to asynchronously move
 data around the DSP memory hierarchy from OpenCL C kernels. The edmamgr.h
 header file in this directory enumerates the APIs available from the edmamgr
 package.

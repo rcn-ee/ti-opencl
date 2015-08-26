@@ -55,12 +55,12 @@ these two options give you four cases for OpenCL C program creation:
 Alternatively, we call cases 1 and 2, where the program is created from source,
 on-line compilation, because the compiler is called during the run time of your
 application.  We call cases 3 and 4, where the program is created from binary,
-offline compilation, because the compiler is called as part of the build of the
+off-line compilation, because the compiler is called as part of the build of the
 application and not during the run time of the application. Clearly on-line
 compilation will entail some run time delay as the compilation process
 completes, but it does provide for portability of the application, because the
 on-line compile is encapsulated in the OpenCL program build step and therefore
-the application can run on any OpenCL platform.  Conversely, offline
+the application can run on any OpenCL platform.  Conversely, off-line
 compilation will eliminate the run time delay of compilation and will also
 provide IP protection since the source for the OpenCL C programs will not need
 to be delivered as part of a running application.  When creating programs from
@@ -96,7 +96,7 @@ there is no dependency on another file containing OpenCL C code.
     program.build(devices);
 
 Line 1 defines an embedded string representing an OpenCL C program.  This
-example shows a empty kernel for brevity, but they can be arbitrarily long.
+example shows an empty kernel for brevity, but they can be arbitrarily long.
 Line 3 defines a Program::Sources object.  In this case, there is one source
 and it requires a pointer to the source and its length as a pair.  Line 4
 creates the Program object.  The Program object will contain a copy of the
@@ -144,8 +144,8 @@ previous build scenario.
 Create an OpenCL program from binary, with binary in a file
 -----------------------------------------------------------
 
-For this build scenario, offline compilation is used to create a binary file
-from an OpenCL C source file.  An offline compiler called :command:`clocl` is
+For this build scenario, off-line compilation is used to create a binary file
+from an OpenCL C source file.  An off-line compiler called :command:`clocl` is
 shipped with the TI OpenCL product. To take a file named kernel.cl containing
 OpenCL C source and create a binary called kernel.out, simply invoke clocl with
 the input file name: :command:`clocl kernel.cl`.  This step would typically be
@@ -155,7 +155,7 @@ protects IP better than the on-line compilation models, since the OpenCL C
 source is not required for running the application, only for building the
 application.  It also results in faster runtime, since the time delay for
 on-line compilation will not be experienced.  It does, however, expose
-implementation specific details of offline compilation and therefore impacts
+implementation specific details of off-line compilation and therefore impacts
 portability. 
 
 .. code-block:: cpp
@@ -230,8 +230,8 @@ below.
 Create an OpenCL program from binary, with embedded binary
 -----------------------------------------------------------
 
-For this OpenCL program build scenario, offline compilation is again used, but
-an option is given to the offline compiler :command:`clocl` to instruct it to
+For this OpenCL program build scenario, off-line compilation is again used, but
+an option is given to the off-line compiler :command:`clocl` to instruct it to
 create a text based file that can be used as a header file rather than a binary
 out file.  The text file is simply the binary data in an initialized char
 array. Invoking clocl like this: :command:`clocl -t kernel.cl` will compile
@@ -276,7 +276,7 @@ circuited and the cached result is used instead.  This behavior is controlled
 through the environment variable :envvar:`TI_OCL_CACHE_KERNELS`. 
 
 
-The TI offline OpenCL C compiler: clocl
+The TI off-line OpenCL C compiler: clocl
 =======================================================
 
 Executing :command:`clocl -h` will print the help screen.  Clocl
@@ -313,12 +313,12 @@ those options.
        -w                               Inhibit all warning messages
        -Werror                          Make all warnings into errors
        -cl-single-precision-constant    Treat double FP constant as single FP constant
-       -cl-denorms-are-zero             Enabe flush to zero FP behavior
+       -cl-denorms-are-zero             Enable flush to zero FP behavior
        -cl-opt-disable                  Disables all optimizations
        -cl-mad-enable                   Allow a * b + c to be replaced by a mad
        -cl-no-signed-zeros              Allow opts for FP math that ignore sign of zero
        -cl-unsafe-math-optimizations    Allow opts for FP math that may violate standards
        -cl-finite-math-only             Allow opts for FP math that assumes operands are finite
-       -cl-fast-relaxed-math            Choose fast FP opreations over compliant FP opreations
+       -cl-fast-relaxed-math            Choose fast FP operations over compliant FP operations
        -cl-std=<val>                    Determine the OpenCL C language version to use 
        ===============================  ========================================================

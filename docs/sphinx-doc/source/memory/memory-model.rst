@@ -18,7 +18,7 @@ Global Memory
 
   On K2H devices, MSMC memory is also available as global memory and buffers
   can be defined to reside in this memory instead of DDR3 through an OpenCL API
-  extension specfic to TI. This mechanism will be described in a later section
+  extension specific to TI. This mechanism will be described in a later section
   that details handling of the OpenCL buffer creation flags.  
 
 Constant Memory

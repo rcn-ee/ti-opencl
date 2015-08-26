@@ -12,8 +12,8 @@ time.  The C66 DSP does have a memory translation capability that will allow it
 to access any portion of that memory, but there are constraints on the mapping
 that will be described here.
 
-The 8GB of DDR3 exist in the K2h 36-bit physical address space at addresses
-8:0000:0000 to 9:FFFF:FFFF.  The K2h device boots with the C66 DSP's mapping
+The 8GB of DDR3 exist in the K2H 36-bit physical address space at addresses
+8:0000:0000 to 9:FFFF:FFFF.  The K2H device boots with the C66 DSP's mapping
 the upper 2GB of its address space 8000:0000 to FFFF:FFFF to the beginning of
 that physical range. For the remainder of this section, the physical range from
 8:0000:0000 to 8:7FFF:FFFF will be referred to as the low 2GB and the range
@@ -33,7 +33,7 @@ lower 2GB available for OpenCL C programs and Buffers and no further
 constraints are necessary and the remainder of this section is not applicable.
 Additionally, if the environment variable TI_OCL_DSP_NOMAP is set, then OpenCL
 will ignore any CMEM region that is defined in the upper 6GB, and OpenCL
-operation will be restrictied to the lower 2GB and again the remainder of this
+operation will be restricted to the lower 2GB and again the remainder of this
 section is not applicable.
 
 If there is memory in the upper 6GB that is given to CMEM to manage, then that

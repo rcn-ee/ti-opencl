@@ -21,7 +21,7 @@ memory system and would contain standard items like:
 The CMEM contiguous memory is controlled by a Linux kernel module that
 guarantees contiguous virtual addresses within a range are mapped to
 contiguous physical addresses within the range. This is required for
-buffer communication between the A15 and C66 cores, because the C66 cores
+buffer communication between the A15 and C66x cores, because the C66x cores
 do not access memory through a shared MMU with the A15 CPUs and thus require
 that buffers be allocated in contiguous physical memory. The CMEM memory
 areas will be managed by OpenCL for allocation to OpenCL buffers and OpenCL C

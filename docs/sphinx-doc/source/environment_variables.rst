@@ -20,24 +20,24 @@ These environment variables can be used to control OpenCL behavior and provide v
 
     When this environment variable is set and an OpenCL application is run, the
     run will be modified in a few ways to enable debug of the OpenCL C kernels.
-    If you application uses online compilation (i.e. it compiles from a string
-    rather than a binary), then that online compilation will assert the debug
-    flag to the compiler. (If the application is using offline compilation,
+    If you application uses on-line compilation (i.e. it compiles from a string
+    rather than a binary), then that on-line compilation will assert the debug
+    flag to the compiler. (If the application is using off-line compilation,
     i.e. creating a program from binary, then you would need to pass -g as an
-    option to the offline compiler clocl. The OpenCL runtime will pause your
+    option to the off-line compiler clocl. The OpenCL runtime will pause your
     application before dispatch of all kernels. While paused the runtime
     indicate to the user that a kernel dispatch is pending. It will provide the
     gdb6x command to connect to the dsp and to setup appropriate breakpoints.
-    The runtime will also force all kernels and workgroups within kernels to
+    The runtime will also force all kernels and work-groups within kernels to
     execute on only dsp core 0.
 
 .. envvar:: TI_OCL_CACHE_KERNELS       
 
-    Online compilation of kernels is a useful feature for portable OpenCL
+    On-line compilation of kernels is a useful feature for portable OpenCL
     programs. All the details of compiling kernels for devices is encapsulated
-    in the OpenCL API calls. However, online compilation for the DSPs can be
+    in the OpenCL API calls. However, on-line compilation for the DSPs can be
     time consuming. When this environment variable is set, the OpenCL runtime
-    will perform online compilation of your kernels and will save the result in
+    will perform on-line compilation of your kernels and will save the result in
     a database in /tmp. If you run the application again without modifying the
     kernel source or the options used to compile it, the compile step will be
     by passed and the cached compile result will be used instead. Note however,
@@ -60,10 +60,10 @@ These environment variables can be used to control OpenCL behavior and provide v
 
 .. envvar::  TI_OCL_CPU_DEVICE_ENABLE   
 
-    Currently, OpenCL ARM cpu devices only support native kernels (see the
+    Currently, OpenCL ARM CPU devices only support native kernels (see the
     OpenCL 1.1 spec for a description of native kernels). As a result, the ARM
-    cpu is not, by default, treated as a COMPUTE DEVICE when doing an OpenCL
-    platform query. If your application only uses the ARM cpu for native
+    CPU is not, by default, treated as a COMPUTE DEVICE when doing an OpenCL
+    platform query. If your application only uses the ARM CPU for native
     kernels then this environment variable can be used to enable it as a
     COMPUTE DEVICE for OpenCL. Enqueueing NDRangeKernels or Tasks to the CPU is
     not supported, even if this environment variable is set. 
@@ -115,7 +115,7 @@ These environment variables can be used to control OpenCL behavior and provide v
     device and cl_khr_fp64 will be defined when compiling OpenCL C kernels.
     This environment variable controls whether the OpenCL implementation
     reports support for double. However, double, all double vector types and
-    all builtin functions using doubles are supported and available without
+    all built-in functions using doubles are supported and available without
     regard to the setting of this environment variable.
 
 .. envvar::  TI_OCL_VERBOSE_ERROR       
@@ -129,25 +129,25 @@ These environment variables can be used to control OpenCL behavior and provide v
 .. envvar::  TI_OCL_WG_SIZE_LIMIT       
 
     OpenCL provides a query to a device for the maximum number of work-items
-    allowed in a workgroup. The DSP device in TI's implementation allows a very
-    large number of work-items per workgroup. Other OpenCL implementations have
-    much smaller max workgroup size limit. When running code designed and
+    allowed in a work-group. The DSP device in TI's implementation allows a very
+    large number of work-items per work-group. Other OpenCL implementations have
+    much smaller max work-group size limit. When running code designed and
     optimized for other OpenCL implementations, this environment variable can
-    be used to artificially limit the max workgroup size reported. 
+    be used to artificially limit the max work-group size reported. 
 
 .. envvar::  TI_OCL_CGT_INSTALL         
 
     The OpenCL runtime is dependent on the C66 DSP compiler product for
     compilation of OpenCL C kernels. When OpenCL C kernels are compiled on the
     target ARM/Linux system, the C66 compiler is assumed to be installed in the
-    standard linux locations. However, offline cross compilation of OpenCL C
+    standard linux locations. However, off-line cross compilation of OpenCL C
     kernels is also supported from x86 Ubuntu machines and in that use case, it
     is required that this environment variable is set to the top level
     directory path where the C66 cross compiler tools are installed. 
 
 .. envvar::  TI_OCL_DSP_1_25GHZ         
 
-    Initialize the C66 DSPs to run at 1.25 Ghz rather than the default 1.00 Ghz.
+    Initialize the C66 DSPs to run at 1.25 GHz rather than the default 1.00 GHz.
 
     The TI_OCL_DSP_1_25GHZ environment variable is only applicable to the 
     DSPC8681 OpenCL Implementation.  The DSP frequency on the other platforms 

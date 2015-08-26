@@ -6,7 +6,7 @@ Global Buffers
 =====================================================
 
 OpenCL global buffers are the conduit through which data is communicated from
-the host application to OpenCL C kernels running on the C66 DSP.  The C
+the host application to OpenCL C kernels running on the C66x DSP.  The C
 prototype for the OpenCL API function that creates global buffers is::
 
     cl_mem clCreateBuffer (cl_context context, cl_mem_flags flags, size_t size,
@@ -69,7 +69,7 @@ CL_MEM_READ_ONLY
   to the OpenCL runtime how the buffer will be accessed from the perspective of
   OpenCL C kernels running on the DSP.  These flags are used to control cache 
   coherency operations that the OpenCL runtime performs for you. 
-  The ARM A15 devices are not cache coherent with the C66
+  The ARM A15 devices are not cache coherent with the C66x
   DSPs, so the OpenCL runtime will issue cache coherency operations between the
   writing of a buffer on one device and the reading of the buffer on a
   different device. When read only or write only is specified, some coherency
@@ -128,7 +128,7 @@ CL_MEM_ALLOC_HOST_PTR
   underlying memory store for the buffer than can be accessed from the host.
   For this implementation, a buffer created with this flag is allocated memory
   in the CMEM contiguous memory region and can be accessed directly from both
-  the host A15 and the C66 DSPs. This flag is recommended for for performance
+  the host A15 and the C66x DSPs. This flag is recommended for for performance
   in buffer handling. It is also the default flag if none of
   CL_MEM_USE_HOST_PTR, CL_MEM_ALLOC_HOST_PTR or CL_MEM_COPY_HOST_PTR is
   specified in the creation API. Buffers of this type can be used with the read
@@ -158,11 +158,11 @@ CL_MEM_USE_MSMC_TI
 Global buffers can contain persistent data from one kernel invocation to the
 next kernel invocation. It is possible for OpenCL C kernels to communicate data
 between them in time by simply having kernel 1 produce data and kernel 2
-consume data all on the C66 DSP. Other than creating the buffer through which
+consume data all on the C66x DSP. Other than creating the buffer through which
 the communication will occur and sequencing the kernel enqueues, it is not
 necessary for the host A15 to be involved in that data communication from
 kernel 1 to kernel 2, i.e. the A15 does not need to read the data from kernel 1
-and transfer it to kernel 2, the data can simply persist on the C66 DSP.
+and transfer it to kernel 2, the data can simply persist on the C66x DSP.
 
 Local Buffers
 =====================================================
@@ -170,7 +170,7 @@ Local Buffers
 Local buffers are quite different than global buffers. You cannot access local
 buffers from the host and you do not create them using API's like global
 buffers. Local buffers will be allocated from local memory which in this
-implementation exists in the L2 scratchpad memory on the C66 DSP cores. Data
+implementation exists in the L2 scratchpad memory on the C66x DSP cores. Data
 cannot persist from kernel to kernel in a local buffer. The lifetime of a local
 buffer is the same as the dynamic lifetime of the kernel execution. Local
 buffers are never required to be used, but are often used in OpenCL C kernels
@@ -180,14 +180,14 @@ explicitly by the user's OpenCL C kernel as a fast scratchpad memory for the
 larger and slower global buffer. This scratchpad memory would be managed by the
 user using asynchronous built-in functions to move the data between the global
 and local buffers. Again local buffers are never required and the OpenCL C
-kernel can depend on the C66 DSP cache to alleviate DDR access delay rather
+kernel can depend on the C66x DSP cache to alleviate DDR access delay rather
 than use local buffers. However, it is often the case that manual data movement
 to/from local buffers can be advantageous to performance.
 
 Local buffers can be defined in two ways. The first way is to simply define an
 array in your OpenCL C kernel that is defined with the local keyword. For
 example, the following OpenCL C kernel defines a local buffer named scratch and
-then calls the async_work_group_copy builtin function to copy 100 char values
+then calls the async_work_group_copy built-in function to copy 100 char values
 from the passed in global buffer to the local buffer.  The limitation to this
 method, is that the local buffers are statically sized, in this case to 100
 chars. ::
@@ -256,9 +256,9 @@ for sub-buffers:
 2. Accessing a subset of a buffer.
 
 The C++ API's for creating SubBuffers are described below. Please see the
-OpenCL 1.1 specification or the OpenCL 1.1 Online Reference
+OpenCL 1.1 specification or the OpenCL 1.1 On-line Reference
 http://www.khronos.org/registry/cl/sdk/1.1/docs/man/xhtml/ 
-for the sytax of the C API for sub-buffer creation.::
+for the syntax of the C API for sub-buffer creation.::
 
     typedef struct _cl_buffer_region { size_t origin; size_t size;} cl_buffer_region;
 
@@ -283,10 +283,10 @@ The prior subsection indicated that global buffers can be persistent from one
 kernel invocation to the next. It is a common use case that kernel K1 only
 writes a buffer and kernel K2 only reads the buffer. The buffer must be created
 with the CL_MEM_READ_WRITE access flag, because the buffer is being both read
-and written by OpenCL C kernels running on the C66 DSPs. However, no individual
+and written by OpenCL C kernels running on the C66x DSPs. However, no individual
 kernel is both reading and writing the buffer, so the CL_MEM_READ_WRITE
 property that the buffer has, may result in underlying cache coherency
-operations that are unneccessary. For performace reasons, sub-buffers can be
+operations that are unnecessary. For performance reasons, sub-buffers can be
 used to specify more restrictive buffer access flags and they can be customized
 for the behavior of the particular kernel to which the buffer is being passed
 as an argument. The above illustration on SubBuffer creation is the setup for
