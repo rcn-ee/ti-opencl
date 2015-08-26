@@ -1,7 +1,7 @@
 .. _ti-opencl-home:
 
 ############################
-TI OpenCL v1.1.x
+TI OpenCL v01.01.xx
 ############################
 
 TI |OpenCL (TM)| Runtime Documentation Contents:
@@ -20,6 +20,7 @@ TI |OpenCL (TM)| Runtime Documentation Contents:
    optimization
    examples/index
    faq/index
+   disclaimer
 
 .. image:: images/platform_red.png
 

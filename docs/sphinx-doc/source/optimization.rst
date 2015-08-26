@@ -2,12 +2,11 @@
 Optimization Tips
 *****************************
 
-OpenCL applications are by nature both a host application and a set of Device
-kernels to be run.  There are optimization techniques for both the host code
+OpenCL applications consist of a host application and a set of device
+kernels.  There are optimization techniques for both the host code
 and the device code.  There are some techniques that span the boundary between
-host and device. This section provides tips for writing faster OpenCL 
-applications.  These tips are oorganized into sections based on where the tip 
-is applicable, ie. host or device.
+host and device. This section provides tips for writing performant OpenCL 
+applications targeting TI SoCs with DSPs as accelerator devices. These tips are organized into sections based on where the tip is applicable, ie. host or device.
 
 Optimization Techniques for Host Code
 =====================================
@@ -37,16 +36,9 @@ avoided.  Alternatively, fast OpenCL applications will allocate OpenCL buffers
 in shared memory and will allow the host to read and write the underlying
 memory directly. This can be accomplished two ways.
 
-#. Create buffers normally and use the map buffer and unmap buffer OpenCL APIs
-to map the underlying buffer memory into the host address space. See
-:doc:`memory/buffers` for buffer creation information and see
-:doc:`memory/access-model` for map/unmap buffer information.
+    #. Create buffers normally and use the map buffer and unmap buffer OpenCL APIs to map the underlying buffer memory into the host address space. See :doc:`memory/buffers` for buffer creation information and see :doc:`memory/access-model` for map/unmap buffer information.
 
-#. Use __malloc_ddr or __malloc_msmc and use the resulting pointer to create
-buffers with the CL_MEM_USE_HOST_PTR attribute. See
-:doc:`memory/host-malloc-extension` for details on __malloc_ddr and
-__malloc_msmc and see :doc:`memory/buffers` for usage of the
-CL_MEM_USE_HOST_PTR attribute.
+    #. Use __malloc_ddr or __malloc_msmc and use the resulting pointer to create buffers with the CL_MEM_USE_HOST_PTR attribute. See :doc:`memory/host-malloc-extension` for details on __malloc_ddr and __malloc_msmc and see :doc:`memory/buffers` for usage of the CL_MEM_USE_HOST_PTR attribute.
 
 
 Use MSMC Buffers Whenever Possible
@@ -61,6 +53,9 @@ allow global buffers to be created in MSMC memory.  See
 the __malloc_msmc memory allocation extension and pass the returned pointer to
 the buffer create operation and also assert the CL_MEM_USE_HOST_PTR attribute,
 as in the previous subsection.
+
+.. Note::
+   MSMC shared memory is not available on the AM57 family of SoCs
 
 Dispatch Appropriate Compute Loads
 ----------------------------------
@@ -96,6 +91,7 @@ allow the CPU to perform some other function.
 
 Prefer Kernels with 1 work-item per work-group
 ----------------------------------------------
+For better performance, create work groups with a single work-item and use iteration within the work-group.
 
 
 Optimization Techniques for Device (DSP) Code
@@ -158,15 +154,16 @@ async_work_group_strided_copy use a system DMA operation to perform the
 movement of data from one location to another.  There are several reasons 
 why this can be beneficial:
 
-#. As the name implies the async_... functions are asynchronous, meaning that
-   the call initiates a data transfer but it does not wait for completion before
-   returning.  The subsequent wait_group_events call blocks until the data
-   transfer is complete.  This allows additional work to be performed concurrent
-   with the data transfer.
-#. DDR writes through the system DMA occur in optimal burst sizes, whereas DSP 
-   writes to DDR memory do not, because the caches are set to write through mode 
-   on the DSPs in order to avoid a false-sharing problem that could result in 
-   incorrect results.
+    #. As the name implies the async... functions are asynchronous, meaning that
+       the call initiates a data transfer but it does not wait for completion 
+       before returning.  The subsequent wait_group_events call blocks until 
+       the data transfer is complete.  This allows additional work to be 
+       performed concurrent with the data transfer.
+
+    #. DDR writes through the system DMA occur in optimal burst sizes, whereas 
+       DSP writes to DDR memory do not, because the caches are set to write 
+       through mode on the DSPs in order to avoid a false-sharing problem that 
+       could result in incorrect results.
 
 
 Avoid DSP writes to directly to DDR
@@ -216,40 +213,39 @@ barrier(), async...(), wait...()
 
 Do Not Use Large Vector Types
 ------------------------------
-Do not use vector types where the size of the vector type is > 64 bits. The DSP
-has limited instruction support for long vector types, so their use is not performance beneficial.
+Do not use vector types where the size of the vector type is > 64 bits. The C66x DSP has limited instruction support for long vector types, so their use is not performance beneficial.
 
 Vector types with total size <= 64 bits may be beneficial, but the benefit is not guaranteed.
 
-Native math operations vs. standard ones.
-----------------------------------------------------------------------------------------
+.. Native math operations vs. standard ones.
+.. ----------------------------------------------------------------------------------------
 
-Use the TI Std C intrinsics 
-----------------------------------------------------------------------------------------
+.. Use the TI Std C intrinsics 
+.. ----------------------------------------------------------------------------------------
 
-Fixed point over floating point if possible
-----------------------------------------------------------------------------------------
+.. Fixed point over floating point if possible
+.. ----------------------------------------------------------------------------------------
 
-Cconsecutive memory accesses
-----------------------------------------------------------------------------------------
+.. Cconsecutive memory accesses
+.. ----------------------------------------------------------------------------------------
 
-Double buffer technique
-----------------------------------------------------------------------------------------
+.. Double buffer technique
+.. ----------------------------------------------------------------------------------------
 
-Low level DSP optimization
-----------------------------------------------------------------------------------------
+.. Low level DSP optimization
+.. ----------------------------------------------------------------------------------------
 
-When starting with already existing OpenCL code, prefer the CPU style over the GPU style
-----------------------------------------------------------------------------------------
+Prefer the CPU style of writing OpenCL code over the GPU style
+--------------------------------------------------------------
 There is a large body of existing OpenCL code avaiable and the majority have
 been targeted toward and optimized for either GPUs or CPUs.  Often, an
 application will have different kernels optimized for each.  Generally, the
 versions targeting CPUs will perform better than the version targeting GPUs,
-when executed on TI SoC's and using the DSp as a device.
+when executed on TI SoC's and using the DSP as a device.
 
 
-MISC
-==============
-#. timing functions
-#. additional overhead in first kernel dispatch
+.. MISC
+.. ==============
+.. #. timing functions
+.. #. additional overhead in first kernel dispatch
 

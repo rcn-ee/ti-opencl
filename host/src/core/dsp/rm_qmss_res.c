@@ -58,6 +58,7 @@
 #include <ti/drv/rm/rm.h>
 #include <ti/drv/rm/rm_transport.h>
 #include <ti/drv/rm/rm_services.h>
+#include <ti/drv/rm/rm_server_if.h>
 
 #include "message.h"
 
@@ -472,14 +473,11 @@ int sock_recv (sock_h handle, char *data, int length, sock_name_t *from)
  ****************************** RM Client *****************************
  **********************************************************************/
 
-/* RM Server Socket Name */
-#define RM_SERVER_SOCKET_NAME "/tmp/var/run/rm/rm_server"
-
 /* Client instance name (must match with RM Global Resource List (GRL) and policies */
 char   rmClientName[RM_NAME_MAX_CHARS] = "RM_Client3";
 
 /* Client socket name */
-char   rmClientSockName[] = "/tmp/var/run/rm/rm_client_ocl";
+char   rmClientSockName[] = "/var/run/rm/rm_client_ocl";
 // char   rmClientSockName[] = "/tmp/rm_client_ocl";
 
 /* RM resource names (must match resource node names in GRL and policies */

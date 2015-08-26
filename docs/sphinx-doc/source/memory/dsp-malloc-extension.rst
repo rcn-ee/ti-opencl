@@ -62,7 +62,7 @@ to initialize internal heap data structures before making any __malloc_l2 calls.
     cores are writing and reading the same locations, the programmer is responsible 
     for synchronizaton to prevent data race conditions. 
 
-.. Information:: 
+.. Important::
 
     These dsp heap functions were motivated by exisiting standard C code that can now be 
     called from OpenCL C code.  We do not recommend using these API's for newly 

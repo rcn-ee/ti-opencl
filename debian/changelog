@@ -1,3 +1,14 @@
+ti-opencl (01.01.05.00-0ubuntu0~ppa1) trusty; urgency=medium
+
+  * Defects fixed:
+    - Update KernelEvent to properly ref_counts memory objects
+    - Perform cache wbInv before updating MAR registers
+    - Send response to host on EXIT to ensure DSP exit is complete
+  * Updated documentation
+  * Fixed sgemm example
+
+ -- TI Keystone PPA <ti-keystone-ppa@list.ti.com>  Fri, 21 Aug 2015 15:31:21 -0500
+
 ti-opencl (01.01.04.00-0ubuntu0~ppa1) UNRELEASED; urgency=medium
 
   * Added an example, float_compute
