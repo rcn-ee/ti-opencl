@@ -53,8 +53,8 @@ EXPORT int __core_num() { return get_dsp_id(); }
  *----------------------------------------------------------------------------*/
 static far PRIVATE(size_t, l1d_scratch_size) = 0;
 
-EXPORT void*  __scratch_l1d_base() { return l1d_start; }
-EXPORT size_t __scratch_l1d_size() { return l1d_scratch_size; }
+EXPORT void*  __scratch_l1d_start() { return l1d_start; }
+EXPORT size_t __scratch_l1d_size()  { return l1d_scratch_size; }
 
 
 PRIVATE(int32_t, _local_id_x)      EXPORT = 0;
