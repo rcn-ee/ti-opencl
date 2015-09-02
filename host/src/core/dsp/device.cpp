@@ -877,13 +877,36 @@ cl_int DSPDevice::info(cl_device_info param_name,
         * memory available, reserve 16MB for loading OCL program code.
         *--------------------------------------------------------------------*/
         case CL_DEVICE_MAX_MEM_ALLOC_SIZE:
+        {
+            static cl_ulong cap = 0;
+            if(cap == 0)
+            {
+                cap = (cl_ulong)1ul << 30;
+
+                char *cap_str = getenv("TI_OCL_LIMIT_DEVICE_MAX_MEM_ALLOC_SIZE");
+                if(cap_str)
+                {
+                    errno = 0;
+                    char *tmp;
+                    cap = strtoul(cap_str, &tmp, 10);
+                    if(errno != 0 || tmp == cap_str || *tmp != '\0' || cap == 0)
+                    {
+                        printf("ERROR: TI_OCL_LIMIT_DEVICE_MAX_MEM_ALLOC_SIZE "
+                               "must be a positive integer\n");
+                        exit(1);
+                    }
+                }
+            }
+
             if (p_device_ddr_heap2.size() + p_device_ddr_heap3.size() > 0)
-                SIMPLE_ASSIGN(cl_ulong, std::min(p_device_ddr_heap1.size(),
-                                                 (cl_ulong)1ul << 30))
+                SIMPLE_ASSIGN(cl_ulong,
+                    std::min(p_device_ddr_heap1.size(), cap))
             else
-                SIMPLE_ASSIGN(cl_ulong, std::min(p_device_ddr_heap1.size()
-                                      - (1<<24), (cl_ulong)1ul << 30))
+                SIMPLE_ASSIGN(cl_ulong,
+                    std::min(p_device_ddr_heap1.size() - (1<<24), cap))
+
             break;
+        }
 
         case CL_DEVICE_IMAGE2D_MAX_WIDTH:
             SIMPLE_ASSIGN(size_t, 0);           // images not supported
