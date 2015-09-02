@@ -29,14 +29,15 @@ An OpenCL C kernel for convolution. Note that the types are float.
 
 Step 1: Initial optimization for DSP:
   * Convert the float type to uchar
-  * Annotate the kernel with a work-group size attribute
 
 .. literalinclude:: code/ast.c
    :language: c
    :linenos: 
  
 
-Step 2: Switch to using vector types to take advantage of vector instructions available on the DSP:
+Step 2: 
+  * Switch to using vector types to take advantage of vector instructions available on the DSP
+  * Annotate the kernel with a work-group size attribute
 
 .. literalinclude:: code/dp.c
    :language: c
@@ -51,6 +52,9 @@ Psuedo-code for a double-buffered version of the OpenCL C kernel:
    :linenos: 
 
 Now, we have an optimized OpenCL C kernel for the DSP. Note that the kernel is a generic OpenCL C kernel and can be compiled/run on any OpenCL device.
+
+Performance Improvement
+=======================
 
 =================================   ===============================
 Description                         Performance in cycles per pixel

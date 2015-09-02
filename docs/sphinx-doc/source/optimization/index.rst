@@ -15,7 +15,9 @@ applications targeting TI SoCs with DSPs as accelerator devices. These tips are 
 
    host_code
    dsp_code
+   typical_steps
    examples
+   performance_data
 
 .. MISC
 .. ==============

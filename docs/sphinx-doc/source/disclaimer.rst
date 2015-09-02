@@ -6,7 +6,7 @@ ALL CONTENT AND MATERIALS ON THIS SITE ARE PROVIDED "AS IS". TI AND ITS RESPECTI
 Content on this site may contain or be subject to specific guidelines or limitations on use. All postings and use of the content on this site are subject to the Terms of Use of the site; third parties using this content agree to abide by any limitations or guidelines and to comply with the Terms of Use of this site. TI and its suppliers reserve the right to make corrections, deletions, modifications, enhancements, improvements and other changes to the content and materials, its products, programs and services at any time or to move or discontinue any content, products, programs, or services without notice. 
 
 
-IMPORTANT NOTICE
+Important Notice
 ****************
 Texas Instruments Incorporated and its subsidiaries (TI) reserve the right to make corrections, enhancements, improvements and other changes to its semiconductor products and services per JESD46, latest issue, and to discontinue any product or service per JESD48, latest issue. Buyers should obtain the latest relevant information before placing orders and should verify that such information is current and complete. All semiconductor products (also referred to herein as "components") are sold subject to TI's terms and conditions of sale supplied at the time of order acknowledgment.
 
