@@ -19,6 +19,6 @@ better map to TI's devices.
    extended-memory
    msmc-buffers
    opencl-c-builtin-function-extensions
-   ../memory/host-malloc-extension
-   ../memory/dsp-malloc-extension
-   ../memory/cache-operations
+..   ../memory/host-malloc-extension
+..   ../memory/dsp-malloc-extension
+..   ../memory/cache-operations
