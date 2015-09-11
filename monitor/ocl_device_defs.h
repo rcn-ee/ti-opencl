@@ -30,6 +30,8 @@
 #ifndef _ocl_device_defs_h_
 #define _ocl_device_defs_h_
 
+extern int n_cores;
+
 #ifdef TI_C6678
 #define OCL_QMSS_HW_QUEUE_BASE_IDX              (1022)
 #define OCL_HW_SEM_IDX                          (3)
@@ -37,7 +39,7 @@
 #define OCL_QMSS_FIRST_MEMORY_REGION_IDX        (0)
 #endif
 
-#ifdef TI_66AK2H
+#ifdef TI_66AK2X
 #if 0
 #define OCL_QMSS_HW_QUEUE_BASE_IDX              (7300)
 #define OCL_HW_SEM_IDX                          (3)

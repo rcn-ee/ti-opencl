@@ -89,7 +89,7 @@ class DSPDevice : public DeviceInterface, public Lockable
         Event *getEvent(bool &stop);
 
         bool hostSchedule() const;
-        unsigned int numDSPs() const;
+        unsigned int dspCores() const;
         float dspMhz() const;
         unsigned char dspID() const;
         DLOAD_HANDLE dload_handle() const;
@@ -143,7 +143,7 @@ class DSPDevice : public DeviceInterface, public Lockable
         std::string builtinsHeader(void) const { return "dsp.h"; }
 
         DSPDevicePtr get_addr_kernel_config() { return p_addr_kernel_config; }
-#if defined(DEVICE_K2H)
+#if defined(DEVICE_K2X)
         void*        get_mpax_default_res();
 #endif
 

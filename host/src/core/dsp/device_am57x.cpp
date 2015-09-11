@@ -33,7 +33,7 @@
 DSPDevice::DSPDevice(unsigned char dsp_id)
     : DeviceInterface   (), 
       p_core_mail       (1), 
-      p_cores           (2), 
+      p_cores           (0),
       p_num_events      (0), 
       p_dsp_mhz         (600), // 600 MHz 
       p_worker_dispatch  (0), 
@@ -53,7 +53,9 @@ DSPDevice::DSPDevice(unsigned char dsp_id)
 { 
     Driver *driver = Driver::instance();
 
-    void *hdl = driver->create_image_handle();
+    p_cores = driver->cores_per_dsp(dsp_id);
+
+    void *hdl = driver->create_image_handle(dsp_id);
 
     p_addr_local_mem     = driver->get_symbol(hdl, "ocl_local_mem_start");
     p_size_local_mem     = driver->get_symbol(hdl, "ocl_local_mem_size");
@@ -92,7 +94,7 @@ DSPDevice::DSPDevice(unsigned char dsp_id)
     if (gsize2 > 0) driver->shmem_configure(global2, gsize2, 0);
     if (gsize3 > 0) driver->shmem_configure(global3, gsize3, 0);
 
-    for (int core=0; core < TOTAL_NUM_CORES_PER_CHIP; core++)
+    for (int core = 0; core < dspCores(); core++)
         driver->shmem_configure(((0x80 + core) << (3+20)) + p_addr_local_mem,
                                 p_size_local_mem);
 

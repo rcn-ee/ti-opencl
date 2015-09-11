@@ -39,7 +39,7 @@
  *
  */
 
-#if defined(DEVICE_K2H)
+#if defined(DEVICE_K2X)
 
 extern "C" {
 
@@ -809,5 +809,5 @@ static void map_status(keystone_mmap_mapping_t *mapping)
 
 }
 
-#endif  // #if defined(DEVICE_K2H)
+#endif  // #if defined(DEVICE_K2X)
 

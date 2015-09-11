@@ -1,4 +1,4 @@
-#ifdef TI_66AK2H
+#ifdef TI_66AK2X
 
 #include <xdc/std.h>
 #include <string.h>
@@ -31,7 +31,7 @@ extern cregister volatile unsigned int DNUM;
 #define EDMA_PITCH_LIMIT            (32767)
 
 
-DDR_2D  (copy_event, edma_channel_pool, NUM_CORES, EDMA_MGR_MAX_NUM_CHANNELS);
+DDR_2D  (copy_event, edma_channel_pool, MAX_NUM_CORES, EDMA_MGR_MAX_NUM_CHANNELS);
 PRIVATE (copy_event *, available_edma_channel) = NULL;
 DDR     (copy_event,   memcpy_event) = { EV_MEMCPY, NULL };
 
@@ -276,4 +276,4 @@ void free_edma_channel_pool()
 	 EdmaMgr_free(edma_channel_pool[DNUM][i].channel);
 }
 
-#endif   // #ifdef TI_66AK2H
+#endif   // #ifdef TI_66AK2X

@@ -28,6 +28,7 @@
 #include "string.h"
 #include "util.h"
 #include "monitor.h"
+#include "ocl_device_defs.h"
 #include <ti/csl/csl_xmc.h>
 #include <ti/csl/csl_xmcAux.h>
 #include <ti/csl/csl_msmc.h>
@@ -37,8 +38,6 @@
 #include <ti/csl/csl_emif4fAux.h>
 #include <ti/csl/csl_cacheAux.h>
 #include <stdio.h>
-
-#define NUM_CORE 8
 
 EXPORT void __mfence(void)
 {
@@ -58,7 +57,7 @@ typedef struct
     uint32_t localStartTime;
 } ClockDsc_t;
 
-FAST_SHARED_1D(ClockDsc_t, ClockDscTbl, NUM_CORE);
+FAST_SHARED_1D(ClockDsc_t, ClockDscTbl, MAX_NUM_CORES);
 
 int initClockLocal(void)
 {
@@ -121,8 +120,8 @@ EXPORT void __cycle_delay (uint64_t cyclesToDelay)
 ******************************************************************************/
 typedef struct 
 {
-    uint8_t tbl0[NUM_CORE];
-    uint8_t tbl1[NUM_CORE];
+    uint8_t tbl0[MAX_NUM_CORES];
+    uint8_t tbl1[MAX_NUM_CORES];
 } CoreBarrier_t;
 
 FAST_SHARED(CoreBarrier_t, CoreBarrier);
@@ -147,13 +146,13 @@ void waitAtCoreBarrier(void)
         CoreBarrierSense = 0;
     }
 
-    for (i = 0; i<NUM_CORE; i++) *(lvCoreBarrierPtr + i) = 0;
+    for (i = 0; i < n_cores; i++) *(lvCoreBarrierPtr + i) = 0;
 
     while (!lvGo)
     {
         lvGo = 1;
         *(lvCoreBarrierPtr + DNUM) = 1;
-        for (i = 0; i<NUM_CORE; i++) lvGo = lvGo & *(lvCoreBarrierPtr + i);
+        for (i = 0; i < n_cores; i++) lvGo = lvGo & *(lvCoreBarrierPtr + i);
         *(lvCoreBarrierPtr + DNUM) = 1;
     }
 }

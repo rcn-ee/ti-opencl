@@ -38,7 +38,7 @@
 
 #if defined (TI_C6678)
 #include <ti/drv/qmss/device/qmss_device.c>
-#elif defined (TI_66AK2H)
+#elif defined (TI_66AK2X)
 #include <ti/drv/qmss/device/k2h/src/qmss_device.c>
 #else
 #error "Device not supported"

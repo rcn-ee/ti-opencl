@@ -133,7 +133,7 @@ inline MBoxMPM::MBoxMPM(Coal::DSPDevice *device)
 {
     Driver *driver = Driver::instance();
 
-    void *hdl = driver->create_image_handle();
+    void *hdl = driver->create_image_handle(device->dspID());
     
     // Storage for MPM mailbox (K2x, DSPC868X)
     DSPDevicePtr addr_mbox_d2h_phys = driver->get_symbol(hdl, "mbox_d2h_phys");
