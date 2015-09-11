@@ -101,7 +101,7 @@ that the host code will enqueue this kernel with the same local size as the
 numbers you specify in the attribute. If the kernel is enqueued with a different 
 local size than specified in the attribute, the runtime will give a well defined 
 error. The below kernel is using the attribute to assert that dimension 1 has a
-local size of 640 and dinension 2 has a local size of 480 and dimension three
+local size of 640 and dimension 2 has a local size of 480 and dimension three
 is unused::
 
     kernel __attribute__((reqd_work_group_size(640, 480, 1)))
@@ -169,7 +169,7 @@ Depending on the nature of the application, different sizes of loading may be pr
 
 Eg.
 
-  A mxn image is represented as a 1D array of type 'char'. This image is convolved with a gaussian filter kernel. In order to utilize the SIMD operations as discussed previously, a vector length of 4 is chosen.
+  A mxn image is represented as a 1D array of type 'char'. This image is convolved with a Gaussian filter kernel. In order to utilize the SIMD operations as discussed previously, a vector length of 4 is chosen.
 
   In order to bring in the data effectively,
 
@@ -203,7 +203,7 @@ Eg.
 
 Prefer the CPU style of writing OpenCL code over the GPU style
 ==============================================================
-There is a large body of existing OpenCL code avaiable and the majority have
+There is a large body of existing OpenCL code available and the majority have
 been targeted toward and optimized for either GPUs or CPUs.  Often, an
 application will have different kernels optimized for each.  Generally, the
 versions targeting CPUs will perform better than the version targeting GPUs,

@@ -24,10 +24,10 @@ to be hidden in lower level implementation routines so that top level algorithmi
 code can remain free from OpenCL mechanics.  This abstraction of OpenCL API's is 
 possible without these extensions, but would typically require data copy from Linux 
 managed memory to OpenCL managed memory.  These extensions were provided to allow 
-the top level algorithmic code to originate data alloction in OpenCL managed memory, 
+the top level algorithmic code to originate data allocation in OpenCL managed memory, 
 thus eliminated the need for data copy and improving performance.
 
-Without these new APIs the host application and lowel level function might look like::
+Without these new APIs the host application and lower level function might look like::
 
     main()
     {
@@ -37,7 +37,7 @@ Without these new APIs the host application and lowel level function might look 
 
         fftw(p, size);
 
-        // consume modifed p
+        // consume modified p
 
         free(p);
     }
@@ -55,11 +55,11 @@ Without these new APIs the host application and lowel level function might look 
     }
 
 The issue with the above code is that the enqueue of the fftw_kernel would entail a
-copy of the linux heap based underlying memory store in the OpenCL buffer to a
+copy of the Linux heap based underlying memory store in the OpenCL buffer to a
 copy allocated from :ref:`CMEM<CMEM>`.  It would also entail a copy
 back after the enqueue of the kernel.  Since the SoC contains shared
 memory between the ARM and the DSP, it would be preferable to have a zero copy
-setup. This would be impossible with a linux heap based malloc pointer.
+setup. This would be impossible with a Linux heap based malloc pointer.
 
 With the new functions, the above code might look like ::
 
@@ -71,7 +71,7 @@ With the new functions, the above code might look like ::
 
         fftw(p, size);
 
-        // consume modifed p
+        // consume modified p
 
         __free_ddr(p);
     }
@@ -103,7 +103,7 @@ for correctness and therefore the user of fftw can then choose whether they want
 modify their source to get the additional performance boost resulting from zero copy. 
 
 OpenCL subbuffers created from OpenCL buffers defined with CL_MEM_USE_HOST_PTR 
-and a supplied pointer orignating from __malloc_ddr, will also benefit from the 
+and a supplied pointer originating from __malloc_ddr, will also benefit from the 
 underlying subbuffer memory residing in :ref:`CMEM<CMEM>`.
 
 .. Important::
@@ -111,7 +111,7 @@ underlying subbuffer memory residing in :ref:`CMEM<CMEM>`.
     Since the ARM CPU is a 32 bit architecture, Linux will only support 4GB
     of virtual memory at any given time, therefore the amount of memory available to
     __malloc_ddr or __malloc_msmc will be limited in size to a limit below 4GB.
-    This is in contrast to definining an OpenCL buffer in the host application that
+    This is in contrast to defining an OpenCL buffer in the host application that
     is only limited by the maximum block available in any CMEM heap.  These can
     exceed 4GB in length.  This can occur because the allocation of the buffer does
     not imply a map into the virtual memory space.  That would occur independently

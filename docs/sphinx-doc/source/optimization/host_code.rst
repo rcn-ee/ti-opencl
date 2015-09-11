@@ -1,25 +1,25 @@
 Optimization Techniques for Host Code
 *************************************
 
-Use Offline, Embedded Compilation Model  
----------------------------------------
+Use Off-line, Embedded Compilation Model  
+----------------------------------------
 OpenCL allows device code to be compiled on the fly as the host code runs.
 This allows for portability of the application but obviously it will slow down
 the host application as the compilation occurs.  To speed up the host
-application, device code should be compiled offline, i.e. before the host
-application runs.  There are two compilation models that use offline
+application, device code should be compiled off-line, i.e. before the host
+application runs.  There are two compilation models that use off-line
 compilation documented in the :doc:`../compilation` section. For fastest
-operation, the offline compilation with the embedded object model will be the
+operation, the off-line compilation with the embedded object model will be the
 fastest.  For details on structuring your code for that model, see
 :ref:`offline-embedded`.
 
 Avoid the read/write Buffer model on shared memory SoC platforms
 ----------------------------------------------------------------
 On shared memory SoC platforms, the host and devices have the ability to read
-and write the same memory region. However, the linux system memory is not
+and write the same memory region. However, the Linux system memory is not
 shareable with a device.  Therefore, fast OpenCL applications should avoid
-copying data between the linux system memory and the shareable memory regions.
-See :doc:`../memory/ddr-partition` for details on the linux/opencl memory partition.
+copying data between the Linux system memory and the shareable memory regions.
+See :doc:`../memory/ddr-partition` for details on the Linux/opencl memory partition.
 
 The read buffer and write buffer OpenCL operations perform copies and should be
 avoided.  Alternatively, fast OpenCL applications will allocate OpenCL buffers
@@ -51,7 +51,7 @@ Dispatch Appropriate Compute Loads
 ----------------------------------
 Dispatching computation from the host to a device naturally requires some
 amount of overhead.  Dispatching individual, small computations will not result
-in improved performance. If you have the flexibility to control the size of computation, then a good rule a thumb would be to keep the overhead below 10% of the total dispatch roundtrip.  Of course, you will need to know the overhead in order to calculate a minimum target computation load. 
+in improved performance. If you have the flexibility to control the size of computation, then a good rule a thumb would be to keep the overhead below 10% of the total dispatch round-trip.  Of course, you will need to know the overhead in order to calculate a minimum target computation load. 
 
 The overhead of device dispatch is twofold:
     #. The raw OpenCL dispatch overhead which depending on device frequencies
