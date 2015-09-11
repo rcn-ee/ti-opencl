@@ -2,7 +2,7 @@ Optimization Techniques for Host Code
 *************************************
 
 Use Off-line, Embedded Compilation Model  
----------------------------------------
+----------------------------------------
 OpenCL allows device code to be compiled on the fly as the host code runs.
 This allows for portability of the application but obviously it will slow down
 the host application as the compilation occurs.  To speed up the host

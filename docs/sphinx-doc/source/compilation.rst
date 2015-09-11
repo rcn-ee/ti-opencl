@@ -4,9 +4,9 @@ Compilation
 
 A discussion of OpenCL compilation could describe either; compiling the host
 OpenCL application, or compiling OpenCL C programs containing code that is
-en-queued to OpenCL devices.  OpenCL was designed to make both easy, however
-there are some options for compilation of OpenCL C programs.  We will briefly
-describe the host compilation process and will then enumerate and describe the
+en-queued to OpenCL devices.  OpenCL was designed to make both easy. However,
+there are some options for compilation of OpenCL C programs.  This chapter 
+describes the host compilation process and then enumerates and describes the
 OpenCL C program compilation process.
 
 Compile Host OpenCL Applications
@@ -119,7 +119,7 @@ exists in a separate file, named kernel.cl in the same directory in which the
 application is run.  This OpenCL program build option still requires no
 knowledge of standalone OpenCL C program compilation and is therefore still
 portable.  Since the OpenCL C code is in a file, however, this build scenario
-can be useful when in OpenCL kernel development mode.  Because the OpenCL C
+can be useful when developing OpenCL kernels.  Because the OpenCL C
 file is read and compiled for the devices at host application run time, the
 OpenCL C code can be edited and re-run without requiring the host application
 to be re-compiled.
@@ -183,7 +183,7 @@ Line 3 defines a pointer to a char array.  The ocl_read_binary function will
 inspect the specified file to determine the number of bytes to allocate, it
 will allocate the bytes, and it will read the contents of the file into those
 bytes.  After a Program object is created using the binary data, the bytes
-allocated by ocl_read_binary  should be deleted.  This can seen seen on line 10
+allocated by ocl_read_binary should be deleted.  This can be seen on line 10
 of the example code.  
 
 Line 6 creates a Program:Binaries object.  It requires a pair consisting of a
@@ -271,7 +271,7 @@ devices specified in the build API call.  These compiles will entail some delay
 and in some cases can result in significant delay.  The TI OpenCL
 implementation does provide a mechanism where the result of an on-line compile
 can be cached on the system and the time delay for compilation is paid once for
-a the first invocation of a compile but subsequent invocations are short
+the first invocation of a compile but subsequent invocations are short
 circuited and the cached result is used instead.  This behavior is controlled
 through the environment variable :envvar:`TI_OCL_CACHE_KERNELS`. 
 
