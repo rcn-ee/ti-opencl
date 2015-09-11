@@ -134,6 +134,9 @@ int main(int argc, char *argv[])
 
                  devices[d].getInfo(CL_DEVICE_LOCAL_MEM_SIZE, &longnum);
                  cout << "      Loc Mem    : " << setw(7) << longnum / 1024  << " KB" << endl;
+
+                 devices[d].getInfo(CL_DEVICE_MAX_MEM_ALLOC_SIZE, &longnum);
+                 cout << "      Max Alloc  : " << setw(7) << longnum / 1024  << " KB" << endl;
              }
         }
     }

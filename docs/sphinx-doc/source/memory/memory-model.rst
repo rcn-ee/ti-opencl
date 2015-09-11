@@ -16,7 +16,7 @@ Global Memory
   For this OpenCL implementation, global memory by default maps to the portion
   of DDR3 partitioned as CMEM contiguous memory.  
 
-  On K2H devices, MSMC memory is also available as global memory and buffers
+  On K2x devices, MSMC memory is also available as global memory and buffers
   can be defined to reside in this memory instead of DDR3 through an OpenCL API
   extension specific to TI. This mechanism will be described in a later section
   that details handling of the OpenCL buffer creation flags.  

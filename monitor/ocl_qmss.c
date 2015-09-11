@@ -56,7 +56,7 @@ FAST_SHARED_1D(uint8_t,  ocl_DescriptorMemory,
                MAX_WG_EVENTS * EVENT_WG_BUF_SIZE);
 
 /* struct defined in qmss_device.c */
-#if defined (TI_66AK2H)
+#if defined (TI_66AK2X)
 extern Qmss_GlobalConfigParams qmssGblCfgParams;
 #else
 extern Qmss_GlobalConfigParams qmssGblCfgParams[];
@@ -133,7 +133,7 @@ bool ocl_initLocalQMSS(void)
  */
 void ocl_exitGlobalQMSS(void)
 {
-#ifdef TI_66AK2H
+#ifdef TI_66AK2X
     closeQueues();
 
     // Must remove memory region before calling Qmss_exit!
@@ -270,7 +270,7 @@ bool initQmss (Qmss_MemRegInfo* regionConfigTbl, uint8_t* extLinkTbl)
     qmssGlobalCfg = &qmssGblCfgParams[0];
     qmssCfg.linkingRAM0Size = 0; // Use all linking RAM of Navigator SS
     qmssCfg.linkingRAM1Base = (uint32_t)extLinkTbl;
-#elif defined (TI_66AK2H)
+#elif defined (TI_66AK2X)
     qmssGlobalCfg = &qmssGblCfgParams;
     // Linux already configured QMSS 
     // Retrieving the value

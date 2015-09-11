@@ -145,7 +145,7 @@ CL_MEM_COPY_HOST_PTR
   CMEM contiguous memory.
 
 CL_MEM_USE_MSMC_TI
-  This flag is a TI extension to standard OpenCL on 66AK2H devices only. It can
+  This flag is a TI extension to standard OpenCL on 66AK2x devices only. It can
   be used in combination with the other buffer creation flags, except for
   CL_MEM_USE_HOST_PTR. When this flag is used, the buffer will be allocated to
   a CMEM block in the MSMC memory area, rather than a CMEM block in the DDR3

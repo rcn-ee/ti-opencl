@@ -218,7 +218,7 @@ devices.  See :doc:`../memory/dsp-malloc-extension`
 
 .. note:: 
 
-   The following examples are available only available on 66AK2H
+   The following examples are available only available on 66AK2x
 
    * mandelbrot, mandelbrot_native
    * vecadd_openmp, vecadd_openmp_t

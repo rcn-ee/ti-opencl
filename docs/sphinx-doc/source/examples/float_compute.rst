@@ -101,7 +101,7 @@ associated with this heap is contiguous and is mapped to a contiguous
 chunk of virtual memory on the host. If any host variables allocated via
 this API are accessed on the device, the OpenCL runtime generates cache
 management operations on the host, significantly reducing the overhead.
-\_\_malloc\_msmc is available only on 66AK2H.
+\_\_malloc\_msmc is available only on 66AK2x.
 
 Compute on ARM
 ~~~~~~~~~~~~~~

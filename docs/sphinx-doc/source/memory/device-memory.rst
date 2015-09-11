@@ -9,38 +9,38 @@ Device Memory
     platform example shipped with the product:
     ``/usr/share/ti/examples/opencl/platforms``.
 
-66AK2H
+66AK2x
 ==================
 
 The following device components are relevant to the memory discussion for
 OpenCL.
 
-================================= ===========
-Attribute                         66AK2H
-================================= ===========
-ARM A15 CPU cores                 4
-C66x DSP cores                    8
-L1P per C66x core                 32KB
-L1D per C66x core                 32KB
-L2 cache shared across ARM cores  4MB
-L2 memory per C66x core           1MB
-DDR3 available                    up to 8GB
-On-chip shared memory             6MB
-================================= ===========
+================================= =========== =========== ===========
+Attribute                         66AK2H      66AK2L      66AK2E
+================================= =========== =========== ===========
+ARM A15 CPU cores                 4           2           4
+C66 DSP cores                     8           4           1
+L1P per C66 core                  32KB        32KB        32KB
+L1D per C66 core                  32KB        32KB        32KB
+L2 cache shared across ARM cores  4MB         1MB         4MB
+L2 memory per C66 core            1MB         1MB         512KB
+DDR3 available                    up to 8GB   up to 8GB   up to 8GB
+On-chip shared memory             6MB         2MB         2MB
+================================= =========== =========== ===========
 
 The L1 and L2 memory areas in the C66x cores can be configured as all cache, all
 scratchpad or partitioned with both. For OpenCL applications, this partition is 
 fixed as follows for each C66x core:
 
-====================================== =======
-Attribute                              66AK2H
-====================================== =======
-L1P cache                              32KB
-L1D cache                              32KB
-L2 cache                               128KB
-L2 reserved                            128KB
-L2 available for OpenCL local buffers  768KB
-====================================== =======
+====================================== ======= ======= =======
+Attribute                              66AK2H  66AK2L  66AK2E
+====================================== ======= ======= =======
+L1P cache                              32KB    32KB    32KB
+L1D cache                              32KB    32KB    32KB
+L2 cache                               128KB   128KB   128KB
+L2 reserved                            128KB   128KB   128KB
+L2 available for OpenCL local buffers  768KB   768KB   256KB
+====================================== ======= ======= =======
 
 .. only:: am57
 

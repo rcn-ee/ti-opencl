@@ -1,6 +1,6 @@
 OCL_BUILD_ROOT= $(shell pwd)
 .SILENT:
-OCL_VER=1.1.6
+OCL_VER=1.1.7
 LLVM_VER=33
 
 OCL_DPKG_NAME = ti-opencl
@@ -27,7 +27,7 @@ BUILD_MACHINE=$(shell uname -m)
 
 BUILD_OUTPUT ?= all
 
-OPENCL_CMAKE_OPTS=-DCMAKE_TOOLCHAIN_FILE=../${OCL_SRC_DIR}/cmake/CMakeARMToolChain.txt -DBUILD_OUTPUT=${BUILD_OUTPUT} -DBUILD_TARGET=ARM_K2H
+OPENCL_CMAKE_OPTS=-DCMAKE_TOOLCHAIN_FILE=../${OCL_SRC_DIR}/cmake/CMakeARMToolChain.txt -DBUILD_OUTPUT=${BUILD_OUTPUT} -DBUILD_TARGET=ARM_K2X
 
 all: opencl
 
@@ -71,7 +71,7 @@ clean-prebuild:
 	-rm -f $(REPOS)
 
 prebuild: clone pull
-	$(MAKE) -s -C $(OCL_MONITOR_DIR) k2h
+	$(MAKE) -s -C $(OCL_MONITOR_DIR) k2x
 	ln -s . $(OCL_VERSIONED_NAME) 
 	tar czf $(OCL_VERSIONED_NAME).tar.gz --exclude='.git' --exclude='init_global_shared_mem' --transform='s/makefile.arm/makefile/g' $(OCL_VERSIONED_NAME)/${OCL_SRC_DIR} $(OCL_VERSIONED_NAME)/debian $(OCL_VERSIONED_NAME)/${OCL_EXAMPLES_DIR} $(OCL_VERSIONED_NAME)/$(OCL_MONITOR_DIR) $(OCL_VERSIONED_NAME)/makefile.arm $(OCL_VERSIONED_NAME)/$(OCL_BUILTINS_DIR)
 	rm $(OCL_VERSIONED_NAME)

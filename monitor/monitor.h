@@ -38,7 +38,7 @@ extern cregister volatile unsigned int DNUM;
 #define RETURN_FAIL 0
 #define RETURN_OK   1
 
-#define NUM_CORES            (8)
+#define MAX_NUM_CORES (8)
 #define ROUNDUP(val, pow2)   (((val) + (pow2) - 1) & ~((pow2) - 1))
 
 #define EXPORT __attribute__((visibility("protected")))

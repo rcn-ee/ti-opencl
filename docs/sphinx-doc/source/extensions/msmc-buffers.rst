@@ -16,6 +16,6 @@ the amount of MSMC memory available for OpenCL use.
 
 .. note::
    MSMC stands for Multicore Shared Memory Controller. It contains on-chip 
-   memory shared across all ARM and DSP cores on the 66AK2H. 
-   CL_MEM_USE_MSMC_TI is available only on 66AK2H.
+   memory shared across all ARM and DSP cores on the 66AK2x. 
+   CL_MEM_USE_MSMC_TI is available only on 66AK2x.
 

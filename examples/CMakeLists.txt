@@ -24,11 +24,11 @@ SET(OCL_EXAMPLES_INSTALL_LIST edmamgr matmpy simple dsplib_fft mandelbrot mandel
 SET(OCL_OMP_EXAMPLES_INSTALL_LIST vecadd_openmp vecadd_openmp_t)
 
 # Install hawking specific examples
-IF (HAWKING_BUILD)
+IF (K2X_BUILD)
   # Add any hawking-specific examples
   LIST (APPEND OCL_EXAMPLES_INSTALL_LIST ooo_map vecadd_mpax sgemm)
   LIST (APPEND OCL_OMP_EXAMPLES_INSTALL_LIST vecadd_mpax_openmp dgemm)
-ENDIF(HAWKING_BUILD)
+ENDIF(K2X_BUILD)
 
 # Install C6678 (dspc) specific examples
 IF (C6678_BUILD)

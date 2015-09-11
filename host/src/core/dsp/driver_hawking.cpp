@@ -32,6 +32,8 @@
 #include <cstdio>
 #include <cstdlib>
 #include <sys/stat.h>
+#include <sys/types.h>
+#include <dirent.h>
 #include <string>
 #include <bfd.h>
 
@@ -74,19 +76,40 @@ Driver* Driver::instance ()
     return tmp;
 }
 
-/******************************************************************************
-* Convert pci data into a recognizable board name for a device
-******************************************************************************/
-const char *get_board(unsigned switch_device)
+std::string Driver::dsp_monitor(int dsp)
 {
-    switch (switch_device)
-    {
-        case 0x8624: return "dspc8681";
-        case 0x8748: return "dspc8682";
-        default    : ERR(1, "Unsupported device"); return "unknown";
-    }
+    std::string get_ocl_dsp();
+    return get_ocl_dsp() + "/dsp.out";
 }
 
+int Driver::cores_per_dsp(int dsp)
+{
+#if defined(DEVICE_AM57)
+    return 2;
+#else
+    static int n = 0;
+
+    if(n == 0)
+    {
+        DIR *dir = opendir("/dev");
+        if(!dir)
+            ERR(1, "failed to open /dev\n");
+
+        while(dirent *entry = readdir(dir))
+        {
+            if(entry->d_name[0] && entry->d_name[0] == 'd' &&
+               entry->d_name[1] && entry->d_name[1] == 's' &&
+               entry->d_name[2] && entry->d_name[2] == 'p' &&
+               entry->d_name[3] && isdigit(entry->d_name[3]))
+                ++n;
+        }
+
+        closedir(dir);
+    }
+
+    return n;
+#endif
+}
 
 /******************************************************************************
 * wait_for_ready
@@ -127,10 +150,10 @@ void Driver::reset_and_load(int chip)
     int error_code_msg[50];
     char curr_core[10];
 
-    std::string get_ocl_dsp();
-    std::string monitor = get_ocl_dsp() + "/dsp.out";
+    std::string monitor = dsp_monitor(chip);
+    int n_cores = cores_per_dsp(chip);
 
-    for (int core=0; core< TOTAL_NUM_CORES_PER_CHIP; core++)
+    for (int core=0; core < n_cores; core++)
     {
         snprintf(curr_core, 5, "dsp%d", core);
 
@@ -147,7 +170,7 @@ void Driver::reset_and_load(int chip)
     /*-------------------------------------------------------------------------
     * Load monitor on the devices
     *------------------------------------------------------------------------*/
-    for (int core=0; core< TOTAL_NUM_CORES_PER_CHIP; core++)
+    for (int core=0; core < n_cores; core++)
     {
         snprintf(curr_core, 5,"dsp%d", core);
         ret = mpm_load(curr_core, const_cast<char*>(monitor.c_str()), 
@@ -163,7 +186,7 @@ void Driver::reset_and_load(int chip)
     /*-------------------------------------------------------------------------
     * Run monitor on the devices
     *------------------------------------------------------------------------*/
-    for (int core=0; core< TOTAL_NUM_CORES_PER_CHIP; core++)
+    for (int core=0; core < n_cores; core++)
     {
         snprintf(curr_core, 5,"dsp%d", core);
         ret = mpm_run(curr_core, &error_code);
@@ -310,18 +333,24 @@ shmem* Driver::get_memory_region(DSPDevicePtr64 addr)
 int32_t Driver::write(int32_t dsp_id, DSPDevicePtr64 addr, uint8_t *buf,
                       uint32_t size)
 { 
-    int core;
+    int n_cores = cores_per_dsp(dsp_id);
+
     /*-------------------------------------------------------------------------
     * if the write is to L2, then write for each core
     *------------------------------------------------------------------------*/
     if ((addr >> 20) == 0x008)
-        for (core=0; core< TOTAL_NUM_CORES_PER_CHIP; core++)
+    {
+        for (int core = 0; core < n_cores; core++)
+        {
 #if !defined (DEVICE_AM57)
             write_core(dsp_id, ((0x10 + core) << 24) + addr, buf, size);
 #else
             write_core(dsp_id, ((0x80 + core) << (3+20)) + addr, buf, size);
 #endif
-    else write_core(dsp_id, addr, buf, size);
+        }
+    }
+    else
+        write_core(dsp_id, addr, buf, size);
 }
 
 /******************************************************************************
@@ -408,10 +437,9 @@ int32_t Driver::read(int32_t dsp_id, DSPDevicePtr64 addr, uint8_t *buf,
 /******************************************************************************
 * Driver::create_image_handle
 ******************************************************************************/
-void* Driver::create_image_handle(void) 
+void* Driver::create_image_handle(int chip)
 {
-    std::string get_ocl_dsp();
-    std::string monitor = get_ocl_dsp() + "/dsp.out";
+    std::string monitor = dsp_monitor(chip);
 
     bfd *dsp_bfd = bfd_openr(monitor.c_str(), NULL);
 
