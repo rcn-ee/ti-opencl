@@ -82,14 +82,14 @@ and program space.
     =====================================================
     The 2GB of attached DDR3 memory is accessible to the AM57 device through a
     32-bit bus. The 2GB of DDR3 is populated in the 32-bit address space at
-    locations 8000:0000 through FFFF:FFFF. The default partition is 1.5GB for Linux
-    system memory and 512MB of CMEM. ::
+    locations 8000:0000 through FFFF:FFFF. The default partition is 1.875GB
+    for Linux system memory and 128MB of CMEM. ::
 
         80000000-9fffffff : System RAM
-          80008000-808470b3 : Kernel code
-          808a0000-80945a8b : Kernel data
-        a0000000-bfffffff : CMEM
-        c0000000-ffdfffff : System RAM
+          80008000-808330b3 : Kernel code
+          80888000-8091e34b : Kernel data
+        a0000000-a7ffffff : CMEM
+        a8000000-ffdfffff : System RAM
         fff00000-ffffefff : System RAM
 
     The holes in System RAM ranges (e.g. FFE0:0000 to FFEF:FFFF, 1MB and FFFF:F000
