@@ -110,10 +110,3 @@ and window 2::
     Ending remote debugging.
     root@am57xx-evm:~# 
 
-**Note**: The debugss_kmodule that we use for hosted DSP debug is spitting out
-the following message on the console.
-
-    [888765.751050] misc debugss: drv_error: debugss_remap_mmap: Requested debugss physical address range is already mapped by another process with pid:2567
-
-This will NOT impact your application.  We are working on a fix to remove
-this harmless message in the future releases.
