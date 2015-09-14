@@ -6,13 +6,13 @@ Large OpenCL buffers and Memory Beyond the 32-bit DSP Address Space
 
     This information is only applicable to platforms with > 2GB DDR.
 
-The 66AK2x devices will support up to 8GB of DDR3 on the DDR3A bus.  The C66
+The 66AK2x device will support up to 8GB of DDR3 on the DDR3A bus.  The C66
 DSP, however is a 32-bit architecture and cannot access all 8GB at any given
 time.  The C66 DSP does have a memory translation capability that will allow it
 to access any portion of that memory, but there are constraints on the mapping
 that will be described here.
 
-The 8GB of DDR3 exists in the K2x 36-bit physical address space at addresses
+The 8GB of DDR3 exist in the K2x 36-bit physical address space at addresses
 8:0000:0000 to 9:FFFF:FFFF.  The K2x device boots with the C66x DSP's mapping
 the upper 2GB of its address space 8000:0000 to FFFF:FFFF to the beginning of
 that physical range. For the remainder of this section, the physical range from
@@ -40,7 +40,7 @@ If there is memory in the upper 6GB that is given to CMEM to manage, then that
 memory will be available to OpenCL as well and understanding how OpenCL will
 use that memory is important so an application can maximize   resource
 utilization.  The figure below illustrates a potential DDR partition with CMEM
-in the the upper 6GB.
+in the upper 6GB.
 
 .. Image:: ../images/Extended_memory_example.png
 
@@ -49,7 +49,7 @@ is partitioned for OpenCL use. Note that only the 512M block of memory from
 A000:0000 to BFFF:FFFF is indicated as green for OpenCL.  The other 3 512M
 blocks are blue indicating that they are available destinations for mapping
 from alternate regions of the 36-bit address space.  The one green 512M block
-will always be fixed to it's corresponding location in physical memory and is
+will always be fixed to its corresponding location in physical memory and is
 not available for mapping.
 
 Within that 512M fixed block there is 80M of reserved memory and 432M of CMEM
@@ -128,7 +128,7 @@ host. Buffer processing and buffer population would then alternate on the two
 buffer sets.
 
 A third use case, involves using enqueueTask to enqueue kernels.  In this model
-up to 8 independent kernels can be executing concurrently, one on each of the
+8 independent kernels can be executing concurrently, one on each of the
 C66 DSPs in the K2x device.  Each of these tasks can be operating on an
 independent set of buffers.  In this case there would be eight sets of three
 buffers and they would be limited to 256M each.  A combination of this approach

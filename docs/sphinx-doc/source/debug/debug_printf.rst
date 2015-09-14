@@ -7,12 +7,12 @@ function can help you debug program progress, values of interested data
 and so on.  You can use ``printf`` to debug your OpenCL application as well.
 
 Host side OpenCL application code
-======================
+=================================
 Obviously, you can put ``printf`` in your host side OpenCL application code,
 as long as your host compiler supports it (gcc does).
 
 DSP side OpenCL kernel code
-======================
+===========================
 Though TI's OpenCL implementation is currently at most OpenCL version 1.1
 conformant on the SoCs that we support, we do support this OpenCL version 
 1.2 feature, ``printf``, as described in section 6.12.13 in OpenCL v1.2

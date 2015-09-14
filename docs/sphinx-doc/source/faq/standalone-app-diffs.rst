@@ -1,13 +1,13 @@
 *****************************************************************************
 Guidelines for porting Stand-alone DSP applications to OpenCL
 *****************************************************************************
-For C66x DSP developers moving to OpenCL from a standalone DSP
+For C66 DSP developers moving to OpenCL from a standalone DSP
 application environment, the following guidelines will be helpful for the
 transition.  
 
 Heap Memory Management
 ======================================
-Within an OpenCL application, memory management for the C66x DSP is most
+Within an OpenCL application, memory management for the C66 DSP is most
 naturally accomplished through the use of OpenCL buffers defined in the host
 application.  OpenCL buffers can be defined in DDR, MSMC, and L2 memory
 regions. See :doc:`../memory/buffers` for details.  If OpenCL buffers are use, this
@@ -50,12 +50,12 @@ Boot Routine Dependencies
 ======================================
 OpenCL C does not run a boot setup for dispatch of kernels, therefore
 dependencies on items that typically run before main is called or after main
-returns in a standalone DSP application are not supported in a OpenCL C
+returns in a standalone DSP application are not supported in an OpenCL C
 environment. This would include:
 
    - C++ constructors and destructors
    - atexit registered functions
-   - SysBios Tasks 
+   - TI-RTOS Kernel (SYS/BIOS) Tasks 
    - Some XDC constructs
 
 Linker Command Files

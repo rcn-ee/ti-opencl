@@ -5,8 +5,8 @@ Optimization Tips
 OpenCL applications consist of a host application and a set of device
 kernels.  There are optimization techniques for both the host code
 and the device code.  There are some techniques that span the boundary between
-host and device. This section provides tips for writing performant OpenCL 
-applications targeting TI SoCs with DSPs as accelerator devices. These tips are organized into sections based on where the tip is applicable, ie. host or device.
+host and device. This section provides tips for writing OpenCL 
+applications that perform well. It targets TI SoCs with DSPs as accelerator devices. These tips are organized into sections based on where the tip is applicable, i.e. the host or device.
 
 
 .. toctree::

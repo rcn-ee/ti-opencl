@@ -36,7 +36,7 @@ This example illustrates several key OpenCL features:
 - The event wait feature of OpenCL,
 - The division of one time setup of OpenCL to the repetitive en-queuing of
   kernels, and
-- The ease in which kernels can be shifted from one device type to another.
+- The ease with which kernels can be shifted from one device type to another.
 
 The 'mandelbrot_native' example is non-OpenCL native implementation (no
 dispatch to the DSPs) that can be used for comparison purposes. It uses OpenMP
@@ -79,7 +79,7 @@ a device executable file. The OpenCL program reads the file containing the
 pre-compiled kernel in and uses it directly. If you use offline compilation to
 generate a .out file containing the OpenCL C program and you subsequently move
 the executable, you will either need to move the .out as well or the
-application will need to specify a non relative path to the .out file.
+application will need to specify a non-relative path to the .out file.
 
 .. _vecadd_openmp-example:
 
@@ -99,8 +99,8 @@ vecadd_openmp_t example
 ========================
 
 This is another OpenCL + OpenMP example, similar to vecadd_openmp. The main
-difference w.r.t vecadd_openmp is that this example uses OpenMP tasks within
-the OpenMP parallel region to distribute computation across the DSP cores.
+difference with respect to vecadd_openmp is that this example uses OpenMP tasks 
+within the OpenMP parallel region to distribute computation across the DSP cores.
 
 .. _vecadd-example:
 
@@ -141,7 +141,7 @@ in OpenMP C code for debugging.
 dsplib_fft example
 ===================
 
-An example to compute FFT's using a routine from the dsplib library. This
+An example to compute FFTs using a routine from the dsplib library. This
 illustrates calling a standard C library function from an OpenCL kernel.
 
 .. _ooo-examples:
@@ -174,7 +174,7 @@ This application is intended to report the time overhead that OpenCL requires
 to submit and dispatch a kernel. A null(empty) kernel is created and dispatched
 so that the OpenCL profiling times queried from the OpenCL events reflects only
 the OpenCL overhead necessary to submit and execute the kernel on the device.
-This overhead is for the round-trip for a single kernel dispatch. In practice,
+This overhead is for the roundtrip for a single kernel dispatch. In practice,
 when multiple tasks are being enqueued, this overhead is pipelined with
 execution and can approach zero.
 
@@ -185,7 +185,7 @@ sgemm example
 
 This example illustrates how to efficiently offload the CBLAS SGEMM routine
 (single precision matrix multiply) to the DSPs using OpenCL. The results
-obtained on the DSP are compared against a cblas_sgemm call on the ARM. The
+obtained on the DSP are compared against a cbas_sgemm call on the ARM. The
 example reports performance in GFlops for both DSP and ARM variants.
 
 .. _dgemm example:

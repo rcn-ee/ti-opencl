@@ -4,9 +4,9 @@ Compilation
 
 A discussion of OpenCL compilation could describe either; compiling the host
 OpenCL application, or compiling OpenCL C programs containing code that is
-en-queued to OpenCL devices.  OpenCL was designed to make both easy. However,
-there are some options for compilation of OpenCL C programs.  This chapter 
-describes the host compilation process and then enumerates and describes the
+en-queued to OpenCL devices.  OpenCL was designed to make both easy, however
+there are some options for compilation of OpenCL C programs.  We will briefly
+describe the host compilation process and will then enumerate and describe the
 OpenCL C program compilation process.
 
 Compile Host OpenCL Applications
@@ -45,7 +45,7 @@ perhaps only link or perform other book-keeping.
 Additionally, you have the choice to embed the content for your program in the
 application or to read it from a file.  This is applicable for both programs
 created from source and programs created from binary.  The cross product of
-these two options give you four cases for OpenCL C program creation:
+these two options gives you four cases for OpenCL C program creation:
 
 1. Create an OpenCL program from source, with embedded source,
 2. Create an OpenCL program from source, with source in a file,
@@ -55,12 +55,12 @@ these two options give you four cases for OpenCL C program creation:
 Alternatively, we call cases 1 and 2, where the program is created from source,
 on-line compilation, because the compiler is called during the run time of your
 application.  We call cases 3 and 4, where the program is created from binary,
-off-line compilation, because the compiler is called as part of the build of the
+offline compilation, because the compiler is called as part of the build of the
 application and not during the run time of the application. Clearly on-line
 compilation will entail some run time delay as the compilation process
 completes, but it does provide for portability of the application, because the
 on-line compile is encapsulated in the OpenCL program build step and therefore
-the application can run on any OpenCL platform.  Conversely, off-line
+the application can run on any OpenCL platform.  Conversely, offline
 compilation will eliminate the run time delay of compilation and will also
 provide IP protection since the source for the OpenCL C programs will not need
 to be delivered as part of a running application.  When creating programs from
@@ -155,7 +155,7 @@ protects IP better than the on-line compilation models, since the OpenCL C
 source is not required for running the application, only for building the
 application.  It also results in faster runtime, since the time delay for
 on-line compilation will not be experienced.  It does, however, expose
-implementation specific details of off-line compilation and therefore impacts
+implementation-specific details of offline compilation and therefore impacts
 portability. 
 
 .. code-block:: cpp
@@ -175,7 +175,7 @@ portability.
 Line 4 calls a helper function ocl_read_binary to read a binary file into a
 char array.  This helper function is provided with the TI OpenCL product.  To
 use this function, you must include ocl_util.h to see the function prototype.
-This can bee seen in line 1 of the above example.  Also, you will additionally
+This can be seen in line 1 of the above example.  Also, you will additionally
 need to link the host application with the library containing the helper
 function. Add -locl_util as a linker option.
 
@@ -183,7 +183,7 @@ Line 3 defines a pointer to a char array.  The ocl_read_binary function will
 inspect the specified file to determine the number of bytes to allocate, it
 will allocate the bytes, and it will read the contents of the file into those
 bytes.  After a Program object is created using the binary data, the bytes
-allocated by ocl_read_binary should be deleted.  This can be seen on line 10
+allocated by ocl_read_binary  should be deleted.  This can be seen on line 10
 of the example code.  
 
 Line 6 creates a Program:Binaries object.  It requires a pair consisting of a
@@ -230,8 +230,8 @@ below.
 Create an OpenCL program from binary, with embedded binary
 -----------------------------------------------------------
 
-For this OpenCL program build scenario, off-line compilation is again used, but
-an option is given to the off-line compiler :command:`clocl` to instruct it to
+For this OpenCL program build scenario, offline compilation is again used, but
+an option is given to the offline compiler :command:`clocl` to instruct it to
 create a text based file that can be used as a header file rather than a binary
 out file.  The text file is simply the binary data in an initialized char
 array. Invoking clocl like this: :command:`clocl -t kernel.cl` will compile
@@ -239,7 +239,7 @@ array. Invoking clocl like this: :command:`clocl -t kernel.cl` will compile
 a file containing the initialized array ``kernel_dsp_bin`` which can be used
 directly to create an OpenCL Program::Binaries object.  This build method is
 the fastest of the four because neither on-line compilation nor reading the file
-are required.
+is required.
 
 .. code-block:: cpp
   :linenos:
@@ -254,7 +254,7 @@ Line 1 includes the file created by :command:`clocl -t`. Line 2 creates the
 ``Program::Binaries`` object from the array defined in ``kernel.dsp_h``.  Line 4
 creates the OpenCL C program from the binary and Line 5 builds the program.
 
-An example of the first few lines of a kernel.dsp_h file are provided below for
+The first few lines of a kernel.dsp_h file are provided below for
 illustration purposes.  ::
 
     unsigned int kernel_dsp_bin_len = 3656;
@@ -271,19 +271,19 @@ devices specified in the build API call.  These compiles will entail some delay
 and in some cases can result in significant delay.  The TI OpenCL
 implementation does provide a mechanism where the result of an on-line compile
 can be cached on the system and the time delay for compilation is paid once for
-the first invocation of a compile but subsequent invocations are short
+a the first invocation of a compile but subsequent invocations are short
 circuited and the cached result is used instead.  This behavior is controlled
 through the environment variable :envvar:`TI_OCL_CACHE_KERNELS`. 
 
 
-The TI off-line OpenCL C compiler: clocl
+The TI offline OpenCL C compiler: clocl
 =======================================================
 
 Executing :command:`clocl -h` will print the help screen.  Clocl
 contains two sets of options to control behavior. The first set of options is
 clocl and TI OpenCL specific.  They include the option -t which is used to
 generate an embeddable OpenCL C program binary array.  The second set of
-options are generic OpenCL options as specified by the OpenCL 1.1
+options is the generic OpenCL options as specified by the OpenCL 1.1
 specification.  I refer the reader to the specification for more details on
 those options.  
 

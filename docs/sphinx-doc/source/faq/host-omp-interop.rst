@@ -2,7 +2,7 @@
 OpenCL Interoperability with Host OpenMP
 *********************************************
 
-The OpenCL API's are defined to be thread safe.  It is therefore safe for
+The OpenCL APIs are defined to be thread safe.  It is therefore safe for
 multiple threads created in an OpenMP parallel region to enqueue to a shared
 OpenCL queue.  The following example C++ code will create one OpenCL command
 queue and will enqueue a kernel from multiple threads in an OpenMP parallel

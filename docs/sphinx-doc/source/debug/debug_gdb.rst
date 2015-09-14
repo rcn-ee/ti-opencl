@@ -17,7 +17,7 @@ release`_, build and install on your file system.
 
 
 DSP side debug with host side client gdbc6x
-======================
+===========================================
 DSP side kernel code can be debugged with hosted debugger, gdbc6x.  The
 process to debug kernel code in an OpenCL application is as follows.  You will
 need two windows/consoles, one window to run OpenCL application, the other
@@ -27,7 +27,7 @@ to debug DSP side kernel.
    application, for example, ``TI_OCL_DEBUG=1 ./your_ocl_app`` if you use bash
 2. Once the application is running, before launching your kernel to DSP,
    OpenCL runtime will print out a gdbc6x command in window 1, for example,
-    gdbc6x -q -iex "target remote /dev/gdbtty0" -iex "set confirm off" -iex "symbol-file /usr/share/ti/opencl/dsp.out" -iex "add-symbol-file /tmp/opencl7mNBld.out 0x86000000" -iex "b exit" -iex "b VectorAdd"
+   gdbc6x -q -iex "target remote /dev/gdbtty0" -iex "set confirm off" -iex "symbol-file /usr/share/ti/opencl/dsp.out" -iex "add-symbol-file /tmp/opencl7mNBld.out 0x86000000" -iex "b exit" -iex "b VectorAdd"
 3. Copy and paste the gdbc6x command into window 2, run it
 4. Hit any key in window 1
 5. Start debugging the kernel in window 2

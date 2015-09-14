@@ -28,9 +28,9 @@ DDR3 available                    up to 8GB
 On-chip shared memory             6MB
 ================================= ===========
 
-The L1 and L2 memory areas in the C66x cores can be configured as all cache, all
+The L1 and L2 memory areas in the C66 cores can be configured as all cache, all
 scratchpad or partitioned with both. For OpenCL applications, this partition is 
-fixed as follows for each C66x core:
+fixed as follows for each C66 core:
 
 ====================================== =======
 Attribute                              66AK2H
@@ -54,18 +54,18 @@ L2 available for OpenCL local buffers  768KB
     Attribute                         AM57 
     ================================= =======
     ARM A15 CPU cores                 2
-    C66x DSP cores                    2
-    L1P per C66x core                 32KB
-    L1D per C66x core                 32KB
+    C66 DSP cores                     2
+    L1P per C66 core                  32KB
+    L1D per C66 core                  32KB
     L2 cache shared across ARM cores  2MB
-    L2 memory per C66x core           288KB
+    L2 memory per C66 core            288KB
     DDR3 available                    2GB
     On-chip shared memory             N/A
     ================================= =======
 
-    The L1 and L2 memory areas in the C66x cores can be configured as all cache, all
+    The L1 and L2 memory areas in the C66 cores can be configured as all cache, all
     scratchpad or partitioned with both. For OpenCL applications, this partition is 
-    fixed as follows for each C66x core:
+    fixed as follows for each C66 core:
 
     ====================================== ========
     Attribute                              AM57
@@ -83,7 +83,7 @@ Caching
 
 The below image illustrates the memory regions in which OpenCL buffers may
 reside.  Those regions are highlighted in blue.  It also shows the paths from
-those regions through the caches to/from the C66x DSP cores.  There are other busses for
+those regions through the caches to/from the C66 DSP cores.  There are other busses for
 data movement on the device, for example to move data from ddr to L2 SRAM.
 This image, however, is focused on automatic data movement through cache memory.
 
