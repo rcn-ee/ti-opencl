@@ -17,7 +17,7 @@ Though TI's OpenCL implementation is currently at most OpenCL version 1.1
 conformant on the SoCs that we support, we do support this OpenCL version 
 1.2 feature, ``printf``, as described in section 6.12.13 in OpenCL v1.2
 specification.  The output of ``printf`` from DSP side is redirected to the
-host side, printed out in the stdout, for example, the linux window/terminal
+host side, printed out in the stdout, for example, the Linux window/terminal
 where you launch your OpenCL application.
 
 Not only can you put ``printf`` in the OpenCL C kernel code, as described in
@@ -36,7 +36,7 @@ vector element out.  For example, instead of
 ``int2 v; ...; printf("v = <%v>\n", v);``,
 you can write ``printf("v = <%d,%d>\n", v.s0, v.s1);``.
 
-Output of ``printf`` from the DSP side is automatically prepended with the dsp
+Output of ``printf`` from the DSP side is automatically prepended with the DSP
 core number where the kernel code runs, for example, ``[core 0] v = <1,5>``.
 Sometimes, knowing which core your kernel lands on can also help debugging.
 
