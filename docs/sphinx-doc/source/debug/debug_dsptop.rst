@@ -2,8 +2,8 @@
 Debug with dsptop
 ****************************
 
-**dsptop**, a TI utility that is similar to linux utility **top**, can be used
-to debug which dsp cores participate in computation, memory usage of OpenCL
+**dsptop**, a TI utility that is similar to Linux utility **top**, can be used
+to debug which DSP cores participate in computation, memory usage of OpenCL
 buffers, and kernel activities with timestamps such as workgroup start,
 workgroup complete, and cache operations.  
 
@@ -15,10 +15,11 @@ next.  Details about the usage of dsptop can be found by running
 .. _dsptop wikipage: http://processors.wiki.ti.com/index.php/Dsptop
 
 
-**Note**: The first time dsptop runs on AM57, the following message will be
-printed out in the console.  However, this message is harmless and won't
-impact functionality of dsptop and your application.  We are working on a fix
-to remove this message in the future releases.
+.. Note::
+  The first time dsptop runs on AM57, the following message will be
+  printed out in the console.  However, this message is harmless and won't
+  impact functionality of dsptop and your application.  We are working on a fix
+  to remove this message in the future releases.
 
 ::
 

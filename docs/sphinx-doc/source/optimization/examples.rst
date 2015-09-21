@@ -8,7 +8,7 @@ Overview of Gaussian Filter
 ===========================
 The Gaussian Filter is used as a smoothing filter. The filter is applied by convolving a nxn image window with a nxn Gaussian kernel and obtaining a weighted sum. More on the filter is available here: http://homepages.inf.ed.ac.uk/rbf/HIPR2/gsmooth.htm 
 
-The kernel size that we are using here is a 3x3 kernel. Let A be a 3x3 image window and B be the 3x3 gaussian kernel. The filter is applied by convolving A and B and A is obtained in a sliding window fashion.
+The kernel size that we are using here is a 3x3 kernel. Let A be a 3x3 image window and B be the 3x3 Gaussian kernel. The filter is applied by convolving A and B and A is obtained in a sliding window fashion.
 
 Natural C Code
 ==============
