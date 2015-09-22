@@ -399,11 +399,11 @@ unsigned dsp_speed()
     int MULT                = (*(int*)(CLOCK_BASE_ADDR + 0x110));
     int OUTDIV              = (*(int*)(CLOCK_BASE_ADDR + 0x108));
 
-    unsigned mult = 1 + ((MULT & 0x3F) | ((MAINPLLCTL0 & 0x7F000) >> 6));
-    unsigned prediv = 1 + (MAINPLLCTL0 & 0x3F);
+    unsigned mult       = 1 + ((MULT & 0x3F) | ((MAINPLLCTL0 & 0x7F000) >> 6));
+    unsigned prediv     = 1 + (MAINPLLCTL0 & 0x3F);
     unsigned output_div = 1 + ((OUTDIV >> 19) & 0xF);
-    unsigned speed = DSP_PLL * mult / prediv / output_div;
-    return speed / 1000000;
+    float speed = (float)DSP_PLL * mult / prediv / output_div;
+    return speed / 1e6;
 }
 
 /******************************************************************************
