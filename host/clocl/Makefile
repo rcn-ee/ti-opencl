@@ -32,7 +32,6 @@ ifneq (,$(findstring 86, $(UNAME_M)))
         TARGET := x86
         LLVM_DIR = $(X86_LLVM_DIR)
         LLVM_CONFIG_NAME = llvm-config
-  	LLVM_LDFLAGS = -ltinfo
    else ifeq ($(findstring arm-linux, $(CXX)), arm-linux) 
         TARGET := arm
    endif
@@ -47,15 +46,9 @@ LLVM_CONFIG_PREFIX = $(LLVM_DIR)/bin/
 LLVM_CONFIG_EXE ?= $(LLVM_CONFIG_PREFIX)$(LLVM_CONFIG_NAME)
 LLVM_CXXFLAGS = `$(LLVM_CONFIG_EXE) --cxxflags`
 
-
-# Cannot use llvm-config --ldflags because it includes -lz which is not 
-# available on arago
-LLVM_LDFLAGS += -L `$(LLVM_CONFIG_EXE) --libdir` -lpthread -lrt -ldl -lm
-LLVM_LIBS = `$(LLVM_CONFIG_EXE) --libs` 
-#LLVM_LIBS = -lLLVMLTO -lLLVMObjCARCOpts -lLLVMLinker -lLLVMipo -lLLVMVectorize -lLLVMBitWriter -lLLVMIRReader -lLLVMAsmParser -lLLVMTableGen -lLLVMDebugInfo -lLLVMOption -lLLVMARMDisassembler -lLLVMARMCodeGen -lLLVMSelectionDAG -lLLVMAsmPrinter -lLLVMARMAsmParser -lLLVMARMDesc -lLLVMARMInfo -lLLVMARMAsmPrinter -lLLVMJIT -lLLVMLineEditor -lLLVMMCAnalysis -lLLVMMCDisassembler -lLLVMInstrumentation -lLLVMInterpreter -lLLVMCodeGen -lLLVMScalarOpts -lLLVMInstCombine -lLLVMTransformUtils -lLLVMipa -lLLVMAnalysis -lLLVMProfileData -lLLVMMCJIT -lLLVMTarget -lLLVMRuntimeDyld -lLLVMObject -lLLVMMCParser -lLLVMBitReader -lLLVMExecutionEngine -lLLVMMC -lLLVMCore -lLLVMSupport
-
-#LLVM_LIBS = `$(LLVM_CONFIG_EXE) --libs $(TARGET) asmparser bitwriter tablegen mcjit debuginfo interpreter irreader jit linker instrumentation ipo mcdisassembler object runtimedyld target mcjit profiledata analysis ipa transformutils instcombine scalaropts interpreter instrumentation mcdisassembler mcanalysis lineeditor asmparser irreader asmprinter selectiondag x86codegen x86asmparser x86disassembler option vectorize ipo objcarcopts lto codegen mcparser bitreader executionengine mc support --system-libs`
-#LLVM_LIBS = `$(LLVM_CONFIG_EXE) --libs $(TARGET) asmparser bitwriter tablegen mcjit debuginfo interpreter irreader jit linker instrumentation ipo mcdisassembler`
+# -lz is not available on arago
+LLVM_LDFLAGS = $(subst -lz,,$(shell $(LLVM_CONFIG_EXE) --ldflags))
+LLVM_LIBS = `$(LLVM_CONFIG_EXE) --libs $(TARGET) asmparser bitwriter tablegen mcjit debuginfo interpreter irreader jit linker instrumentation ipo mcdisassembler`
 
 UTILDIR         = ../src/core
 WGADIR          = ../src/core/dsp
@@ -76,11 +69,7 @@ OBJS        = AllocasToEntry.o BarrierBlock.o BarrierTailReplication.o \
 OBJS := $(patsubst %.o, $(TARGET)/%.o, $(OBJS))
 
 CXXFLAGS := $(LLVM_CXXFLAGS) -I$(UTILDIR) -I$(WGADIR) -I$(POCLDIR) \
-            $(HOST_USR_INCLUDE) -O3 -fexceptions -std=c++0x \
-            -D_PRODUCT_VERSION=$(_PRODUCT_VERSION) $(CXXFLAGS) 
-
-#CXXFLAGS := $(LLVM_CXXFLAGS) -I$(UTILDIR) -I$(WGADIR) -I$(POCLDIR) \
-            -DLLVM_3_3 $(HOST_USR_INCLUDE) -O3 -fexceptions \
+            -$(HOST_USR_INCLUDE) -O3 -fexceptions -std=c++0x \
             -D_PRODUCT_VERSION=$(_PRODUCT_VERSION) $(CXXFLAGS) 
 
 LIBS      = $(CLANG_LIBS)  $(LLVM_LIBS)

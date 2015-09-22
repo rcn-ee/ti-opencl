@@ -1,13 +1,13 @@
 *****************************************************************************
 Guidelines for porting Stand-alone DSP applications to OpenCL
 *****************************************************************************
-For C66 DSP developers moving to OpenCL from a standalone DSP
+For C66x DSP developers moving to OpenCL from a standalone DSP
 application environment, the following guidelines will be helpful for the
 transition.  
 
 Heap Memory Management
 ======================================
-Within an OpenCL application, memory management for the C66 DSP is most
+Within an OpenCL application, memory management for the C66x DSP is most
 naturally accomplished through the use of OpenCL buffers defined in the host
 application.  OpenCL buffers can be defined in DDR, MSMC, and L2 memory
 regions. See :doc:`../memory/buffers` for details.  If OpenCL buffers are use, this
@@ -15,12 +15,12 @@ eliminates the need for heap management on the DSP, i.e. calls to malloc, call,
 free, etc...  
 
 However, when porting existing code to run under an OpenCL kernel, it is
-sometimes convienient to allow existing heap management calls to continue to
+sometimes convenient to allow existing heap management calls to continue to
 exist. To support this there is a small (<= 8MB) heap available on the DSP's
 that can be used to service malloc type calls. This heap will be in DDR and
-will be shared across the DSP cores.  If multiple workgroups (DSPs) are
+will be shared across the DSP cores.  If multiple work-groups (DSPs) are
 accessing the same location, then it is up to the application to ensure
-synchronization to preent race conditions.
+synchronization to prevent race conditions.
 
 If the size of the small heap is insufficient for your needs or you would like
 a heap in on-chip shared memory, We have added some additional built-in

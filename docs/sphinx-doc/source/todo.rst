@@ -3,16 +3,16 @@ TODO list of documentation needs.
 ********************************************
 
 - Compilation of kernels with Standard C code.  
-    - online compilation
-    - offline compilation
+    - on-line compilation
+    - off-line compilation
     - cl6x
     - the C6000 programmers guide
 - EDMA usage
     - Async_work_group_copy
     - the layer under async
     - edmalld on the ARM side
-- Relative performance of the different memory hieracrchy
-- cache builtin functions
+- Relative performance of the different memory hierarchy
+- cache built-in functions
 - disabling write through
 - disabling prefetch
 - warning on stack usage

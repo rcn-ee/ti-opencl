@@ -46,7 +46,7 @@
 
 #include "driver.h"
 
-#if defined(DEVICE_K2H)
+#if defined(DEVICE_K2X)
 extern "C"
 {
     #include <ti/runtime/mmap/include/mmap_resource.h>
@@ -114,7 +114,7 @@ void *dsp_worker_event_completion (void* data);
 void HOSTwait   (unsigned char dsp_id);
 
 
-#if defined (DSPC868X) || defined (DEVICE_K2H)
+#if defined (DSPC868X) || defined (DEVICE_K2X)
 #include "device_keystone.cpp"
 #elif defined (DEVICE_AM57)
 #include "device_am57x.cpp"
@@ -158,7 +158,7 @@ void DSPDevice::setup_memory(DSPDevicePtr64 &global1, DSPDevicePtr64 &global2,
     // driver->shmem_configure(p_addr_mbox_d2h_phys, p_size_mbox_d2h);
     // driver->shmem_configure(p_addr_mbox_h2d_phys, p_size_mbox_h2d);
 
-    for (int core=0; core < TOTAL_NUM_CORES_PER_CHIP; core++)
+    for (int core=0; core < dspCores(); core++)
         driver->shmem_configure(((0x10 + core) << 24) + p_addr_local_mem,    
                                 p_size_local_mem);
 
@@ -226,7 +226,7 @@ DSPDevice::~DSPDevice()
         pthread_cond_destroy(&p_worker_cond);
     }
 
-#if defined(DEVICE_K2H) || defined(DSPC868X)
+#if defined(DEVICE_K2X) || defined(DSPC868X)
     /*-------------------------------------------------------------------------
     * Wait for the EXIT acknowledgement from device
     *------------------------------------------------------------------------*/
@@ -250,7 +250,7 @@ DSPDevice::~DSPDevice()
     *------------------------------------------------------------------------*/
     if (p_dsp_id == 0) Driver::instance()->close(); 
 
-#if defined(DEVICE_K2H)
+#if defined(DEVICE_K2X)
     free_ocl_qmss_res();
 #endif
 }
@@ -435,7 +435,7 @@ bool DSPDevice::gotEnoughToWorkOn() { return p_num_events > 0; }
 * Getter functions
 ******************************************************************************/
 bool          DSPDevice::hostSchedule() const { return p_core_mail;   }
-unsigned int  DSPDevice::numDSPs()      const { return p_cores;   }
+unsigned int  DSPDevice::dspCores()      const { return p_cores;   }
 float         DSPDevice::dspMhz()       const { return p_dsp_mhz; }
 unsigned char DSPDevice::dspID()        const { return p_dsp_id;  }
 DLOAD_HANDLE  DSPDevice::dload_handle() const { return p_dload_handle;  }
@@ -662,7 +662,7 @@ bool DSPDevice::isInClMallocedRegion(void *ptr)
 int DSPDevice::numHostMails(Msg_t &msg) const
 {
     if (hostSchedule() && (msg.command == EXIT || msg.command == CACHEINV ||
-                           msg.command == NDRKERNEL))  return numDSPs();
+                           msg.command == NDRKERNEL))  return dspCores();
     return 1;
 }
 
@@ -678,7 +678,7 @@ void DSPDevice::mail_to(Msg_t &msg, unsigned int core)
         case NDRKERNEL:
             if (hostSchedule())
             {
-                for (int i = 0; i < numDSPs(); i++)
+                for (int i = 0; i < dspCores(); i++)
                     p_mb->to((uint8_t*)&msg, sizeof(Msg_t), i);
                 return;
             }
@@ -735,7 +735,7 @@ int DSPDevice::mail_from()
     return trans_id_rx;
 }
 
-#if defined(DEVICE_K2H)
+#if defined(DEVICE_K2X)
 /******************************************************************************
 * void* DSPDevice::get_mpax_default_res, only need to be computed once
 ******************************************************************************/
@@ -763,7 +763,7 @@ void* DSPDevice::get_mpax_default_res()
     }
     return p_mpax_default_res;
 }
-#endif  // #ifdef DEVICE_K2H
+#endif  // #ifdef DEVICE_K2X
 
 /******************************************************************************
 * cl_int DSPDevice::info
@@ -806,7 +806,7 @@ cl_int DSPDevice::info(cl_device_info param_name,
             break;
 
         case CL_DEVICE_MAX_COMPUTE_UNITS:
-            SIMPLE_ASSIGN(cl_uint, numDSPs());
+            SIMPLE_ASSIGN(cl_uint, dspCores());
             break;
 
         case CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS:
@@ -877,13 +877,36 @@ cl_int DSPDevice::info(cl_device_info param_name,
         * memory available, reserve 16MB for loading OCL program code.
         *--------------------------------------------------------------------*/
         case CL_DEVICE_MAX_MEM_ALLOC_SIZE:
+        {
+            static cl_ulong cap = 0;
+            if(cap == 0)
+            {
+                cap = (cl_ulong)1ul << 30;
+
+                char *cap_str = getenv("TI_OCL_LIMIT_DEVICE_MAX_MEM_ALLOC_SIZE");
+                if(cap_str)
+                {
+                    errno = 0;
+                    char *tmp;
+                    cap = strtoul(cap_str, &tmp, 10);
+                    if(errno != 0 || tmp == cap_str || *tmp != '\0' || cap == 0)
+                    {
+                        printf("ERROR: TI_OCL_LIMIT_DEVICE_MAX_MEM_ALLOC_SIZE "
+                               "must be a positive integer\n");
+                        exit(1);
+                    }
+                }
+            }
+
             if (p_device_ddr_heap2.size() + p_device_ddr_heap3.size() > 0)
-                SIMPLE_ASSIGN(cl_ulong, std::min(p_device_ddr_heap1.size(),
-                                                 (cl_ulong)1ul << 30))
+                SIMPLE_ASSIGN(cl_ulong,
+                    std::min(p_device_ddr_heap1.size(), cap))
             else
-                SIMPLE_ASSIGN(cl_ulong, std::min(p_device_ddr_heap1.size()
-                                      - (1<<24), (cl_ulong)1ul << 30))
+                SIMPLE_ASSIGN(cl_ulong,
+                    std::min(p_device_ddr_heap1.size() - (1<<24), cap))
+
             break;
+        }
 
         case CL_DEVICE_IMAGE2D_MAX_WIDTH:
             SIMPLE_ASSIGN(size_t, 0);           // images not supported

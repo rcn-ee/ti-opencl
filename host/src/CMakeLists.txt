@@ -53,8 +53,8 @@ if (C6678_BUILD)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DDSPC868X")
 endif()
 
-if (HAWKING_BUILD)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDEVICE_K2H")
+if (K2X_BUILD)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDEVICE_K2X")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
 endif()
 
@@ -150,7 +150,7 @@ set(COAL_SRC_FILES
     llvmopencl/SimplifyShuffleBIFCall.cpp
 )
 
-if (HAWKING_BUILD)
+if (K2X_BUILD)
     set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/rm_qmss_res.c)
 endif()
 
@@ -220,7 +220,7 @@ find_library(SQLITE3_LIB sqlite3)
 LIST (APPEND LIBS ${FFI_LIB} ${BFD_LIB} ${SQLITE3_LIB})
 
 # Add target dependent libraries
-if(HAWKING_BUILD)
+if(K2X_BUILD)
    find_library(CMEM_LIB          ticmem)
    find_library(MPMMAIL_LIB       mpmmailbox)
    find_library(MPMTRANSPORT_LIB  mpmtransport)

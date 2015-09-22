@@ -56,7 +56,7 @@
 
 #include "llvm/IR/InstIterator.h"
 
-#if defined(DEVICE_K2H)
+#if defined(DEVICE_K2X)
 extern "C"
 {
     #include <ti/runtime/mmap/include/mmap_resource.h>
@@ -165,7 +165,7 @@ size_t DSPKernel::guessWorkGroupSize(cl_uint num_dims, cl_uint dim,
                                      size_t global_work_size) const
 {
     // ASW TODO - what the ????
-    unsigned int dsps = p_device->numDSPs();
+    unsigned int dsps = p_device->dspCores();
 
     /*-------------------------------------------------------------------------
     * Find the divisor of global_work_size the closest to dsps but >= than it
@@ -581,15 +581,18 @@ cl_int DSPKernelEvent::callArgs(unsigned max_args_size)
 static void debug_pause(uint32_t entry, uint32_t dsp_id, 
                         const char* outfile, char *name, DSPDevicePtr load_addr)
 {
+    Driver *driver = Driver::instance();
+
     printf("gdbc6x -q "
            "-iex \"target remote /dev/gdbtty%d\" "
            "-iex \"set confirm off\" "
-           "-iex \"symbol-file /usr/share/ti/opencl/dsp.out\" "
+           "-iex \"symbol-file %s\" "
            "-iex \"add-symbol-file %s 0x%08x\" "
            "-iex \"b exit\" "
            "-iex \"b %s\" "
            "\n",
-            dsp_id, outfile, load_addr, name);
+            dsp_id, driver->dsp_monitor(dsp_id).c_str(),
+            outfile, load_addr, name);
 
     printf("Press any key, then enter to continue\n");
     do { char t; std::cin >> t; } while(0);
@@ -768,8 +771,7 @@ cl_int DSPKernelEvent::init_kernel_runtime_variables(Event::Type evtype,
 
     if (cfg->WG_alloca_size > 0)
     {
-        uint32_t chip_alloca_size = cfg->WG_alloca_size *
-                                    TOTAL_NUM_CORES_PER_CHIP;
+        uint32_t chip_alloca_size = cfg->WG_alloca_size * p_device->dspCores();
         if (cfg->WG_alloca_size <= remaining_l2_size)
         {
             p_WG_alloca_start = local_scratch;
@@ -890,7 +892,7 @@ cl_int DSPKernelEvent::setup_extended_memory_mappings()
 {
     p_msg.u.k.flush.num_mpaxs = 0;
     uint32_t num_64bit_bufs = p_64bit_bufs.size();
-#if defined(DEVICE_K2H)
+#if defined(DEVICE_K2X)
     if (num_64bit_bufs > 0)
     {
         uint64_t *phys_addrs = new uint64_t[num_64bit_bufs];

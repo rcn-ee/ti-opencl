@@ -21,7 +21,7 @@ memory system and would contain standard items like:
 The CMEM contiguous memory is controlled by a Linux kernel module that
 guarantees contiguous virtual addresses within a range are mapped to
 contiguous physical addresses within the range. This is required for
-buffer communication between the A15 and C66 cores, because the C66 cores
+buffer communication between the A15 and C66x cores, because the C66x cores
 do not access memory through a shared MMU with the A15 CPUs and thus require
 that buffers be allocated in contiguous physical memory. The CMEM memory
 areas will be managed by OpenCL for allocation to OpenCL buffers and OpenCL C
@@ -30,11 +30,11 @@ programs.
 The reserved memory is a very small portion of the DDR3 memory that is used in
 the OpenCL implementation and is exposed to neither CMEM nor Linux.
 
-66AK2H
+66AK2x
 =====================================================
 
-The 8GB of attached DDR3 memory is accessible to the K2H device through a
-64-bit bus. The 8GB of DDR3 is populated in the K2H 36-bit address space at
+The 8GB of attached DDR3 memory is accessible to the K2x device through a
+64-bit bus. The 8GB of DDR3 is populated in the K2x 36-bit address space at
 locations 8:0000:0000 through 9:FFFF:FFFF.
 
 The first 2GB of DDR3 are fixed in usage to the following:

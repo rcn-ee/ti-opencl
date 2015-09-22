@@ -60,11 +60,11 @@ to initialize internal heap data structures before making any __malloc_l2 calls.
     For heaps created in MSMC or DDR, the contents of the heap are shared 
     across the cores.  If the application is written such that multiple DSP 
     cores are writing and reading the same locations, the programmer is responsible 
-    for synchronizaton to prevent data race conditions. 
+    for synchronization to prevent data race conditions. 
 
-.. Information:: 
+.. Important::
 
-    These dsp heap functions were motivated by exisiting standard C code that can now be 
+    These dsp heap functions were motivated by existing standard C code that can now be 
     called from OpenCL C code.  We do not recommend using these API's for newly 
     written code, because they do not have semantics that are appropriate for 
     all OpenCL execution models.  

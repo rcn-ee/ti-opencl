@@ -116,8 +116,9 @@ int run_cl6x(string filename, string *llvm_bitcode, string addl_files)
 
     command += "--disable:sploop ";
 
-    if (opt_debug) command += "-o0 -g ";
-    else           command += "-o3 --symdebug:none ";
+    if (opt_debug)        command += "-o0 -g ";
+    else if (opt_symbols) command += "-o3 ";
+    else                  command += "-o3 --symdebug:none ";
 
     const char *cgt_install = get_cgt_install();
 

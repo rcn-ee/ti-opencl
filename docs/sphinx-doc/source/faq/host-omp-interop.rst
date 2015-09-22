@@ -53,7 +53,7 @@ same device, where each command Queue is private to the thread.  The following
 example is a slightly modified version of the above illustrating the use of
 private command queues. Note the definition of the command queue and the
 functor in the parallel region.  Also note that since there will not be a
-command queue defined in the main thread, one finish() api call to wait on all
+command queue defined in the main thread, one finish() API call to wait on all
 threads is not possible, so a wait is attached to each kernel enqueue command.::
 
     #define __CL_ENABLE_EXCEPTIONS

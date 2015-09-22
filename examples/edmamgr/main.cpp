@@ -35,18 +35,19 @@
 using namespace cl;
 using namespace std;
 
-const int M = 1024;
-const int N = M * 1024;
+const int num_chunks = 1024;
+const int chunk_size = 1024;
+const int bytes      = num_chunks * chunk_size;
 
-cl_uchar src   [N];
-cl_uchar dst   [N];
+cl_uchar src   [bytes];
+cl_uchar dst   [bytes];
 
 int main(int argc, char *argv[])
 {
    cl_int err     = CL_SUCCESS;
    int    bufsize = sizeof(src);
 
-   for (int i=0; i < N; ++i) { src[i] = 0xAB; dst[i] = 0; }
+   for (int i=0; i < bytes; ++i) { src[i] = 0xAB; dst[i] = 0; }
 
    try 
    {
@@ -63,17 +64,18 @@ int main(int argc, char *argv[])
      Kernel kernel(program, "oclEcpy");
      kernel.setArg(0, bufSrc);
      kernel.setArg(1, bufDst);
+     kernel.setArg(2, chunk_size);
 
      CommandQueue Q(context, devices[0]);
 
      Q.enqueueWriteBuffer(bufSrc, CL_TRUE, 0, bufsize, src);
-     Q.enqueueNDRangeKernel(kernel,NullRange,NDRange(N),NDRange(M));
+     Q.enqueueNDRangeKernel(kernel,NullRange,NDRange(num_chunks),NDRange(1));
      Q.enqueueReadBuffer (bufDst, CL_TRUE, 0, bufsize, dst);
    }
    catch (Error err) 
    { cerr << "ERROR: " << err.what() << "(" << err.err() << ")" << endl; }
 
-   for (int i=0; i < N; ++i)
+   for (int i=0; i < bytes; ++i)
        if (dst[i] != 0x000000AB) 
            { cout << "Failed at Element " << i << endl; return -1; }
 
