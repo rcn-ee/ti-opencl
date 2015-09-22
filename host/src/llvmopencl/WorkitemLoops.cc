@@ -1143,12 +1143,10 @@ WorkitemLoops::AddContextSaveRestore
 
   /* Find out the uses to fix first as fixing them invalidates
      the iterator. */
-  for (Instruction::use_iterator ui = instruction->use_begin(),
-         ue = instruction->use_end();
-       ui != ue; ++ui) 
+  for (User *U : instruction->users() )
     {
       Instruction *user;
-      if ((user = dyn_cast<Instruction> (*ui)) == NULL) continue;
+      if ((user = dyn_cast<Instruction> (U)) == NULL) continue;
       if (user == theStore) continue;
       uses.push_back(user);
     }
@@ -1421,10 +1419,9 @@ WorkitemLoops::localizeGetLocalId(Function *F)
     ParallelRegion *region = RegionOfBlock(call->getParent());
     std::list<Instruction *> replist;
 
-    for (Value::use_iterator UI = call->use_begin(),
-                             UE = call->use_end(); UI != UE; ++UI)
+    for (User *U : call->users())
     {
-      if (Instruction *inst = dyn_cast<Instruction>(*UI))
+      if (Instruction *inst = dyn_cast<Instruction>(U))
       {
         if (   inst->getParent() == B
             || RegionOfBlock(inst->getParent()) == region) continue;
@@ -1563,10 +1560,9 @@ WorkitemLoops::findIntraRegionAllocas(llvm::Function *F)
       }
     }
 
-    std::set<BasicBlock *> userSet;
-    for (Value::use_iterator UI = alloca->use_begin(),
-                             UE = alloca->use_end(); UI != UE; ++UI)
-      if (Instruction *instr = dyn_cast<Instruction>(*UI))
+    std::set<const BasicBlock *> userSet;
+    for (const User *U : alloca->users())
+      if (const Instruction *instr = dyn_cast<Instruction>(U))
         userSet.insert(instr->getParent());
 
     bool is_intra = true;
@@ -1578,10 +1574,10 @@ WorkitemLoops::findIntraRegionAllocas(llvm::Function *F)
       bool onein  = false;
       bool oneout = false;
       ParallelRegion *region = (*RI);
-      for (std::set<BasicBlock *>::iterator BI = userSet.begin(),
+      for (std::set<const BasicBlock *>::iterator BI = userSet.begin(),
                                             BE = userSet.end(); BI != BE; ++BI)
       {
-        BasicBlock *B = *BI;
+        const BasicBlock *B = *BI;
         if (region->HasBlock(B)) { onein  = true; if (oneout) break; }
         else                     { oneout = true; if (onein)  break; }
       }

@@ -546,7 +546,7 @@ ParallelRegion::AddBlockAfter(llvm::BasicBlock *block, llvm::BasicBlock *after)
 }
 
 bool 
-ParallelRegion::HasBlock(llvm::BasicBlock *bb)
+ParallelRegion::HasBlock(const llvm::BasicBlock *bb)
 {
     return find(begin(), end(), bb) != end();
 }

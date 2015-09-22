@@ -79,7 +79,7 @@ class Kernel;
 
     void AddParallelLoopMetadata(llvm::MDNode *identifier);
 
-    bool HasBlock(llvm::BasicBlock *bb);
+    bool HasBlock(const llvm::BasicBlock *bb);
 
     void InjectRegionPrintF();
     void InjectVariablePrintouts();
