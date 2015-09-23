@@ -662,7 +662,8 @@ bool DSPDevice::isInClMallocedRegion(void *ptr)
 int DSPDevice::numHostMails(Msg_t &msg) const
 {
     if (hostSchedule() && (msg.command == EXIT || msg.command == CACHEINV ||
-                           msg.command == NDRKERNEL))  return numDSPs();
+                           (msg.command == NDRKERNEL && !IS_DEBUG_MODE(msg))))
+        return numDSPs();
     return 1;
 }
 
@@ -678,7 +679,7 @@ void DSPDevice::mail_to(Msg_t &msg, unsigned int core)
         case NDRKERNEL:
             if (hostSchedule())
             {
-                for (int i = 0; i < numDSPs(); i++)
+                for (int i = 0; i < numHostMails(msg); i++)
                     p_mb->to((uint8_t*)&msg, sizeof(Msg_t), i);
                 return;
             }
