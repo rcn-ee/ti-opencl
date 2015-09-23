@@ -1072,8 +1072,11 @@ void DSPKernelEvent::free_tmp_bufs()
     /*-------------------------------------------------------------------------
     * Cache-Inv mapped buffers for clMalloced USE_HOST_PTR
     * CHANGE: We do cacheWbInv before dispatching kernel for !READ_ONLY
+    * CHANGE AGAIN: On AM57, we see (7 out of 8000) failures that 1 or 2
+    *               previously invalidated cache line got back into cache,
+    *               so we inv again here
     *------------------------------------------------------------------------*/
-    /***
+    // /***
     for (int i = 0; i < p_hostptr_clMalloced_bufs.size(); ++i)
     {
         MemObject *buffer = p_hostptr_clMalloced_bufs[i];
@@ -1082,6 +1085,6 @@ void DSPKernelEvent::free_tmp_bufs()
         if (! READ_ONLY_BUFFER(buffer))
             driver->cacheInv(data, buffer->host_ptr(), buffer->size());
     }
-    ***/
+    // ***/
 }
 
