@@ -1,3 +1,10 @@
+ti-opencl (01.01.06.00-0ubuntu0~ppa1) trusty; urgency=medium
+
+  * Added L1D scratchpad management functions
+  * Updated documentation
+
+ -- TI Keystone PPA <ti-keystone-ppa@list.ti.com>  Thu, 10 Sep 2015 16:00:09 -0500
+
 ti-opencl (01.01.05.00-0ubuntu0~ppa1) trusty; urgency=medium
 
   * Defects fixed:

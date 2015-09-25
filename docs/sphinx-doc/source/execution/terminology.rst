@@ -59,9 +59,9 @@ definitions from chapter 2 of the `OpenCL 1.1 specification
     Global ID
       A global ID is used to uniquely identify a work-item and is derived from
       the number of global work-items specified when executing a kernel. The
-      global ID is a N-dimensional value that starts at 0 in all dimensions.
+      global ID is an N-dimensional value that starts at 0 in all dimensions.
 
     Local ID
       A local ID specifies a unique work-item ID within a given work-group that
-      is executing a kernel. The local ID is a N-dimensional value that starts
+      is executing a kernel. The local ID is an N-dimensional value that starts
       at 0 in all dimensions.

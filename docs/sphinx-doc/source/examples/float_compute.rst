@@ -166,12 +166,12 @@ Compute on OpenCL device
 OpenCL C kernel code (dsp\_compute.cl)
 --------------------------------------
 
-The kernel arguments are float2 vs float because the C66x DSP core can perform single precision floating point multiply, add efficiently on float2 vectors.
+The kernel arguments are float2 vs. float because the C66x DSP core can perform single precision floating point multiply, add efficiently on float2 vectors.
 
 Copy input arrays from global memory to local memory
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Each work-group copies it's chunk of input data from global memory to
+Each work-group copies its chunk of input data from global memory to
 local memory. The offset of the chunk in global memory is determined by
 the work group id and the number of work items in the work group. This
 copy is performed before any of the work items in the work group are

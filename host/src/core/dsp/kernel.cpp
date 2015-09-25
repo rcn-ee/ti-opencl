@@ -288,14 +288,14 @@ static int kernelID = 0;
 DSPKernelEvent::DSPKernelEvent(DSPDevice *device, KernelEvent *event)
 : p_ret_code(CL_SUCCESS),
   p_device(device), p_event(event), p_kernel((DSPKernel*)event->deviceKernel()),
-  p_debug_kernel(false), p_num_arg_words(0),
+  p_debug_kernel(NODEBUG), p_num_arg_words(0),
   p_WG_alloca_start(0), 
   argref_offset(0)
 { 
     p_kernel_id = __sync_fetch_and_add(&kernelID, 1);
 
     char *dbg = getenv("TI_OCL_DEBUG");
-    if (dbg) p_debug_kernel = true;
+    if (dbg) p_debug_kernel = (strcmp(dbg, "ccs") == 0) ? CCS : GDBC6X;
 
     p_ret_code = callArgs(MAX_ARGS_TOTAL_SIZE);
 
@@ -578,20 +578,29 @@ cl_int DSPKernelEvent::callArgs(unsigned max_args_size)
 * debug_pause
 ******************************************************************************/
 static void debug_pause(uint32_t entry, uint32_t dsp_id, 
-                        const char* outfile, char *name, DSPDevicePtr load_addr)
+                        const char* outfile, char *name, DSPDevicePtr load_addr,
+                        bool is_gdbc6x)
 {
     Driver *driver = Driver::instance();
 
-    printf("gdbc6x -q "
-           "-iex \"target remote /dev/gdbtty%d\" "
-           "-iex \"set confirm off\" "
-           "-iex \"symbol-file %s\" "
-           "-iex \"add-symbol-file %s 0x%08x\" "
-           "-iex \"b exit\" "
-           "-iex \"b %s\" "
-           "\n",
-            dsp_id, driver->dsp_monitor(dsp_id).c_str(),
-            outfile, load_addr, name);
+    if (is_gdbc6x)
+        printf("gdbc6x -q "
+               "-iex \"target remote /dev/gdbtty%d\" "
+               "-iex \"set confirm off\" "
+               "-iex \"symbol-file %s\" "
+               "-iex \"add-symbol-file %s 0x%08x\" "
+               "-iex \"b exit\" "
+               "-iex \"b %s\" "
+               "\n",
+                dsp_id, driver->dsp_monitor(dsp_id).c_str(),
+                outfile, load_addr, name);
+    else
+        printf("CCS Suspend dsp core 0\n"
+               "CCS Load symbols: %s, code offset: 0x%x\n"
+               "CCS Add symbols: %s, no code offset\n"
+               "CCS Add breakpoint: %s\n"
+               "CCS Resume dsp core 0\n",
+               outfile, load_addr, driver->dsp_monitor(dsp_id).c_str(), name);
 
     printf("Press any key, then enter to continue\n");
     do { char t; std::cin >> t; } while(0);
@@ -723,8 +732,8 @@ cl_int DSPKernelEvent::init_kernel_runtime_variables(Event::Type evtype,
     * Overloaded use of this field.  The WG_gid_start fields are not 
     * communicated from host to device, which allows this overload.
     *------------------------------------------------------------------------*/
-    cfg->WG_gid_start[0] = p_debug_kernel ? DEBUG_MODE_WG_GID_START
-                                          : NORMAL_MODE_WG_GID_START;
+    cfg->WG_gid_start[0] = p_debug_kernel != NODEBUG ? DEBUG_MODE_WG_GID_START
+                                                     : NORMAL_MODE_WG_GID_START;
 
     if (evtype == Event::TaskKernel || effective_task)
     {
@@ -932,7 +941,7 @@ cl_int DSPKernelEvent::setup_extended_memory_mappings()
         for (int i = 0; i < p_64bit_bufs.size(); ++i)
         {
             *(p_64bit_bufs[i].first.second) = virt_addrs[i];
-            if (p_debug_kernel)
+            if (p_debug_kernel != NODEBUG)
                printf("Virtual = 0x%x, physical = 0x%llx\n",
                       virt_addrs[i], p_64bit_bufs[i].first.first);
         }
@@ -1013,7 +1022,7 @@ cl_int DSPKernelEvent::setup_stack_based_arguments()
 ******************************************************************************/
 int DSPKernelEvent::debug_kernel_dispatch()
 {
-    if (p_debug_kernel)
+    if (p_debug_kernel != NODEBUG)
     {
         size_t name_length;
         p_kernel->kernel()->info(CL_KERNEL_FUNCTION_NAME, 0, 0, &name_length);
@@ -1025,7 +1034,8 @@ int DSPKernelEvent::debug_kernel_dispatch()
         DSPProgram *prog  = (DSPProgram *)(p->deviceDependentProgram(p_device));
 
         debug_pause(p_kernel->device_entry_pt(), p_device->dspID(), 
-                    prog->outfile_name(), name, prog->program_load_addr());
+                    prog->outfile_name(), name, prog->program_load_addr(),
+                    (p_debug_kernel == GDBC6X));
         free (name);
     }
     return CL_SUCCESS;
@@ -1074,8 +1084,11 @@ void DSPKernelEvent::free_tmp_bufs()
     /*-------------------------------------------------------------------------
     * Cache-Inv mapped buffers for clMalloced USE_HOST_PTR
     * CHANGE: We do cacheWbInv before dispatching kernel for !READ_ONLY
+    * CHANGE AGAIN: On AM57, we see (7 out of 8000) failures that 1 or 2
+    *               previously invalidated cache line got back into cache,
+    *               so we inv again here
     *------------------------------------------------------------------------*/
-    /***
+    // /***
     for (int i = 0; i < p_hostptr_clMalloced_bufs.size(); ++i)
     {
         MemObject *buffer = p_hostptr_clMalloced_bufs[i];
@@ -1084,6 +1097,6 @@ void DSPKernelEvent::free_tmp_bufs()
         if (! READ_ONLY_BUFFER(buffer))
             driver->cacheInv(data, buffer->host_ptr(), buffer->size());
     }
-    ***/
+    // ***/
 }
 

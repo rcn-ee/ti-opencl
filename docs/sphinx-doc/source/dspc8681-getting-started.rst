@@ -8,7 +8,7 @@ Product Description
 This product is an OpenCL 1.1 implementation.  The OpenCL specification defines
 a platform model with a host and compute devices.  For this implementation the
 host is a 32 or 64-bit x86 CPU running Ubuntu 12.04 and the compute devices are
-4 Texas Instruments' TMS320C6678 DSP's resident on a PCIe card installed in the
+4 Texas Instruments' TMS320C6678 DSPs resident on a PCIe card installed in the
 Linux host.
 
 Hardware and OS Requirements
@@ -110,13 +110,13 @@ Limitations
   conformance.  Consider this installation an early alpha version of this
   product.  It is, however, complete enough to be useful under most circumstances.
 
-- OpenCL Images and Samplers are optional features for non GPU devices and are
+- OpenCL Images and Samplers are optional features for non-GPU devices and are
   not supported for the DSP devices.
 
 - This installation does not support the OpenCL ICD (Installable Client
   Driver).  To avoid potential conflict with existing ICD enabled OpenCL
   products, this version will not be installed in the typical /usr/lib,
-  /usr/include locations.  It will instead be installed to a non standard
+  /usr/include locations.  It will instead be installed to a nonstandard
   location and an environment variable is used to locate the installation. To
   compile an opencl application you will need to point to the OpenCL headers
   and library.

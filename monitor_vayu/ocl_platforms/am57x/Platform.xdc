@@ -56,9 +56,15 @@ config ti.platforms.generic.Platform.Instance CPU =
 			  access: "RWX", } ],
 
       /* Non-cached DDR */
-      [ "DDR3_NC",   { name: "DDR3_NC",
+      [ "SR_0",         { name: "SR_0",
                           base: 0xFF000000,
-                          len:  0x01000000,
+                          len:  0x00100000,
+                          space: "data",
+                          access: "RWX", } ],
+
+      [ "DDR3_NC",   { name: "DDR3_NC",
+                          base: 0xFF100000,
+                          len:  0x00F00000,
                           space: "code/data",
                           access: "RWX", } ],
 

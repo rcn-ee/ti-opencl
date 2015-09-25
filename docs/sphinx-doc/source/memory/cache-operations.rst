@@ -24,13 +24,13 @@ for most applications.
 
 Additional OpenCL C built-in functions are provided in the TI OpenCL
 implementation to allow an application author to modify the default partition
-and change the relative sizes of the cache vs. sram areas in L1D and L2.  
+and change the relative sizes of the cache vs. SRAM areas in L1D and L2.  
 
 For L1D, the below functions allow you to set the size of the L1D cache,
-and secondarily to also set the size of L1D sram memory that can be used as
+and secondarily to also set the size of L1D SRAM memory that can be used as
 fast scratchpad memory for an application.  The size of the L1D cache
-subtracted from the total amount of L1D sram available will give the amount of
-L1D sram that can be used as scratchpad memory. The default partition for L1D 
+subtracted from the total amount of L1D SRAM available will give the amount of
+L1D SRAM that can be used as scratchpad memory. The default partition for L1D 
 is all cache and no scratchpad.
 
 .. c:function:: void     __cache_l1d_none  (void)
@@ -131,9 +131,10 @@ using local scratch buffers.
 
     Increasing the size of the L2 cache in OpenCL C code must be used with caution.
     The host OpenCL runtime will not be aware of the use of the cache resizing
-    functions and because it is also managing the L2 scratchpad memory for use as local
-    buffers an opportunity for resource conflict exists.  As a general rule of thumb, do 
-    not increase L2 cache size in functions that are using local buffers.
+    functions. Because the OpenCL runtime is also managing the L2 scratchpad memory 
+    for use as local buffers, an opportunity for resource conflict exists.  As a 
+    general rule of thumb, do not increase L2 cache size in functions that are using
+    local buffers.
 
 .. Warning::
 

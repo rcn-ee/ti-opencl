@@ -95,6 +95,8 @@ class DSPKernel : public DeviceKernel
 class DSPKernelEvent
 {
     public:
+        enum DebugMode { NODEBUG, CCS, GDBC6X };
+
         DSPKernelEvent  (DSPDevice *device, KernelEvent *event);
         ~DSPKernelEvent ();
 
@@ -113,7 +115,7 @@ class DSPKernelEvent
         KernelEvent *             p_event;
         DSPKernel *               p_kernel;
         uint32_t                  p_kernel_id;
-        bool                      p_debug_kernel;
+        enum DebugMode            p_debug_kernel;
         int                       p_num_arg_words;
         Msg_t                     p_msg;
         DSPDevicePtr64            p_WG_alloca_start;

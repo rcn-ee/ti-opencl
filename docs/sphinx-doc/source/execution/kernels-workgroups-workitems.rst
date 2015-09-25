@@ -23,6 +23,7 @@ Enqueueing a Kernel
 ********************
 
 There are two OpenCL APIs for enqueueing a kernel.
+
 #. enqueueNDRangeKernel(), and
 #. enqueueTask().
 
@@ -41,10 +42,10 @@ The expression of an OpenCL C kernel is really an algorithm expression for one
 work-item. That one work-item expression is also associated with a kernel name.
 When an enqueueNDRangeKernel API call is made, the key three arguments to the
 API are :
+
 #. the kernel object which has previously been associated with the kernel name, and
 #. the number of work-items you wish to execute (called the global size), and
-#. the number of work-items you wish to group into a work-group (called the
-local size).
+#. the number of work-items you wish to group into a work-group (called the local size).
 
 For example, the following C++ code ::
 

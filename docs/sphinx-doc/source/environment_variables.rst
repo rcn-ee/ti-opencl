@@ -117,7 +117,7 @@ These environment variables can be used to control OpenCL behavior and provide v
     entail a significant performance penalty versus the hardware capabilities
     of the C66x DSP. Therefore, by default the platform and devices supported in
     the TI OpenCL implementation do not report support for double floating
-    point, i.e., if the platform or device is queried for extensions,
+    point. That is, if the platform or device is queried for extensions,
     cl_khr_fp64 is not listed by default. Additionally the OpenCL C predefined
     macro cl_khr_fp64 is not be defined by default. When the
     TI_OCL_ENABLE_FP64 environment variable is set, the TI OpenCL

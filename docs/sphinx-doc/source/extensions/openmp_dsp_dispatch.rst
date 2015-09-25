@@ -23,7 +23,7 @@ the OpenMP region.
 Structure of an OpenCL + OpenMP Application
 ===========================================
 This section uses the :doc:`vecadd\_openmp <../examples/overview>`
-example in the OpenCL package to describes the structure of an OpenCL + OpenMP application.
+example in the OpenCL package to describe the structure of an OpenCL + OpenMP application.
 
 Host Code
 ---------
@@ -109,7 +109,7 @@ Observe that the host enqueues commands to write to *bufA* and *bufB*
 (from *srcA* and *srcB* residing on the host) before the enqueuing the
 kernel. This ensures that the data transfers complete before execution
 of the OpenCL kernel begins. When the kernel completes execution, the
-command to read from *bufDst* to *dst* (residing on the host).
+command to read from *bufDst* to *dst* (residing on the host) runs.
 
 For OpenCL + OpenMP applications, kernels are dispatched as **OpenCL
 tasks**. Only a single instance of the kernel is executed by one of the
@@ -165,8 +165,8 @@ At the minimum, it specifies the host and device compilers, compiler
 flags, and the linker options.
 
 For the vecadd\_openmp example, the host code and the OpenMP DSP code are
-compiled separately by the gcc and C6000 compilers, respectively. The
-that ``--omp`` C6000 compiler flag is specified for to enable OpenMP compilation
+compiled separately by the gcc and C6000 compilers, respectively. The ``--omp`` 
+C6000 compiler flag is specified to enable OpenMP compilation
 for DSP code.
 
 .. code:: make
@@ -223,14 +223,14 @@ writing applications in this mode.
 -  OpenMP environment variables are not supported and have no effect on
    the OpenMP runtime behavior.
 -  OpenMP timing routines (omp\_get\_wtime, omp\_get\_wtick) assume that
-   the DSP cores are running at 1GHz.
+   the DSP cores are running at 1 GHz.
 -  The configuration of the OpenMP runtime in OpenCL reserves 10KB of
    memory for each core's stack. Since stack sizes are small, avoid
    placing large arrays/structs on the stack. Also, keep the call stack
    short to avoid stack overruns.
 -  The current configuration of the OpenMP runtime reserves 8MB of
    memory for the shared heap. Since this heap size is quite small,
-   avoid dynamic memory allocation (using malloc's). Alternatively,
+   avoid dynamic memory allocation (using mallocs). Alternatively,
    create OpenCL buffers on the host & pass them as arguments to
    kernels.
 -  By default, global variables are placed in DDR.

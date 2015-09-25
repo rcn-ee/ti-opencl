@@ -50,12 +50,12 @@ Boot Routine Dependencies
 ======================================
 OpenCL C does not run a boot setup for dispatch of kernels, therefore
 dependencies on items that typically run before main is called or after main
-returns in a standalone DSP application are not supported in a OpenCL C
+returns in a standalone DSP application are not supported in an OpenCL C
 environment. This would include:
 
    - C++ constructors and destructors
    - atexit registered functions
-   - SysBios Tasks 
+   - TI-RTOS Kernel (SYS/BIOS) Tasks 
    - Some XDC constructs
 
 Linker Command Files

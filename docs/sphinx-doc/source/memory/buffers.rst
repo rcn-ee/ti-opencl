@@ -26,7 +26,7 @@ examples where those arguments are not specified, conversion to the C API will
 require adding NULL arguments in those parameter slots.
 
 Also for the remainder of this section we will assume an OpenCL context named
-``ctx`` has been created with only the DSP's present in the context. The
+``ctx`` has been created with only the DSPs present in the context. The
 C++ code to create such a context is::
 
     Context ctx(CL_DEVICE_TYPE_ACCELERATOR);
@@ -49,7 +49,7 @@ straightforward as well. It should always be specified and represents the size
 The flags argument defines some important properties for the buffer. Section
 5.2.1 in the OpenCL 1.1 spec defines the flag values. They are also listed
 below with their significance to this implementation. In general the flag
-values may be or'ed together to create buffers with a combination of
+values may be ORed together to create buffers with a combination of
 properties. The OpenCL 1.1 spec enumerates the cases of mutually exclusive
 buffer creation flags.
 
@@ -118,7 +118,7 @@ CL_MEM_USE_HOST_PTR
   for details on OpenCL kernel functors. For the purposes of
   this example, it enqueues a kernel with the buffer buf as an argument and
   then it waits for completion of the kernel. It is recommended that this flag
-  not be used for performance critical OpenCL code. Although, as you can see it
+  not be used for performance-critical OpenCL code. However, this flag
   does simplify the API calls and can be used for prototyping.
 
 CL_MEM_ALLOC_HOST_PTR
@@ -128,7 +128,7 @@ CL_MEM_ALLOC_HOST_PTR
   underlying memory store for the buffer than can be accessed from the host.
   For this implementation, a buffer created with this flag is allocated memory
   in the CMEM contiguous memory region and can be accessed directly from both
-  the host A15 and the C66x DSPs. This flag is recommended for for performance
+  the host A15 and the C66 DSPs. This flag is recommended for performance
   in buffer handling. It is also the default flag if none of
   CL_MEM_USE_HOST_PTR, CL_MEM_ALLOC_HOST_PTR or CL_MEM_COPY_HOST_PTR is
   specified in the creation API. Buffers of this type can be used with the read
@@ -271,7 +271,7 @@ CL_MEM_WRITE_ONLY``. The buffer_create_type should be
 ``CL_BUFFER_CREATE_TYPE_REGION``. That is the only cl_buffer_create_type
 supported in OpenCL 1.1. The buffer_create_info argument should be a pointer to
 a cl_buffer_region structure, in which you define the buffer subset for the
-sub-buffer. Usage of these API's may look like::
+sub-buffer. Usage of these APIs may look like::
 
     Buffer buf(ctx, CL_MEM_READ_WRITE, bufsize);
     cl_buffer_region rgn = {0, bufsize};

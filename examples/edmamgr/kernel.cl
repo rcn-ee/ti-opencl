@@ -29,7 +29,7 @@
 
 kernel void oclEcpy(global const char* src, global char* dst, int size) 
 {
-    int offset  = get_group_id(0) * size;
+   int offset  = get_group_id(0) * size;
 
    EdmaMgr_Handle ev = EdmaMgr_alloc(1);
    if (!ev) { printf("Failed to alloc edma handle.\n"); return; }

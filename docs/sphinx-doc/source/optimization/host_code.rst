@@ -19,7 +19,7 @@ On shared memory SoC platforms, the host and devices have the ability to read
 and write the same memory region. However, the Linux system memory is not
 shareable with a device.  Therefore, fast OpenCL applications should avoid
 copying data between the Linux system memory and the shareable memory regions.
-See :doc:`../memory/ddr-partition` for details on the Linux/opencl memory partition.
+See :doc:`../memory/ddr-partition` for details on the Linux/OpenCL memory partition.
 
 The read buffer and write buffer OpenCL operations perform copies and should be
 avoided.  Alternatively, fast OpenCL applications will allocate OpenCL buffers

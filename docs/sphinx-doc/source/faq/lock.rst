@@ -3,7 +3,7 @@ Why do I get messages about /var/lock/opencl when running OpenCL applications?
 ****************************************************************************************
 
 The TI OpenCL implementation currently allows only 1 OpenCL enabled process
-to execute at any given time.  To enforce this,  The OpenCL implementation
+to execute at any given time.  To enforce this, the OpenCL implementation
 locks the file /var/local/opencl when an OpenCL application begins and
 frees it when it completes.  If two OpenCL processes attempt to run
 concurrently, then one will block waiting for the file lock to be released.

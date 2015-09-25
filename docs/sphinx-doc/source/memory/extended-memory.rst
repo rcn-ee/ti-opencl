@@ -40,7 +40,7 @@ If there is memory in the upper 6GB that is given to CMEM to manage, then that
 memory will be available to OpenCL as well and understanding how OpenCL will
 use that memory is important so an application can maximize   resource
 utilization.  The figure below illustrates a potential DDR partition with CMEM
-in the the upper 6GB.
+in the upper 6GB.
 
 .. Image:: ../images/Extended_memory_example.png
 
@@ -49,7 +49,7 @@ is partitioned for OpenCL use. Note that only the 512M block of memory from
 A000:0000 to BFFF:FFFF is indicated as green for OpenCL.  The other 3 512M
 blocks are blue indicating that they are available destinations for mapping
 from alternate regions of the 36-bit address space.  The one green 512M block
-will always be fixed to it's corresponding location in physical memory and is
+will always be fixed to its corresponding location in physical memory and is
 not available for mapping.
 
 Within that 512M fixed block there is 80M of reserved memory and 432M of CMEM
