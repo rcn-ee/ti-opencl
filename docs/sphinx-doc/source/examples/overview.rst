@@ -36,7 +36,7 @@ This example illustrates several key OpenCL features:
 - The event wait feature of OpenCL,
 - The division of one time setup of OpenCL to the repetitive en-queuing of
   kernels, and
-- The ease in which kernels can be shifted from one device type to another.
+- The ease with which kernels can be shifted from one device type to another.
 
 The 'mandelbrot_native' example is non-OpenCL native implementation (no
 dispatch to the DSPs) that can be used for comparison purposes. It uses OpenMP
@@ -79,7 +79,7 @@ a device executable file. The OpenCL program reads the file containing the
 pre-compiled kernel in and uses it directly. If you use offline compilation to
 generate a .out file containing the OpenCL C program and you subsequently move
 the executable, you will either need to move the .out as well or the
-application will need to specificy a non relative path to the .out file.
+application will need to specify a non-relative path to the .out file.
 
 .. _vecadd_openmp-example:
 
@@ -99,8 +99,8 @@ vecadd_openmp_t example
 ========================
 
 This is another OpenCL + OpenMP example, similar to vecadd_openmp. The main
-difference w.r.t vecadd_openmp is that this example uses OpenMP tasks within
-the OpenMP parallel region to distribute computation across the DSP cores.
+difference with respect to vecadd_openmp is that this example uses OpenMP tasks 
+within the OpenMP parallel region to distribute computation across the DSP cores.
 
 .. _vecadd-example:
 
@@ -141,7 +141,7 @@ in OpenMP C code for debugging.
 dsplib_fft example
 ===================
 
-An example to compute FFT's using a routine from the dsplib library. This
+An example to compute FFTs using a routine from the dsplib library. This
 illustrates calling a standard C library function from an OpenCL kernel.
 
 .. _ooo-examples:
@@ -195,7 +195,7 @@ dgemm example
 
 This example illustrates how to efficiently offload the CBLAS DGEMM routine
 (double precision matrix multiply) to the DSPs using OpenCL. The results
-obtained on the DSP are compared against a cbas_dgemm call on the ARM. The
+obtained on the DSP are compared against a cblas_dgemm call on the ARM. The
 example reports performance in GFlops for both DSP and ARM variants.
 
 .. _edmamgr-example:
@@ -203,7 +203,7 @@ example reports performance in GFlops for both DSP and ARM variants.
 edmamgr example
 =================
 
-This application illustrates how to use the edmamgr api to asynchronously move
+This application illustrates how to use the edmamgr API to asynchronously move
 data around the DSP memory hierarchy from OpenCL C kernels. The edmamgr.h
 header file in this directory enumerates the APIs available from the edmamgr
 package.
@@ -218,7 +218,7 @@ devices.  See :doc:`../memory/dsp-malloc-extension`
 
 .. note:: 
 
-   The following examples are available only available on 66AK2H
+   The following examples are available only available on 66AK2x
 
    * mandelbrot, mandelbrot_native
    * vecadd_openmp, vecadd_openmp_t

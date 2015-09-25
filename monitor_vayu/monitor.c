@@ -345,35 +345,37 @@ static void process_task_command(ocl_msgq_message_t* msgq_pkt)
 ******************************************************************************/
 static void process_kernel_command(ocl_msgq_message_t *msgq_pkt)
 {
-    Msg_t* msg = &(msgq_pkt->message);
+    Msg_t           *msg = &(msgq_pkt->message);
+    kernel_config_t *cfg = &msg->u.k.config;
 
-    int               done;
-    uint32_t          workgroup = 0;
-    uint32_t          WGid[3]   = {0,0,0};
-    uint32_t          limits[3];
-    uint32_t          offsets[3];
+    int              done;
+    uint32_t         workgroup = 0;
+    uint32_t         WGid[3]   = {0,0,0};
+    uint32_t         limits[3];
+    uint32_t         offsets[3];
 
-    memcpy(limits,  msg->u.k.config.global_size,   sizeof(limits));
-    memcpy(offsets, msg->u.k.config.global_offset, sizeof(offsets));
+    memcpy(limits,  cfg->global_size,   sizeof(limits));
+    memcpy(offsets, cfg->global_offset, sizeof(offsets));
 
-    int any_work = setup_ndr_chunks(msg->u.k.config.num_dims, 
-                                    limits, offsets, 
-                                    msg->u.k.config.global_size, 
-                                    msg->u.k.config.local_size);
-
-    if (!any_work) return;
+    bool is_debug_mode = (cfg->WG_gid_start[0] == DEBUG_MODE_WG_GID_START);
+    if (is_debug_mode)
+    {
+        if (get_dsp_id() != 0) return;
+    }
+    else
+    {
+        int any_work = setup_ndr_chunks(cfg->num_dims, limits, offsets,
+                                        cfg->global_size, cfg->local_size);
+        if (!any_work) return;
+    }
 
     workgroup = get_dsp_id() * (limits[0] * limits[1] * limits[2]) /
-                (msg->u.k.config.local_size[0] * msg->u.k.config.local_size[1]
-                                               * msg->u.k.config.local_size[2]);
+                (cfg->local_size[0] * cfg->local_size[1] * cfg->local_size[2]);
     /*---------------------------------------------------------
     * Iterate over each Work Group
     *--------------------------------------------------------*/
     do 
     {
-        msg->command = NDRKERNEL;
-        kernel_config_t *cfg = &msg->u.k.config;
-
         cfg->WG_gid_start[0] = offsets[0] + WGid[0];
         cfg->WG_gid_start[1] = offsets[1] + WGid[1];
         cfg->WG_gid_start[2] = offsets[2] + WGid[2];

@@ -80,24 +80,24 @@ LDFLAGS  := $(LLVM_LDFLAGS) $(LDFLAGS)
 
 .PHONY: .FORCE 
 
-$(TARGET): $(TARGET)/.touch $(EXE) 
+$(TARGET): $(TARGET)/.touch $(TARGET)/$(EXE)
 
-$(EXE): $(OBJS)
-	$(CXX) $^ $(LIBS) $(LDFLAGS) -o $(TARGET)/$@
+$(TARGET)/$(EXE): $(OBJS)
+	$(CXX) $^ $(LIBS) $(LDFLAGS) -o $@
 
-$(TARGET)/%.o: %.cpp | $(TARGET)/
+$(TARGET)/%.o: %.cpp | $(TARGET)/.touch
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-$(TARGET)/%.o: $(UTILDIR)/%.cpp | $(TARGET)/
+$(TARGET)/%.o: $(UTILDIR)/%.cpp | $(TARGET)/.touch
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-$(TARGET)/%.o: $(WGADIR)/%.cpp | $(TARGET)/
+$(TARGET)/%.o: $(WGADIR)/%.cpp | $(TARGET)/.touch
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-$(TARGET)/%.o: $(POCLDIR)/%.cpp | $(TARGET)/
+$(TARGET)/%.o: $(POCLDIR)/%.cpp | $(TARGET)/.touch
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-$(TARGET)/%.o: $(POCLDIR)/%.cc | $(TARGET)/
+$(TARGET)/%.o: $(POCLDIR)/%.cc | $(TARGET)/.touch
 	$(CXX) $(CXXFLAGS) -c $<  -o $@
 
 $(TARGET)/.touch: 

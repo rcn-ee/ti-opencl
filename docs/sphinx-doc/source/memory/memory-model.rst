@@ -16,9 +16,9 @@ Global Memory
   For this OpenCL implementation, global memory by default maps to the portion
   of DDR3 partitioned as CMEM contiguous memory.  
 
-  On K2H devices, MSMC memory is also available as global memory and buffers
+  On K2x devices, MSMC memory is also available as global memory and buffers
   can be defined to reside in this memory instead of DDR3 through an OpenCL API
-  extension specfic to TI. This mechanism will be described in a later section
+  extension specific to TI. This mechanism will be described in a later section
   that details handling of the OpenCL buffer creation flags.  
 
 Constant Memory
@@ -41,8 +41,8 @@ Local Memory
   as a scratchpad.  
 
 Private Memory 
-  This memory region is for values that are private to a work-item and these
+  This memory region is for values that are private to a work-item. These
   values are typically allocated to registers in the C66 DSP core.  Sometimes
   it may be necessary for these values to exist in memory.  In these cases the
-  values are stored on the C66 DSP stack which resides in the reserved portion
+  values are stored on the C66 DSP stack, which resides in the reserved portion
   of the L2 memory.

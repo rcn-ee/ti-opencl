@@ -1,10 +1,10 @@
 OPENCL_SRC_DIR = ../host
-PDK_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/pdk_am57xx_8_00_00_00
-IPC_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/ipc_3_35_01_07
-XDC_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/xdctools_3_30_06_67
-BIOS_DIR       ?= $(DEFAULT_DEV_INSTALL_DIR)/bios_6_41_02_41
-FC_DIR         ?= $(DEFAULT_DEV_INSTALL_DIR)/framework_components_3_40_00_01_eng
-EDMA3LLD_DIR   ?= $(DEFAULT_DEV_INSTALL_DIR)/edma3_lld_02_12_00_20
+PDK_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/pdk_am57xx_1_0_0
+IPC_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/ipc_3_40_01_08
+XDC_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/xdctools_3_31_02_38_core
+BIOS_DIR       ?= $(DEFAULT_DEV_INSTALL_DIR)/bios_6_42_02_29
+FC_DIR         ?= $(DEFAULT_DEV_INSTALL_DIR)/framework_components_3_40_01_04
+EDMA3LLD_DIR   ?= $(DEFAULT_DEV_INSTALL_DIR)/edma3_lld_02_12_01_22
 XDAIS_DIR      ?= $(DEFAULT_DEV_INSTALL_DIR)/xdais_7_24_00_04
 ULM_DIR        ?= $(LINUX_DEVKIT_ROOT)/usr/share/ti/ulm
 GDB_SERVER_DIR ?= $(LINUX_DEVKIT_ROOT)/usr/share/ti/gdbc6x

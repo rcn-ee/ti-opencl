@@ -9,11 +9,11 @@ with OpenCL buffers. They can:
   C or the member functions enqueueReadBuffer and enqueueWriteBuffer in C++, or
 - Map and unmap using clEnqueueMapBuffer and clEnqueueUnmapMemObject in C.
 
-The read and write API's imply a movement of data to and from OpenCL buffers.
-This typically means a movement of data from linux system memory to CMEM memory
+The read and write APIs imply a movement of data to and from OpenCL buffers.
+This typically means a movement of data from Linux system memory to CMEM memory
 where an OpenCL buffer typically resides.
 
-The map/unmap API's map the underlying memory store of a buffer into the host
+The map/unmap APIs map the underlying memory store of a buffer into the host
 address space and allows the host application to read and write directly
 from/to the buffer's content.  This method has the advantages of:
 
@@ -32,7 +32,7 @@ The map/unmap commands will perform cache coherency operations and do entail
 some cost.  The read and write buffer commands currently use memcpy for data
 transfer.  
 
-For the examples below, please refer to the OpenCL 1.1 specficication or online
+For the examples below, please refer to the OpenCL 1.1 specification or online
 reference pages for the details of the APIs. In these examples, most of the
 arguments to the read/write or map/unmap enqueue commands are obvious with the
 exception of CL_TRUE as the second argument and 0 as the third argument to

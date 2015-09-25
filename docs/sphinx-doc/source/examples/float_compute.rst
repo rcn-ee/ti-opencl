@@ -101,7 +101,7 @@ associated with this heap is contiguous and is mapped to a contiguous
 chunk of virtual memory on the host. If any host variables allocated via
 this API are accessed on the device, the OpenCL runtime generates cache
 management operations on the host, significantly reducing the overhead.
-\_\_malloc\_msmc is available only on 66AK2H.
+\_\_malloc\_msmc is available only on 66AK2x.
 
 Compute on ARM
 ~~~~~~~~~~~~~~
@@ -136,7 +136,7 @@ Compute on OpenCL device
    local memory. The required local buffers are passed as arguments to
    the kernel, one for each of the three arrays involved in the
    computation. The size of the local buffer is proportional to the
-   number of work items in the workgroup, specified by WorkGroupSize.
+   number of work items in the work-group, specified by WorkGroupSize.
 
 ::
 
@@ -166,13 +166,13 @@ Compute on OpenCL device
 OpenCL C kernel code (dsp\_compute.cl)
 --------------------------------------
 
-The kernel arguments are float2 vs float because the C66x DSP core can perform single precision floating point multiply, add efficiently on float2 vectors.
+The kernel arguments are float2 vs. float because the C66x DSP core can perform single precision floating point multiply, add efficiently on float2 vectors.
 
 Copy input arrays from global memory to local memory
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Each workgroup copies it's chunk of input data from global memory to
-local memory. The offset of the chunk in global memory is determed by
+Each work-group copies its chunk of input data from global memory to
+local memory. The offset of the chunk in global memory is determined by
 the work group id and the number of work items in the work group. This
 copy is performed before any of the work items in the work group are
 executed. The waits ensure the copies are complete before the local

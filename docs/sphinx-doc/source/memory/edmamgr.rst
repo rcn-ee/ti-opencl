@@ -32,13 +32,13 @@ functions.
 
 .. c:function:: void EdmaMgr_wait(EdmaMgr_Handle h)
 
-    Wait for all edma transfers associated with the handle h to complete before
+    Wait for all EDMA transfers associated with the handle h to complete before
     continuing this thread of execution.
 
 Single Transfer EdmaMgr APIs
 ===============================
 
-This group of EdmaMgr functions will initiate an edma operation on one source
+This group of EdmaMgr functions will initiate an EDMA operation on one source
 and destination addresses.
 
 .. c:function:: int32_t EdmaMgr_copy1D1D(EdmaMgr_Handle h, void *src, void *dst, int32_t num_bytes)
@@ -60,7 +60,7 @@ and destination addresses.
 Multiple Transfer EdmaMgr APIs
 ===============================
 
-This group of EdmaMgr functions will initiate edma operations on a set of  source
+This group of EdmaMgr functions will initiate EDMA operations on a set of  source
 and destination address pairs.  
 
 .. c:function:: int32_t EdmaMgr_copy1D1DLinked (EdmaMgr_Handle h, void *src[], void *dst[], int32_t num_bytes[], int32_t num_transfers)

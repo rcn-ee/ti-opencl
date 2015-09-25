@@ -9,7 +9,7 @@ The TI OpenCL implementation adds 4 new host functions
 .. cpp:function:: void* __malloc_msmc(size_t size)
 .. cpp:function:: void  __free_msmc  (void* p)
 
-These new API's in the TI OpenCL implementation are not specified as part of
+These new APIs in the TI OpenCL implementation are not specified as part of
 OpenCL specification, but are TI extensions that are roughly modeled after
 OpenCL 2.0 specified functions clSVMAlloc and clSVMFree. They are not the same
 as those functions and therefore will not inherit those names in order to
@@ -19,12 +19,12 @@ The __malloc_ddr/__free_ddr APIs allocate and free memory in the global
 address space in off-chip DDR memory. The __malloc_msmc/__free_msmc APIs 
 allocate and free memory in the global address space in on-chip MSMC memory. 
 
-The rationale for these memory allocation extensions is to allow OpenCL API's 
-to be hidden in lower level implementation routines so that top level algorithmic 
-code can remain free from OpenCL mechanics.  This abstraction of OpenCL API's is 
+The rationale for these memory allocation extensions is to allow OpenCL APIs 
+to be hidden in lower-level implementation routines so that top level algorithmic 
+code can remain free from OpenCL mechanics.  This abstraction of OpenCL APIs is 
 possible without these extensions, but would typically require data copy from Linux 
 managed memory to OpenCL managed memory.  These extensions were provided to allow 
-the top level algorithmic code to originate data alloction in OpenCL managed memory, 
+the top level algorithmic code to originate data allocation in OpenCL managed memory, 
 thus eliminated the need for data copy and improving performance.
 
 Without these new APIs the host application and lowel level function might look like::
@@ -37,7 +37,7 @@ Without these new APIs the host application and lowel level function might look 
 
         fftw(p, size);
 
-        // consume modifed p
+        // consume modified p
 
         free(p);
     }
@@ -55,11 +55,11 @@ Without these new APIs the host application and lowel level function might look 
     }
 
 The issue with the above code is that the enqueue of the fftw_kernel would entail a
-copy of the linux heap based underlying memory store in the OpenCL buffer to a
+copy of the Linux heap based underlying memory store in the OpenCL buffer to a
 copy allocated from :ref:`CMEM<CMEM>`.  It would also entail a copy
 back after the enqueue of the kernel.  Since the SoC contains shared
 memory between the ARM and the DSP, it would be preferable to have a zero copy
-setup. This would be impossible with a linux heap based malloc pointer.
+setup. This would be impossible with a Linux heap based malloc pointer.
 
 With the new functions, the above code might look like ::
 
@@ -71,7 +71,7 @@ With the new functions, the above code might look like ::
 
         fftw(p, size);
 
-        // consume modifed p
+        // consume modified p
 
         __free_ddr(p);
     }
@@ -103,7 +103,7 @@ for correctness and therefore the user of fftw can then choose whether they want
 modify their source to get the additional performance boost resulting from zero copy. 
 
 OpenCL subbuffers created from OpenCL buffers defined with CL_MEM_USE_HOST_PTR 
-and a supplied pointer orignating from __malloc_ddr, will also benefit from the 
+and a supplied pointer originating from __malloc_ddr, will also benefit from the 
 underlying subbuffer memory residing in :ref:`CMEM<CMEM>`.
 
 .. Important::

@@ -24,13 +24,13 @@ for most applications.
 
 Additional OpenCL C built-in functions are provided in the TI OpenCL
 implementation to allow an application author to modify the default partition
-and change the relative sizes of the cache vs. sram areas in L1D and L2.  
+and change the relative sizes of the cache vs. SRAM areas in L1D and L2.  
 
 For L1D, the below functions allow you to set the size of the L1D cache,
-and secondarily to also set the size of L1D sram memory that can be used as
+and secondarily to also set the size of L1D SRAM memory that can be used as
 fast scratchpad memory for an application.  The size of the L1D cache
-subtracted from the total amount of L1D sram available will give the amount of
-L1D sram that can be used as scratchpad memory. The default partition for L1D 
+subtracted from the total amount of L1D SRAM available will give the amount of
+L1D SRAM that can be used as scratchpad memory. The default partition for L1D 
 is all cache and no scratchpad.
 
 .. c:function:: void     __cache_l1d_none  (void)
@@ -55,7 +55,7 @@ is all cache and no scratchpad.
 
 .. c:function:: void     __cache_l1d_flush (void)
 
-    User controlled, explicit L1D cache flush operation.  This will writeback
+    User controlled, explicit L1D cache flush operation.  This will write-back
     any dirty lines in the L1D cache and will mark all lines as invalid.
 
 .. c:function:: void*      __scratch_l1d_start (void)
@@ -85,7 +85,7 @@ partition.  However, there are some differences between L1D and L2.
        Local buffers are allocated from L2 scratchpad memory.
 
 Where for L1D cache, the typical use case for using the reconfiguration
-functions would be to reduce the cache and thus increas the L1D available as
+functions would be to reduce the cache and thus increase the L1D available as
 scratchpad, for L2 the typical use case would be to increase cache for
 applications that can benefit from a larger cache capacity and are not already
 using local scratch buffers.
@@ -119,7 +119,7 @@ using local scratch buffers.
 .. Note::
 
     Configuring all of L2 as cache is not an available option, because the
-    OpenCL runtime needs some L2 scratchpad memory for proper opreation.
+    OpenCL runtime needs some L2 scratchpad memory for proper operation.
 
 .. Note::
 
@@ -131,9 +131,10 @@ using local scratch buffers.
 
     Increasing the size of the L2 cache in OpenCL C code must be used with caution.
     The host OpenCL runtime will not be aware of the use of the cache resizing
-    functions and because it is also managing the L2 scratchpad memory for use as local
-    buffers an opprtunity for resource conflict exists.  As a general rule of thumb, do 
-    not increase L2 cache size in functions that are using local buffers.
+    functions. Because the OpenCL runtime is also managing the L2 scratchpad memory 
+    for use as local buffers, an opportunity for resource conflict exists.  As a 
+    general rule of thumb, do not increase L2 cache size in functions that are using
+    local buffers.
 
 .. Warning::
 

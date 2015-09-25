@@ -27,9 +27,9 @@ These environment variables can be used to control OpenCL behavior and provide v
     option to the offline compiler clocl. The OpenCL runtime will pause your
     application before dispatch of all kernels. While paused the runtime
     indicate to the user that a kernel dispatch is pending. It will provide the
-    gdb6x command to connect to the dsp and to setup appropriate breakpoints.
+    gdb6x command to connect to the DSP and to setup appropriate breakpoints.
     The runtime will also force all kernels and workgroups within kernels to
-    execute on only dsp core 0.
+    execute on only DSP core 0.
 
 .. envvar:: TI_OCL_CACHE_KERNELS       
 
@@ -50,7 +50,7 @@ These environment variables can be used to control OpenCL behavior and provide v
     objects in /tmp and/or increase the size of the /tmp partition. You can
     explicitly remove the cache by executing the command: rm -f /tmp/opencl*.
     Since the cached objects are in /tmp, they will be removed automatically
-    when linux is rebooted.
+    when Linux is rebooted.
 
 .. envvar::  TI_OCL_LOAD_KERNELS_ONCHIP 
 
@@ -106,11 +106,11 @@ These environment variables can be used to control OpenCL behavior and provide v
     entail a significant performance penalty versus the hardware capabilities
     of the C66 DSP. Therefore, by default the platform and devices supported in
     the TI OpenCL implementation do not report support for double floating
-    point, i.e., if the platform or device is queried for extensions,
+    point. That is, if the platform or device is queried for extensions,
     cl_khr_fp64 is not listed by default. Additionally the OpenCL C predefined
     macro cl_khr_fp64 will not be defined by default. When the
     TI_OCL_ENABLE_FP64 environment variable is set, the TI OpenCL
-    implementation will report support for double floating point, i.e.
+    implementation will report support for double floating point. That is,
     cl_khr_fp64 will be listed as an extension in the platform and the DSP
     device and cl_khr_fp64 will be defined when compiling OpenCL C kernels.
     This environment variable controls whether the OpenCL implementation
@@ -140,7 +140,7 @@ These environment variables can be used to control OpenCL behavior and provide v
     The OpenCL runtime is dependent on the C66 DSP compiler product for
     compilation of OpenCL C kernels. When OpenCL C kernels are compiled on the
     target ARM/Linux system, the C66 compiler is assumed to be installed in the
-    standard linux locations. However, offline cross compilation of OpenCL C
+    standard Linux locations. However, offline cross compilation of OpenCL C
     kernels is also supported from x86 Ubuntu machines and in that use case, it
     is required that this environment variable is set to the top level
     directory path where the C66 cross compiler tools are installed. 

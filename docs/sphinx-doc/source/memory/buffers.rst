@@ -26,7 +26,7 @@ examples where those arguments are not specified, conversion to the C API will
 require adding NULL arguments in those parameter slots.
 
 Also for the remainder of this section we will assume an OpenCL context named
-``ctx`` has been created with only the DSP's present in the context. The
+``ctx`` has been created with only the DSPs present in the context. The
 C++ code to create such a context is::
 
     Context ctx(CL_DEVICE_TYPE_ACCELERATOR);
@@ -49,7 +49,7 @@ straightforward as well. It should always be specified and represents the size
 The flags argument defines some important properties for the buffer. Section
 5.2.1 in the OpenCL 1.1 spec defines the flag values. They are also listed
 below with their significance to this implementation. In general the flag
-values may be or'ed together to create buffers with a combination of
+values may be ORed together to create buffers with a combination of
 properties. The OpenCL 1.1 spec enumerates the cases of mutually exclusive
 buffer creation flags.
 
@@ -118,7 +118,7 @@ CL_MEM_USE_HOST_PTR
   for details on OpenCL kernel functors. For the purposes of
   this example, it enqueues a kernel with the buffer buf as an argument and
   then it waits for completion of the kernel. It is recommended that this flag
-  not be used for performance critical OpenCL code. Although, as you can see it
+  not be used for performance-critical OpenCL code. However, this flag
   does simplify the API calls and can be used for prototyping.
 
 CL_MEM_ALLOC_HOST_PTR
@@ -128,7 +128,7 @@ CL_MEM_ALLOC_HOST_PTR
   underlying memory store for the buffer than can be accessed from the host.
   For this implementation, a buffer created with this flag is allocated memory
   in the CMEM contiguous memory region and can be accessed directly from both
-  the host A15 and the C66 DSPs. This flag is recommended for for performance
+  the host A15 and the C66 DSPs. This flag is recommended for performance
   in buffer handling. It is also the default flag if none of
   CL_MEM_USE_HOST_PTR, CL_MEM_ALLOC_HOST_PTR or CL_MEM_COPY_HOST_PTR is
   specified in the creation API. Buffers of this type can be used with the read
@@ -145,7 +145,7 @@ CL_MEM_COPY_HOST_PTR
   CMEM contiguous memory.
 
 CL_MEM_USE_MSMC_TI
-  This flag is a TI extension to standard OpenCL on 66AK2H devices only. It can
+  This flag is a TI extension to standard OpenCL on 66AK2x devices only. It can
   be used in combination with the other buffer creation flags, except for
   CL_MEM_USE_HOST_PTR. When this flag is used, the buffer will be allocated to
   a CMEM block in the MSMC memory area, rather than a CMEM block in the DDR3
@@ -170,7 +170,7 @@ Local Buffers
 Local buffers are quite different than global buffers. You cannot access local
 buffers from the host and you do not create them using API's like global
 buffers. Local buffers will be allocated from local memory which in this
-implementation exists in the L2 scratchpad memory on the C66 DSP cores. Data
+implementation exists in the L2 scratchpad memory on the C66x DSP cores. Data
 cannot persist from kernel to kernel in a local buffer. The lifetime of a local
 buffer is the same as the dynamic lifetime of the kernel execution. Local
 buffers are never required to be used, but are often used in OpenCL C kernels
@@ -256,9 +256,9 @@ for sub-buffers:
 2. Accessing a subset of a buffer.
 
 The C++ API's for creating SubBuffers are described below. Please see the
-OpenCL 1.1 specification or the OpenCL 1.1 Online Reference
+OpenCL 1.1 specification or the OpenCL 1.1 On-line Reference
 http://www.khronos.org/registry/cl/sdk/1.1/docs/man/xhtml/ 
-for the sytax of the C API for sub-buffer creation.::
+for the syntax of the C API for sub-buffer creation.::
 
     typedef struct _cl_buffer_region { size_t origin; size_t size;} cl_buffer_region;
 
@@ -271,7 +271,7 @@ CL_MEM_WRITE_ONLY``. The buffer_create_type should be
 ``CL_BUFFER_CREATE_TYPE_REGION``. That is the only cl_buffer_create_type
 supported in OpenCL 1.1. The buffer_create_info argument should be a pointer to
 a cl_buffer_region structure, in which you define the buffer subset for the
-sub-buffer. Usage of these API's may look like::
+sub-buffer. Usage of these APIs may look like::
 
     Buffer buf(ctx, CL_MEM_READ_WRITE, bufsize);
     cl_buffer_region rgn = {0, bufsize};
@@ -286,7 +286,7 @@ with the CL_MEM_READ_WRITE access flag, because the buffer is being both read
 and written by OpenCL C kernels running on the C66 DSPs. However, no individual
 kernel is both reading and writing the buffer, so the CL_MEM_READ_WRITE
 property that the buffer has, may result in underlying cache coherency
-operations that are unneccessary. For performace reasons, sub-buffers can be
+operations that are unnecessary. For performance reasons, sub-buffers can be
 used to specify more restrictive buffer access flags and they can be customized
 for the behavior of the particular kernel to which the buffer is being passed
 as an argument. The above illustration on SubBuffer creation is the setup for

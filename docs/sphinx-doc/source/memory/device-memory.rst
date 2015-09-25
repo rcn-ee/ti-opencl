@@ -9,7 +9,7 @@ Device Memory
     platform example shipped with the product:
     ``/usr/share/ti/examples/opencl/platforms``.
 
-66AK2H
+66AK2x
 ==================
 
 The following device components are relevant to the memory discussion for

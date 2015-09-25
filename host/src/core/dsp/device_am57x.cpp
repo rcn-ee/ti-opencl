@@ -123,6 +123,15 @@ void DSPDevice::setup_mailbox(void)
 
 void DSPDevice::setup_dsp_mhz(void)
 {
-    p_dsp_mhz = 600;  // 600 MHz 
+    mail_to(frequencyMsg);
+
+    int ret = 0;
+    do
+    {
+        while (!mail_query())  ;
+        ret = mail_from();
+    } while (ret == -1);
+
+    p_dsp_mhz = ret;
 }
 

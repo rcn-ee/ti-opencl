@@ -15,12 +15,12 @@ eliminates the need for heap management on the DSP, i.e. calls to malloc, call,
 free, etc...  
 
 However, when porting existing code to run under an OpenCL kernel, it is
-sometimes convienient to allow existing heap management calls to continue to
+sometimes convenient to allow existing heap management calls to continue to
 exist. To support this there is a small (<= 8MB) heap available on the DSP's
 that can be used to service malloc type calls. This heap will be in DDR and
-will be shared across the DSP cores.  If multiple workgroups (DSPs) are
+will be shared across the DSP cores.  If multiple work-groups (DSPs) are
 accessing the same location, then it is up to the application to ensure
-synchronization to preent race conditions.
+synchronization to prevent race conditions.
 
 If the size of the small heap is insufficient for your needs or you would like
 a heap in on-chip shared memory, We have added some additional built-in
@@ -50,12 +50,12 @@ Boot Routine Dependencies
 ======================================
 OpenCL C does not run a boot setup for dispatch of kernels, therefore
 dependencies on items that typically run before main is called or after main
-returns in a standalone DSP application are not supported in a OpenCL C
+returns in a standalone DSP application are not supported in an OpenCL C
 environment. This would include:
 
    - C++ constructors and destructors
    - atexit registered functions
-   - SysBios Tasks 
+   - TI-RTOS Kernel (SYS/BIOS) Tasks 
    - Some XDC constructs
 
 Linker Command Files

@@ -23,6 +23,7 @@ Enqueueing a Kernel
 ********************
 
 There are two OpenCL APIs for enqueueing a kernel.
+
 #. enqueueNDRangeKernel(), and
 #. enqueueTask().
 
@@ -39,12 +40,12 @@ on the use of offset.
 
 The expression of an OpenCL C kernel is really an algorithm expression for one
 work-item. That one work-item expression is also associated with a kernel name.
-When an enqueueNDRangeKernel API call is made, the key three arrguments to the
+When an enqueueNDRangeKernel API call is made, the key three arguments to the
 API are :
+
 #. the kernel object which has previously been associated with the kernel name, and
 #. the number of work-items you wish to execute (called the global size), and
-#. the number of work-items you wish to group into a work-group (called the
-local size).
+#. the number of work-items you wish to group into a work-group (called the local size).
 
 For example, the following C++ code ::
 
@@ -99,8 +100,8 @@ uint get_work_dim()                     The number of dimensions
 size_t get_global_id(uint dimidx)       The ID of the current work-item [0,WI) in dimension dimidx
 size_t get_global_size(uint dimidx)     The total number of work-items (WI) in dimension dimidx
 size_t get_global_offset(uint dimidx)   The offset as specified in the enqueueNDRangeKernel API in dimension dimidx
-size_t get_group_id(uint dimidx)        The ID of the current workgroup [0, WG) in dimension dimidx
-size_t get_local_id(uint dimidx)        The ID of the work-item within the workgroup [0, WI/WG) in dimension dimidx
+size_t get_group_id(uint dimidx)        The ID of the current work-group [0, WG) in dimension dimidx
+size_t get_local_id(uint dimidx)        The ID of the work-item within the work-group [0, WI/WG) in dimension dimidx
 size_t get_local_size (uint dimidx)     The number of work-items per work-group = WI/WG in dimension dimidx
 size_t get_num_groups(uint dimidx)      The total number of work-groups (WG) in dimension dimidx
 ======================================= ==================================================================================
@@ -109,7 +110,7 @@ size_t get_num_groups(uint dimidx)      The total number of work-groups (WG) in 
 OpenCL C Kernel Code
 **********************
 The code in an OpenCL C kernel represents the algorithm to be applied to a
-single workitem. The granularity of a work item is determined by the
+single work-item. The granularity of a work item is determined by the
 implementer.  If we take an element wise vector add example, where we take two
 1 dimensional vectors as input, add them together element wise and write the
 result back into the first vector, we can express a kernel to achieve this

@@ -1,5 +1,5 @@
 ****************************************************************
-OpenCL C Builtin Function Exensions
+OpenCL C Builtin Function Extensions
 ****************************************************************
 
 The following built-in functions are available from OpenCL C code on the DSP

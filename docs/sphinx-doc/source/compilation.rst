@@ -45,7 +45,7 @@ perhaps only link or perform other book-keeping.
 Additionally, you have the choice to embed the content for your program in the
 application or to read it from a file.  This is applicable for both programs
 created from source and programs created from binary.  The cross product of
-these two options give you four cases for OpenCL C program creation:
+these two options gives you four cases for OpenCL C program creation:
 
 1. Create an OpenCL program from source, with embedded source,
 2. Create an OpenCL program from source, with source in a file,
@@ -96,7 +96,7 @@ there is no dependency on another file containing OpenCL C code.
     program.build(devices);
 
 Line 1 defines an embedded string representing an OpenCL C program.  This
-example shows a empty kernel for brevity, but they can be arbitrarily long.
+example shows an empty kernel for brevity, but they can be arbitrarily long.
 Line 3 defines a Program::Sources object.  In this case, there is one source
 and it requires a pointer to the source and its length as a pair.  Line 4
 creates the Program object.  The Program object will contain a copy of the
@@ -119,7 +119,7 @@ exists in a separate file, named kernel.cl in the same directory in which the
 application is run.  This OpenCL program build option still requires no
 knowledge of standalone OpenCL C program compilation and is therefore still
 portable.  Since the OpenCL C code is in a file, however, this build scenario
-can be useful when in OpenCL kernel development mode.  Because the OpenCL C
+can be useful when developing OpenCL kernels.  Because the OpenCL C
 file is read and compiled for the devices at host application run time, the
 OpenCL C code can be edited and re-run without requiring the host application
 to be re-compiled.
@@ -144,8 +144,8 @@ previous build scenario.
 Create an OpenCL program from binary, with binary in a file
 -----------------------------------------------------------
 
-For this build scenario, offline compilation is used to create a binary file
-from an OpenCL C source file.  An offline compiler called :command:`clocl` is
+For this build scenario, off-line compilation is used to create a binary file
+from an OpenCL C source file.  An off-line compiler called :command:`clocl` is
 shipped with the TI OpenCL product. To take a file named kernel.cl containing
 OpenCL C source and create a binary called kernel.out, simply invoke clocl with
 the input file name: :command:`clocl kernel.cl`.  This step would typically be
@@ -155,7 +155,7 @@ protects IP better than the on-line compilation models, since the OpenCL C
 source is not required for running the application, only for building the
 application.  It also results in faster runtime, since the time delay for
 on-line compilation will not be experienced.  It does, however, expose
-implementation specific details of offline compilation and therefore impacts
+implementation-specific details of offline compilation and therefore impacts
 portability. 
 
 .. code-block:: cpp
@@ -175,7 +175,7 @@ portability.
 Line 4 calls a helper function ocl_read_binary to read a binary file into a
 char array.  This helper function is provided with the TI OpenCL product.  To
 use this function, you must include ocl_util.h to see the function prototype.
-This can bee seen in line 1 of the above example.  Also, you will additionally
+This can be seen in line 1 of the above example.  Also, you will additionally
 need to link the host application with the library containing the helper
 function. Add -locl_util as a linker option.
 
@@ -183,7 +183,7 @@ Line 3 defines a pointer to a char array.  The ocl_read_binary function will
 inspect the specified file to determine the number of bytes to allocate, it
 will allocate the bytes, and it will read the contents of the file into those
 bytes.  After a Program object is created using the binary data, the bytes
-allocated by ocl_read_binary  should be deleted.  This can seen seen on line 10
+allocated by ocl_read_binary  should be deleted.  This can be seen on line 10
 of the example code.  
 
 Line 6 creates a Program:Binaries object.  It requires a pair consisting of a
@@ -239,7 +239,7 @@ array. Invoking clocl like this: :command:`clocl -t kernel.cl` will compile
 a file containing the initialized array ``kernel_dsp_bin`` which can be used
 directly to create an OpenCL Program::Binaries object.  This build method is
 the fastest of the four because neither on-line compilation nor reading the file
-are required.
+is required.
 
 .. code-block:: cpp
   :linenos:
@@ -254,7 +254,7 @@ Line 1 includes the file created by :command:`clocl -t`. Line 2 creates the
 ``Program::Binaries`` object from the array defined in ``kernel.dsp_h``.  Line 4
 creates the OpenCL C program from the binary and Line 5 builds the program.
 
-An example of the first few lines of a kernel.dsp_h file are provided below for
+The first few lines of a kernel.dsp_h file are provided below for
 illustration purposes.  ::
 
     unsigned int kernel_dsp_bin_len = 3656;
@@ -283,7 +283,7 @@ Executing :command:`clocl -h` will print the help screen.  Clocl
 contains two sets of options to control behavior. The first set of options is
 clocl and TI OpenCL specific.  They include the option -t which is used to
 generate an embeddable OpenCL C program binary array.  The second set of
-options are generic OpenCL options as specified by the OpenCL 1.1
+options is the generic OpenCL options as specified by the OpenCL 1.1
 specification.  I refer the reader to the specification for more details on
 those options.  
 
@@ -313,12 +313,12 @@ those options.
        -w                               Inhibit all warning messages
        -Werror                          Make all warnings into errors
        -cl-single-precision-constant    Treat double FP constant as single FP constant
-       -cl-denorms-are-zero             Enabe flush to zero FP behavior
+       -cl-denorms-are-zero             Enable flush to zero FP behavior
        -cl-opt-disable                  Disables all optimizations
        -cl-mad-enable                   Allow a * b + c to be replaced by a mad
        -cl-no-signed-zeros              Allow opts for FP math that ignore sign of zero
        -cl-unsafe-math-optimizations    Allow opts for FP math that may violate standards
        -cl-finite-math-only             Allow opts for FP math that assumes operands are finite
-       -cl-fast-relaxed-math            Choose fast FP opreations over compliant FP opreations
+       -cl-fast-relaxed-math            Choose fast FP operations over compliant FP operations
        -cl-std=<val>                    Determine the OpenCL C language version to use 
        ===============================  ========================================================

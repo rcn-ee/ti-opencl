@@ -21,13 +21,13 @@ have a device type of *CL_DEVICE_TYPE_ACCELERATOR*.  Other OpenCL device types i
 
 The TI OpenCL implementation currently only supports DSP devices and therefore
 the device types *CL_DEVICE_TYPE_DEFAULT*, *CL_DEVICE_TYPE_ACCELERATOR*,
-*CL_DEVICE_TYPE_ALL* are all synomonous.  
+*CL_DEVICE_TYPE_ALL* are all synonymous.  
 
 .. Note::
     
     There are many OpenCL code examples available on the web.  Many of them
     explicitly use the *CL_DEVICE_TYPE_CPU* or *CL_DEVICE_TYPE_GPU* device
-    types for context creation. The TI OpenCL implmentation does not currently
+    types for context creation. The TI OpenCL implementation does not currently
     support CPU or GPU devices, so those examples unmodified will have empty
     device lists. When attempting to compile and run these examples on the TI
     OpenCL implementation, it will be necessary to change the device type 

@@ -1,5 +1,5 @@
 ********************************************
-Using Extended Memory on the 66AK2H device
+Using Extended Memory on the 66AK2x device
 ********************************************
 
 An extended memory feature is supported on the 66AK2H implementation
