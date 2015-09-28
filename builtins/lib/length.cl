@@ -71,7 +71,6 @@ _CLC_OVERLOAD _CLC_DEF float  length(float3 p)
     return max_term * sqrt((double) dot(p,p));  // improve precision in sqrt
 }
 
-#if 1
 _CLC_OVERLOAD _CLC_DEF double  length(double3 p)
 {
     p = fabs(p);
@@ -81,7 +80,6 @@ _CLC_OVERLOAD _CLC_DEF double  length(double3 p)
     p /= max_term;
     return max_term * sqrt(dot(p,p));
 }
-#endif
 
 _CLC_OVERLOAD _CLC_DEF float  length(float4 p)
 {

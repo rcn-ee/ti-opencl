@@ -34,7 +34,6 @@ void __inv(char*, int);
 #define LOCK_GLOBAL   		uint lvInt = __sem_lock(1)
 #define UNLOCK_GLOBAL 		__sem_unlock(1, lvInt)
 #define INV_GLOBAL(p, sz)	__inv((char*)(p), (sz))
-
 #define WB_GLOBAL(p, sz)	
 
 #define LOCK_LOCAL   

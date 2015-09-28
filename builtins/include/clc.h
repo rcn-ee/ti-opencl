@@ -1266,31 +1266,13 @@ _CLC_OVERLOAD _CLC_DECL double16 fract(double16 x, private double16 * ptr);
 _CLC_PROTECTED float remquof(float x, float y, int *ptr);
 
 _CLC_OVERLOAD _CLC_INLINE float remquo(float x, float y, global  int * quo) 
-    { 
-       float temp;
-       int itemp; 
-       temp = remquof(x, y, (int*)&itemp); 
-       *quo=itemp;
-       return temp;
-    }
+    { return remquof(x, y, (int*)quo); }
 
 _CLC_OVERLOAD _CLC_INLINE float remquo(float x, float y, local   int * quo) 
-    { 
-       float temp;
-       int itemp; 
-       temp = remquof(x, y, (int*)&itemp); 
-       *quo=itemp;
-       return temp;
-    }
+    { return remquof(x, y, (int*)quo); }
 
 _CLC_OVERLOAD _CLC_INLINE float remquo(float x, float y, private int * quo) 
-    { 
-       float temp;
-       int itemp; 
-       temp = remquof(x, y, (int*)&itemp); 
-       *quo=itemp;
-       return temp;
-    }
+    { return remquof(x, y, (int*)quo); }
 
 _CLC_OVERLOAD _CLC_DECL float2 remquo(float2 x, float2 y, global  int2 * quo);
 _CLC_OVERLOAD _CLC_DECL float2 remquo(float2 x, float2 y, local   int2 * quo);
@@ -1315,31 +1297,13 @@ _CLC_OVERLOAD _CLC_DECL float16 remquo(float16 x, float16 y, private int16 * quo
 _CLC_PROTECTED double remquod(double x, double y, int *ptr);
 
 _CLC_OVERLOAD _CLC_INLINE double remquo(double x, double y, global  int * quo) 
-    { 
-       float temp;
-       int itemp; 
-       temp = remquod(x, y, (int*)&itemp); 
-       *quo=itemp;
-       return temp;
-    }
+    { return remquod(x, y, (int*)quo); }
 
 _CLC_OVERLOAD _CLC_INLINE double remquo(double x, double y, local   int * quo) 
-    { 
-       float temp;
-       int itemp; 
-       temp = remquod(x, y, (int*)&itemp); 
-       *quo=itemp;
-       return temp;
-    }
+    { return remquod(x, y, (int*)quo); }
 
 _CLC_OVERLOAD _CLC_INLINE double remquo(double x, double y, private int * quo) 
-    { 
-       double temp;
-       int itemp; 
-       temp = remquod(x, y, (int*)&itemp); 
-       *quo=itemp;
-       return temp;
-    }
+    { return remquod(x, y, (int*)quo); }
 
 _CLC_OVERLOAD _CLC_DECL double2 remquo(double2 x, double2 y, global  int2 * quo);
 _CLC_OVERLOAD _CLC_DECL double2 remquo(double2 x, double2 y, local   int2 * quo);
@@ -1361,37 +1325,25 @@ _CLC_OVERLOAD _CLC_DECL double16 remquo(double16 x, double16 y, global  int16 * 
 _CLC_OVERLOAD _CLC_DECL double16 remquo(double16 x, double16 y, local   int16 * quo);
 _CLC_OVERLOAD _CLC_DECL double16 remquo(double16 x, double16 y, private int16 * quo);
 
-_CLC_OVERLOAD _CLC_DECL float sincos(float x, global  float * cosval);
-_CLC_OVERLOAD _CLC_DECL float sincos(float x, local   float * cosval);
-_CLC_OVERLOAD _CLC_DECL float sincos(float x, private float * cosval);
-
-#if 0
 _CLC_PROTECTED void sincosf(float x, float * sinval, float * cosval);
 
 _CLC_OVERLOAD _CLC_INLINE float sincos(float x, global  float * cosval) 
     {   float sinval; 
-        float itemp;
-        sincosf(x, (float*)&sinval, (float*)&itemp);
-        *cosval = itemp;
+        sincosf(x, (float*)&sinval, (float*)cosval); 
         return sinval;
     }
 
 _CLC_OVERLOAD _CLC_INLINE float sincos(float x, local   float * cosval) 
     {   float sinval; 
-        float itemp;
-        sincosf(x, (float*)&sinval, (float*)&itemp); 
-        *cosval = itemp;
+        sincosf(x, (float*)&sinval, (float*)cosval); 
         return sinval;
     }
 
 _CLC_OVERLOAD _CLC_INLINE float sincos(float x, private float * cosval) 
     {   float sinval; 
-        float itemp;
-        sincosf(x, (float*)&sinval, (float*)&itemp); 
-        *cosval = itemp;
+        sincosf(x, (float*)&sinval, (float*)cosval); 
         return sinval;
     }
-#endif
 
 _CLC_OVERLOAD _CLC_DECL float2 sincos(float2 x, global  float2 * cosval);
 _CLC_OVERLOAD _CLC_DECL float2 sincos(float2 x, local   float2 * cosval);
@@ -1413,37 +1365,25 @@ _CLC_OVERLOAD _CLC_DECL float16 sincos(float16 x, global  float16 * cosval);
 _CLC_OVERLOAD _CLC_DECL float16 sincos(float16 x, local   float16 * cosval);
 _CLC_OVERLOAD _CLC_DECL float16 sincos(float16 x, private float16 * cosval);
 
-_CLC_OVERLOAD _CLC_DECL double sincos(double x, global  double * cosval);
-_CLC_OVERLOAD _CLC_DECL double sincos(double x, local   double * cosval);
-_CLC_OVERLOAD _CLC_DECL double sincos(double x, private double * cosval);
-
-#if 0
 _CLC_PROTECTED void sincosd(double x, double * sinval, double * cosval);
 
 _CLC_OVERLOAD _CLC_INLINE double sincos(double x, global  double * cosval) 
     {   double sinval; 
-        double itemp;
-        sincosd(x, (double*)&sinval, (double*)&itemp); 
-        *cosval = itemp;
+        sincosd(x, (double*)&sinval, (double*)cosval); 
         return sinval;
     }
 
 _CLC_OVERLOAD _CLC_INLINE double sincos(double x, local   double * cosval) 
     {   double sinval; 
-        double itemp;
-        sincosd(x, (double*)&sinval, (double*)&itemp); 
-        *cosval = itemp;
+        sincosd(x, (double*)&sinval, (double*)cosval); 
         return sinval;
     }
 
 _CLC_OVERLOAD _CLC_INLINE double sincos(double x, private double * cosval) 
     {   double sinval; 
-        double itemp;
-        sincosd(x, (double*)&sinval, (double*)&itemp); 
-        *cosval = itemp;
+        sincosd(x, (double*)&sinval, (double*)cosval); 
         return sinval;
     }
-#endif
 
 _CLC_OVERLOAD _CLC_DECL double2 sincos(double2 x, global  double2 * cosval);
 _CLC_OVERLOAD _CLC_DECL double2 sincos(double2 x, local   double2 * cosval);

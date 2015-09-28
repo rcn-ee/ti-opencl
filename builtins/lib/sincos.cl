@@ -27,103 +27,366 @@
  *****************************************************************************/
 #include "clc.h"
 
-_CLC_PROTECTED void sincosf(float x, float * sinval, float * cosval);
-_CLC_PROTECTED void sincosd(double x, double * sinval, double * cosval);
+_CLC_OVERLOAD _CLC_DEF float2 sincos(float2 x, global  float2 * cosval) 
+{
+    float2 temp;
+    temp.s0 = sincos(x.s0, &(((float*)cosval)[0]));
+    temp.s1 = sincos(x.s1, &(((float*)cosval)[1]));
+    return temp;
+}
 
-#define SINCOS_SCALAR_BODY(type, op) \
-{ \
-    type sin_val; \
-    type cos_val; \
-    op(x, &sin_val, &cos_val); \
-    *cosval = cos_val; \
-    return sin_val; \
-} \
+_CLC_OVERLOAD _CLC_DEF float2 sincos(float2 x, local   float2 * cosval) 
+{
+    float2 temp;
+    temp.s0 = sincos(x.s0, &(((float*)cosval)[0]));
+    temp.s1 = sincos(x.s1, &(((float*)cosval)[1]));
+    return temp;
+}
 
-#define SINCOS_VECTOR_BODY_2(prim_type, op) \
-    op(x.s0, &(((prim_type*)&sin_val)[0]), &(((prim_type*)&cos_val)[0])); \
-    op(x.s1, &(((prim_type*)&sin_val)[1]), &(((prim_type*)&cos_val)[1])); \
+_CLC_OVERLOAD _CLC_DEF float2 sincos(float2 x, private float2 * cosval) 
+{
+    float2 temp;
+    temp.s0 = sincos(x.s0, &(((float*)cosval)[0]));
+    temp.s1 = sincos(x.s1, &(((float*)cosval)[1]));
+    return temp;
+}
 
-#define SINCOS_VECTOR_BODY_3(prim_type, op) \
-    SINCOS_VECTOR_BODY_2(prim_type, op) \
-    op(x.s2, &(((prim_type*)&sin_val)[2]), &(((prim_type*)&cos_val)[2])); \
+_CLC_OVERLOAD _CLC_DEF float3 sincos(float3 x, global  float3 * cosval) 
+{
+    float3 temp;
+    temp.s0 = sincos(x.s0, &(((float*)cosval)[0]));
+    temp.s1 = sincos(x.s1, &(((float*)cosval)[1]));
+    temp.s2 = sincos(x.s2, &(((float*)cosval)[2]));
+    return temp;
+}
+_CLC_OVERLOAD _CLC_DEF float3 sincos(float3 x, local   float3 * cosval) 
+{
+    float3 temp;
+    temp.s0 = sincos(x.s0, &(((float*)cosval)[0]));
+    temp.s1 = sincos(x.s1, &(((float*)cosval)[1]));
+    temp.s2 = sincos(x.s2, &(((float*)cosval)[2]));
+    return temp;
+}
+_CLC_OVERLOAD _CLC_DEF float3 sincos(float3 x, private float3 * cosval) 
+{
+    float3 temp;
+    temp.s0 = sincos(x.s0, &(((float*)cosval)[0]));
+    temp.s1 = sincos(x.s1, &(((float*)cosval)[1]));
+    temp.s2 = sincos(x.s2, &(((float*)cosval)[2]));
+    return temp;
+}
 
-#define SINCOS_VECTOR_BODY_4(prim_type, op) \
-    SINCOS_VECTOR_BODY_3(prim_type, op) \
-    op(x.s3, &(((prim_type*)&sin_val)[3]), &(((prim_type*)&cos_val)[3])); \
+_CLC_OVERLOAD _CLC_DEF float4 sincos(float4 x, global  float4 * cosval)
+{
+    float4 temp;
+    temp.s0 = sincos(x.s0, &(((float*)cosval)[0]));
+    temp.s1 = sincos(x.s1, &(((float*)cosval)[1]));
+    temp.s2 = sincos(x.s2, &(((float*)cosval)[2]));
+    temp.s3 = sincos(x.s3, &(((float*)cosval)[3]));
+    return temp;
+}
+_CLC_OVERLOAD _CLC_DEF float4 sincos(float4 x, local   float4 * cosval)
+{
+    float4 temp;
+    temp.s0 = sincos(x.s0, &(((float*)cosval)[0]));
+    temp.s1 = sincos(x.s1, &(((float*)cosval)[1]));
+    temp.s2 = sincos(x.s2, &(((float*)cosval)[2]));
+    temp.s3 = sincos(x.s3, &(((float*)cosval)[3]));
+    return temp;
+}
+_CLC_OVERLOAD _CLC_DEF float4 sincos(float4 x, private float4 * cosval)
+{
+    float4 temp;
+    temp.s0 = sincos(x.s0, &(((float*)cosval)[0]));
+    temp.s1 = sincos(x.s1, &(((float*)cosval)[1]));
+    temp.s2 = sincos(x.s2, &(((float*)cosval)[2]));
+    temp.s3 = sincos(x.s3, &(((float*)cosval)[3]));
+    return temp;
+}
 
-#define SINCOS_VECTOR_BODY_8(prim_type, op) \
-    SINCOS_VECTOR_BODY_4(prim_type, op) \
-    op(x.s4, &(((prim_type*)&sin_val)[4]), &(((prim_type*)&cos_val)[4])); \
-    op(x.s5, &(((prim_type*)&sin_val)[5]), &(((prim_type*)&cos_val)[5])); \
-    op(x.s6, &(((prim_type*)&sin_val)[6]), &(((prim_type*)&cos_val)[6])); \
-    op(x.s7, &(((prim_type*)&sin_val)[7]), &(((prim_type*)&cos_val)[7])); \
+_CLC_OVERLOAD _CLC_DEF float8 sincos(float8 x, global  float8 * cosval) 
+{
+    float8 temp;
+    temp.s0 = sincos(x.s0, &(((float*)cosval)[0]));
+    temp.s1 = sincos(x.s1, &(((float*)cosval)[1]));
+    temp.s2 = sincos(x.s2, &(((float*)cosval)[2]));
+    temp.s3 = sincos(x.s3, &(((float*)cosval)[3]));
+    temp.s4 = sincos(x.s4, &(((float*)cosval)[4]));
+    temp.s5 = sincos(x.s5, &(((float*)cosval)[5]));
+    temp.s6 = sincos(x.s6, &(((float*)cosval)[6]));
+    temp.s7 = sincos(x.s7, &(((float*)cosval)[7]));
+    return temp;
+}
 
-#define SINCOS_VECTOR_BODY_16(prim_type, op) \
-    SINCOS_VECTOR_BODY_8(prim_type, op) \
-    op(x.s8, &(((prim_type*)&sin_val)[8]), &(((prim_type*)&cos_val)[8])); \
-    op(x.s9, &(((prim_type*)&sin_val)[9]), &(((prim_type*)&cos_val)[9])); \
-    op(x.sa, &(((prim_type*)&sin_val)[10]), &(((prim_type*)&cos_val)[10])); \
-    op(x.sb, &(((prim_type*)&sin_val)[11]), &(((prim_type*)&cos_val)[11])); \
-    op(x.sc, &(((prim_type*)&sin_val)[12]), &(((prim_type*)&cos_val)[12])); \
-    op(x.sd, &(((prim_type*)&sin_val)[13]), &(((prim_type*)&cos_val)[13])); \
-    op(x.se, &(((prim_type*)&sin_val)[14]), &(((prim_type*)&cos_val)[14])); \
-    op(x.sf, &(((prim_type*)&sin_val)[15]), &(((prim_type*)&cos_val)[15])); \
+_CLC_OVERLOAD _CLC_DEF float8 sincos(float8 x, local   float8 * cosval) 
+{
+    float8 temp;
+    temp.s0 = sincos(x.s0, &(((float*)cosval)[0]));
+    temp.s1 = sincos(x.s1, &(((float*)cosval)[1]));
+    temp.s2 = sincos(x.s2, &(((float*)cosval)[2]));
+    temp.s3 = sincos(x.s3, &(((float*)cosval)[3]));
+    temp.s4 = sincos(x.s4, &(((float*)cosval)[4]));
+    temp.s5 = sincos(x.s5, &(((float*)cosval)[5]));
+    temp.s6 = sincos(x.s6, &(((float*)cosval)[6]));
+    temp.s7 = sincos(x.s7, &(((float*)cosval)[7]));
+    return temp;
+}
+_CLC_OVERLOAD _CLC_DEF float8 sincos(float8 x, private float8 * cosval) 
+{
+    float8 temp;
+    temp.s0 = sincos(x.s0, &(((float*)cosval)[0]));
+    temp.s1 = sincos(x.s1, &(((float*)cosval)[1]));
+    temp.s2 = sincos(x.s2, &(((float*)cosval)[2]));
+    temp.s3 = sincos(x.s3, &(((float*)cosval)[3]));
+    temp.s4 = sincos(x.s4, &(((float*)cosval)[4]));
+    temp.s5 = sincos(x.s5, &(((float*)cosval)[5]));
+    temp.s6 = sincos(x.s6, &(((float*)cosval)[6]));
+    temp.s7 = sincos(x.s7, &(((float*)cosval)[7]));
+    return temp;
+}
 
-#define SINCOS_VECTOR_BODY(prim_type, num, op) \
-{ \
-    prim_type##num   sin_val; \
-    prim_type##num   cos_val; \
-    SINCOS_VECTOR_BODY_##num(prim_type, op)\
-    *cosval =  cos_val; \
-    return sin_val; \
-} \
+_CLC_OVERLOAD _CLC_DEF float16 sincos(float16 x, global  float16 * cosval) 
+{
+    float16 temp;
+    temp.s0 = sincos(x.s0, &(((float*)cosval)[0]));
+    temp.s1 = sincos(x.s1, &(((float*)cosval)[1]));
+    temp.s2 = sincos(x.s2, &(((float*)cosval)[2]));
+    temp.s3 = sincos(x.s3, &(((float*)cosval)[3]));
+    temp.s4 = sincos(x.s4, &(((float*)cosval)[4]));
+    temp.s5 = sincos(x.s5, &(((float*)cosval)[5]));
+    temp.s6 = sincos(x.s6, &(((float*)cosval)[6]));
+    temp.s7 = sincos(x.s7, &(((float*)cosval)[7]));
+    temp.s8 = sincos(x.s8, &(((float*)cosval)[8]));
+    temp.s9 = sincos(x.s9, &(((float*)cosval)[9]));
+    temp.sa = sincos(x.sa, &(((float*)cosval)[10]));
+    temp.sb = sincos(x.sb, &(((float*)cosval)[11]));
+    temp.sc = sincos(x.sc, &(((float*)cosval)[12]));
+    temp.sd = sincos(x.sd, &(((float*)cosval)[13]));
+    temp.se = sincos(x.se, &(((float*)cosval)[14]));
+    temp.sf = sincos(x.sf, &(((float*)cosval)[15]));
+    return temp;
+}
+_CLC_OVERLOAD _CLC_DEF float16 sincos(float16 x, local   float16 * cosval) 
+{
+    float16 temp;
+    temp.s0 = sincos(x.s0, &(((float*)cosval)[0]));
+    temp.s1 = sincos(x.s1, &(((float*)cosval)[1]));
+    temp.s2 = sincos(x.s2, &(((float*)cosval)[2]));
+    temp.s3 = sincos(x.s3, &(((float*)cosval)[3]));
+    temp.s4 = sincos(x.s4, &(((float*)cosval)[4]));
+    temp.s5 = sincos(x.s5, &(((float*)cosval)[5]));
+    temp.s6 = sincos(x.s6, &(((float*)cosval)[6]));
+    temp.s7 = sincos(x.s7, &(((float*)cosval)[7]));
+    temp.s8 = sincos(x.s8, &(((float*)cosval)[8]));
+    temp.s9 = sincos(x.s9, &(((float*)cosval)[9]));
+    temp.sa = sincos(x.sa, &(((float*)cosval)[10]));
+    temp.sb = sincos(x.sb, &(((float*)cosval)[11]));
+    temp.sc = sincos(x.sc, &(((float*)cosval)[12]));
+    temp.sd = sincos(x.sd, &(((float*)cosval)[13]));
+    temp.se = sincos(x.se, &(((float*)cosval)[14]));
+    temp.sf = sincos(x.sf, &(((float*)cosval)[15]));
+    return temp;
+}
+_CLC_OVERLOAD _CLC_DEF float16 sincos(float16 x, private float16 * cosval) 
+{
+    float16 temp;
+    temp.s0 = sincos(x.s0, &(((float*)cosval)[0]));
+    temp.s1 = sincos(x.s1, &(((float*)cosval)[1]));
+    temp.s2 = sincos(x.s2, &(((float*)cosval)[2]));
+    temp.s3 = sincos(x.s3, &(((float*)cosval)[3]));
+    temp.s4 = sincos(x.s4, &(((float*)cosval)[4]));
+    temp.s5 = sincos(x.s5, &(((float*)cosval)[5]));
+    temp.s6 = sincos(x.s6, &(((float*)cosval)[6]));
+    temp.s7 = sincos(x.s7, &(((float*)cosval)[7]));
+    temp.s8 = sincos(x.s8, &(((float*)cosval)[8]));
+    temp.s9 = sincos(x.s9, &(((float*)cosval)[9]));
+    temp.sa = sincos(x.sa, &(((float*)cosval)[10]));
+    temp.sb = sincos(x.sb, &(((float*)cosval)[11]));
+    temp.sc = sincos(x.sc, &(((float*)cosval)[12]));
+    temp.sd = sincos(x.sd, &(((float*)cosval)[13]));
+    temp.se = sincos(x.se, &(((float*)cosval)[14]));
+    temp.sf = sincos(x.sf, &(((float*)cosval)[15]));
+    return temp;
+}
 
-_CLC_OVERLOAD _CLC_INLINE float sincos(float x, global  float * cosval) SINCOS_SCALAR_BODY(float, sincosf)
-_CLC_OVERLOAD _CLC_INLINE float sincos(float x, local   float * cosval) SINCOS_SCALAR_BODY(float, sincosf)
-_CLC_OVERLOAD _CLC_INLINE float sincos(float x, private float * cosval) SINCOS_SCALAR_BODY(float, sincosf)
+_CLC_OVERLOAD _CLC_DEF double2 sincos(double2 x, global  double2 * cosval) 
+{
+    double2 temp;
+    temp.s0 = sincos(x.s0, &(((double*)cosval)[0]));
+    temp.s1 = sincos(x.s1, &(((double*)cosval)[1]));
+    return temp;
+}
 
-_CLC_OVERLOAD _CLC_DEF float2 sincos(float2 x, global  float2 * cosval) SINCOS_VECTOR_BODY(float, 2, sincosf)
-_CLC_OVERLOAD _CLC_DEF float2 sincos(float2 x, local   float2 * cosval) SINCOS_VECTOR_BODY(float, 2, sincosf)
-_CLC_OVERLOAD _CLC_DEF float2 sincos(float2 x, private float2 * cosval) SINCOS_VECTOR_BODY(float, 2, sincosf)
+_CLC_OVERLOAD _CLC_DEF double2 sincos(double2 x, local   double2 * cosval) 
+{
+    double2 temp;
+    temp.s0 = sincos(x.s0, &(((double*)cosval)[0]));
+    temp.s1 = sincos(x.s1, &(((double*)cosval)[1]));
+    return temp;
+}
 
-_CLC_OVERLOAD _CLC_DEF float3 sincos(float3 x, global  float3 * cosval) SINCOS_VECTOR_BODY(float, 3, sincosf)
-_CLC_OVERLOAD _CLC_DEF float3 sincos(float3 x, local   float3 * cosval) SINCOS_VECTOR_BODY(float, 3, sincosf)
-_CLC_OVERLOAD _CLC_DEF float3 sincos(float3 x, private float3 * cosval) SINCOS_VECTOR_BODY(float, 3, sincosf)
+_CLC_OVERLOAD _CLC_DEF double2 sincos(double2 x, private double2 * cosval) 
+{
+    double2 temp;
+    temp.s0 = sincos(x.s0, &(((double*)cosval)[0]));
+    temp.s1 = sincos(x.s1, &(((double*)cosval)[1]));
+    return temp;
+}
 
-_CLC_OVERLOAD _CLC_DEF float4 sincos(float4 x, global  float4 * cosval) SINCOS_VECTOR_BODY(float, 4, sincosf)
-_CLC_OVERLOAD _CLC_DEF float4 sincos(float4 x, local   float4 * cosval) SINCOS_VECTOR_BODY(float, 4, sincosf)
-_CLC_OVERLOAD _CLC_DEF float4 sincos(float4 x, private float4 * cosval) SINCOS_VECTOR_BODY(float, 4, sincosf)
+_CLC_OVERLOAD _CLC_DEF double3 sincos(double3 x, global  double3 * cosval) 
+{
+    double3 temp;
+    temp.s0 = sincos(x.s0, &(((double*)cosval)[0]));
+    temp.s1 = sincos(x.s1, &(((double*)cosval)[1]));
+    temp.s2 = sincos(x.s2, &(((double*)cosval)[2]));
+    return temp;
+}
+_CLC_OVERLOAD _CLC_DEF double3 sincos(double3 x, local   double3 * cosval) 
+{
+    double3 temp;
+    temp.s0 = sincos(x.s0, &(((double*)cosval)[0]));
+    temp.s1 = sincos(x.s1, &(((double*)cosval)[1]));
+    temp.s2 = sincos(x.s2, &(((double*)cosval)[2]));
+    return temp;
+}
+_CLC_OVERLOAD _CLC_DEF double3 sincos(double3 x, private double3 * cosval) 
+{
+    double3 temp;
+    temp.s0 = sincos(x.s0, &(((double*)cosval)[0]));
+    temp.s1 = sincos(x.s1, &(((double*)cosval)[1]));
+    temp.s2 = sincos(x.s2, &(((double*)cosval)[2]));
+    return temp;
+}
 
-_CLC_OVERLOAD _CLC_DEF float8 sincos(float8 x, global  float8 * cosval) SINCOS_VECTOR_BODY(float, 8, sincosf)
-_CLC_OVERLOAD _CLC_DEF float8 sincos(float8 x, local   float8 * cosval) SINCOS_VECTOR_BODY(float, 8, sincosf)
-_CLC_OVERLOAD _CLC_DEF float8 sincos(float8 x, private float8 * cosval) SINCOS_VECTOR_BODY(float, 8, sincosf)
+_CLC_OVERLOAD _CLC_DEF double4 sincos(double4 x, global  double4 * cosval)
+{
+    double4 temp;
+    temp.s0 = sincos(x.s0, &(((double*)cosval)[0]));
+    temp.s1 = sincos(x.s1, &(((double*)cosval)[1]));
+    temp.s2 = sincos(x.s2, &(((double*)cosval)[2]));
+    temp.s3 = sincos(x.s3, &(((double*)cosval)[3]));
+    return temp;
+}
+_CLC_OVERLOAD _CLC_DEF double4 sincos(double4 x, local   double4 * cosval)
+{
+    double4 temp;
+    temp.s0 = sincos(x.s0, &(((double*)cosval)[0]));
+    temp.s1 = sincos(x.s1, &(((double*)cosval)[1]));
+    temp.s2 = sincos(x.s2, &(((double*)cosval)[2]));
+    temp.s3 = sincos(x.s3, &(((double*)cosval)[3]));
+    return temp;
+}
+_CLC_OVERLOAD _CLC_DEF double4 sincos(double4 x, private double4 * cosval)
+{
+    double4 temp;
+    temp.s0 = sincos(x.s0, &(((double*)cosval)[0]));
+    temp.s1 = sincos(x.s1, &(((double*)cosval)[1]));
+    temp.s2 = sincos(x.s2, &(((double*)cosval)[2]));
+    temp.s3 = sincos(x.s3, &(((double*)cosval)[3]));
+    return temp;
+}
 
-_CLC_OVERLOAD _CLC_DEF float16 sincos(float16 x, global  float16 * cosval) SINCOS_VECTOR_BODY(float, 16, sincosf)
-_CLC_OVERLOAD _CLC_DEF float16 sincos(float16 x, local   float16 * cosval) SINCOS_VECTOR_BODY(float, 16, sincosf)
-_CLC_OVERLOAD _CLC_DEF float16 sincos(float16 x, private float16 * cosval) SINCOS_VECTOR_BODY(float, 16, sincosf)
+_CLC_OVERLOAD _CLC_DEF double8 sincos(double8 x, global  double8 * cosval) 
+{
+    double8 temp;
+    temp.s0 = sincos(x.s0, &(((double*)cosval)[0]));
+    temp.s1 = sincos(x.s1, &(((double*)cosval)[1]));
+    temp.s2 = sincos(x.s2, &(((double*)cosval)[2]));
+    temp.s3 = sincos(x.s3, &(((double*)cosval)[3]));
+    temp.s4 = sincos(x.s4, &(((double*)cosval)[4]));
+    temp.s5 = sincos(x.s5, &(((double*)cosval)[5]));
+    temp.s6 = sincos(x.s6, &(((double*)cosval)[6]));
+    temp.s7 = sincos(x.s7, &(((double*)cosval)[7]));
+    return temp;
+}
 
-_CLC_OVERLOAD _CLC_DEF double sincos(double x, global  double * cosval) SINCOS_SCALAR_BODY(double, sincosd)
-_CLC_OVERLOAD _CLC_DEF double sincos(double x, local   double * cosval) SINCOS_SCALAR_BODY(double, sincosd)
-_CLC_OVERLOAD _CLC_DEF double sincos(double x, private double * cosval) SINCOS_SCALAR_BODY(double, sincosd)
+_CLC_OVERLOAD _CLC_DEF double8 sincos(double8 x, local   double8 * cosval) 
+{
+    double8 temp;
+    temp.s0 = sincos(x.s0, &(((double*)cosval)[0]));
+    temp.s1 = sincos(x.s1, &(((double*)cosval)[1]));
+    temp.s2 = sincos(x.s2, &(((double*)cosval)[2]));
+    temp.s3 = sincos(x.s3, &(((double*)cosval)[3]));
+    temp.s4 = sincos(x.s4, &(((double*)cosval)[4]));
+    temp.s5 = sincos(x.s5, &(((double*)cosval)[5]));
+    temp.s6 = sincos(x.s6, &(((double*)cosval)[6]));
+    temp.s7 = sincos(x.s7, &(((double*)cosval)[7]));
+    return temp;
+}
+_CLC_OVERLOAD _CLC_DEF double8 sincos(double8 x, private double8 * cosval) 
+{
+    double8 temp;
+    temp.s0 = sincos(x.s0, &(((double*)cosval)[0]));
+    temp.s1 = sincos(x.s1, &(((double*)cosval)[1]));
+    temp.s2 = sincos(x.s2, &(((double*)cosval)[2]));
+    temp.s3 = sincos(x.s3, &(((double*)cosval)[3]));
+    temp.s4 = sincos(x.s4, &(((double*)cosval)[4]));
+    temp.s5 = sincos(x.s5, &(((double*)cosval)[5]));
+    temp.s6 = sincos(x.s6, &(((double*)cosval)[6]));
+    temp.s7 = sincos(x.s7, &(((double*)cosval)[7]));
+    return temp;
+}
 
-_CLC_OVERLOAD _CLC_DEF double2 sincos(double2 x, global  double2 * cosval) SINCOS_VECTOR_BODY(double, 2, sincosd)
-_CLC_OVERLOAD _CLC_DEF double2 sincos(double2 x, local   double2 * cosval) SINCOS_VECTOR_BODY(double, 2, sincosd)
-_CLC_OVERLOAD _CLC_DEF double2 sincos(double2 x, private double2 * cosval) SINCOS_VECTOR_BODY(double, 2, sincosd)
-
-_CLC_OVERLOAD _CLC_DEF double3 sincos(double3 x, global  double3 * cosval) SINCOS_VECTOR_BODY(double, 3, sincosd)
-_CLC_OVERLOAD _CLC_DEF double3 sincos(double3 x, local   double3 * cosval) SINCOS_VECTOR_BODY(double, 3, sincosd)
-_CLC_OVERLOAD _CLC_DEF double3 sincos(double3 x, private double3 * cosval) SINCOS_VECTOR_BODY(double, 3, sincosd)
-
-_CLC_OVERLOAD _CLC_DEF double4 sincos(double4 x, global  double4 * cosval) SINCOS_VECTOR_BODY(double, 4, sincosd)
-_CLC_OVERLOAD _CLC_DEF double4 sincos(double4 x, local   double4 * cosval) SINCOS_VECTOR_BODY(double, 4, sincosd)
-_CLC_OVERLOAD _CLC_DEF double4 sincos(double4 x, private double4 * cosval) SINCOS_VECTOR_BODY(double, 4, sincosd)
-
-_CLC_OVERLOAD _CLC_DEF double8 sincos(double8 x, global  double8 * cosval) SINCOS_VECTOR_BODY(double, 8, sincosd)
-_CLC_OVERLOAD _CLC_DEF double8 sincos(double8 x, local   double8 * cosval) SINCOS_VECTOR_BODY(double, 8, sincosd)
-_CLC_OVERLOAD _CLC_DEF double8 sincos(double8 x, private double8 * cosval) SINCOS_VECTOR_BODY(double, 8, sincosd)
-
-_CLC_OVERLOAD _CLC_DEF double16 sincos(double16 x, global  double16 * cosval) SINCOS_VECTOR_BODY(double, 16, sincosd)
-_CLC_OVERLOAD _CLC_DEF double16 sincos(double16 x, local   double16 * cosval) SINCOS_VECTOR_BODY(double, 16, sincosd)
-_CLC_OVERLOAD _CLC_DEF double16 sincos(double16 x, private double16 * cosval) SINCOS_VECTOR_BODY(double, 16, sincosd)
-
-
+_CLC_OVERLOAD _CLC_DEF double16 sincos(double16 x, global  double16 * cosval) 
+{
+    double16 temp;
+    temp.s0 = sincos(x.s0, &(((double*)cosval)[0]));
+    temp.s1 = sincos(x.s1, &(((double*)cosval)[1]));
+    temp.s2 = sincos(x.s2, &(((double*)cosval)[2]));
+    temp.s3 = sincos(x.s3, &(((double*)cosval)[3]));
+    temp.s4 = sincos(x.s4, &(((double*)cosval)[4]));
+    temp.s5 = sincos(x.s5, &(((double*)cosval)[5]));
+    temp.s6 = sincos(x.s6, &(((double*)cosval)[6]));
+    temp.s7 = sincos(x.s7, &(((double*)cosval)[7]));
+    temp.s8 = sincos(x.s8, &(((double*)cosval)[8]));
+    temp.s9 = sincos(x.s9, &(((double*)cosval)[9]));
+    temp.sa = sincos(x.sa, &(((double*)cosval)[10]));
+    temp.sb = sincos(x.sb, &(((double*)cosval)[11]));
+    temp.sc = sincos(x.sc, &(((double*)cosval)[12]));
+    temp.sd = sincos(x.sd, &(((double*)cosval)[13]));
+    temp.se = sincos(x.se, &(((double*)cosval)[14]));
+    temp.sf = sincos(x.sf, &(((double*)cosval)[15]));
+    return temp;
+}
+_CLC_OVERLOAD _CLC_DEF double16 sincos(double16 x, local   double16 * cosval) 
+{
+    double16 temp;
+    temp.s0 = sincos(x.s0, &(((double*)cosval)[0]));
+    temp.s1 = sincos(x.s1, &(((double*)cosval)[1]));
+    temp.s2 = sincos(x.s2, &(((double*)cosval)[2]));
+    temp.s3 = sincos(x.s3, &(((double*)cosval)[3]));
+    temp.s4 = sincos(x.s4, &(((double*)cosval)[4]));
+    temp.s5 = sincos(x.s5, &(((double*)cosval)[5]));
+    temp.s6 = sincos(x.s6, &(((double*)cosval)[6]));
+    temp.s7 = sincos(x.s7, &(((double*)cosval)[7]));
+    temp.s8 = sincos(x.s8, &(((double*)cosval)[8]));
+    temp.s9 = sincos(x.s9, &(((double*)cosval)[9]));
+    temp.sa = sincos(x.sa, &(((double*)cosval)[10]));
+    temp.sb = sincos(x.sb, &(((double*)cosval)[11]));
+    temp.sc = sincos(x.sc, &(((double*)cosval)[12]));
+    temp.sd = sincos(x.sd, &(((double*)cosval)[13]));
+    temp.se = sincos(x.se, &(((double*)cosval)[14]));
+    temp.sf = sincos(x.sf, &(((double*)cosval)[15]));
+    return temp;
+}
+_CLC_OVERLOAD _CLC_DEF double16 sincos(double16 x, private double16 * cosval) 
+{
+    double16 temp;
+    temp.s0 = sincos(x.s0, &(((double*)cosval)[0]));
+    temp.s1 = sincos(x.s1, &(((double*)cosval)[1]));
+    temp.s2 = sincos(x.s2, &(((double*)cosval)[2]));
+    temp.s3 = sincos(x.s3, &(((double*)cosval)[3]));
+    temp.s4 = sincos(x.s4, &(((double*)cosval)[4]));
+    temp.s5 = sincos(x.s5, &(((double*)cosval)[5]));
+    temp.s6 = sincos(x.s6, &(((double*)cosval)[6]));
+    temp.s7 = sincos(x.s7, &(((double*)cosval)[7]));
+    temp.s8 = sincos(x.s8, &(((double*)cosval)[8]));
+    temp.s9 = sincos(x.s9, &(((double*)cosval)[9]));
+    temp.sa = sincos(x.sa, &(((double*)cosval)[10]));
+    temp.sb = sincos(x.sb, &(((double*)cosval)[11]));
+    temp.sc = sincos(x.sc, &(((double*)cosval)[12]));
+    temp.sd = sincos(x.sd, &(((double*)cosval)[13]));
+    temp.se = sincos(x.se, &(((double*)cosval)[14]));
+    temp.sf = sincos(x.sf, &(((double*)cosval)[15]));
+    return temp;
+}
