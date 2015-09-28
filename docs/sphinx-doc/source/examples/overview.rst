@@ -2,6 +2,116 @@
 Example Descriptions
 ********************
 
+The examples in this section are included in the installation of the OpenCL
+product.  Not all of these examples are applicable to all supported device
+platforms.  
+
+These examples are usually small in scope and are intended to illustrate a
+technique, an extension, or a mode of operation.  The following table provides
+a high level map of the example name to the features that are highlighted by
+that example.
+
+The key to the codes in the table are in subsequent tables.
+
+================== ======= =============== ============== ============ ========= ========================= ==================
+Name               Purpose Execute Model   Kernel Compile Buffer Model Profiling Extensions                Techniques
+================== ======= =============== ============== ============ ========= ========================= ==================
+blas               simp    iot             B/F            map                    C
+ccode              simp    1wi             S/F            read                   C
+dgemm              perf    iot             S/F            host         host      C, omp, msmc, edma, cache
+dspheap            simp    1wi             B/F                                   dspheap, msmc             functor
+dsplib_fft         simp    iot             S/E            read         event     C
+edmamgr            simp    1wi             B/E            read                   C, edma
+fftlib_offload     simp    iot             B/E                         host      C, omp
+float_compute      simp    ndr             B/F            host         host                                local, async, vec
+mandelbrot         simp    ndr             S/F            read         host                                nDev
+matmpy             simp    1wi             B/F            read         host      C, msmc                   nDev, async, local
+null               info    iot             S/E                         host      
+offline            simp    ndr             B/F            read         event                               vec
+offline_embed      simp    ndr             B/E            read         event                               vec
+ooo                simp    oot             S/E            read         host                                event, native
+ooo_callback       simp    oot             S/E            read         host                                event, callback
+ooo_map            simp    oot             S/E            map          host                                event, native
+openmpbench_C_v3   info    iot             B/F            read                   C, omp
+platforms          info                                   query
+sgemm              perf    1wi             S/F            map          host      C, msmc, edma, cache      local, vec
+simple             simp    ndr             S/E            read                                             functor
+vecadd             simp    ndr             S/E            host                                             vec
+vecadd_mpax        simp    ndr             S/E            map                                              extMem, query, vec
+vecadd_mpax_openmp simp    iot             S/F            map          event     C, omp                    extMem, query
+vecadd_openmp      simp    iot             S/F            read         event     C, omp
+vecadd_openmp_t    simp    iot             S/F            read         event     C, omp
+================== ======= =============== ============== ============ ========= ========================= ==================
+
+======= =====================
+Purpose
+======= =====================
+simp    Simple illustration
+perf    Performance motivated
+info    Information gathering
+======= =====================
+
+============ ======================================================
+Buffer Model
+============ ======================================================
+read         Uses enqueueReadBuffer and enqueueWriteBuffer
+map          Uses enqueueMapBuffer and enqueueUnmapMemObject
+host         Uses the CL_MEM_USE_HOST_PTR buffer creation attribute
+============ ======================================================
+
+============== ===================================================================
+Kernel Compile
+============== ===================================================================
+S/E            Creates kernel program from Source Embedded in the host application
+S/F            Creates kernel program from Source read from a File
+B/E            Creates kernel program from Binary Embedded in the host application
+B/F            Creates kernel program from Binary read from a File
+============== ===================================================================
+
+========= ======================================================================
+Profiling
+========= ======================================================================
+event     Uses profiling timestamp information queried from OpenCL Event objects
+host      Uses the host clock_gettime function to measure elapsed time
+device    Uses __clock() or __clock64() to measure elapsed cycles on the DSP
+========= ======================================================================
+
+=============== ================================================================
+Execution Model
+=============== ================================================================
+ndr             Queues a generic NDRangeKernel with > 1 work-item per work-group
+1wi             Queues a NDRangeKernel with 1 work-item per work-group
+iot             Queues a Task (1 work-item) in an In Order Queue
+oot             Queues a Task (1 work-item) in an Out of Order Queue
+=============== ================================================================
+
+========== ===================================================================
+Extensions
+========== ===================================================================
+C          Kernels w/ Std C code
+omp        Kernels w/ Std C code and OpenMP
+msmc       MSMC Buffers
+edma       EdmaMgr
+cache      Cache Reconfig
+dspheap    Creates DSP based heaps
+========== ===================================================================
+
+========== ===================================================================
+Techniques
+========== ===================================================================
+functor    KernelFunctor use
+event      Event Dependencies
+nDev       Multiple Devices
+native     Host Native Kernels
+callback   Host Callbacks
+extMem     Extended Memory
+async      Async WG copy
+local      Local Buffers
+query      Queries platform or device attributes
+vec        vector types used
+========== ===================================================================
+
+
 .. _platforms-example:
 
 platforms example
