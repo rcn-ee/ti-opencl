@@ -1,6 +1,6 @@
 .SILENT:
 
-DEFAULT_DEV_INSTALL_DIR ?= /opt/ti
+DEFAULT_DEV_INSTALL_DIR ?= /cgnas
 
 # Determine if cross-compiling and set appropriate CMAKE options
 CMAKE_DEFINES = -DDEFAULT_DEV_INSTALL_DIR=$(DEFAULT_DEV_INSTALL_DIR)

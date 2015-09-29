@@ -3,7 +3,8 @@
 OPENCL_SRC_DIR ?= ../host
 
 # If not specified, pick a default location for TI dependent packages
-DEFAULT_DEV_INSTALL_DIR ?= /opt/ti
+DEFAULT_DEV_INSTALL_DIR ?= /cgnas/ti-processor-sdk-rtos-am57xx-evm-02.00.00.00
+LINUX_DEVKIT_ROOT       ?= /cgnas/ti-processor-sdk-linux-am57xx-evm-02.00.00.00/linux-devkit/sysroots/cortexa15hf-vfp-neon-linux-gnueabi
 
 # And for the devkit, when doing an x86 build ...
 UNAME_M :=$(shell uname -m)

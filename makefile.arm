@@ -5,7 +5,7 @@ OCL_VER=$(OCL_MAJ_VER).1.7
 LLVM_VER=3.3
 
 # Needed by sub target makes
-export ARM_LLVM_DIR = /opt/ti-llvm-$(LLVM_VER)
+export ARM_LLVM_DIR = /cgnas/ti-llvm-$(LLVM_VER)
 
 OCL_BUILD_DIR    = build
 OCL_SRC_DIR      = host

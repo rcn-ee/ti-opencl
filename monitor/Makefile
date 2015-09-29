@@ -3,13 +3,14 @@
 OPENCL_SRC_DIR ?= ../host
 
 # If not specified, pick a default location for TI dependent packages
-DEFAULT_DEV_INSTALL_DIR ?= /opt/ti
+DEFAULT_DEV_INSTALL_DIR ?= /cgnas
+DEFAULT_MCSDK_INSTALL_DIR ?= /cgnas/mcsdk_linux_3_01_04_07
 
 # And for the devkit, when doing an x86 build ...
 UNAME_M :=$(shell uname -m)
 
 ifneq (,$(findstring 86, $(UNAME_M)))
-   LINUX_DEVKIT_ROOT ?= $(DEFAULT_DEV_INSTALL_DIR)/mcsdk_linux_3_01_04_07/linux-devkit/arago-2015.05/sysroots/cortexa15t2hf-vfp-neon-linux-gnueabi
+   LINUX_DEVKIT_ROOT ?= $(DEFAULT_MCSDK_INSTALL_DIR)/mcsdk_linux_3_01_04_07/linux-devkit/arago-2015.05/sysroots/cortexa15t2hf-vfp-neon-linux-gnueabi
 endif
 
 ifeq ($(TI_OCL_CGT_INSTALL),)
@@ -17,16 +18,16 @@ ifeq ($(TI_OCL_CGT_INSTALL),)
 endif
 
 SDK_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/desktop-linux-sdk_01_00_03_00
-MPM_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/mpm_2_00_01_10
-BIOS_DIR       ?= $(DEFAULT_DEV_INSTALL_DIR)/bios_6_41_04_54
-OMP_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/openmp_dsp_2_01_17_01
-IPC_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/ipc_3_36_02_13
 FC_DIR         ?= $(DEFAULT_DEV_INSTALL_DIR)/framework_components_3_40_00_02
-EDMA3LLD_DIR   ?= $(DEFAULT_DEV_INSTALL_DIR)/edma3_lld_02_11_13_17
 XDAIS_DIR      ?= $(DEFAULT_DEV_INSTALL_DIR)/xdais_7_24_00_04
 C6678_PDK_DIR  ?= $(DEFAULT_DEV_INSTALL_DIR)/pdk_C6678_2_1_3_7
-C6636_PDK_DIR  ?= $(DEFAULT_DEV_INSTALL_DIR)/pdk_keystone2_3_01_04_07
-XDC_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/xdctools_3_31_02_38_core
+MPM_DIR        ?= $(DEFAULT_MCSDK_INSTALL_DIR)/mpm_2_00_01_10
+BIOS_DIR       ?= $(DEFAULT_MCSDK_INSTALL_DIR)/bios_6_41_04_54
+OMP_DIR        ?= $(DEFAULT_MCSDK_INSTALL_DIR)/openmp_dsp_2_01_17_01
+IPC_DIR        ?= $(DEFAULT_MCSDK_INSTALL_DIR)/ipc_3_36_02_13
+EDMA3LLD_DIR   ?= $(DEFAULT_MCSDK_INSTALL_DIR)/edma3_lld_02_11_13_17
+C6636_PDK_DIR  ?= $(DEFAULT_MCSDK_INSTALL_DIR)/pdk_keystone2_3_01_04_07
+XDC_DIR        ?= $(DEFAULT_MCSDK_INSTALL_DIR)/xdctools_3_31_02_38_core
 ULM_DIR        ?= $(LINUX_DEVKIT_ROOT)/usr/share/ti/ulm
 GDB_SERVER_DIR ?= $(LINUX_DEVKIT_ROOT)/usr/share/ti/gdbc6x
 
