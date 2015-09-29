@@ -85,31 +85,31 @@ iot             Queues a Task (1 work-item) in an In Order Queue
 oot             Queues a Task (1 work-item) in an Out of Order Queue
 =============== ================================================================
 
-========== ===================================================================
+========== ============================================================
 Extensions
-========== ===================================================================
-C          Kernels w/ Std C code
-omp        Kernels w/ Std C code and OpenMP
-msmc       MSMC Buffers
-edma       EdmaMgr
-cache      Cache Reconfig
-dspheap    Creates DSP based heaps
-========== ===================================================================
+========== ============================================================
+C          Kernels contain calls to standard C code
+omp        Kernels contain calls to standard C code with OpenMP pragmas
+msmc       Buffers created in on-chip MSMC memory are used
+edma       Kernels use the EdmaMgr builtin functions for DMA control
+cache      Kernels use the cache re-configuration builtin functions
+dspheap    Kernels create user defined heaps on the DSP
+========== ============================================================
 
-========== ===================================================================
+========== ===========================================================================================
 Techniques
-========== ===================================================================
-functor    KernelFunctor use
-event      Event Dependencies
-nDev       Multiple Devices
-native     Host Native Kernels
-callback   Host Callbacks
-extMem     Extended Memory
-async      Async WG copy
-local      Local Buffers
-query      Queries platform or device attributes
-vec        vector types used
-========== ===================================================================
+========== ===========================================================================================
+functor    The C++ binding's Kernel Functor object is used
+event      OpenCL Events are used to set dependencies between enqueued commands
+nDev       The OpenCL application can be dynamically partitioned across multiple OpenCL devices
+native     The OpenCL application uses native kernels on the host
+callback   The callback feature is used to asynchronously call a host function on event status change
+extMem     The extended memory capability is used to access memory beyond the 32-bit address space 
+async      The async_work_group_copy functions are used to move data between memory spaces
+local      OpenCL Local Buffers are used for performance improvement
+query      OpenCL platforms and/or devices are queried for attributes
+vec        OpenCL C vector data types are used in kernels
+========== ===========================================================================================
 
 
 .. _platforms-example:
