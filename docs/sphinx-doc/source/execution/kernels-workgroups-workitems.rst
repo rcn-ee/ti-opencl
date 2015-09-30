@@ -262,6 +262,100 @@ where the host executes the function **post**.
 NDRangeKernel Work-Item within a Work-Group Execution
 -----------------------------------------------------
 
+In an OpenCL application, the body of a kernel function expresses the
+computation to be completed for a single work-item.  The number of work-items
+to compute is specified in the enqueueNDRangeKernel command for the kernel as
+the global size argument.  The local size argument defines how many work-items
+are grouped within a single work-group.  The previous section described the
+execution of work-groups.  This section will describe how work-items within a
+work-group execute.
+
+OpenCL implementations may vary significantly in the details of how work-items
+are executed within a work-group. That variability will be based on the
+hardware architecture of the device on which the work-items are executing. For
+GPUs with wide SIMD (Single Instruction Multiple Data) architectures,  some
+number of work-items within a work-group will execute concurrently, one
+work-item per SIMD lane of the architecture.  On Texas Instruments' DSPs, which
+are inherently iterative in nature, the work-items within a work-group will
+execute sequentially.
+
+In order for the work-items to execute sequentially in an efficient manner, the
+OpenCL C compiler in the Texas Instruments' OpenCL implementation will create
+loops around the body of a kernel function.  For example, in the below example
+code, the function vectorAdd is an example of kernel expressing the computation
+for a single work-item.  It queries the global work-item ID using the function
+get_global_id.  It then uses the ID to index into the A and B arrays, and adds
+the B element to the A element. 
+
+::
+
+    kernel vectorAdd(global int* A, global const int * B)
+    {
+        int gid = get_global_id(0);
+        A[gid] += B[gid];
+    }
+
+
+During compilation by the TI OpenCL C compiler, the above kernel expression is
+transformed into code to represent an entire work-group.  The transformation
+would make the above code look like the below code.
+
+::
+
+    extern uint32_t _local_size[3];
+    extern uint32_t _first_gid_in_wg[3];
+
+    kernel vectorAdd(global int* A, global const int * B)
+    {
+        int _local_id_0;
+
+        for (_local_id_0 = 0; _local_id_0 < _local_size[0]; _local_id_0++)
+        {
+            int gid = _local_id_0 + _first_gid_in_wg[0];
+            A[gid] += B[gid];
+        }
+    }
+
+The external variables _local_size and _first_gid_in_wg are arrays of three
+elements, one for each potential dimension of an NDRangeKernel.  The OpenCL
+runtime will populate these variables based on the arguments to the 
+enqueueNDRangeKernel command in the host application. 
+
+The above example kernel only expressed 1 dimension of access and so the
+transformed kernel had 1 level of loop inserted.  For kernels with two or three
+dimensional access the compiler would transform the kernel to include two or
+three levels of loops, respectively.
+
+NDRangeKernels: Putting it All Together
+----------------------------------------
+
+From the previous sections, we have shown that:
+
+#. Kernels as expressed in source, represent the computation for 1 work-item,
+#. The local size specified in the enqueueNDRangeKernel command determines how
+   many work-items are grouped into a single work-group,
+#. On TI DSP devices, work-items within a work-group execute sequentially via 
+   compiler inserted loops,
+#. The global size specified in the enqueueNDRangeKernel command determines how 
+   many total work-items there are, and also how many work-groups there are 
+   by dividing global size by local size,
+#. On TI DSP devices, work-groups are executed concurrently across DSP cores in 
+   work pool fashion until all work-groups for an enqueue command are completed,
+#. The number of work-groups that can concurrently execute is determined by the 
+   number of DSP cores in the device (in OpenCL terms a DSP core is a compute unit).
+
+The below figure visually summarizes the above by showing two
+enqueueNDRangeKernel commands that would semantically perform the same total
+computation, but by simply changing the local size argument, the balance of how
+the kernel is executed is changed.  In both cases the global size is 1024.  In
+case 1, the local size is 128 and this results in an execution partition that
+creates 8 work-groups, each of which will iterate through 128 work-items.  In
+case 2, the local size is changed to 256 and this results in 4 work-groups,
+each with 256 work-items.
+
+
+.. Image:: ../images/WG-vs-WI.png
+
 
 .. The DSP transformation, turning WI/WG to ITER
 .. **********************************************
