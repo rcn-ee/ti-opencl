@@ -1,6 +1,6 @@
 # If not specified, pick a default location for dependent llvm libraries
 LLVM_VERSION = 33
-DEFAULT_DEV_INSTALL_DIR ?= /opt/ti
+DEFAULT_DEV_INSTALL_DIR ?= /cgnas
 ARM_LLVM_DIR ?= $(DEFAULT_DEV_INSTALL_DIR)/llvm$(LLVM_VERSION)-install-arm
 X86_LLVM_DIR ?= $(DEFAULT_DEV_INSTALL_DIR)/llvm$(LLVM_VERSION)-install-x86
 
@@ -42,13 +42,14 @@ else ifneq (,$(findstring arm, $(UNAME_M)))
 endif
 
 LLVM_CONFIG_PREFIX = $(LLVM_DIR)/bin/
-
 LLVM_CONFIG_EXE ?= $(LLVM_CONFIG_PREFIX)$(LLVM_CONFIG_NAME)
-LLVM_CXXFLAGS = `$(LLVM_CONFIG_EXE) --cxxflags`
 
-# -lz is not available on arago
-LLVM_LDFLAGS = $(subst -lz,,$(shell $(LLVM_CONFIG_EXE) --ldflags))
-LLVM_LIBS = `$(LLVM_CONFIG_EXE) --libs $(TARGET) asmparser bitwriter tablegen mcjit debuginfo interpreter irreader jit linker instrumentation ipo mcdisassembler`
+ifneq ($(MAKECMDGOALS), clean)
+   LLVM_CXXFLAGS = `$(LLVM_CONFIG_EXE) --cxxflags`
+   # -lz is not available on arago
+   LLVM_LDFLAGS = $(subst -lz,,$(shell $(LLVM_CONFIG_EXE) --ldflags))
+   LLVM_LIBS = `$(LLVM_CONFIG_EXE) --libs $(TARGET) asmparser bitwriter tablegen mcjit debuginfo interpreter irreader jit linker instrumentation ipo mcdisassembler`
+endif
 
 UTILDIR         = ../src/core
 WGADIR          = ../src/core/dsp

@@ -1,4 +1,4 @@
-var rootDir = "/opt/ti/C60000CGT7.4.0B2"
+var rootDir = "/cgnas/C60000CGT7.4.2"
 
 var C66 = xdc.useModule('ti.targets.elf.C66');
 C66.rootDir = rootDir;
