@@ -179,8 +179,8 @@ Line 5 assumes there is only the one device in devices[0] and it queries that
 device for the number of compute units, which will be set in the variable **num**
 in this example.
 
-NDRangeKernel Example
----------------------
+NDRangeKernel Work-Group Execution
+----------------------------------
 
 The DSP cores (compute units) within the virtual DSP device behave like a
 heterogeneous thread pool for work-groups that are created by an
@@ -205,8 +205,8 @@ the idle core 1 for execution.
 
 After all 8 work-groups have completed, the NDRangeKernel submission is deemed
 to have completed and any OpenCL event associated with the enqueueNDRangeKernel
-will have its status updated to COMPLETE. A wait operation on an event will
-be satisfied once the event status is updated to COMPLETE, and the thread will
+will have its status updated to CL_COMPLETE. A wait operation on an event will
+be satisfied once the event status is updated to CL_COMPLETE, and the thread will
 be allowed to progress.
 
 The above figure could have resulted from code similar to the following:
@@ -258,6 +258,9 @@ where the host executes the function **post**.
     The work-groups for an NDRangeKernel submission can be started in any
     order, they can be completed in any order and they can be assigned to any
     core on the device.
+
+NDRangeKernel Work-Item within a Work-Group Execution
+-----------------------------------------------------
 
 
 .. The DSP transformation, turning WI/WG to ITER
