@@ -185,7 +185,7 @@ std::vector<llvm::Function *> Program::kernelFunctions(DeviceDependent &dep)
 
         /*---------------------------------------------------------------------
         * Each node has only one operand : a llvm::Function
-        *-----------------------i---------------------------------------------*/
+        *--------------------------------------------------------------------*/
         llvm::Value *value = dyn_cast<llvm::ValueAsMetadata>(node->getOperand(0))->getValue();
 
         /*---------------------------------------------------------------------
