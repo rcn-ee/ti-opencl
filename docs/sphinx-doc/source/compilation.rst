@@ -294,31 +294,33 @@ those options.
     options.
 
     The clocl behavior options are:
-       =============== =========================================
-       -h, --help      Print this help screen
-       -v, --verbose   Print verbose messages
-       -k, --keep      Do not delete temp compilation files
-       -g, --debug     Generate debug symbols
-       -t, --txt       Generate object in header form
-       -l, --lib       Do not link. Stop after compilation
-       -a              Allow kernel buffer arguments to overlap
-       --version       Print OpenCL product
-       =============== =========================================
+
+    =============== =========================================
+    -h, --help      Print this help screen
+    -v, --verbose   Print verbose messages
+    -k, --keep      Do not delete temp compilation files
+    -g, --debug     Generate debug symbols
+    -t, --txt       Generate object in header form
+    -l, --lib       Do not link. Stop after compilation
+    -a              Allow kernel buffer arguments to overlap
+    --version       Print OpenCL product
+    =============== =========================================
 
     The OpenCL 1.1 build options. Refer to 1.1 spec for desc:
-       ===============================  ========================================================
-       -D<name>                         Create a preprocessor symbol <name>
-       -D<name>=<val>                   Assign <val> to preprocessor symbol <name>
-       -I<dir>                          Add <dir> to the list of paths to search for headers
-       -w                               Inhibit all warning messages
-       -Werror                          Make all warnings into errors
-       -cl-single-precision-constant    Treat double FP constant as single FP constant
-       -cl-denorms-are-zero             Enable flush to zero FP behavior
-       -cl-opt-disable                  Disables all optimizations
-       -cl-mad-enable                   Allow a * b + c to be replaced by a mad
-       -cl-no-signed-zeros              Allow opts for FP math that ignore sign of zero
-       -cl-unsafe-math-optimizations    Allow opts for FP math that may violate standards
-       -cl-finite-math-only             Allow opts for FP math that assumes operands are finite
-       -cl-fast-relaxed-math            Choose fast FP operations over compliant FP operations
-       -cl-std=<val>                    Determine the OpenCL C language version to use 
-       ===============================  ========================================================
+
+    ===============================  ========================================================
+    -D<name>                         Create a preprocessor symbol <name>
+    -D<name>=<val>                   Assign <val> to preprocessor symbol <name>
+    -I<dir>                          Add <dir> to the list of paths to search for headers
+    -w                               Inhibit all warning messages
+    -Werror                          Make all warnings into errors
+    -cl-single-precision-constant    Treat double FP constant as single FP constant
+    -cl-denorms-are-zero             Enable flush to zero FP behavior
+    -cl-opt-disable                  Disables all optimizations
+    -cl-mad-enable                   Allow a * b + c to be replaced by a mad
+    -cl-no-signed-zeros              Allow opts for FP math that ignore sign of zero
+    -cl-unsafe-math-optimizations    Allow opts for FP math that may violate standards
+    -cl-finite-math-only             Allow opts for FP math that assumes operands are finite
+    -cl-fast-relaxed-math            Choose fast FP operations over compliant FP operations
+    -cl-std=<val>                    Determine the OpenCL C language version to use 
+    ===============================  ========================================================
