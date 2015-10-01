@@ -25,10 +25,16 @@ These environment variables can be used to control OpenCL behavior and provide v
     a program from binary, then you would need to pass -g as an option to the
     off-line compiler clocl. The OpenCL runtime pauses your application before
     dispatch of all kernels. While paused the runtime indicates to the user
-    that a kernel dispatch is pending. It provides the gdb6x commands to
-    connect to the DSP and setup appropriate breakpoints.  The runtime also
-    forces all kernels and work-groups within kernels to execute only on DSP
-    core 0.
+    that a kernel dispatch is pending.
+
+    Currently two debugging methods are supported by setting TI_OCL_DEBUG to
+    either "gdb" or "ccs".  If set to "gdb", the runtime provides the gdbc6x
+    commands to connect to the DSP and setup appropriate breakpoints.  If set
+    to "ccs", the runtime provides the Code Composer Studio (CCS) instructions
+    to connect to the DSP and setup appropriate breakpoints.  With either
+    method, the runtime forces all kernels and work-groups within kernels
+    to execute only on DSP core 0.  Details can be found in
+    :doc:`debug/index`.
 
 .. envvar:: TI_OCL_CACHE_KERNELS       
 

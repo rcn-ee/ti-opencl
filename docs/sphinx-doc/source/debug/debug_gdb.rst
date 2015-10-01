@@ -24,7 +24,7 @@ need two windows/consoles, one window to run OpenCL application, the other
 to debug DSP side kernel.
 
 1. In window 1, set environment variable ``TI_OCL_DEBUG`` before running
-   application, for example, ``TI_OCL_DEBUG=1 ./your_ocl_app`` if you use bash
+   application, for example, ``TI_OCL_DEBUG=gdb ./your_ocl_app`` if you use bash
 2. Once the application is running, before launching your kernel to DSP,
    OpenCL runtime will print out a gdbc6x command in window 1, for example,
    gdbc6x -q -iex "target remote /dev/gdbtty0" -iex "set confirm off" -iex "symbol-file /usr/share/ti/opencl/dsp.out" -iex "add-symbol-file /tmp/opencl7mNBld.out 0x86000000" -iex "b exit" -iex "b VectorAdd"
@@ -34,7 +34,7 @@ to debug DSP side kernel.
 
 The following are the sample output of window 1::
 
-    root@am57xx-evm:~/oclexamples/vecadd# TI_OCL_DEBUG=1 ./vecadd
+    root@am57xx-evm:~/oclexamples/vecadd# TI_OCL_DEBUG=gdb ./vecadd
     DEVICE: TI Multicore C66 DSP
     
     Offloading vector addition of 8192K elements...
@@ -109,4 +109,14 @@ and window 2::
     Detaching from program: , Remote target
     Ending remote debugging.
     root@am57xx-evm:~# 
+
+.. Note::
+    When debugging with gdbc6x, for an OpenCL NDRangeKernel execution, all
+    workgroups are executed on DSP core 0.  While not in debugging mode,
+    all available DSP cores participate in the computation.  Similarly, all
+    tasks are executed on DSP core 0 when in debugging mode.
+
+.. Note::
+    On AM57, if your kernel code contains ``printf``, debugging with gdbc6x
+    will crash once ``printf`` is executed.  We are working to fix this issue.
 

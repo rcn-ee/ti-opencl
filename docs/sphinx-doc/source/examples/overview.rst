@@ -119,6 +119,7 @@ platforms example
 
 This example uses the OpenCL C++ bindings to discover key platform and device
 information from the OpenCL implementation and print it to the screen.
+It also reports the version of the installed TI OpenCL product.
 
 .. _simple-example:
 
