@@ -21,8 +21,8 @@ Which TI OpenCL Version is Installed?
    ``0x01010212u`` when ``__TI_OCL_VERSION`` is referenced.
 
 5. The product version can be queried programmatically in an application by using the OpenCL 
-   API's to query the platform version. The returned string will have a format similar to: 
-   ``OpenCL 1.1 TI product version 1.1.1.0``. Sample c++ code to query the version follows::
+   APIs to query the platform version. The returned string will have a format similar to: 
+   ``OpenCL 1.1 TI product version 1.1.1.0``. Sample C++ code to query the version follows::
 
     #include <CL/cl.hpp>
     #include <iostream>

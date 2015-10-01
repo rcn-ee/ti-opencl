@@ -9,7 +9,7 @@ The TI OpenCL implementation adds 4 new host functions
 .. cpp:function:: void* __malloc_msmc(size_t size)
 .. cpp:function:: void  __free_msmc  (void* p)
 
-These new API's in the TI OpenCL implementation are not specified as part of
+These new APIs in the TI OpenCL implementation are not specified as part of
 OpenCL specification, but are TI extensions that are roughly modeled after
 OpenCL 2.0 specified functions clSVMAlloc and clSVMFree. They are not the same
 as those functions and therefore will not inherit those names in order to
@@ -19,9 +19,9 @@ The __malloc_ddr/__free_ddr APIs allocate and free memory in the global
 address space in off-chip DDR memory. The __malloc_msmc/__free_msmc APIs 
 allocate and free memory in the global address space in on-chip MSMC memory. 
 
-The rationale for these memory allocation extensions is to allow OpenCL API's 
-to be hidden in lower level implementation routines so that top level algorithmic 
-code can remain free from OpenCL mechanics.  This abstraction of OpenCL API's is 
+The rationale for these memory allocation extensions is to allow OpenCL APIs 
+to be hidden in lower-level implementation routines so that top level algorithmic 
+code can remain free from OpenCL mechanics.  This abstraction of OpenCL APIs is 
 possible without these extensions, but would typically require data copy from Linux 
 managed memory to OpenCL managed memory.  These extensions were provided to allow 
 the top level algorithmic code to originate data allocation in OpenCL managed memory, 

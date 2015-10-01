@@ -32,7 +32,7 @@
 
 /*----------------------------------------------------------------------------
 * EDMA Resources used by EDMA Manager on AM57x
-* Origin: /opt/ti/processor-sdk-rtos-am57xx-evm-01.00.00.00/edma3_lld_02_12_00_20/packages/ti/sdo/edma3/rm/src/configs/edma3_dra72x_cfg.c
+* Origin: ti-processor-sdk-rtos-am57xx-evm-XX/edma3_lld_YY/packages/ti/sdo/edma3/rm/src/configs/edma3_dra72x_cfg.c
 *---------------------------------------------------------------------------*/
 #include <xdc/std.h>
 #include <ti/sdo/edma3/rm/edma3_rm.h>

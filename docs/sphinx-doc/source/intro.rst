@@ -10,12 +10,12 @@ Khronos `OpenCL 1.1 specification`_. The Texas Instruments OpenCL implementation
 ============= =============================== ============================== =========================
 SoC           System                          Khronos Conformance            Installation Instructions
 ============= =============================== ============================== =========================
+AM572x         Beagle Board X-15              OpenCL v1.1 Conformant         Available 4Q '15
 66AK2H_       `66AK2H EVM`_                   OpenCL v1.1 Conformant         `MCSDK-HPC for EVM`_
 66AK2H_       `HP m800 Moonshot`_             OpenCL v1.1 Conformant         `MCSDK-HPC for m800`_
-66AK2L_       `66AK2L EVM`_                   Not submitted for conformance  `MCSDK-HPC for EVM`_
-66AK2E_       `66AK2E EVM`_                   Not submitted for conformance  `MCSDK-HPC for EVM`_
+66AK2L_       `66AK2L EVM`_                   Not submitted for conformance  Available 4Q '15 
+66AK2E_       `66AK2E EVM`_                   Not submitted for conformance  Available 4Q '15
 TMS320C6678_  `Advantech DSPC8681`_           Not submitted for conformance  :doc:`dspc8681-getting-started`
-AM572x         Beagle Board X-15              OpenCL v1.1 Conformant         Coming Soon
 ============= =============================== ============================== =========================
 
 
@@ -26,12 +26,12 @@ TI OpenCL implementations:
 ===================== ========================================= =============================================
 System                Host                                      Compute Device
 ===================== ========================================= =============================================
+Beagle Board X15      2 ARM Cortex-A15 CPUs, SMP Linux          1 device with 2 C66x DSP compute units
 `66AK2H EVM`_         4 ARM Cortex-A15 CPUs, SMP Linux          1 device with 8 C66x DSP compute units
 `HP m800 Moonshot`_   4 ARM Cortex-A15 CPUs, Ubuntu 14.04 Linux 1 device with 8 C66x DSP compute units
 `66AK2L EVM`_         2 ARM Cortex-A15 CPUs, SMP Linux          1 device with 4 C66x DSP compute units
 `66AK2E EVM`_         4 ARM Cortex-A15 CPUs, SMP Linux          1 device with 1 C66x DSP compute unit
 `Advantech DSPC8681`_ x86 based CPU, Ubuntu 12.04 Linux         4 devices, each with 8 C66X DSP compute units
-Beagle Board X15      2 ARM Cortex-A15 CPUs, SMP Linux          1 device with 2 C66x DSP compute units
 ===================== ========================================= =============================================
 
 

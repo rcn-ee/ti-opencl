@@ -56,6 +56,33 @@ static far PRIVATE(size_t, l1d_scratch_size) = 0;
 EXPORT void*  __scratch_l1d_start() { return l1d_start; }
 EXPORT size_t __scratch_l1d_size()  { return l1d_scratch_size; }
 
+EXPORT uint32_t __cache_l1d_size()
+{
+    switch (CACHE_getL1DSize())
+    {
+        case CACHE_L1_0KCACHE:  return 0;
+        case CACHE_L1_4KCACHE:  return (4  << 10);
+        case CACHE_L1_8KCACHE:  return (8  << 10);
+        case CACHE_L1_16KCACHE: return (16 << 10);
+        case CACHE_L1_32KCACHE: return (32 << 10);
+        default:                return (32 << 10);
+    }
+}
+
+EXPORT uint32_t __cache_l2_size()
+{
+    switch (CACHE_getL2Size())
+    {
+        case CACHE_0KCACHE:    return 0;
+        case CACHE_32KCACHE:   return (32   << 10);
+        case CACHE_64KCACHE:   return (64   << 10);
+        case CACHE_128KCACHE:  return (128  << 10);
+        case CACHE_256KCACHE:  return (256  << 10);
+        case CACHE_512KCACHE:  return (512  << 10);
+        case CACHE_1024KCACHE: return (1024 << 10);
+        default:               return (1024 << 10);
+    }
+}
 
 PRIVATE(int32_t, _local_id_x)      EXPORT = 0;
 PRIVATE(int32_t, _local_id_y)      EXPORT = 0;
@@ -128,22 +155,6 @@ EXPORT void __cache_l2_128k()
     CACHE_wbInvAllL2(CACHE_NOWAIT);
     __mfence();
     CACHE_setL2Size (CACHE_128KCACHE);
-    CACHE_getL2Size ();
-}
-
-EXPORT void __cache_l2_256k()
-{
-    CACHE_wbInvAllL2(CACHE_NOWAIT);
-    __mfence();
-    CACHE_setL2Size (CACHE_256KCACHE);
-    CACHE_getL2Size ();
-}
-
-EXPORT void __cache_l2_512k()
-{
-    CACHE_wbInvAllL2(CACHE_NOWAIT);
-    __mfence();
-    CACHE_setL2Size (CACHE_512KCACHE);
     CACHE_getL2Size ();
 }
 

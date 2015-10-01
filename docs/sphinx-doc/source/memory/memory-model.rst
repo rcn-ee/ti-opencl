@@ -41,8 +41,8 @@ Local Memory
   as a scratchpad.  
 
 Private Memory 
-  This memory region is for values that are private to a work-item and these
+  This memory region is for values that are private to a work-item. These
   values are typically allocated to registers in the C66 DSP core.  Sometimes
   it may be necessary for these values to exist in memory.  In these cases the
-  values are stored on the C66 DSP stack which resides in the reserved portion
+  values are stored on the C66 DSP stack, which resides in the reserved portion
   of the L2 memory.

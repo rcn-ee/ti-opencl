@@ -64,8 +64,8 @@ to initialize internal heap data structures before making any __malloc_l2 calls.
 
 .. Important::
 
-    These dsp heap functions were motivated by existing standard C code that can now be 
-    called from OpenCL C code.  We do not recommend using these API's for newly 
+    These DSP heap functions were motivated by existing standard C code that can now be 
+    called from OpenCL C code.  We do not recommend using these APIs for newly 
     written code, because they do not have semantics that are appropriate for 
     all OpenCL execution models.  
 
@@ -191,7 +191,7 @@ an object defined to be in a specific section bound to L2. ::
 Putting it all Together
 =======================
 
-The following code illustrate how to allocate memory for user defined heaps and
+The following code illustrates how to allocate memory for user defined heaps and
 call the initialization functions. The :ref:`dspheap-example`, shipped with the 
 product contains complete source code.
 

@@ -13,6 +13,5 @@ Memory Usage
    access-model
    discovery
    cache-operations
-   dma
    extended-memory
    dsp-malloc-extension

@@ -3,7 +3,8 @@
 OPENCL_SRC_DIR ?= ../host
 
 # If not specified, pick a default location for TI dependent packages
-DEFAULT_DEV_INSTALL_DIR ?= /opt/ti
+DEFAULT_DEV_INSTALL_DIR ?= /cgnas/ti-processor-sdk-rtos-am57xx-evm-02.00.00.00
+LINUX_DEVKIT_ROOT       ?= /cgnas/ti-processor-sdk-linux-am57xx-evm-02.00.00.00/linux-devkit/sysroots/cortexa15hf-vfp-neon-linux-gnueabi
 
 # And for the devkit, when doing an x86 build ...
 UNAME_M :=$(shell uname -m)
@@ -19,11 +20,11 @@ ifeq ($(TI_OCL_CGT_INSTALL),)
 endif
 
 AM57_PDK_DIR   ?= $(DEFAULT_DEV_INSTALL_DIR)/pdk_am57xx_1_0_0
-IPC_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/ipc_3_36_01_11
-XDC_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/xdctools_3_31_02_38
-BIOS_DIR       ?= $(DEFAULT_DEV_INSTALL_DIR)/bios_6_41_04_54
-FC_DIR         ?= $(DEFAULT_DEV_INSTALL_DIR)/framework_components_3_40_00_02
-EDMA3LLD_DIR   ?= $(DEFAULT_DEV_INSTALL_DIR)/edma3_lld_02_12_01_21
+IPC_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/ipc_3_40_01_08
+XDC_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/xdctools_3_31_02_38_core
+BIOS_DIR       ?= $(DEFAULT_DEV_INSTALL_DIR)/bios_6_42_02_29
+FC_DIR         ?= $(DEFAULT_DEV_INSTALL_DIR)/framework_components_3_40_01_04
+EDMA3LLD_DIR   ?= $(DEFAULT_DEV_INSTALL_DIR)/edma3_lld_02_12_01_22
 XDAIS_DIR      ?= $(DEFAULT_DEV_INSTALL_DIR)/xdais_7_24_00_04
 ULM_DIR        ?= $(LINUX_DEVKIT_ROOT)/usr/share/ti/ulm
 GDB_SERVER_DIR ?= $(LINUX_DEVKIT_ROOT)/usr/share/ti/gdbc6x

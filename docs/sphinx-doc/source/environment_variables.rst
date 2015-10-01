@@ -25,10 +25,16 @@ These environment variables can be used to control OpenCL behavior and provide v
     a program from binary, then you would need to pass -g as an option to the
     off-line compiler clocl. The OpenCL runtime pauses your application before
     dispatch of all kernels. While paused the runtime indicates to the user
-    that a kernel dispatch is pending. It provides the gdb6x commands to
-    connect to the DSP and setup appropriate breakpoints.  The runtime also
-    forces all kernels and work-groups within kernels to execute only on DSP
-    core 0.
+    that a kernel dispatch is pending.
+
+    Currently two debugging methods are supported by setting TI_OCL_DEBUG to
+    either "gdb" or "ccs".  If set to "gdb", the runtime provides the gdbc6x
+    commands to connect to the DSP and setup appropriate breakpoints.  If set
+    to "ccs", the runtime provides the Code Composer Studio (CCS) instructions
+    to connect to the DSP and setup appropriate breakpoints.  With either
+    method, the runtime forces all kernels and work-groups within kernels
+    to execute only on DSP core 0.  Details can be found in
+    :doc:`debug/index`.
 
 .. envvar:: TI_OCL_CACHE_KERNELS       
 
@@ -117,7 +123,7 @@ These environment variables can be used to control OpenCL behavior and provide v
     entail a significant performance penalty versus the hardware capabilities
     of the C66x DSP. Therefore, by default the platform and devices supported in
     the TI OpenCL implementation do not report support for double floating
-    point, i.e., if the platform or device is queried for extensions,
+    point. That is, if the platform or device is queried for extensions,
     cl_khr_fp64 is not listed by default. Additionally the OpenCL C predefined
     macro cl_khr_fp64 is not be defined by default. When the
     TI_OCL_ENABLE_FP64 environment variable is set, the TI OpenCL

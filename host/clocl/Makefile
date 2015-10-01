@@ -1,6 +1,6 @@
 # If not specified, pick a default location for dependent llvm libraries
 LLVM_VERSION = 36
-DEFAULT_DEV_INSTALL_DIR ?= /opt/ti
+DEFAULT_DEV_INSTALL_DIR ?= /cgnas
 ARM_LLVM_DIR ?= $(DEFAULT_DEV_INSTALL_DIR)/llvm$(LLVM_VERSION)-install-arm
 X86_LLVM_DIR ?= $(DEFAULT_DEV_INSTALL_DIR)/llvm$(LLVM_VERSION)-install-x86
 
@@ -47,10 +47,12 @@ LLVM_CONFIG_PREFIX = $(LLVM_DIR)/bin/
 LLVM_CONFIG_EXE ?= $(LLVM_CONFIG_PREFIX)$(LLVM_CONFIG_NAME)
 LLVM_CXXFLAGS = `$(LLVM_CONFIG_EXE) --cxxflags`
 
+ifneq ($(MAKECMDGOALS), clean)
 # -lz is not available on arago
 LLVM_LDFLAGS += $(subst -lz,,$(shell $(LLVM_CONFIG_EXE) --ldflags))
 LLVM_LDFLAGS += -lpthread -lrt -ldl -lm
 LLVM_LIBS = `$(LLVM_CONFIG_EXE) --libs`
+endif
 
 UTILDIR         = ../src/core
 WGADIR          = ../src/core/dsp
@@ -79,24 +81,24 @@ LDFLAGS  := $(LLVM_LDFLAGS) $(LDFLAGS)
 
 .PHONY: .FORCE 
 
-$(TARGET): $(TARGET)/.touch $(EXE) 
+$(TARGET): $(TARGET)/.touch $(TARGET)/$(EXE)
 
-$(EXE): $(OBJS)
-	$(CXX) $^ $(LIBS) $(LDFLAGS) -o $(TARGET)/$@
+$(TARGET)/$(EXE): $(OBJS)
+	$(CXX) $^ $(LIBS) $(LDFLAGS) -o $@
 
-$(TARGET)/%.o: %.cpp | $(TARGET)/
+$(TARGET)/%.o: %.cpp | $(TARGET)/.touch
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-$(TARGET)/%.o: $(UTILDIR)/%.cpp | $(TARGET)/
+$(TARGET)/%.o: $(UTILDIR)/%.cpp | $(TARGET)/.touch
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-$(TARGET)/%.o: $(WGADIR)/%.cpp | $(TARGET)/
+$(TARGET)/%.o: $(WGADIR)/%.cpp | $(TARGET)/.touch
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-$(TARGET)/%.o: $(POCLDIR)/%.cpp | $(TARGET)/
+$(TARGET)/%.o: $(POCLDIR)/%.cpp | $(TARGET)/.touch
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-$(TARGET)/%.o: $(POCLDIR)/%.cc | $(TARGET)/
+$(TARGET)/%.o: $(POCLDIR)/%.cc | $(TARGET)/.touch
 	$(CXX) $(CXXFLAGS) -c $<  -o $@
 
 $(TARGET)/.touch: 

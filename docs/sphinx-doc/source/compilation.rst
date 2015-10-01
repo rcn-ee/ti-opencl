@@ -45,7 +45,7 @@ perhaps only link or perform other book-keeping.
 Additionally, you have the choice to embed the content for your program in the
 application or to read it from a file.  This is applicable for both programs
 created from source and programs created from binary.  The cross product of
-these two options give you four cases for OpenCL C program creation:
+these two options gives you four cases for OpenCL C program creation:
 
 1. Create an OpenCL program from source, with embedded source,
 2. Create an OpenCL program from source, with source in a file,
@@ -155,7 +155,7 @@ protects IP better than the on-line compilation models, since the OpenCL C
 source is not required for running the application, only for building the
 application.  It also results in faster runtime, since the time delay for
 on-line compilation will not be experienced.  It does, however, expose
-implementation specific details of off-line compilation and therefore impacts
+implementation-specific details of offline compilation and therefore impacts
 portability. 
 
 .. code-block:: cpp
@@ -175,7 +175,7 @@ portability.
 Line 4 calls a helper function ocl_read_binary to read a binary file into a
 char array.  This helper function is provided with the TI OpenCL product.  To
 use this function, you must include ocl_util.h to see the function prototype.
-This can bee seen in line 1 of the above example.  Also, you will additionally
+This can be seen in line 1 of the above example.  Also, you will additionally
 need to link the host application with the library containing the helper
 function. Add -locl_util as a linker option.
 
@@ -239,7 +239,7 @@ array. Invoking clocl like this: :command:`clocl -t kernel.cl` will compile
 a file containing the initialized array ``kernel_dsp_bin`` which can be used
 directly to create an OpenCL Program::Binaries object.  This build method is
 the fastest of the four because neither on-line compilation nor reading the file
-are required.
+is required.
 
 .. code-block:: cpp
   :linenos:
@@ -254,7 +254,7 @@ Line 1 includes the file created by :command:`clocl -t`. Line 2 creates the
 ``Program::Binaries`` object from the array defined in ``kernel.dsp_h``.  Line 4
 creates the OpenCL C program from the binary and Line 5 builds the program.
 
-An example of the first few lines of a kernel.dsp_h file are provided below for
+The first few lines of a kernel.dsp_h file are provided below for
 illustration purposes.  ::
 
     unsigned int kernel_dsp_bin_len = 3656;
@@ -283,7 +283,7 @@ Executing :command:`clocl -h` will print the help screen.  Clocl
 contains two sets of options to control behavior. The first set of options is
 clocl and TI OpenCL specific.  They include the option -t which is used to
 generate an embeddable OpenCL C program binary array.  The second set of
-options are generic OpenCL options as specified by the OpenCL 1.1
+options is the generic OpenCL options as specified by the OpenCL 1.1
 specification.  I refer the reader to the specification for more details on
 those options.  
 

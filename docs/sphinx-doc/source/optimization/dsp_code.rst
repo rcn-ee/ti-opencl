@@ -167,7 +167,7 @@ This could be exploited to transfer data in different packing granularities. Say
 
 Depending on the nature of the application, different sizes of loading may be preferred. The main focus here is to try to achieve higher data flow rate.
 
-Eg.
+For example:
 
   A mxn image is represented as a 1D array of type 'char'. This image is convolved with a Gaussian filter kernel. In order to utilize the SIMD operations as discussed previously, a vector length of 4 is chosen.
 
@@ -207,6 +207,6 @@ There is a large body of existing OpenCL code available and the majority have
 been targeted toward and optimized for either GPUs or CPUs.  Often, an
 application will have different kernels optimized for each.  Generally, the
 versions targeting CPUs will perform better than the version targeting GPUs,
-when executed on TI SoC's and using the DSP as a device.
+when executed on TI SoCs and using the DSP as a device.
 
 
