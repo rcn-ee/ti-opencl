@@ -29,8 +29,8 @@ On-chip shared memory             6MB         2MB         2MB
 ================================= =========== =========== ===========
 
 The L1 and L2 memory areas in the C66x cores can be configured as all cache, all
-scratchpad or partitioned with both. For OpenCL applications, this partition is 
-fixed as follows for each C66x core:
+scratchpad or partitioned with both. For OpenCL applications, this partition defaults 
+to the following values for each C66x core:
 
 ====================================== ======= ======= =======
 Attribute                              66AK2H  66AK2L  66AK2E
@@ -64,8 +64,8 @@ L2 available for OpenCL local buffers  768KB   768KB   256KB
     ================================= =======
 
     The L1 and L2 memory areas in the C66x cores can be configured as all cache, all
-    scratchpad or partitioned with both. For OpenCL applications, this partition is 
-    fixed as follows for each C66x core:
+    scratchpad or partitioned with both.  For OpenCL applications, this partition defaults 
+    to the following values for each C66x core:
 
     ====================================== ========
     Attribute                              AM57
