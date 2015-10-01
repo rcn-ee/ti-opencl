@@ -158,22 +158,6 @@ EXPORT void __cache_l2_128k()
     CACHE_getL2Size ();
 }
 
-EXPORT void __cache_l2_256k()
-{
-    CACHE_wbInvAllL2(CACHE_NOWAIT);
-    __mfence();
-    CACHE_setL2Size (CACHE_256KCACHE);
-    CACHE_getL2Size ();
-}
-
-EXPORT void __cache_l2_512k()
-{
-    CACHE_wbInvAllL2(CACHE_NOWAIT);
-    __mfence();
-    CACHE_setL2Size (CACHE_512KCACHE);
-    CACHE_getL2Size ();
-}
-
 EXPORT void __cache_l2_flush()
 {
     uint32_t lvInt = _disable_interrupts();
