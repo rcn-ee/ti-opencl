@@ -9,7 +9,6 @@ better map to TI's devices.
 
 .. toctree::
    :maxdepth: 2
-   :numbered:
 
    standard-c-code
    openmp-dsp
@@ -19,6 +18,7 @@ better map to TI's devices.
    extended-memory
    msmc-buffers
    opencl-c-builtin-function-extensions
+   ../memory/cache-operations.rst
 ..   ../memory/host-malloc-extension
 ..   ../memory/dsp-malloc-extension
 ..   ../memory/cache-operations

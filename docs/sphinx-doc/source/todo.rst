@@ -7,16 +7,12 @@ TODO list of documentation needs.
     - off-line compilation
     - cl6x
     - the C6000 programmers guide
-- EDMA usage
+- DMA usage
     - Async_work_group_copy
-    - the layer under async
-    - edmalld on the ARM side
+    - edmamgr
 - Relative performance of the different memory hierarchy
-- cache built-in functions
 - disabling write through
 - disabling prefetch
 - warning on stack usage
 - opencl execution model
 - profiling OpenCL applications
-- debugging OpenCL applications
-- Optimization guide
