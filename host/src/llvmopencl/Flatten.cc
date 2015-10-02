@@ -48,21 +48,12 @@ Flatten::runOnModule(Module &M)
       if (KernelName == f->getName() || 
           (KernelName == "" && pocl::Workgroup::isKernelToProcess(*f)))
         {
-#ifdef LLVM_3_1
-          f->removeFnAttr(Attribute::AlwaysInline);
-          f->addFnAttr(Attribute::NoInline);
-#elif defined LLVM_3_2
-          AttrBuilder b;
-          f->removeFnAttr(Attributes::get(M.getContext(), b.addAttribute(Attributes::AlwaysInline)));
-          f->addFnAttr(Attributes::NoInline);
-#else
           AttributeSet attrs;
           f->removeAttributes(
               AttributeSet::FunctionIndex, 
               attrs.addAttribute(M.getContext(), AttributeSet::FunctionIndex, Attribute::AlwaysInline));
 
           f->addFnAttr(Attribute::NoInline);
-#endif
 
           f->setLinkage(llvm::GlobalValue::ExternalLinkage);
           changed = true;
@@ -72,20 +63,11 @@ Flatten::runOnModule(Module &M)
         } 
       else
         {
-#ifdef LLVM_3_1
-          f->removeFnAttr(Attribute::NoInline);
-          f->addFnAttr(Attribute::AlwaysInline);
-#elif defined LLVM_3_2
-          AttrBuilder b;
-          f->removeFnAttr(Attributes::get(M.getContext(), b.addAttribute(Attributes::NoInline)));
-          f->addFnAttr(Attributes::AlwaysInline);
-#else
           AttributeSet attrs;
           f->removeAttributes(
               AttributeSet::FunctionIndex, 
               attrs.addAttribute(M.getContext(), AttributeSet::FunctionIndex, Attribute::NoInline));
           f->addFnAttr(Attribute::AlwaysInline);
-#endif
 
           f->setLinkage(llvm::GlobalValue::InternalLinkage);
           changed = true;
@@ -129,7 +111,12 @@ Flatten::runOnModule(Module &M)
 
     for (Value::use_iterator i = v->use_begin(), e = v->use_end();
 	 i != e; ++i) {
-      if (Instruction *ci = dyn_cast<Instruction>(*i)) {
+#if defined LLVM_3_2 || defined LLVM_3_3 || defined LLVM_3_4
+      llvm::User *user = *i;
+#else
+      llvm::User *user = i->getUser();
+#endif
+      if (Instruction *ci = dyn_cast<Instruction>(user)) {
         // Prevent infinite looping on recursive functions
         // (though OpenCL does not allow this?)
         Function *f = ci->getParent()->getParent();;

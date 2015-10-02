@@ -26,15 +26,10 @@
 #include "Barrier.h"
 #include "Workgroup.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
-#if (defined LLVM_3_1 or defined LLVM_3_2)
-#include "llvm/Constants.h"
-#include "llvm/Instructions.h"
-#include "llvm/Module.h"
-#else
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Module.h"
-#endif
+#include "llvm/IR/Dominators.h"
 
 #include "VariableUniformityAnalysis.h"
 
@@ -56,8 +51,8 @@ char ImplicitLoopBarriers::ID = 0;
 void
 ImplicitLoopBarriers::getAnalysisUsage(AnalysisUsage &AU) const
 {
-  AU.addRequired<DominatorTree>();
-  AU.addPreserved<DominatorTree>();
+  AU.addRequired<DominatorTreeWrapperPass>();
+  AU.addPreserved<DominatorTreeWrapperPass>();
   AU.addRequired<VariableUniformityAnalysis>();
   AU.addPreserved<VariableUniformityAnalysis>();
 }

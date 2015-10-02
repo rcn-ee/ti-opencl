@@ -422,42 +422,53 @@ cl_int Kernel::info(cl_kernel_info param_name,
 boost::tuple<uint,uint,uint> Kernel::reqdWorkGroupSize(llvm::Module *module) const
 {
     llvm::NamedMDNode *kernels = module->getNamedMetadata("opencl.kernels");
+    llvm::MDNode *kernel = NULL;
 
     boost::tuple<uint,uint,uint> zeros(0,0,0);
 
     if (!kernels) return zeros;
+   
+    for (unsigned int i = 0, e = kernels->getNumOperands(); i != e; ++i){
+       llvm::MDNode *kernel_iter = kernels->getOperand(i);
 
-    for (unsigned int i=0; i<kernels->getNumOperands(); ++i)
+       /*---------------------------------------------------------------------
+       * Each node has only one operand : a llvm::Function
+       *--------------------------------------------------------------------*/
+       llvm::Function *f = 
+          llvm::cast<llvm::Function>(
+             llvm::dyn_cast<llvm::ValueAsMetadata>(
+                kernel_iter->getOperand(0))->getValue());
+    
+       if(f->getName().str() != p_name) continue;
+       kernel = kernel_iter;
+    }
+
+    unsigned e = kernel->getNumOperands();
+    for (unsigned int i=1; i != e; ++i)
     {
-        llvm::MDNode *node = kernels->getOperand(i);
+        llvm::MDNode *meta = llvm::cast<llvm::MDNode>(kernel->getOperand(i));
 
-        /*---------------------------------------------------------------------
-        * Each node has only one operand : a llvm::Function
-        *--------------------------------------------------------------------*/
-        llvm::Value *value = node->getOperand(0);
+        if (meta->getNumOperands() <= 1) return zeros;
 
-        /*---------------------------------------------------------------------
-        * Bug somewhere, don't crash
-        *--------------------------------------------------------------------*/
-        if (!llvm::isa<llvm::Function>(value)) continue;
-
-        llvm::Function *f = llvm::cast<llvm::Function>(value);
-        if(f->getName().str() != p_name) continue;
-
-        if (node->getNumOperands() <= 1) return zeros;
-
-        llvm::MDNode *meta = llvm::cast<llvm::MDNode>(node->getOperand(1));
-        if (meta->getNumOperands() == 4 &&
-            meta->getOperand(0)->getName().str() == std::string("reqd_work_group_size"))
+        std::string meta_name = llvm::cast<llvm::MDString>(
+              meta->getOperand(0))->getString().str();
+        if ((meta->getNumOperands() == 4) && 
+            (meta_name == "reqd_work_group_size"))
         {
-            uint x = llvm::cast<llvm::ConstantInt> (meta->getOperand(1))->getValue().getLimitedValue();
-            uint y = llvm::cast<llvm::ConstantInt> (meta->getOperand(2))->getValue().getLimitedValue();
-            uint z = llvm::cast<llvm::ConstantInt> (meta->getOperand(3))->getValue().getLimitedValue();
+	    uint x = (llvm::cast<llvm::ConstantInt>(
+               llvm::dyn_cast<llvm::ConstantAsMetadata>(
+                  meta->getOperand(1))->getValue()))->getLimitedValue();
+	    uint y = (llvm::cast<llvm::ConstantInt>(
+               llvm::dyn_cast<llvm::ConstantAsMetadata>(
+                  meta->getOperand(2))->getValue()))->getLimitedValue();
+	    uint z = (llvm::cast<llvm::ConstantInt>(
+               llvm::dyn_cast<llvm::ConstantAsMetadata>(
+                  meta->getOperand(3))->getValue()))->getLimitedValue();
 
             return boost::tuple<uint,uint,uint> (x,y,z);
         }
-        return zeros;
     }
+    return zeros;
 }
 
 

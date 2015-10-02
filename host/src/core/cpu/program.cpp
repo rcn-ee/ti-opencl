@@ -39,17 +39,21 @@
 
 #include <llvm/PassManager.h>
 #include <llvm/Analysis/Passes.h>
-#include <llvm/Analysis/Verifier.h>
+#include <llvm/IR/Verifier.h>
 #include <llvm/Transforms/Scalar.h>
 #include <llvm/Transforms/IPO.h>
 #include <llvm/ExecutionEngine/ExecutionEngine.h>
-#include <llvm/ExecutionEngine/JIT.h>
+#include <llvm/ExecutionEngine/SectionMemoryManager.h>
+#include <llvm/ExecutionEngine/MCJIT.h>
 #include <llvm/ExecutionEngine/Interpreter.h>
+#include <llvm/Support/ErrorHandling.h>
 
 #include <string>
 #include <iostream>
 
 using namespace Coal;
+using namespace llvm;
+
 
 CPUProgram::CPUProgram(CPUDevice *device, Program *program)
 : DeviceProgram(), p_device(device), p_program(program), p_jit(0)
@@ -122,17 +126,14 @@ bool CPUProgram::initJIT()
 
     // Create the JIT
     std::string err;
-    llvm::EngineBuilder builder(p_module);
-
-    builder.setErrorStr(&err);
-    builder.setAllocateGVsWithCode(false);
-
+    p_jit = llvm::EngineBuilder(std::unique_ptr<Module>(p_module))
+                            .setErrorStr(&err)
 #if defined (__arm__)
     // uncomment to try the MCJIT for ARM
-    //builder.setUseMCJIT(true);
+    //                        .setMCJITMemoryManager(
+    //                              llvm::make_unique<SectionMemoryManager>())
 #endif
-
-    p_jit = builder.create();
+                            .create();
 
     if (!p_jit)
     {

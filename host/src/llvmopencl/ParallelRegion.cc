@@ -27,16 +27,8 @@
 #include "Barrier.h"
 #include "Kernel.h"
 #include "config.h"
-#ifdef LLVM_3_1
-#include "llvm/Support/IRBuilder.h"
-#include "llvm/ValueSymbolTable.h"
-#elif defined LLVM_3_2
-#include "llvm/IRBuilder.h"
-#include "llvm/ValueSymbolTable.h"
-#else
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/ValueSymbolTable.h"
-#endif
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include "llvm/Transforms/Utils/Cloning.h"
 
@@ -281,7 +273,7 @@ ParallelRegion::insertLocalIdInit(llvm::BasicBlock* entry,
   Module *M = entry->getParent()->getParent();
 
   int size_t_width = 32;
-  if (M->getPointerSize() == llvm::Module::Pointer64)
+  if (M->getDataLayout()->getPointerSize(0) == 8)
     size_t_width = 64;
 
   GlobalVariable *gvx = M->getGlobalVariable(POCL_LOCAL_ID_X_GLOBAL);
@@ -449,7 +441,7 @@ ParallelRegion::AddParallelLoopMetadata(llvm::MDNode *identifier) {
     for (BasicBlock::iterator ii = bb->begin(), ee = bb->end();
          ii != ee; ii++) {
       if (ii->mayReadOrWriteMemory()) {
-        std::vector<Value*> loopIds;
+        std::vector<Metadata*> loopIds;
         MDNode *oldIds = ii->getMetadata("llvm.mem.parallel_loop_access");
         if (oldIds != NULL) {
           for (unsigned i = 0; i < oldIds->getNumOperands(); ++i) {
@@ -472,17 +464,21 @@ ParallelRegion::AddIDMetadata(
     std::size_t z) {
   
     int counter = 1;
-    Value *v1[] = {
+    Metadata *v1[] = {
         MDString::get(context, "WI_region"),      
-        ConstantInt::get(Type::getInt32Ty(context), pRegionId)};      
+        llvm::ConstantAsMetadata::get(
+        ConstantInt::get(Type::getInt32Ty(context), pRegionId))};      
     MDNode* mdRegion = MDNode::get(context, v1);  
-    Value *v2[] = {
+    Metadata *v2[] = {
         MDString::get(context, "WI_xyz"),      
-        ConstantInt::get(Type::getInt32Ty(context), x),
-        ConstantInt::get(Type::getInt32Ty(context), y),      
-        ConstantInt::get(Type::getInt32Ty(context), z)};      
+        llvm::ConstantAsMetadata::get(
+        ConstantInt::get(Type::getInt32Ty(context), x)),
+        llvm::ConstantAsMetadata::get(
+        ConstantInt::get(Type::getInt32Ty(context), y)),      
+        llvm::ConstantAsMetadata::get(
+        ConstantInt::get(Type::getInt32Ty(context), z))};      
     MDNode* mdXYZ = MDNode::get(context, v2);  
-    Value *v[] = {
+    Metadata *v[] = {
         MDString::get(context, "WI_data"),      
         mdRegion,
         mdXYZ};
@@ -492,9 +488,10 @@ ParallelRegion::AddIDMetadata(
       BasicBlock* bb = *i;      
       for (BasicBlock::iterator ii = bb->begin();
             ii != bb->end(); ii++) {
-        Value *v3[] = {
+        Metadata *v3[] = {
             MDString::get(context, "WI_counter"),      
-            ConstantInt::get(Type::getInt32Ty(context), counter)};      
+              llvm::ConstantAsMetadata::get(
+                ConstantInt::get(Type::getInt32Ty(context), counter))};      
         MDNode* mdCounter = MDNode::get(context, v3);  
         counter++;
         ii->setMetadata("wi", md);
@@ -549,7 +546,7 @@ ParallelRegion::AddBlockAfter(llvm::BasicBlock *block, llvm::BasicBlock *after)
 }
 
 bool 
-ParallelRegion::HasBlock(llvm::BasicBlock *bb)
+ParallelRegion::HasBlock(const llvm::BasicBlock *bb)
 {
     return find(begin(), end(), bb) != end();
 }
@@ -628,31 +625,10 @@ ParallelRegion::InjectPrintF
        /*Name=*/"printf", M); 
     printfFunc->setCallingConv(CallingConv::C);
 
-#if (defined LLVM_3_1 or defined LLVM_3_2)
-    AttrListPtr func_printf_PAL;
-#else
     AttributeSet func_printf_PAL;
-#endif
     {
-#ifdef LLVM_3_1
-      SmallVector<AttributeWithIndex, 4> Attrs;
-      AttributeWithIndex PAWI;
-      PAWI.Index = 1U; 
-      PAWI.Attrs = Attribute::NoCapture;
-      Attrs.push_back(PAWI);
-      PAWI.Index = 4294967295U; 
-      PAWI.Attrs = Attribute::NoUnwind;
-      Attrs.push_back(PAWI);
-      func_printf_PAL = AttrListPtr::get(Attrs.begin(), Attrs.end());
-#elif defined LLVM_3_2
-      SmallVector<AttributeWithIndex, 4> Attrs;
-      Attrs.push_back(AttributeWithIndex::get(M->getContext(), 1U, Attributes::NoCapture));
-      Attrs.push_back(AttributeWithIndex::get(M->getContext(), 4294967295U, Attributes::NoUnwind));
-      func_printf_PAL = AttrListPtr::get(M->getContext(), Attrs);
-#else
       func_printf_PAL.addAttribute( M->getContext(), 1U, Attribute::NoCapture);
       func_printf_PAL.addAttribute( M->getContext(), 4294967295U, Attribute::NoUnwind);
-#endif
     }
     printfFunc->setAttributes(func_printf_PAL);
   }

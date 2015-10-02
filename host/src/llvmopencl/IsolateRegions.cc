@@ -163,13 +163,7 @@ IsolateRegions::addDummyBefore(llvm::Region *R, llvm::BasicBlock *bb)
     if (R->contains(pred))
       regionPreds.push_back(pred);
   }
-#ifdef LLVM_3_0
-  llvm::BasicBlock* newExit = 
-    SplitBlockPredecessors
-    (bb, &regionPreds[0], regionPreds.size(), ".r_exit", this);
-#else
   llvm::BasicBlock* newExit = 
     SplitBlockPredecessors(bb, regionPreds, ".r_exit", this);
-#endif
   R->replaceExit(newExit);
 }

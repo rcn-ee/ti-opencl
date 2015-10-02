@@ -54,6 +54,8 @@
 #include <sys/mman.h>
 #include <sys/param.h>
 
+#include "llvm/IR/InstIterator.h"
+
 #if defined(DEVICE_K2X)
 extern "C"
 {
@@ -69,7 +71,6 @@ extern "C"
 
 using namespace Coal;
 
-#include "llvm/Support/InstIterator.h"
 
 DSPKernel::DSPKernel(DSPDevice *device, Kernel *kernel, llvm::Function *function)
 : DeviceKernel(), p_device(device), p_kernel(kernel), 

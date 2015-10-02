@@ -25,13 +25,8 @@
 #include "pocl.h"
 #include "config.h"
 
-#ifdef LLVM_3_2
-#include <llvm/Module.h>
-#include <llvm/Metadata.h>
-#else
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Metadata.h>
-#endif
 
 using namespace llvm;
 
@@ -61,12 +56,14 @@ regenerate_kernel_metadata(llvm::Module &M, FunctionMapping &kernels)
               Function *old_kernel = (*i).first;
               Function *new_kernel = (*i).second;
               if (old_kernel == new_kernel || wgsizeMD->getNumOperands() == 0 ||
-                  dyn_cast<Function>(wgsizeMD->getOperand(0)) != old_kernel) 
+                    dyn_cast<Function>(
+                      dyn_cast<ValueAsMetadata>(
+                         wgsizeMD->getOperand(0))->getValue()) != old_kernel) 
                 continue;
               // found a wg size metadata that points to the old kernel, copy its
               // operands except the first one to a new MDNode
-              SmallVector<Value*, 8> operands;
-              operands.push_back(new_kernel);
+              SmallVector<Metadata*, 8> operands;
+              operands.push_back(llvm::ValueAsMetadata::get(new_kernel));
               for (unsigned opr = 1; opr < wgsizeMD->getNumOperands(); ++opr)
                 {
                   operands.push_back(wgsizeMD->getOperand(opr));
@@ -86,7 +83,8 @@ regenerate_kernel_metadata(llvm::Module &M, FunctionMapping &kernels)
   for (FunctionMapping::const_iterator i = kernels.begin(),
          e = kernels.end();
        i != e; ++i) {
-    MDNode *md = MDNode::get(M.getContext(), ArrayRef<Value *>((*i).second));
+    MDNode *md = MDNode::get(M.getContext(), ArrayRef<Metadata *>(
+             llvm::ValueAsMetadata::get((*i).second)));
     nmd->addOperand(md);
   }
 }

@@ -22,16 +22,12 @@
 // THE SOFTWARE.
 
 #include "config.h"
-#if (defined LLVM_3_1 or defined LLVM_3_2)
-#include "llvm/Constants.h"
-#include "llvm/Instructions.h"
-#include "llvm/Module.h"
-#else
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Module.h"
-#endif
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
+#include "llvm/IR/Dominators.h"
+
 #include <iostream>
 
 #include "LoopBarriers.h"
@@ -54,8 +50,8 @@ char LoopBarriers::ID = 0;
 void
 LoopBarriers::getAnalysisUsage(AnalysisUsage &AU) const
 {
-  AU.addRequired<DominatorTree>();
-  AU.addPreserved<DominatorTree>();
+  AU.addRequired<DominatorTreeWrapperPass>();
+  AU.addPreserved<DominatorTreeWrapperPass>();
 }
 
 bool
@@ -64,11 +60,11 @@ LoopBarriers::runOnLoop(Loop *L, LPPassManager &LPM)
   if (!Workgroup::isKernelToProcess(*L->getHeader()->getParent()))
     return false;
 
-  DT = &getAnalysis<DominatorTree>();
+  DT = &getAnalysis<DominatorTreeWrapperPass>().getDomTree();
 
   bool changed = ProcessLoop(L, LPM);
 
-  DT->verifyAnalysis();
+  DT->verifyDomTree();
 
   return changed;
 }

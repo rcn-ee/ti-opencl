@@ -153,8 +153,8 @@ bool Compiler::compile(const std::string &options,
 
     else // devtype != CL_DEVICE_TYPE_CPU
     {
-       // For 6X, use the 'spir' target, since it implements opencl specs
-       target_opts.Triple = "spir-unknown-unknown-unknown";
+       // For 6X, use the 'c6000' target, since it implements opencl specs
+       target_opts.Triple = "c6000-unknown-unknown-unknown";
 
        // Currently, llp6x does not handle fused multiply and add
        // llvm intrinsics (llvm.fmuladd.*). Disable generating these
@@ -250,7 +250,7 @@ bool Compiler::compile(const std::string &options,
 
     // Set invocation options
     //invocation.setLangDefaults(lang_opts,clang::IK_OpenCL);
-    invocation.setLangDefaults(lang_opts,clang::IK_OpenCL, clang::LangStandard::lang_opencl12);
+    invocation.setLangDefaults(lang_opts,clang::IK_OpenCL, clang::LangStandard::lang_opencl20);
 
     // Create the diagnostics engine
     p_log_printer = new clang::TextDiagnosticPrinter(p_log_stream, &diag_opts);
@@ -275,18 +275,16 @@ bool Compiler::compile(const std::string &options,
 
     const llvm::StringRef s_data(srcc);
     const llvm::StringRef s_name("<source>");
-    llvm::MemoryBuffer *buffer = 
+    std::unique_ptr<llvm::MemoryBuffer> buffer = 
     llvm::MemoryBuffer::getMemBuffer(s_data, s_name);
 
-    prep_opts.addRemappedFile("program.cl", buffer);
+    prep_opts.addRemappedFile("program.cl", buffer.get());
 #endif
 
     //timespec t0, t1;
     //clock_gettime(CLOCK_MONOTONIC, &t0);
     // Compile
-    llvm::OwningPtr<clang::CodeGenAction> act(
-                   new clang::EmitLLVMOnlyAction(llvmcontext)
-    );
+    clang::CodeGenAction *act = new clang::EmitLLVMOnlyAction(llvmcontext);
 
     if (!p_compiler.ExecuteAction(*act))
     {
@@ -299,13 +297,13 @@ bool Compiler::compile(const std::string &options,
        //(float)t1.tv_sec-t0.tv_sec+(t1.tv_nsec-t0.tv_nsec)/1e9);
 
     p_log_stream.flush();
-    p_module = act->takeModule();
+    p_module = act->takeModule().release();
 
     // uncomment to debug the llvm IR
     // p_module->dump();  
 
     // Cleanup
-    prep_opts.eraseRemappedFile(prep_opts.remapped_file_buffer_end());
+    prep_opts.clearRemappedFiles();
 
     return true;
 }

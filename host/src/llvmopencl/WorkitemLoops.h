@@ -25,7 +25,7 @@
 #define _POCL_WORKITEM_LOOPS_H
 
 #include "llvm/ADT/Twine.h"
-#include "llvm/Analysis/Dominators.h"
+#include "llvm/IR/Dominators.h"
 #include "llvm/Analysis/LoopInfo.h"
 #include "llvm/Transforms/Utils/ValueMapper.h"
 #include <map>
@@ -33,7 +33,7 @@
 #include "WorkitemHandler.h"
 #include "ParallelRegion.h"
 #include "VariableUniformityAnalysis.h"
-#include <llvm/DebugInfo.h>
+#include <llvm/IR/DebugInfo.h>
 #include <llvm/IR/IRBuilder.h>
 
 #define MAX_DIMENSIONS 3u
@@ -65,6 +65,7 @@ namespace pocl {
     llvm::DominatorTree *DT;
     llvm::LoopInfo *LI;
     llvm::PostDominatorTree *PDT;
+    llvm::DominatorTreeWrapperPass *DTP;
     VariableUniformityAnalysis *VUA;
 
     ParallelRegion::ParallelRegionVector *original_parallel_regions;

@@ -182,14 +182,14 @@ typedef unsigned int cl_mem_fence_flags;
 /*-----------------------------------------------------------------------------
 * Standard types from Clang's stddef and stdint, Copyright (C) 2008 Eli Friedman
 *----------------------------------------------------------------------------*/
-typedef signed   __INT64_TYPE__ int64_t;
-typedef unsigned __INT64_TYPE__ uint64_t;
-typedef signed   __INT32_TYPE__ int32_t;
-typedef unsigned __INT32_TYPE__ uint32_t;
-typedef signed   __INT16_TYPE__ int16_t;
-typedef unsigned __INT16_TYPE__ uint16_t;
-typedef signed   __INT8_TYPE__  int8_t;
-typedef unsigned __INT8_TYPE__  uint8_t;
+typedef __INT64_TYPE__ int64_t;
+typedef __UINT64_TYPE__ uint64_t;
+typedef __INT32_TYPE__ int32_t;
+typedef __UINT32_TYPE__ uint32_t;
+typedef __INT16_TYPE__ int16_t;
+typedef __UINT16_TYPE__ uint16_t;
+typedef __INT8_TYPE__  int8_t;
+typedef __UINT8_TYPE__  uint8_t;
 
 #define __stdint_join3(a,b,c) a ## b ## c
 #define  __intn_t(n) __stdint_join3( int, n, _t)

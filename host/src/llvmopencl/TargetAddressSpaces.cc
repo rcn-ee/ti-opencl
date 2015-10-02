@@ -25,13 +25,8 @@
 #include <iostream>
 #include <string>
 
-#ifdef LLVM_3_2
-# include <llvm/Instructions.h>
-#else
-# include <llvm/IR/Instructions.h>
-# include <llvm/IR/Module.h>
-
-#endif
+#include <llvm/IR/Instructions.h>
+#include <llvm/IR/Module.h>
 #include <llvm/Transforms/Utils/ValueMapper.h>
 #include <llvm/Transforms/Utils/Cloning.h>
 #include <llvm/Transforms/Utils/BasicBlockUtils.h>
@@ -198,7 +193,6 @@ TargetAddressSpaces::runOnModule(llvm::Module &M) {
            ++ii) {
         llvm::Instruction *instr = ii;
 
-#if !(defined(LLVM_3_2) || defined(LLVM_3_3))
         if (isa<AddrSpaceCastInst>(instr)) {
           // Convert (now illegal) addresspacecasts to bitcasts.
 
@@ -217,7 +211,6 @@ TargetAddressSpaces::runOnModule(llvm::Module &M) {
           ii = bbi->begin();
           continue;
         }
-#endif
         
         if (!isa<CallInst>(instr)) continue;
         llvm::CallInst *call = dyn_cast<CallInst>(instr);
@@ -241,7 +234,7 @@ TargetAddressSpaces::runOnModule(llvm::Module &M) {
     if (i->first->getNumUses() > 0) {
       for (Value::use_iterator ui = i->first->use_begin(), 
              ue = i->first->use_end(); ui != ue; ++ui) {
-        User* user = *ui;
+        User* user = (*ui).getUser();
         user->dump();
                    
       }

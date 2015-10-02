@@ -20,12 +20,8 @@
 #define BREAKCONSTANTGEPS_H
 
 #include "config.h"
-#if (defined LLVM_3_1 or defined LLVM_3_2)
-#include "llvm/Module.h"
-#else
 #include "llvm/IR/Module.h"
-#endif
-#include "llvm/Analysis/Dominators.h"
+#include "llvm/IR/Dominators.h"
 #include "llvm/Pass.h"
 
 using namespace llvm;

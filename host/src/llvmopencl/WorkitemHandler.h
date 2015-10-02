@@ -25,12 +25,8 @@
 #define _POCL_WORKITEM_HANDLER_H
 
 #include "config.h"
-#if (defined LLVM_3_1 or defined LLVM_3_2)
-#include "llvm/Function.h"
-#else
 #include "llvm/IR/Function.h"
-#endif
-
+#include "llvm/IR/Dominators.h"
 #include "llvm/Pass.h"
 #include "llvm/Support/CommandLine.h"
 
@@ -55,8 +51,10 @@ namespace pocl {
   protected:
     
     void movePhiNodes(llvm::BasicBlock* src, llvm::BasicBlock* dst);
-    bool fixUndominatedVariableUses(llvm::DominatorTree *DT, llvm::Function &F);
-    bool dominatesUse(llvm::DominatorTree *DT, llvm::Instruction &I, unsigned i);
+    bool fixUndominatedVariableUses(llvm::DominatorTreeWrapperPass *DTP, 
+                                    llvm::Function &F);
+    bool dominatesUse(llvm::DominatorTreeWrapperPass *DTP, 
+                      llvm::Instruction &I, unsigned i);
 
     int LocalSizeX, LocalSizeY, LocalSizeZ;
 

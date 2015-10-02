@@ -31,23 +31,6 @@
 #include "llvm/Pass.h"
 #include "llvm/Support/CommandLine.h"
 #include "config.h"
-#ifdef LLVM_3_1
-#include "llvm/Support/IRBuilder.h"
-#include "llvm/Support/TypeBuilder.h"
-#include "llvm/BasicBlock.h"
-#include "llvm/Constants.h"
-#include "llvm/DerivedTypes.h"
-#include "llvm/InstrTypes.h"
-#include "llvm/Module.h"
-#elif defined LLVM_3_2
-#include "llvm/IRBuilder.h"
-#include "llvm/TypeBuilder.h"
-#include "llvm/BasicBlock.h"
-#include "llvm/Constants.h"
-#include "llvm/DerivedTypes.h"
-#include "llvm/InstrTypes.h"
-#include "llvm/Module.h"
-#else
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/TypeBuilder.h"
 #include "llvm/IR/BasicBlock.h"
@@ -55,7 +38,6 @@
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/InstrTypes.h"
 #include "llvm/IR/Module.h"
-#endif
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Transforms/Utils/Cloning.h"
 #include "llvm/Transforms/Utils/Local.h"
@@ -153,18 +135,19 @@ static RegisterPass<Workgroup> X("workgroup", "Workgroup creation pass");
 bool
 Workgroup::runOnModule(Module &M)
 {
-  if (M.getPointerSize() == llvm::Module::Pointer64)
+// FIXME 0 here is the address space - this breaks (?) if _local_size_x is not stored in AS0
+  if (M.getDataLayout()->getPointerSize(0) == 8)
     {
       TypeBuilder<PoclContext, true>::setSizeTWidth(64);
     }
-  else if (M.getPointerSize() == llvm::Module::Pointer32) 
+  else if (M.getDataLayout()->getPointerSize(0) == 4)
     {
       TypeBuilder<PoclContext, true>::setSizeTWidth(32);
     }
   else 
     {
       assert (false && "Target has an unsupported pointer width.");
-    }  
+    }
 
   for (Module::iterator i = M.begin(), e = M.end(); i != e; ++i) {
     if (!i->isDeclaration())
@@ -175,11 +158,7 @@ Workgroup::runOnModule(Module &M)
     if (!isKernelToProcess(*i)) continue;
     Function *L = createLauncher(M, i);
       
-#if defined LLVM_3_2
-    L->addFnAttr(Attributes::NoInline);
-#else
     L->addFnAttr(Attribute::NoInline);
-#endif
 
     privatizeContext(M, L);
 
@@ -247,7 +226,7 @@ createLauncher(Module &M, Function *F)
 
 
   int size_t_width = 32;
-  if (M.getPointerSize() == llvm::Module::Pointer64)
+  if (M.getDataLayout()->getPointerSize(0) == 8)
     size_t_width = 64;
 
   ptr = builder.CreateStructGEP(ai,
@@ -484,17 +463,9 @@ createWorkgroup(Module &M, Function *F)
      * as is to the function, no need to load form it first. */
     Value *value;
     if (ii->hasByValAttr()) {
-#if defined(LLVM_3_2) || defined(LLVM_3_3)
-        value = builder.CreateBitCast(pointer, t);
-#else
         value = builder.CreatePointerCast(pointer, t);
-#endif
     } else {
-#if defined(LLVM_3_2) || defined(LLVM_3_3)
-        value = builder.CreateBitCast(pointer, t->getPointerTo());
-#else
         value = builder.CreatePointerCast(pointer, t->getPointerTo());
-#endif
         value = builder.CreateLoad(value);
     }
 
@@ -552,11 +523,7 @@ createWorkgroupFast(Module &M, Function *F)
     if (t->isPointerTy()) {
       if (!ii->hasByValAttr()) {
         /* Assume the pointer is directly in the arg array. */
-#if defined(LLVM_3_2) || defined(LLVM_3_3)
-        arguments.push_back(builder.CreateBitCast(pointer, t));
-#else
         arguments.push_back(builder.CreatePointerCast(pointer, t));
-#endif
         continue;
       }
 
@@ -567,13 +534,8 @@ createWorkgroupFast(Module &M, Function *F)
 
     /* If it's a pass by value pointer argument, we just pass the pointer
      * as is to the function, no need to load from it first. */
-#if defined(LLVM_3_2) || defined(LLVM_3_3)
-    Value *value = builder.CreateBitCast
-      (pointer, t->getPointerTo(POCL_ADDRESS_SPACE_GLOBAL));
-#else
     Value *value = builder.CreatePointerCast
       (pointer, t->getPointerTo(POCL_ADDRESS_SPACE_GLOBAL));
-#endif
     if (!ii->hasByValAttr()) {
         value = builder.CreateLoad(value);
     }
@@ -610,7 +572,9 @@ Workgroup::isKernelToProcess(const Function &F)
   for (unsigned i = 0, e = kernels->getNumOperands(); i != e; ++i) {
     if (kernels->getOperand(i)->getOperand(0) == NULL)
       continue; // globaldce might have removed uncalled kernels
-    Function *k = cast<Function>(kernels->getOperand(i)->getOperand(0));
+    Function *k = cast<Function>(
+          dyn_cast<ValueAsMetadata>(
+            kernels->getOperand(i)->getOperand(0))->getValue());
     if (&F == k)
       return true;
   }
