@@ -27,7 +27,7 @@ if ("$ENV{LINUX_DEVKIT_ROOT}" STREQUAL "")
 ${DEFAULT_DEV_INSTALL_DIR}/ti-processor-sdk-linux-am57xx-evm-02.00.00.00/linux-devkit/sysroots/cortexa15hf-vfp-neon-linux-gnueabi)
    else()
       SET(LINUX_DEVKIT_ROOT
-${DEFAULT_DEV_INSTALL_DIR}/mcsdk_linux_3_01_04_07/linux-devkit/arago-2015.05/sysroots/cortexa15t2hf-vfp-neon-linux-gnueabi)
+${DEFAULT_DEV_INSTALL_DIR}/mcsdk_linux_3_01_04_07/mcsdk_linux_3_01_04_07/linux-devkit/arago-2015.05/sysroots/cortexa15t2hf-vfp-neon-linux-gnueabi)
    endif()
    MESSAGE(STATUS "Environment variable LINUX_DEVKIT_ROOT not set. "
                   "Assuming the linux devkit filesystem is installed "
