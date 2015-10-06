@@ -855,8 +855,8 @@ void Event::updateTiming(Timing timing)
     if (clock_gettime(CLOCK_MONOTONIC, &tp) != 0)
         clock_gettime(CLOCK_REALTIME, &tp);
 
-    rs = tp.tv_nsec / 1000;             // convert to microseconds
-    rs += tp.tv_sec * 1000000;          // convert to microseconds
+    rs = tp.tv_nsec / 1e3;  // convert to microseconds
+    rs += tp.tv_sec * 1e6;  // convert to microseconds
 
     p_timing[timing] = rs;
 

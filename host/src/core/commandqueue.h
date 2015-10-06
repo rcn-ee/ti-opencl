@@ -464,7 +464,7 @@ class Event : public Object
         void *p_device_data;
         std::multimap<Status, CallbackData> p_callbacks;
 
-        cl_uint p_timing[Max];
+        cl_ulong p_timing[Max];
 
         // p_wait_events: I should wait after these events complete
         // p_dependent_events: when I complete, I should notify these events
