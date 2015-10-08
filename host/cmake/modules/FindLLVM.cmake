@@ -48,25 +48,6 @@ endif()
 set(LLVM_VERSION 360) 
 
 
-# Set up llvm paths, using environment variables if defined
-if ("$ENV{ARM_LLVM_DIR}" STREQUAL "")
-   set(ARM_LLVM_DIR ${DEFAULT_DEV_INSTALL_DIR}/llvm${LLVM_VERSION}-install-arm)
-   MESSAGE(STATUS "Environment variable ARM_LLVM_DIR not set. "
-         "Assuming that the OpenCL ARM LLVM installation is at ${ARM_LLVM_DIR}")
-else()
-   set (ARM_LLVM_DIR $ENV{ARM_LLVM_DIR})
-endif()
-
-if (CROSS_COMPILE OR C6678_BUILD)
-if ("$ENV{X86_LLVM_DIR}" STREQUAL "")
-   set (X86_LLVM_DIR ${DEFAULT_DEV_INSTALL_DIR}/llvm${LLVM_VERSION}-install-${LLVM_HOST_PROCESSOR})
-   MESSAGE(STATUS "Environment variable X86_LLVM_DIR not set. "
-         "Assuming that the OpenCL x86 LLVM installation is at ${X86_LLVM_DIR}")
-else()
-   set (X86_LLVM_DIR $ENV{X86_LLVM_DIR})
-endif()
-endif()
-
 # Set llvm path to appropriate target llvm install
 if (K2X_BUILD OR AM57_BUILD)
    set (LLVM_INSTALL_DIR ${ARM_LLVM_DIR})

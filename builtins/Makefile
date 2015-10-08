@@ -1,19 +1,6 @@
-# If not specified, pick a default location for TI dependent packages
-LLVM_MAJOR_VERSION = 3
-LLVM_MINOR_VERSION = 6
+include ../host/Makefile.inc
 
-ifeq ($(DEFAULT_DEV_INSTALL_DIR),)
-   DEFAULT_DEV_INSTALL_DIR = /cgnas
-endif
-
-ifeq ($(ARM_LLVM_DIR),)
-   ARM_LLVM_DIR = $(DEFAULT_DEV_INSTALL_DIR)/ti-llvm-$(LLVM_MAJOR_VERSION).$(LLVM_MINOR_VERSION)
-endif
-
-ifeq ($(X86_LLVM_DIR),)
-   X86_LLVM_DIR = $(DEFAULT_DEV_INSTALL_DIR)/ti/llvm$(LLVM_MAJOR_VERSION)$(LLVM_MINOR_VERSION)-install-x86
-endif
-
+DEFAULT_DEV_INSTALL_DIR ?= $(DEFAULT_MCSDK)
 
 UNAME_M :=$(shell uname -m)
 ifneq (,$(findstring 86, $(UNAME_M)))
@@ -25,9 +12,7 @@ else ifneq (,$(findstring arm, $(UNAME_M)))
   CLANG := $(ARM_LLVM_DIR)/bin/clang
 endif
 
-#CL6X    = $(TI_OCL_CGT_INSTALL)/bin/cl6x
-CL6X    = cl6x
-
+CL6X          = $(TI_OCL_CGT_INSTALL)/bin/cl6x
 CL6X_CFLAGS   = -q -o3 -mv6600 --abi=eabi --use_g3 -mt -mo 
 CL6X_CFLAGS  += --mem_model:code=far --mem_model:data=far
 CLANG_CFLAGS  = -cc1 -O2 -triple=c6000-unknown-unknown-unknown -Fvisibility=protected
@@ -45,7 +30,7 @@ all: dsp.lib
 
 dsp.lib: $(OBJECTS)
 	@echo $@ Archiving
-	@ar6x qru $@ $^
+	$(TI_OCL_CGT_INSTALL)/bin/ar6x qru $@ $^
 
 pch: 
 	mkdir -p usr/share/ti/opencl

@@ -1,10 +1,12 @@
+include ../host/Makefile.inc
+
 # If not specified, assume the opencl source directory is at same location as
 # monitor
 OPENCL_SRC_DIR ?= ../host
 
 # If not specified, pick a default location for TI dependent packages
-DEFAULT_DEV_INSTALL_DIR ?= /cgnas/ti-processor-sdk-rtos-am57xx-evm-02.00.00.00
-LINUX_DEVKIT_ROOT       ?= /cgnas/ti-processor-sdk-linux-am57xx-evm-02.00.00.00/linux-devkit/sysroots/cortexa15hf-vfp-neon-linux-gnueabi
+DEFAULT_DEV_INSTALL_DIR ?= $(DEFAULT_PSDK_RTOS)
+LINUX_DEVKIT_ROOT       ?= $(PSDK_LINUX_DEVKIT_ROOT)
 
 # And for the devkit, when doing an x86 build ...
 UNAME_M :=$(shell uname -m)
@@ -38,7 +40,7 @@ DEVICE    = DEVICE_AM572x
 SOC       = SOC_AM572x
 
 ## !Need -O* to inline CACHE_* functions!
-CC= cl6x -o3 -mv6600 --abi=eabi --gcc --mem_model:const=data --mem_model:data=far
+CC= $(TI_OCL_CGT_INSTALL)/bin/cl6x -o3 -mv6600 --abi=eabi --gcc --mem_model:const=data --mem_model:data=far
 
 INCLUDES  = -i. -i $(OPENCL_SRC_DIR)/src/core/dsp
 INCLUDES += -i $(AM57_PDK_DIR)/packages -i $(TI_OCL_CGT_INSTALL)/include \
@@ -92,11 +94,11 @@ BUILTINS=$(BUILTINS_DIR)/dsp.lib
 #----------------------------------------------------------------------------
 define create_dsp_syms
 	@echo Creating $(2)
-	@nm6x -l $(1) | grep PROT | awk -F\| '{ print "\t.weak "$$8"\n"$$8"\t.set "$$2 };' >  $(2).asm
-	@nm6x -l $(1) | grep FUNC | grep -fexport_syms | awk -F\| '{ print "\t.weak "$$8"\n"$$8"\t.set "$$2 };' >> $(2).asm
+	@$(TI_OCL_CGT_INSTALL)/bin/nm6x -l $(1) | grep PROT | awk -F\| '{ print "\t.weak "$$8"\n"$$8"\t.set "$$2 };' >  $(2).asm
+	@$(TI_OCL_CGT_INSTALL)/bin/nm6x -l $(1) | grep FUNC | grep -fexport_syms | awk -F\| '{ print "\t.weak "$$8"\n"$$8"\t.set "$$2 };' >> $(2).asm
 	@$(CC) $(2).asm
 	@cp dsp_link_commands $(2)
-	@rm -f $(1).syms.tmp* $(1).asm
+	@rm -f $(1).syms.tmp* $(2).asm
 endef
 
 

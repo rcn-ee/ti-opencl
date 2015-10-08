@@ -1,3 +1,5 @@
+include ../host/Makefile.inc
+
 ifeq ($(TI_OCL_CGT_INSTALL),)
    $(error Builtins build requires TI_OCL_CGT_INSTALL env var for C6x CGT toolset)
 endif

@@ -1,8 +1,4 @@
-# If not specified, pick a default location for dependent llvm libraries
-LLVM_VERSION = 36
-DEFAULT_DEV_INSTALL_DIR ?= /cgnas
-ARM_LLVM_DIR ?= $(DEFAULT_DEV_INSTALL_DIR)/llvm$(LLVM_VERSION)-install-arm
-X86_LLVM_DIR ?= $(DEFAULT_DEV_INSTALL_DIR)/llvm$(LLVM_VERSION)-install-x86
+include ../Makefile.inc
 
 CLANG_LIBS 	= -lclangFrontendTool
 CLANG_LIBS 	+= -lclangFrontend

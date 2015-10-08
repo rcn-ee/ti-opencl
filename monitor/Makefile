@@ -1,33 +1,27 @@
+include ../host/Makefile.inc
+
 # If not specified, assume the opencl source directory is at same location as
 # monitor
 OPENCL_SRC_DIR ?= ../host
 
 # If not specified, pick a default location for TI dependent packages
-DEFAULT_DEV_INSTALL_DIR ?= /cgnas
-DEFAULT_MCSDK_INSTALL_DIR ?= /cgnas/mcsdk_linux_3_01_04_07
-
-# And for the devkit, when doing an x86 build ...
-UNAME_M :=$(shell uname -m)
-
-ifneq (,$(findstring 86, $(UNAME_M)))
-   LINUX_DEVKIT_ROOT ?= $(DEFAULT_MCSDK_INSTALL_DIR)/mcsdk_linux_3_01_04_07/linux-devkit/arago-2015.05/sysroots/cortexa15t2hf-vfp-neon-linux-gnueabi
-endif
+DEFAULT_DEV_INSTALL_DIR ?= $(DEFAULT_MCSDK)
+LINUX_DEVKIT_ROOT ?= $(MCSDK_LINUX_DEVKIT_ROOT)
 
 ifeq ($(TI_OCL_CGT_INSTALL),)
   $(error Monitor requires TI_OCL_CGT_INSTALL to point to C6000 Codegen tools)
 endif
 
-SDK_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/desktop-linux-sdk_01_00_03_00
+SDK_DIR        ?= $(DEFAULT_DLSDK)
 FC_DIR         ?= $(DEFAULT_DEV_INSTALL_DIR)/framework_components_3_40_00_02
 XDAIS_DIR      ?= $(DEFAULT_DEV_INSTALL_DIR)/xdais_7_24_00_04
-C6678_PDK_DIR  ?= $(DEFAULT_DEV_INSTALL_DIR)/pdk_C6678_2_1_3_7
-MPM_DIR        ?= $(DEFAULT_MCSDK_INSTALL_DIR)/mpm_2_00_01_10
-BIOS_DIR       ?= $(DEFAULT_MCSDK_INSTALL_DIR)/bios_6_41_04_54
-OMP_DIR        ?= $(DEFAULT_MCSDK_INSTALL_DIR)/openmp_dsp_2_01_17_01
-IPC_DIR        ?= $(DEFAULT_MCSDK_INSTALL_DIR)/ipc_3_36_02_13
-EDMA3LLD_DIR   ?= $(DEFAULT_MCSDK_INSTALL_DIR)/edma3_lld_02_11_13_17
-C6636_PDK_DIR  ?= $(DEFAULT_MCSDK_INSTALL_DIR)/pdk_keystone2_3_01_04_07
-XDC_DIR        ?= $(DEFAULT_MCSDK_INSTALL_DIR)/xdctools_3_31_02_38_core
+MPM_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/mpm_2_00_01_10
+BIOS_DIR       ?= $(DEFAULT_DEV_INSTALL_DIR)/bios_6_41_04_54
+OMP_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/openmp_dsp_2_01_17_01
+IPC_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/ipc_3_36_02_13
+EDMA3LLD_DIR   ?= $(DEFAULT_DEV_INSTALL_DIR)/edma3_lld_02_11_13_17
+C6636_PDK_DIR  ?= $(DEFAULT_DEV_INSTALL_DIR)/pdk_keystone2_3_01_04_07
+XDC_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/xdctools_3_31_02_38_core
 ULM_DIR        ?= $(LINUX_DEVKIT_ROOT)/usr/share/ti/ulm
 GDB_SERVER_DIR ?= $(LINUX_DEVKIT_ROOT)/usr/share/ti/gdbc6x
 
@@ -182,15 +176,15 @@ OBJS1=$(patsubst %.c,$(BUILD)/%.obj,$(SOURCES))
 OBJS=$(patsubst %.asm,$(BUILD)/%.obj,$(OBJS1))
 
 ## !Need -O* to inline CACHE_* functions!
-CC= cl6x -o3 -mv6600 --abi=eabi --gcc --mem_model:const=data --mem_model:data=far -fr=$(BUILD)
-#CC= cl6x -o0 -g -mv6600 --abi=eabi --gcc --mem_model:const=data --mem_model:data=far -fr=$(BUILD)
+CC= $(TI_OCL_CGT_INSTALL)/bin/cl6x -o3 -mv6600 --abi=eabi --gcc --mem_model:const=data --mem_model:data=far -fr=$(BUILD)
+#CC= $(TI_OCL_CGT_INSTALL)/bin/cl6x -o0 -g -mv6600 --abi=eabi --gcc --mem_model:const=data --mem_model:data=far -fr=$(BUILD)
 
 $(OUT): $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD) $(LIBS)
 	@echo Linking $(PLATFORM)
 	@$(CC) -z --priority -w -x -m$(BUILD)/dsp.map $^ -I$(TI_OCL_CGT_INSTALL)/lib -llibc.a -o $(OUT)
 	@echo Creating dsp.syms
-	@nm6x -l $(OUT) | grep PROT | awk -F\| '{ print "\t.weak "$$8"\n"$$8"\t.set "$$2 };' >  $(BUILD)/dsp_syms.asm
-	@nm6x -l $(OUT) | grep FUNC | grep -fexport_syms | awk -F\| '{ print "\t.weak "$$8"\n"$$8"\t.set "$$2 };' >> $(BUILD)/dsp_syms.asm
+	@$(TI_OCL_CGT_INSTALL)/bin/nm6x -l $(OUT) | grep PROT | awk -F\| '{ print "\t.weak "$$8"\n"$$8"\t.set "$$2 };' >  $(BUILD)/dsp_syms.asm
+	@$(TI_OCL_CGT_INSTALL)/bin/nm6x -l $(OUT) | grep FUNC | grep -fexport_syms | awk -F\| '{ print "\t.weak "$$8"\n"$$8"\t.set "$$2 };' >> $(BUILD)/dsp_syms.asm
 	@$(CC) $(BUILD)/dsp_syms.asm
 	@cp dsp_link_commands.$(PLATFORM) $(BUILD)/dsp.syms
 
