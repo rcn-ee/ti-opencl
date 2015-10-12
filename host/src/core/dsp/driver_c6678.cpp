@@ -157,7 +157,8 @@ void Driver::reset_and_load(int chip)
  
     void    *init_image_handle;
     uint32_t init_entry;
-    ret = dnldmgr_get_image(init.c_str(), &init_image_handle, &init_entry);
+    ret = dnldmgr_get_image(
+        const_cast<char *>(init.c_str()), &init_image_handle, &init_entry);
     ERR(ret, "Get reset image failed");
  
     ret = dnldmgr_reset_dsp(chip, 1, init_image_handle, init_entry, &bootcfg);
@@ -175,7 +176,8 @@ void Driver::reset_and_load(int chip)
     *------------------------------------------------------------------------*/
     void *image_handle;
     uint32_t entry;
-    ret = dnldmgr_get_image(dsp_monitor(chip).c_str(), &image_handle, &entry);
+    ret = dnldmgr_get_image(
+        const_cast<char *>(dsp_monitor(chip).c_str()), &image_handle, &entry);
     ERR(ret, "Get DSP image failed");
 
     ret = dnldmgr_load_image(chip, 0xFFFF, image_handle, entry, NULL);
@@ -191,7 +193,8 @@ void* Driver::create_image_handle(int chip)
     void *image_handle;
     uint32_t entry;
 
-    int ret = dnldmgr_get_image(monitor.c_str(), &image_handle, &entry);
+    int ret = dnldmgr_get_image(
+        const_cast<char *>(monitor.c_str()), &image_handle, &entry);
     ERR(ret, "Get DSP image failed");
 
     return image_handle;
@@ -353,7 +356,8 @@ int32_t Driver::read(int32_t dsp_id, DSPDevicePtr64 addr64, uint8_t *buf,
 DSPDevicePtr Driver::get_symbol(void* image_handle, const char *name)
 {
     DSPDevicePtr addr;
-    int ret = dnldmgr_get_symbol_address(image_handle, name, &addr);
+    int ret = dnldmgr_get_symbol_address(
+        image_handle, const_cast<char *>(name), &addr);
     if (ret) { printf("ERROR: Get symbol failed\n"); exit(-1); } 
 
     return addr;
