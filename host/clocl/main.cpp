@@ -104,9 +104,9 @@ string bc_filename(string filename)
 
 void write_bitcode(string bc_file, Module* module)
 {
-   std::error_code err_info;
+    std::error_code err_info;
     llvm::raw_fd_ostream file_ostream(bc_file.c_str(), err_info,
-                                      sys::fs::F_Append);
+                                      sys::fs::F_RW);
     llvm::WriteBitcodeToFile(module, file_ostream);
     file_ostream.flush();
 }
