@@ -119,9 +119,11 @@ bool handle_event_completion(DSPDevice *device)
     ke->free_tmp_bufs();
 
     CommandQueue *queue = 0;
+    cl_command_queue d_queue = 0;
     cl_command_queue_properties queue_props = 0;
 
-    event->info(CL_EVENT_COMMAND_QUEUE, sizeof(CommandQueue *), &queue, 0);
+    event->info(CL_EVENT_COMMAND_QUEUE, sizeof(cl_command_queue), &d_queue, 0);
+    queue = pobj(d_queue);
 
     if (queue)
        queue->info(CL_QUEUE_PROPERTIES, sizeof(cl_command_queue_properties),
@@ -195,11 +197,13 @@ bool handle_event_dispatch(DSPDevice *device)
     pthread_mutex_unlock(device->get_worker_mutex());
 
     CommandQueue *              queue = 0;
+    cl_command_queue            d_queue = 0;
     cl_command_queue_properties queue_props = 0;
 
     errcode = CL_SUCCESS;
 
-    event->info(CL_EVENT_COMMAND_QUEUE, sizeof(CommandQueue *), &queue, 0);
+    event->info(CL_EVENT_COMMAND_QUEUE, sizeof(cl_command_queue), &d_queue, 0);
+    queue = pobj(d_queue);
 
     if (queue)
        queue->info(CL_QUEUE_PROPERTIES, sizeof(cl_command_queue_properties),

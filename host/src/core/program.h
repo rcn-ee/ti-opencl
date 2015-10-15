@@ -35,10 +35,18 @@
 #define __PROGRAM_H__
 
 #include "object.h"
+#include "icd.h"
 
 #include <CL/cl.h>
 #include <string>
 #include <vector>
+
+namespace Coal
+{
+  class Program;
+}
+struct _cl_program: public Coal::descriptor<Coal::Program, _cl_program> {};
+
 
 namespace llvm
 {
@@ -59,14 +67,14 @@ class Kernel;
 
 /**
  * \brief Program object
- * 
+ *
  * This class compiles and links a source or binaries into LLVM modules for each
  * \c Coal::DeviceInterface for which the program is built.
- * 
+ *
  * It then contains functions to get the list of kernels available in the
  * program, using \c Coal::Kernel objects.
  */
-class Program : public Object
+class Program : public _cl_program, public Object
 {
     public:
         /**
@@ -99,14 +107,14 @@ class Program : public Object
 
         /**
          * \brief Load sources into the program
-         * 
+         *
          * This function loads the source-code given in \p strings into the
          * program and sets its type to \c Source.
-         * 
+         *
          * \param count number of strings in \p strings
-         * \param strings array of pointers to strings, either null-terminated 
+         * \param strings array of pointers to strings, either null-terminated
          *        or of length given in \p lengths
-         * \param lengths lengths of the strings. If a field is 0, the 
+         * \param lengths lengths of the strings. If a field is 0, the
          *        corresponding string is null-terminated. If \p lengths is
          *        0, all the strings are null-terminated
          * \return \c CL_SUCCESS if success, an error code otherwise
@@ -116,15 +124,15 @@ class Program : public Object
 
         /**
          * \brief Load binaries into the program
-         * 
+         *
          * This function allows client application to load a source, retrieve
          * binaries using \c buildInfo(), and then re-create the same program
          * (after a restart for example) by giving it a precompiled binary.
-         * 
+         *
          * This function loads the binaries for each device and parse them into
          * LLVM modules, then sets the program type to \c Binary or
          * \c NativeBinary.
-         * 
+         *
          * \param data array of pointers to binaries, one for each device
          * \param lengths lengths of the binaries pointed to by \p data
          * \param binary_status array that will be filled by this function with
@@ -139,12 +147,12 @@ class Program : public Object
 
         /**
          * \brief Build the program
-         * 
+         *
          * This function compiles the sources, if any, and then link the
          * resulting binaries if the devices for which they are compiled asks
          * \c Coal::Program to do so, using \c Coal::DeviceProgram::linkStdLib().
-         * 
-         * \param options options to pass to the compiler, see the OpenCL 
+         *
+         * \param options options to pass to the compiler, see the OpenCL
          *        specification.
          * \param pfn_notify callback function called at the end of the build
          * \param user_data user data given to \p pfn_notify
@@ -176,7 +184,7 @@ class Program : public Object
          * \return the list of \c Coal::Kernel objects of this program
          */
         std::vector<Kernel *> createKernels(cl_int *errcode_ret);
-        
+
         /**
          * \brief Device-specific program
          * \param device device for which the device-specific program is needed
@@ -236,8 +244,5 @@ class Program : public Object
 };
 
 }
-
-struct _cl_program : public Coal::Program
-{};
 
 #endif

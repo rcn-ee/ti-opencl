@@ -63,12 +63,14 @@ clGetDeviceIDs(cl_platform_id   platform,
 }
 
 cl_int
-clGetDeviceInfo(cl_device_id    device,
+clGetDeviceInfo(cl_device_id    d_device,
                 cl_device_info  param_name,
                 size_t          param_value_size,
                 void *          param_value,
                 size_t *        param_value_size_ret)
 {
+    auto device = pobj(d_device);
+
     if (!device->isA(Coal::Object::T_Device))
         return CL_INVALID_DEVICE;
 

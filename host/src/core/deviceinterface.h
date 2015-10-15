@@ -37,6 +37,7 @@
 #include <CL/cl.h>
 #include <string>
 #include "object.h"
+#include "icd.h"
 
 /* This pulls in legacy::PassManager when using LLVM >= 3.5 */
 #include <llvm/PassManager.h>
@@ -47,6 +48,13 @@ namespace llvm
     class Module;
     class Function;
 }
+
+namespace Coal
+{
+class DeviceInterface;
+}
+
+struct _cl_device_id: public Coal::descriptor<Coal::DeviceInterface, _cl_device_id> {};
 
 namespace Coal
 {
@@ -66,7 +74,7 @@ class Kernel;
  * This interface is used by the core Clover classes to communicate with the
  * devices, that must reimplement all the functions described here.
  */
-class DeviceInterface : public Object
+class DeviceInterface : public _cl_device_id, public Object
 {
     public:
         DeviceInterface() : Object(Object::T_Device, 0) {}
@@ -354,8 +362,5 @@ class DeviceKernel
 };
 
 }
-
-struct _cl_device_id : public Coal::DeviceInterface
-{};
 
 #endif

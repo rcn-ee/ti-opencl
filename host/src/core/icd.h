@@ -27,18 +27,90 @@
  *****************************************************************************/
 #ifndef _ICD_H
 #define _ICD_H
+
+#include <iostream>
+#include <cassert>
+
 #include "CL/cl.h"
 
 typedef void *(KHRicdVendorDispatch)[];
 extern KHRicdVendorDispatch dispatch_table;
 
-class Dispatch
+namespace Coal
 {
-    public:
-        Dispatch() : dispatch(&dispatch_table) {}
-    private:
-        KHRicdVendorDispatch *dispatch;
+
+// Templates to define the transformations between internal clover objects
+// and external OpenCL C API objects expected by the ICD loader.
+// This is based on the template system used by the clover state tracker of
+// Mesa, at freedesktop.org
+// See: src/gallium/state_trackers/clover/core/object.hpp
+
+// Proxy template class that represents an OpenCL API object, and is the base
+// class of all clover objects.
+template<typename T, typename S>
+struct descriptor {
+    typedef T object_type;
+    typedef S descriptor_type;
+
+    descriptor() : dispatch(&dispatch_table) {
+       static_assert(std::is_standard_layout<descriptor_type>::value,
+                       "ICD requires CL API objects to be standard layout.");
+   }
+
+   const void *dispatch;
 };
+
+// Downcast an API object ptr to a Clover object ptr
+// Note: clover object validation is done by subsequent ->isA methods.
+template<typename D>
+typename D::object_type *
+pobj(D *d) {
+    return static_cast<typename D::object_type *>(d);
+}
+
+
+// Upcast a Clover object ptr to an API object ptr.
+template<typename O>
+typename O::descriptor_type *
+desc(O *o) {
+    return static_cast<typename O::descriptor_type *>(o);
+}
+
+// Convert a list of API objects into Clover objects,
+// copying into a previously allocated list of at least size n.
+template<typename O, typename D>
+void pobj_list(O **objs, D **descs, int n) {
+    for (int i=0;i<n;i++) {
+       objs[i] = pobj(descs[i]);
+    }
+}
+
+// Const overload of above
+template<typename O, typename D>
+void pobj_list(O **objs, D * const *descs, int n) {
+    for (int i=0;i<n;i++) {
+      objs[i] = pobj(descs[i]);
+    }
+}
+
+// Convert a list of Clover objects to a list of API objects,
+// copying into a previously allocated list of at least size n.
+template<typename O, typename D>
+void desc_list(D **descs, O **objs, int n) {
+    for (int i=0;i<n;i++) {
+       descs[i] = desc(objs[i]);
+    }
+}
+
+// Const overload of above
+template<typename O, typename D>
+void desc_list(D **descs, O * const*objs, int n) {
+    for (int i=0;i<n;i++) {
+       descs[i] = desc(objs[i]);
+    }
+}
+
+}
 
 #endif // _ICD_H
 

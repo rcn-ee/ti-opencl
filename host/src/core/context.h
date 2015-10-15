@@ -34,8 +34,15 @@
 #define __CONTEXT_H__
 
 #include "object.h"
+#include "icd.h"
 
 #include <CL/cl.h>
+
+namespace Coal
+{
+  class Context;
+}
+struct _cl_context: public Coal::descriptor<Coal::Context, _cl_context> {};
 
 namespace Coal
 {
@@ -45,9 +52,11 @@ class DeviceInterface;
 /**
  * \brief OpenCL context
  * 
- * This class is the root of all OpenCL objects, except \c Coal::DeviceInterface.
+ * This class represents a context for managing objects such as command-queues, memory,
+ * program and kernel objects and for executing kernels on one or more devices specified
+ * in the context.
  */
-class Context : public Object
+class Context : public _cl_context, public Object
 {
     public:
         /**
@@ -97,8 +106,5 @@ class Context : public Object
 };
 
 }
-
-struct _cl_context : public Coal::Context
-{};
 
 #endif

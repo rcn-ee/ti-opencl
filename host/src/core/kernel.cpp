@@ -36,6 +36,7 @@
 #include "program.h"
 #include "memobject.h"
 #include "sampler.h"
+#include "context.h"
 #include "deviceinterface.h"
 
 #include <string>
@@ -261,6 +262,11 @@ llvm::Function *Kernel::function(DeviceInterface *device) const
 
 /******************************************************************************
 * cl_int Kernel::setArg
+*
+* Note: the argument void *value can either be a pointer to raw data, or a
+* derived type of MemObject, upcast to an ICD descriptor (see icd.h).
+* In this case, we must be careful to distinguish between the two and do the
+* downcast to a clover object if valule is a pointer to an ICD object.
 ******************************************************************************/
 cl_int Kernel::setArg(cl_uint index, size_t size, const void *value)
 {
@@ -304,22 +310,27 @@ cl_int Kernel::setArg(cl_uint index, size_t size, const void *value)
     if (size != arg_size) return CL_INVALID_ARG_SIZE;
 
     /*-------------------------------------------------------------------------
-    * Check for null values
+    * Downcast 'void *value' from a potential &cl_mem argument to a MemObject
+    * if arg type is one of Arg::Buffer, Arg::Image2D, or Arg::Image3D.
+    * Also, check for null values.
     *------------------------------------------------------------------------*/
-    cl_mem null_mem = 0;
+    MemObject *mem_value = NULL;
 
-    if (!value)
+    switch (arg.kind())
     {
-        switch (arg.kind())
-        {
-            /*-------------------------------------------------------------
-            * Special case buffers : value can be 0 (or point to 0)
-            *------------------------------------------------------------*/
-            case Arg::Buffer:
-            case Arg::Image2D:
-            case Arg::Image3D: value = &null_mem;
-            default:           return CL_INVALID_ARG_VALUE;
-        }
+        /*-------------------------------------------------------------
+        * Special case buffers : value can be 0 (or point to 0)
+        *------------------------------------------------------------*/
+        case Arg::Buffer:
+        case Arg::Image2D:
+        case Arg::Image3D:
+            if (value) {
+                mem_value = pobj(*(cl_mem *)value);
+            }
+            value = &mem_value;
+            break;
+        default:
+            if (!value) return CL_INVALID_ARG_VALUE;
     }
 
     /*-------------------------------------------------------------------------
@@ -396,11 +407,11 @@ cl_int Kernel::info(cl_kernel_info param_name,
             break;
 
         case CL_KERNEL_CONTEXT:
-            SIMPLE_ASSIGN(cl_context, parent()->parent());
+            SIMPLE_ASSIGN(cl_context, desc((Context *)(parent()->parent())));
             break;
 
         case CL_KERNEL_PROGRAM:
-            SIMPLE_ASSIGN(cl_program, parent());
+            SIMPLE_ASSIGN(cl_program, desc((Program *)parent()));
             break;
 
         default:

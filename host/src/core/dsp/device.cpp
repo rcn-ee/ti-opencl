@@ -304,7 +304,7 @@ cl_int DSPDevice::initEventDeviceData(Event *event)
 
             // (main thread) Retain this event, to be saved in buffer mapped
             // events, and later to be released by UnmapMemObject()
-            if (host_addr != NULL) clRetainEvent((cl_event) e);
+            if (host_addr != NULL) clRetainEvent(desc(e));
             else                   ret_code = CL_MAP_FAILURE;
             break;
         }

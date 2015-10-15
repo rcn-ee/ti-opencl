@@ -109,11 +109,11 @@ cl_int CommandQueue::info(cl_command_queue_info param_name,
     switch (param_name)
     {
         case CL_QUEUE_CONTEXT:
-            SIMPLE_ASSIGN(cl_context, parent());
+            SIMPLE_ASSIGN(cl_context, desc((Context *)parent()));
             break;
 
         case CL_QUEUE_DEVICE:
-            SIMPLE_ASSIGN(cl_device_id, p_device);
+            SIMPLE_ASSIGN(cl_device_id, desc(p_device));
             break;
 
         case CL_QUEUE_REFERENCE_COUNT:
@@ -261,7 +261,7 @@ void CommandQueue::releaseEvent(Event *e)
     p_released_events.push_back(e);
     pthread_mutex_unlock(&p_event_list_mutex);
 #else
-    clReleaseEvent((cl_event) e);
+    clReleaseEvent(desc(e));
 #endif
 }
 
@@ -306,7 +306,7 @@ void CommandQueue::cleanEvents()
 #if ONLY_MAIN_THREAD_CAN_RELEASE_EVENT
             p_released_events.push_back(event);
 #else
-            clReleaseEvent((cl_event) event);
+            clReleaseEvent(desc(event));
 #endif
         }
         else if (is_inorder) 
@@ -346,7 +346,7 @@ void CommandQueue::cleanReleasedEvents()
     while (! p_released_events.empty())
     {
         Event *event = p_released_events.front();
-        clReleaseEvent((cl_event)event);
+        clReleaseEvent(desc(event));
         p_released_events.pop_front();
     }
 
@@ -426,7 +426,7 @@ void CommandQueue::pushEventsOnDevice(Event *ready_event,
 #if ONLY_MAIN_THREAD_CAN_RELEASE_EVENT
             p_released_events.push_back(event);
 #else
-            clReleaseEvent((cl_event) event);
+            clReleaseEvent(desc(event));
 #endif
             continue;
         }
@@ -506,7 +506,7 @@ void CommandQueue::pushEventsOnDevice(Event *ready_event,
                 pthread_cond_broadcast(&p_event_list_cond);
             pthread_mutex_unlock(&p_event_list_mutex);
             event->setStatus(Event::Complete);
-            clReleaseEvent((cl_event) event);
+            clReleaseEvent(desc(event));
             return;
         }
 
@@ -579,7 +579,7 @@ Event **CommandQueue::events(unsigned int &count,
 Event::Event(CommandQueue *parent,
              Status status,
              cl_uint num_events_in_wait_list,
-             const Event **event_wait_list,
+             const cl_event *event_wait_list,
              cl_int *errcode_ret)
 : Object(Object::T_Event, parent),
   p_status(status), p_device_data(0)
@@ -606,12 +606,13 @@ Event::Event(CommandQueue *parent,
     // Check that none of the events in event_wait_list is in an error state
     for (cl_uint i=0; i<num_events_in_wait_list; ++i)
     {
-        if (event_wait_list[i] == 0)
+        auto event = pobj(event_wait_list[i]);
+        if (event == 0)
         {
             *errcode_ret = CL_INVALID_EVENT_WAIT_LIST;
             return;
         }
-        else if (event_wait_list[i]->status() < 0)
+        else if (event->status() < 0)
         {
             *errcode_ret = CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST;
             return;
@@ -625,7 +626,7 @@ Event::Event(CommandQueue *parent,
         for (cl_uint i=0; i<num_events_in_wait_list; ++i)
         {
             // if event_wait_list[i] is already COMPLETE, don't add it!!!
-            Event *wait_event = (Event *) event_wait_list[i];
+            Event *wait_event = pobj(event_wait_list[i]);
             int added = wait_event->addDependentEvent((Event *) this);
             if (added > 0)
                 p_wait_events.push_back(wait_event);
@@ -645,8 +646,10 @@ void Event::freeDeviceData()
 {
     if (parent() && p_device_data)
     {
-        DeviceInterface *device = 0;
-        ((CommandQueue *)parent())->info(CL_QUEUE_DEVICE, sizeof(DeviceInterface *), &device, 0);
+        DeviceInterface *device = NULL;
+        cl_device_id d_device = 0;
+        ((CommandQueue *)parent())->info(CL_QUEUE_DEVICE, sizeof(cl_device_id), &d_device, 0);
+        device = pobj(d_device);
 
         device->freeEventDeviceData(this);
     }
@@ -702,7 +705,7 @@ int Event::setStatusHelper(Status status)
     ret = p_callbacks.equal_range(status > 0 ? status : Complete);
     for (it=ret.first; it!=ret.second; ++it)
         callbacks.push_back((*it).second);
-    if (!callbacks.empty())  clRetainEvent((cl_event) this);
+    if (!callbacks.empty())  clRetainEvent(desc(this));
 
     pthread_cond_broadcast(&p_state_change_cond);
     pthread_mutex_unlock(&p_state_mutex);
@@ -710,8 +713,8 @@ int Event::setStatusHelper(Status status)
     // Call the callbacks, release event afterwards
     for (std::list<CallbackData>::iterator C = callbacks.begin(),
                                            E = callbacks.end(); C != E; ++C)
-        (*C).callback((cl_event)this, p_status, (*C).user_data);
-    if (!callbacks.empty())  clReleaseEvent((cl_event) this);
+        (*C).callback(desc(this), p_status, (*C).user_data);
+    if (!callbacks.empty())  clReleaseEvent(desc(this));
 
     return num_dependent_events;
 }
@@ -721,7 +724,7 @@ void Event::setStatus(Status status)
     if (type() == Event::User || (parent() && status == Complete))
     {
         CommandQueue *cq = (CommandQueue *) parent();
-        if (cq != NULL)  clRetainCommandQueue((cl_command_queue) cq);
+        if (cq != NULL)  clRetainCommandQueue(desc(cq));
         bool already_pushed = false;
 
         int num_dependent_events = setStatusHelper(status);  
@@ -751,7 +754,7 @@ void Event::setStatus(Status status)
         if (cq != NULL)
         {
             if (!already_pushed)  cq->pushEventsOnDevice(NULL, true);
-            clReleaseCommandQueue((cl_command_queue) cq);
+            clReleaseCommandQueue(desc(cq));
         }
     }
     else
@@ -929,7 +932,7 @@ void Event::setCallback(cl_int command_exec_callback_type,
     pthread_mutex_unlock(&p_state_mutex);
 
     if (call_now)
-        data.callback((cl_event)this, p_status, data.user_data);
+        data.callback(desc(this), p_status, data.user_data);
 }
 
 /******************************************************************************
@@ -954,18 +957,18 @@ cl_int Event::info(cl_event_info param_name,
     switch (param_name)
     {
         case CL_EVENT_COMMAND_QUEUE:
-            SIMPLE_ASSIGN(cl_command_queue, parent());
+            SIMPLE_ASSIGN(cl_command_queue, desc((CommandQueue *)parent()));
             break;
 
         case CL_EVENT_CONTEXT:
             if (parent())
             {
-	         SIMPLE_ASSIGN(cl_context, parent()->parent());
+                SIMPLE_ASSIGN(cl_context, desc((Context *)(parent()->parent())));
             }
             else
             {
                 if (type() == User)
-                    SIMPLE_ASSIGN(cl_context, ((UserEvent *)this)->context())
+                    SIMPLE_ASSIGN(cl_context, desc((Context *)(((UserEvent *)this)->context())))
                 else
                     SIMPLE_ASSIGN(cl_context, 0);
             }
