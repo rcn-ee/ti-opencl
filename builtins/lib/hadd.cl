@@ -37,8 +37,20 @@
 
 #define IMPLEMENTATION(gentype) \
   _CLC_OVERLOAD _CLC_DEF gentype hadd(gentype x, gentype y) \
-    { return (x >> (gentype)1) + (y >> (gentype)1) + (x & y & (gentype)1); } \
-  _CLC_OVERLOAD _CLC_DEF gentype rhadd(gentype x, gentype y) \
-    { return (x >> (gentype)1) + (y >> (gentype)1) + ((x&(gentype)1)|(y&(gentype)1)); } \
+    { return (x >> (gentype)1) + (y >> (gentype)1) + (x & y & (gentype)1); } 
 
 _EXPAND_INTEGER_TYPES()
+
+#undef  IMPLEMENTATION
+#define IMPLEMENTATION(gentype) \
+  _CLC_OVERLOAD _CLC_DEF gentype rhadd(gentype x, gentype y) \
+    { return (x >> (gentype)1) + (y >> (gentype)1) + ((x&(gentype)1)|(y&(gentype)1)); } 
+
+EXPAND_SIZES(char)
+// (uchar) handled inline in dsp.h
+// (short) handled inline in dsp.h
+EXPAND_SIZES(ushort)
+EXPAND_SIZES(int)
+EXPAND_SIZES(uint)
+EXPAND_SIZES(long)
+EXPAND_SIZES(ulong)

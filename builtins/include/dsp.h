@@ -691,4 +691,57 @@ _CLC_OVERLOAD _CLC_INLINE uint dot(uchar4 a, uchar4 b) { return _dotpu4 (as_int(
 _CLC_OVERLOAD _CLC_INLINE int  dot(char4  a, uchar4 b) { return _dotpsu4(as_int(a), as_int(b)); }
 _CLC_OVERLOAD _CLC_INLINE int  dot(short2 a, short2 b) { return _dotp2  (as_int(a), as_int(b)); }
 
+/*-----------------------------------------------------------------------------
+* RHADD inline functions for uchar
+*----------------------------------------------------------------------------*/
+_CLC_OVERLOAD _CLC_INLINE uchar _rhadd(uchar a, uchar b)
+{ return _avgu4(a, b); }
+
+_CLC_OVERLOAD _CLC_INLINE uchar2 rhadd(uchar2 a, uchar2 b)
+{ return as_uchar4(_avgu4(as_int((uchar4)(a,a)), as_int((uchar4)(b,b)))).lo; }
+
+_CLC_OVERLOAD _CLC_INLINE uchar4 rhadd(uchar4 a, uchar4 b)
+{ return as_uchar4(_avgu4 (as_int(a), as_int(b))); }
+
+_CLC_OVERLOAD _CLC_INLINE uchar3 rhadd(uchar3 a, uchar3 b)
+{ return as_uchar3(rhadd(as_uchar4(a), as_uchar4(b))); }
+
+_CLC_OVERLOAD _CLC_INLINE uchar8 rhadd(uchar8 a, uchar8 b)
+{ return as_uchar8(_davgu4(as_long(a), as_long(b))); }
+
+_CLC_OVERLOAD _CLC_INLINE uchar16 rhadd(uchar16 a, uchar16 b)
+{
+    uchar16 x;
+    x.lo = as_uchar8(_davgu4(as_long(a.lo), as_long(b.lo)));
+    x.hi = as_uchar8(_davgu4(as_long(a.hi), as_long(b.hi)));
+    return x;
+}
+
+_CLC_OVERLOAD _CLC_INLINE short _rhadd(short a, short b)
+{ return _avg2(a, b); }
+
+_CLC_OVERLOAD _CLC_INLINE short2 rhadd(short2 a, short2 b)
+{ return as_short2(_avg2(as_int(a), as_int(b))); }
+
+_CLC_OVERLOAD _CLC_INLINE short4 rhadd(short4 a, short4 b)
+{ return as_short4(_davg2 (as_ulong(a), as_ulong(b))); }
+
+_CLC_OVERLOAD _CLC_INLINE short3 rhadd(short3 a, short3 b)
+{ return as_short3(rhadd(as_short4(a), as_short4(b))); }
+
+_CLC_OVERLOAD _CLC_INLINE short8 rhadd(short8 a, short8 b)
+{
+    short8 x;
+    x.lo = rhadd(a.lo, b.lo);
+    x.hi = rhadd(a.hi, b.hi);
+    return x;
+}
+
+_CLC_OVERLOAD _CLC_INLINE short16 rhadd(short16 a, short16 b)
+{
+    short16 x;
+    x.lo = rhadd(a.lo, b.lo);
+    x.hi = rhadd(a.hi, b.hi);
+    return x;
+}
 #endif //_DSP_CLC_H_

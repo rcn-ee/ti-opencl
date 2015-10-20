@@ -1417,16 +1417,32 @@ _CLC_OVERLOAD _CLC_DECL double16 sincos(double16 x, private double16 * cosval);
     TEMPLATE(_VEC_TYPE(type,16)) \
 
 #define TEMPLATE(gentype) \
-    _CLC_OVERLOAD _CLC_DECL gentype hadd(gentype x1, gentype x2);\
-    _CLC_OVERLOAD _CLC_DECL gentype rhadd(gentype x1, gentype x2);\
+    _CLC_OVERLOAD _CLC_DECL gentype hadd(gentype x1, gentype x2);
 
 #define SCALAR(gentype) \
     _CLC_OVERLOAD _CLC_INLINE gentype hadd(gentype x, gentype y) \
-    { return (x >> 1) + (y >> 1) + (x & y & 1); } \
+    { return (x >> 1) + (y >> 1) + (x & y & 1); } 
+
+_EXPAND_INTEGER_TYPES()
+
+#undef SCALAR
+#undef TEMPLATE
+
+#define TEMPLATE(gentype) \
+    _CLC_OVERLOAD _CLC_DECL gentype rhadd(gentype x1, gentype x2);\
+
+#define SCALAR(gentype) \
     _CLC_OVERLOAD _CLC_INLINE gentype rhadd(gentype x, gentype y) \
     { return (x >> 1) + (y >> 1) + ((x&1)|(y&1)); } \
 
-_EXPAND_INTEGER_TYPES()
+EXPAND_SIZES(char)   
+// EXPAND_SIZES(uchar)  uchar inlined in dsp.h
+// EXPAND_SIZES(short)  short inlined in dsp.h
+EXPAND_SIZES(ushort) 
+EXPAND_SIZES(int)    
+EXPAND_SIZES(uint)   
+EXPAND_SIZES(long)   
+EXPAND_SIZES(ulong)  
 
 #undef EXPAND_SIZES
 #undef SCALAR
