@@ -10,8 +10,8 @@ OCL_VERSIONED_NAME=$(OCL_DPKG_NAME)_$(OCL_VER)
 # ARM GCC
 
 ifeq (,$(findstring arm, $(UNAME_M)))
-    ARM_GCC_DIR?=/cgnas/gcc-linaro-arm-linux-gnueabihf-4.7-2013.03-20130313_linux
-    export PATH:=$(ARM_GCC_DIR)/bin:$(PATH)
+    ARM_GCC47_DIR?=/cgnas/gcc-linaro-arm-linux-gnueabihf-4.7-2013.03-20130313_linux
+    ARM_GCC49_DIR?=/cgnas/gcc-linaro-4.9-2015.05-x86_64_arm-linux-gnueabihf
 endif
 
 # TI C6x CGT
