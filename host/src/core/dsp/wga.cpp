@@ -32,6 +32,8 @@
 #include <llvm/IR/Module.h>
 #include <llvm/IR/BasicBlock.h>
 #include <llvm/IR/DataLayout.h>
+#include <llvm/IR/ValueSymbolTable.h>
+#include <llvm/IR/GlobalValue.h>
 #include <llvm/Support/raw_ostream.h>
 #include <llvm/IR/InstIterator.h>
 #include <llvm/IR/IntrinsicInst.h>
@@ -116,6 +118,8 @@ bool TIOpenclWorkGroupAggregation::runOnFunction(Function &F)
     * Skip non-kernel functions
     *------------------------------------------------------------------------*/
     if (! isKernelFunction(F))  return changed;
+
+    add_kernel_local_size_attr(F);
 
     /*-------------------------------------------------------------------------
     * Obtain Debug Information (func scope line number) (when debug is on)
@@ -749,9 +753,49 @@ bool TIOpenclWorkGroupAggregation::implicit_long_conv_use_bif(Function &F)
     return changed;
 }
 
+/*-----------------------------------------------------------------------------
+* Add an attribute on each kernel function that indicates the size in bytes
+* of all the local objects defined in the kernel.
+*----------------------------------------------------------------------------*/
+#define ROUNDUP(val, pow2)   (((val) + (pow2) - 1) & ~((pow2) - 1))
+bool TIOpenclWorkGroupAggregation::add_kernel_local_size_attr(Function &F)
+{
+    string fname(F.getName());
+    fname += ".";
+
+    uint32_t kernel_local_size = 0;
+    Module *M = F.getParent();
+
+    for (llvm::ValueSymbolTable::iterator gsym=M->getValueSymbolTable().begin();
+         gsym != M->getValueSymbolTable().end(); ++gsym)
+    {
+        string localname = gsym->getKeyData();
+        if (localname.size() > fname.size() &&
+            std::equal(fname.begin(), fname.begin() + fname.size(), localname.begin()))
+        {
+            llvm::GlobalValue *val = llvm::cast<llvm::GlobalValue>(gsym->getValue());
+            uint32_t align   = val->getAlignment();
+            llvm::Type* type = val->getType()->getElementType();
+            DataLayout DL(M);
+            uint32_t typesize = DL.getTypeAllocSize(type);
+
+            if (align > 1) kernel_local_size = ROUNDUP(kernel_local_size, align);
+            kernel_local_size += typesize;
+        }
+    }
+
+    if (kernel_local_size > 0)
+    {
+        char *s_kernel_local_size = new char[32];  // we have to leak this
+        snprintf(s_kernel_local_size, 32, "_kernel_local_size=%d", kernel_local_size);
+        F.addFnAttr(StringRef(s_kernel_local_size));
+    }
+    else F.addFnAttr(StringRef("_kernel_local_size=0"));
+
+    return false;
+}
+
 char TIOpenclWorkGroupAggregation::ID = 0;
 static RegisterPass<TIOpenclWorkGroupAggregation> 
                    X("wga", "Work Group Aggregation", false, false);
-
 }
-

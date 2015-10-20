@@ -30,6 +30,7 @@
 
 #include "clc.h"
 
+
 #if 0
 #define event_t __local int*
 #else
