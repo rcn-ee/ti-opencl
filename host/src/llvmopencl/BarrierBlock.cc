@@ -20,11 +20,13 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
-
+#if !defined LLVM_3_2 || !defined LLVM_3_3
+#  include <llvm/IR/Constants.h>
+#endif
 #include "BarrierBlock.h"
 #include "Barrier.h"
 #include "config.h"
-#if (defined LLVM_3_1 or defined LLVM_3_2)
+#if (defined LLVM_3_1 || defined LLVM_3_2)
 #include "llvm/Instructions.h"
 #else
 #include "llvm/IR/Instructions.h"

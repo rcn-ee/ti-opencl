@@ -30,7 +30,9 @@
  * \file api_platform.cpp
  * \brief Platform
  */
-
+#ifdef _SYS_BIOS
+#include <xdc/std.h>
+#endif
 #include "CL/cl.h"
 #include "CL/cl_ext.h"
 #include <core/platform.h>
@@ -64,8 +66,8 @@ clGetPlatformInfo(cl_platform_id   platform,
                   void *           param_value,
                   size_t *         param_value_size_ret)
 {
-    const char *string = 0;
-    unsigned long len = 0;
+
+
 
     /*-------------------------------------------------------------------------
     * NULL or what is returned by clGetPlatformIDs, that's to say also NULL

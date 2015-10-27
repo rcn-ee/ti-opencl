@@ -23,23 +23,21 @@
 
 #ifndef _POCL_WORKITEM_LOOPS_H
 #define _POCL_WORKITEM_LOOPS_H
+#include "llvm/config/llvm-config.h"
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <=4 
+#include "llvm/Analysis/Dominators.h"
+#endif
 
 #include "llvm/ADT/Twine.h"
-#include "llvm/Analysis/Dominators.h"
 #include "llvm/Analysis/LoopInfo.h"
 #include "llvm/Transforms/Utils/ValueMapper.h"
 #include <map>
 #include <vector>
 #include "WorkitemHandler.h"
 #include "ParallelRegion.h"
-#include "VariableUniformityAnalysis.h"
-#include <llvm/DebugInfo.h>
-#include <llvm/IR/IRBuilder.h>
-
-#define MAX_DIMENSIONS 3u
 
 namespace llvm {
-  class PostDominatorTree;
+  struct PostDominatorTree;
 }
 
 namespace pocl {
@@ -65,7 +63,9 @@ namespace pocl {
     llvm::DominatorTree *DT;
     llvm::LoopInfo *LI;
     llvm::PostDominatorTree *PDT;
-    VariableUniformityAnalysis *VUA;
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <3 
+    llvm::DominatorTreeWrapperPass *DTP;
+#endif
 
     ParallelRegion::ParallelRegionVector *original_parallel_regions;
 
@@ -87,9 +87,7 @@ namespace pocl {
     CreateLoopAround
         (ParallelRegion &region, llvm::BasicBlock *entryBB, llvm::BasicBlock *exitBB, 
          bool peeledFirst, llvm::Value *localIdVar, size_t LocalSizeForDim,
-         int dim, bool regLocals,
-         bool addIncBlock=true, llvm::Value *lsizeDim=NULL);
-    void FindKernelDim(llvm::Function &F);
+         bool addIncBlock=true);
 
     llvm::BasicBlock *
       AppendIncBlock
@@ -100,33 +98,12 @@ namespace pocl {
 
     bool ShouldNotBeContextSaved(llvm::Instruction *instr);
 
-    bool removeBarrierCalls(llvm::Function *F);
-    void localizeGetLocalId(llvm::Function *F);
-    void replaceGetLocalIdWithPhi(ParallelRegion *region, llvm::Value *phis[3]);
-    llvm::Value *genLinearIndex(llvm::IRBuilder<> &builder, llvm::Function *F);
-    bool varyOnlyWithLocalId(llvm::Instruction *instr, int depth);
-    void rematerializeUse(llvm::Instruction *instr, llvm::Instruction *user);
-    void findIntraRegionAllocas(llvm::Function *F);
-    bool isWGInvariant(llvm::Value *v);
-    void hoistWGInvariantInstrToEntry(llvm::Function *F);
-
     std::map<llvm::Instruction*, unsigned> tempInstructionIds;
     size_t tempInstructionIndex;
     // An alloca in the kernel which stores the first iteration to execute
     // in the inner (dimension 0) loop. This is set to 1 in an peeled iteration
     // to skip the 0, 0, 0 iteration in the loops.
     llvm::Value *localIdXFirstVar;
-
-    unsigned int       maxDim;
-    int                wgsizes[3];
-    llvm::Value       *lsizeX, *lsizeY, *lsizeZ;
-    llvm::PHINode     *phiXFirst[3];
-    llvm::Value       *phiDim[3];
-    InstructionIndex   intraRegionAllocas;
-    std::map<llvm::Value*, bool> WGInvariantMap;
-
-    llvm::MDNode *di_function;
-    unsigned int function_scope_line, region_begin_line, region_end_line;
   };
 }
 

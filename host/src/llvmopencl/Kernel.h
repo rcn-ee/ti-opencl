@@ -22,11 +22,15 @@
 
 #ifndef _POCL_KERNEL_H
 #define _POCL_KERNEL_H
-
+#include "llvm\Config\llvm-config.h"
 #include "ParallelRegion.h"
 #include "llvm/ADT/SmallVector.h"
-#include "llvm/Analysis/Dominators.h"
 #include "llvm/Analysis/LoopInfo.h"
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <=3
+#include "llvm/Analysis/Dominators.h"
+#else
+#include "llvm/IR/Dominators.h"
+#endif
 
 namespace pocl {
 

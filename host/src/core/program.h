@@ -211,8 +211,9 @@ class Program : public Object
         Type        p_type;
         State       p_state;
         std::string p_source;
-
+#ifdef _SYS_BIOS
         llvm::LLVMContext   * p_llvmcontext;
+#endif
 
         struct DeviceDependent
         {
@@ -221,8 +222,11 @@ class Program : public Object
             std::string       unlinked_binary;
             bool              is_native_binary; // llvm kernel bitcode vs final native binary
             char            * native_binary_filename;  // if file exist already
+
             llvm::Module    * linked_module;
+#ifndef _SYS_BIOS
             Compiler        * compiler;
+#endif
         };
 
         std::vector<DeviceDependent> p_device_dependent;

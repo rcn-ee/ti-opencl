@@ -29,12 +29,18 @@
  * \file api_command.cpp
  * \brief Command queues
  */
+#ifdef _SYS_BIOS
+#include <cstddef>
+#include <xdc/std.h>
+#include <ti/sysbios/posix/pthread.h>
 
+#endif
+#include <CL/cl.h>
 #include <core/commandqueue.h>
 #include <core/deviceinterface.h>
 #include <core/context.h>
 
-#include <CL/cl.h>
+
 
 // Command Queue APIs
 cl_command_queue

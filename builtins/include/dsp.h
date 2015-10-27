@@ -25,6 +25,7 @@
  *   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  *   THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
+#if 0 
 #ifndef _DSP_CLC_H_
 #define _DSP_CLC_H_
 
@@ -464,3 +465,4 @@ _CLC_INLINE  size_t  get_group_id     (uint dim)
 
 #endif //_DSP_CLC_H_
 
+#endif

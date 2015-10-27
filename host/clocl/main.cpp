@@ -35,8 +35,16 @@
 
 #include <llvm/Bitcode/ReaderWriter.h>
 #include <llvm/PassManager.h>
-#include <llvm/Analysis/Passes.h>
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <3 
+#include <llvm/IR/Constants.h>
+#include <llvm/IR/Verifier.h>
+
+#else
 #include <llvm/Analysis/Verifier.h>
+#endif
+
+
+#include <llvm/Analysis/Passes.h>
 #include <llvm/Transforms/Scalar.h>
 #include <llvm/Transforms/IPO.h>
 #include <llvm/Transforms/Utils/UnifyFunctionExitNodes.h>
@@ -48,11 +56,21 @@
 #include <llvm/Bitcode/ReaderWriter.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <3 
+#include <llvm/Linker/Linker.h>
+#else
 #include <llvm/Linker.h>
+#endif
+
 #include <llvm/IR/Metadata.h>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Instructions.h>
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <3 
+#include <llvm/IR/InstIterator.h>
+#else
 #include <llvm/Support/InstIterator.h>
+#endif
+
 
 #include "compiler.h"
 #include "wga.h"
@@ -104,8 +122,18 @@ string bc_filename(string filename)
 
 void write_bitcode(string bc_file, Module* module)
 {
-    string err_info;
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <6
+  string err_info;
+  #else
+  std::error_code err_info;
+#endif    
+ 
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <6 
     llvm::raw_fd_ostream file_ostream(bc_file.c_str(), err_info);
+#else 
+    llvm::raw_fd_ostream file_ostream(bc_file.c_str(), err_info, sys::fs::F_RW);
+#endif	
+
     llvm::WriteBitcodeToFile(module, file_ostream);
     file_ostream.flush();
 }
@@ -176,11 +204,17 @@ bool run_clang(string filename, string source, Compiler &compiler,
 
     const StringRef s_data(source);
     const StringRef s_name("<source>");
-
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <6 
     MemoryBuffer *buffer = MemoryBuffer::getMemBuffer(s_data, s_name);
-
+#else	
+    std::unique_ptr<MemoryBuffer> buffer = MemoryBuffer::getMemBuffer(s_data, s_name);
+#endif
     if (opt_verbose) cout << "clang options: " << cl_options << endl;
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <6 	
     if (!compiler.compile(cl_options, buffer, filename)) 
+#else
+ if (!compiler.compile(cl_options, buffer.get()->getMemBufferRef(), filename)) 
+#endif	
         return false;
 
     *module = compiler.module();
@@ -202,7 +236,18 @@ bool llvm_xforms(Module *module, bool optimize)
     for (unsigned int i=0; kern_meta && i < kern_meta->getNumOperands(); ++i)
     {
         llvm::MDNode *node  = kern_meta->getOperand(i);
-        llvm::Value  *value = node->getOperand(0);
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <6
+       llvm::Value  *value = node->getOperand(0);
+#else
+      llvm::Value *value = NULL;
+      if (isa<ValueAsMetadata>(node->getOperand(0)))
+        value = 
+          dyn_cast<ValueAsMetadata>(node->getOperand(0))->getValue();      
+      else if (isa<ConstantAsMetadata>(node->getOperand(0)))
+        value = 
+          dyn_cast<ConstantAsMetadata>(node->getOperand(0))->getValue(); 
+#endif		
+       
         if (!llvm::isa<llvm::Function>(value)) continue;
 
         llvm::Function *f = llvm::cast<llvm::Function>(value);
@@ -236,7 +281,11 @@ bool llvm_xforms(Module *module, bool optimize)
     if (hasBarrier)
     {
         manager->add(    llvm::createPromoteMemoryToRegisterPass());
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR < 6
         manager->add(new llvm::DominatorTree());
+#else
+		manager->add(new llvm::DominatorTreeWrapperPass());
+#endif
         manager->add(new pocl::WorkitemHandlerChooser());
         manager->add(new       BreakConstantGEPs());   // from pocl
         //       add(new       GenerateHeader());      // no need

@@ -20,13 +20,17 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
+#include "llvm\Config\config.h"
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <=3
+#  include <llvm/IR/Constants.h>
+#endif
 
 #include "config.h"
 #include "ImplicitLoopBarriers.h"
 #include "Barrier.h"
 #include "Workgroup.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
-#if (defined LLVM_3_1 or defined LLVM_3_2)
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <3
 #include "llvm/Constants.h"
 #include "llvm/Instructions.h"
 #include "llvm/Module.h"
@@ -34,6 +38,9 @@
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Module.h"
+#endif
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR >=6
+#include "llvm/IR/Dominators.h"
 #endif
 
 #include "VariableUniformityAnalysis.h"
@@ -53,21 +60,30 @@ namespace {
 
 char ImplicitLoopBarriers::ID = 0;
 
-void
-ImplicitLoopBarriers::getAnalysisUsage(AnalysisUsage &AU) const
-{
+void ImplicitLoopBarriers::getAnalysisUsage(AnalysisUsage &AU) const {
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <=4
   AU.addRequired<DominatorTree>();
   AU.addPreserved<DominatorTree>();
+#else
+  AU.addRequired<DominatorTreeWrapperPass>();
+  AU.addPreserved<DominatorTreeWrapperPass>();
+#endif
   AU.addRequired<VariableUniformityAnalysis>();
   AU.addPreserved<VariableUniformityAnalysis>();
 }
 
-bool
-ImplicitLoopBarriers::runOnLoop(Loop *L, LPPassManager &LPM)
-{
+bool ImplicitLoopBarriers::runOnLoop(Loop *L, LPPassManager &LPM) {
   if (!Workgroup::isKernelToProcess(*L->getHeader()->getParent()))
     return false;
 
+  if (!Workgroup::hasWorkgroupBarriers(*L->getHeader()->getParent())) {
+#ifdef DEBUG_ILOOP_BARRIERS
+    std::cerr << "### ILB: The kernel has no barriers, let's not add implicit ones "
+              << "either to avoid WI context switch overheads"
+              << std::endl;
+#endif
+    return false;
+  }
   return ProcessLoop(L, LPM);
 }
 
@@ -78,9 +94,7 @@ ImplicitLoopBarriers::runOnLoop(Loop *L, LPPassManager &LPM)
  * Note: it's not safe to do this in case the loop is not executed
  * by all work items. Therefore this is not enabled by default.
  */
-bool
-ImplicitLoopBarriers::ProcessLoop(Loop *L, LPPassManager &LPM)
-{
+bool ImplicitLoopBarriers::ProcessLoop(Loop *L, LPPassManager &LPM) {
 
   bool isBLoop = false;
   for (Loop::block_iterator i = L->block_begin(), e = L->block_end();
@@ -114,8 +128,8 @@ ImplicitLoopBarriers::ProcessLoop(Loop *L, LPPassManager &LPM)
  * a) loop exit condition does not depend on the WI and 
  * b) all or none of the WIs always enter the loop
  */
-bool
-ImplicitLoopBarriers::AddInnerLoopBarrier(llvm::Loop *L, llvm::LPPassManager &LPM) {
+bool ImplicitLoopBarriers::AddInnerLoopBarrier(
+  llvm::Loop *L, llvm::LPPassManager &LPM) {
 
   /* Only add barriers to the innermost loops. */
 

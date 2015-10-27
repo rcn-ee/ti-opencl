@@ -263,6 +263,7 @@ class DeviceProgram
          * \param optimize false if \c -cl-opt-disable was given at compilation
          *                 time.
          */
+#ifndef _SYS_BIOS
         virtual void createOptimizationPasses(llvm::PassManager *manager,
                                     bool optimize, bool hasBarrier=false) = 0;
 
@@ -278,8 +279,10 @@ class DeviceProgram
          * \return true in case of success, false otherwise
          * \param binary_filename \c char* binary already in file, if not NULL
          */
+
         virtual bool build(llvm::Module *module, std::string* binary_str,
                            char *binary_filename) = 0;
+#endif
 
         /**
          * \brief Extract binaries from MIXED binary
@@ -294,6 +297,9 @@ class DeviceProgram
         virtual bool ExtractMixedBinary(std::string *binary_str, 
                                      std::string *bitcode, std::string *native)
         {  return false;  }
+#ifdef _SYS_BIOS
+        virtual void WriteNativeOut(std::string *native) = 0;
+#endif
 };
 
 /**

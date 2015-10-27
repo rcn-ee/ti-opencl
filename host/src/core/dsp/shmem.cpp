@@ -33,8 +33,23 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/types.h>
+#ifndef _SYS_BIOS
 #include <sys/mman.h>
 #include <ti/cmem.h>
+#else
+#include <xdc/std.h>
+#include <xdc/runtime/Assert.h>
+#include <xdc/runtime/Diags.h>
+#include <xdc/runtime/Error.h>
+#include <xdc/runtime/IHeap.h>
+#include <xdc/runtime/Log.h>
+#include <xdc/runtime/Memory.h>
+#include <xdc/runtime/knl/Cache.h>
+#include <ti/sysbios/family/arm/a15/Cache.h>
+#define  sysconf(_SC_PAGE_SIZE)   128 //TBD
+
+#endif
+
 
 #define REPORT(x) printf(x "\n")
 #define ERR(status, msg) if (status) { printf("ERROR: %s\n", msg); exit(-1); }
@@ -48,6 +63,7 @@ shmem::shmem()
    , p_mpm_transport_handle(NULL)
 #endif
    , p_threshold(32<<20) 
+
 
 { }
 
@@ -68,7 +84,7 @@ void shmem::configure_base(DSPDevicePtr64 dsp_addr,  uint64_t size)
     * If the sysconf for the page size failed
     *------------------------------------------------------------------------*/
     if (p_page_size <= 0) { REPORT("Failed to get PAGE_SIZE"); return; }
-
+#ifndef _SYS_BIOS
 #if defined (DEVICE_AM57)
     p_mmap_fd = open("/dev/mem", (O_RDWR | O_SYNC));
     if (p_mmap_fd == -1) { REPORT("Failed to open /dev/mem"); return; }
@@ -96,7 +112,7 @@ void shmem::configure_base(DSPDevicePtr64 dsp_addr,  uint64_t size)
         return;
     }
 #endif
-
+#endif
     p_dsp_addr = dsp_addr;
     p_size     = size;
 }
@@ -138,7 +154,7 @@ void shmem_persistent::configure(DSPDevicePtr64 dsp_addr, uint64_t size)
         REPORT("Mapped region size is not a multiple of page size");
         return;
     }
-
+#ifndef _SYS_BIOS
 #if defined (DEVICE_AM57)
     p_host_addr = mmap(0, size, (PROT_READ|PROT_WRITE), MAP_SHARED, p_mmap_fd,
                          (off_t)dsp_addr);
@@ -150,6 +166,7 @@ void shmem_persistent::configure(DSPDevicePtr64 dsp_addr, uint64_t size)
     p_host_addr = (void *)mpm_transport_mmap(p_mpm_transport_handle,
                                                 dsp_addr, size,
                                                 &mpm_transport_mmap_cfg);
+#endif
 #endif
 
     // if (p_host_addr == MAP_FAILED) 
@@ -168,11 +185,13 @@ void shmem_persistent::configure(DSPDevicePtr64 dsp_addr, uint64_t size)
 ******************************************************************************/
 shmem_persistent::~shmem_persistent()
 {
+#ifndef _SYS_BIOS
 #if defined (DEVICE_AM57)
     if (p_host_addr) munmap(p_host_addr, p_size);
 #else
     if (p_host_addr)
         mpm_transport_munmap(p_mpm_transport_handle, p_host_addr, p_size);
+#endif
 #endif
 }
 
@@ -229,7 +248,8 @@ void shmem_ondemand::configure(DSPDevicePtr64 dsp_addr, uint64_t size)
 ******************************************************************************/
 void *shmem_ondemand::map(DSPDevicePtr64 dsp_addr, uint32_t size, bool is_read)
 {
-    if (!MULTIPLE_OF_POW2(dsp_addr, p_page_size))
+	void *host_addr;
+	if (!MULTIPLE_OF_POW2(dsp_addr, p_page_size))
     {
         REPORT("Mapped region addr is not a multiple of page size");
         return 0;
@@ -246,7 +266,7 @@ void *shmem_ondemand::map(DSPDevicePtr64 dsp_addr, uint32_t size, bool is_read)
         REPORT("Attempting to map a region outside a defined area");
         return 0;
     }
-
+#ifndef _SYS_BIOS
 #if defined (DEVICE_AM57)
     void *host_addr = mmap(0, size, (PROT_READ|PROT_WRITE), MAP_SHARED, 
                               p_mmap_fd, (off_t)dsp_addr);
@@ -259,7 +279,7 @@ void *shmem_ondemand::map(DSPDevicePtr64 dsp_addr, uint32_t size, bool is_read)
                                           dsp_addr, size,
                                           &mpm_transport_mmap_cfg);
 #endif
-
+#endif
     // if (host_addr == MAP_FAILED)
     if (host_addr == (void *) -1)
     { 
@@ -275,8 +295,10 @@ void *shmem_ondemand::map(DSPDevicePtr64 dsp_addr, uint32_t size, bool is_read)
 ******************************************************************************/
 void  shmem_ondemand::unmap(void* host_addr, uint32_t size, bool is_write)
 { 
+#ifndef _SYS_BIOS
 #if defined (DEVICE_AM57)
     if (host_addr) munmap(host_addr, size);
+#endif
 #endif
 }
 
@@ -287,38 +309,58 @@ void  shmem_ondemand::unmap(void* host_addr, uint32_t size, bool is_write)
 #define CMEM_SUCCESS 0
 bool shmem_cmem::cacheInv(void *host_addr, uint32_t size)
 {
+#ifndef _SYS_BIOS
 #if (CMEM_VERSION > 0x04000000)
     if (size >= p_threshold)
         return CMEM_cacheWbInvAll() == CMEM_SUCCESS;
     else
 #endif
         return CMEM_cacheInv(host_addr, size) == CMEM_SUCCESS;
+#else
+
+       Cache_inv(host_addr, size, Cache_Type_ALL , 0);
+       return CMEM_SUCCESS;
+#endif
 }
 
 bool shmem_cmem::cacheWb(void *host_addr, uint32_t size)
 {
+#ifndef _SYS_BIOS
 #if (CMEM_VERSION > 0x04000000)
     if (size >= p_threshold)
         return CMEM_cacheWbInvAll() == CMEM_SUCCESS;
     else
 #endif
         return CMEM_cacheWb(host_addr, size) == CMEM_SUCCESS;
+#else
+
+      Cache_inv(host_addr, size, Cache_Type_ALL, 0);
+      return CMEM_SUCCESS;
+#endif
 }
 
 bool shmem_cmem::cacheWbInv(void *host_addr, uint32_t size)
 {
+#ifndef _SYS_BIOS
 #if (CMEM_VERSION > 0x04000000)
     if (size >= p_threshold)
         return CMEM_cacheWbInvAll() == CMEM_SUCCESS;
     else
 #endif
         return CMEM_cacheWbInv(host_addr, size) == CMEM_SUCCESS;
+#else
+
+        Cache_inv(host_addr, size, Cache_Type_ALL, 0);
+        return CMEM_SUCCESS;
+#endif
 }
 
 bool shmem_cmem::cacheWbInvAll()
 {
+#ifndef _SYS_BIOS
 #if (CMEM_VERSION > 0x04000000)
     return CMEM_cacheWbInvAll() == CMEM_SUCCESS;
+#endif
 #endif
     return false;
 }
@@ -332,6 +374,15 @@ void shmem_cmem::cmem_init(DSPDevicePtr64 *addr1, uint64_t *size1,
                            DSPDevicePtr   *addr2, uint32_t *size2,
                            DSPDevicePtr64 *addr3, uint64_t *size3)
 {
+
+#ifdef _SYS_BIOS
+	 *addr1 = (DSPDevicePtr64)0x8D000000;
+	 *size1 = (uint64_t) 0x1000000;
+	 *addr2 = 0;
+	 *size2 = 0;
+	 *addr3 = 0;
+	 *size3 = 0;
+#else
 #if defined(DEVICE_AM57)
     const char *cmem_command = "For available CMEM DDR block size: ~512MB:\n"
         "modprobe cmemk "
@@ -461,6 +512,7 @@ void shmem_cmem::cmem_init(DSPDevicePtr64 *addr1, uint64_t *size1,
         *addr3 = 0;
         *size3 = 0;
     }
+#endif
 }
 
 /******************************************************************************
@@ -469,7 +521,10 @@ void shmem_cmem::cmem_init(DSPDevicePtr64 *addr1, uint64_t *size1,
 void shmem_cmem::cmem_exit()
 {
     /* Finalize the CMEM module */
+#ifndef _SYS_BIOS
     if (CMEM_exit() == -1) ERR(1, "Failed to finalize CMEM");
+#else
+#endif
 }
 
 
@@ -488,6 +543,7 @@ void shmem_cmem_persistent::configure(DSPDevicePtr64 dsp_addr, uint64_t size)
     p_dsp_addr = dsp_addr;
     p_size     = size;
     DSPDevicePtr64 cmem_addr = p_dsp_addr;
+#ifndef _SYS_BIOS
 #if defined (DEVICE_AM57)
     if ( dsp_addr >= 0x80000000 ) cmem_addr = dsp_addr + 0x20000000;
 #else
@@ -495,6 +551,9 @@ void shmem_cmem_persistent::configure(DSPDevicePtr64 dsp_addr, uint64_t size)
         cmem_addr = p_dsp_addr - 0xA0000000 + 0x820000000ULL;
 #endif
     p_host_addr = CMEM_map(cmem_addr, size);
+#else
+    p_host_addr = p_dsp_addr;
+#endif
     if (! p_host_addr) 
         ERR(1, "Cannot map CMEM physical memory into the Host virtual address space.\n"
                "       This is typically due to Linux system memory being near capacity.");
@@ -507,7 +566,7 @@ void shmem_cmem_persistent::configure(DSPDevicePtr64 dsp_addr, uint64_t size)
 shmem_cmem_persistent::~shmem_cmem_persistent()
 {
     if (p_dsp_addr == 0) return;
-
+#ifndef _SYS_BIOS
     if (p_host_addr != NULL) CMEM_unmap(p_host_addr, p_size);
     CMEM_AllocParams params = CMEM_DEFAULTPARAMS;
     params.flags = CMEM_CACHED;
@@ -519,6 +578,7 @@ shmem_cmem_persistent::~shmem_cmem_persistent()
         cmem_addr = p_dsp_addr - 0xA0000000 + 0x820000000ULL;
 #endif
     CMEM_freePhys(cmem_addr, &params);
+#endif
 }
 
 /******************************************************************************
@@ -564,7 +624,11 @@ void *shmem_cmem_ondemand::map(DSPDevicePtr64 dsp_addr, uint32_t size, bool is_r
     int          align_offset = ((int) dsp_addr) & (MIN_CMEM_MAP_ALIGN - 1);
     DSPDevicePtr64 align_addr = dsp_addr - align_offset;
     uint32_t       align_size = size + align_offset;
+#ifndef _SYS_BIOS
     void     *align_host_addr = CMEM_map(align_addr, align_size);
+#else
+    void     *align_host_addr = align_addr;
+#endif
     if (! align_host_addr)  return NULL;
     void           *host_addr = (char *) align_host_addr + align_offset;
 
@@ -584,7 +648,9 @@ void  shmem_cmem_ondemand::unmap(void* host_addr, uint32_t size, bool is_write)
         int      align_offset = ((int) host_addr) & (MIN_CMEM_MAP_ALIGN-1);
         void *align_host_addr = (char *) host_addr - align_offset;
         uint32_t   align_size = size + align_offset;
+#ifndef _SYS_BIOS
         CMEM_unmap(align_host_addr, align_size);
+#endif
     }
 }
 
@@ -594,10 +660,15 @@ void  shmem_cmem_ondemand::unmap(void* host_addr, uint32_t size, bool is_write)
 ******************************************************************************/
 DSPDevicePtr64 shmem_cmem_ondemand::cmem_malloc(uint64_t size)
 {
+#ifndef _SYS_BIOS
     CMEM_AllocParams params = CMEM_DEFAULTPARAMS;
     params.flags = CMEM_CACHED;
     params.type = CMEM_HEAP;
     DSPDevicePtr64 addr = CMEM_allocPhys2(0, size, &params);
+#else
+    Error_Block eb;
+    DSPDevicePtr64 addr = Memory_alloc(NULL, size, 0 , &eb);
+#endif
     if (!addr)
     { 
         printf("Failed to allocate space 0x%llx from CMem\n", size);
@@ -611,9 +682,14 @@ DSPDevicePtr64 shmem_cmem_ondemand::cmem_malloc(uint64_t size)
 ******************************************************************************/
 void shmem_cmem_ondemand::cmem_free(DSPDevicePtr64 addr)
 {
+#ifndef _SYS_BIOS
     CMEM_AllocParams params = CMEM_DEFAULTPARAMS;
     params.flags = CMEM_CACHED;
     params.type = CMEM_HEAP;
     CMEM_freePhys(addr, &params);
+#else
+    uint64_t size;  //TBD
+    Memory_free(NULL,addr, size);
+#endif
 }
 

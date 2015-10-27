@@ -31,7 +31,13 @@
  * \file api_context.cpp
  * \brief Contexts
  */
-
+#ifdef _SYS_BIOS
+#include <ti/sysbios/posix/pthread.h>
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <xdc/std.h>
+#endif
 #include <CL/cl.h>
 #include <core/context.h>
 #include <core/platform.h>

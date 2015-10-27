@@ -1,4 +1,5 @@
 OPENCL_SRC_DIR = ../host
+DEFAULT_DEV_INSTALL_DIR = C:\ti
 PDK_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/pdk_am57xx_8_00_00_00
 IPC_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/ipc_3_35_01_07
 XDC_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/xdctools_3_30_06_67
@@ -8,6 +9,8 @@ EDMA3LLD_DIR   ?= $(DEFAULT_DEV_INSTALL_DIR)/edma3_lld_02_12_00_20
 XDAIS_DIR      ?= $(DEFAULT_DEV_INSTALL_DIR)/xdais_7_24_00_04
 ULM_DIR        ?= $(LINUX_DEVKIT_ROOT)/usr/share/ti/ulm
 GDB_SERVER_DIR ?= $(LINUX_DEVKIT_ROOT)/usr/share/ti/gdbc6x
+
+
 
 export XDC_DIR := $(XDC_DIR)
 
@@ -35,7 +38,7 @@ INCLUDES += -i $(ULM_DIR) -DULM_ENABLED
 INCLUDES += -i $(GDB_SERVER_DIR)/include -DGDB_ENABLED
 
 SOURCES = monitor.c util.c dsp_rpc.asm touch.asm builtins.c edma.c \
-          edma3_config.c
+		  edma3_config.c
 HEADERS = edma.h monitor.h util.h trace.h custom_rsc_table_vayu_dsp.h
 LIBS    = monitor.cmd
 LIBS   += $(ULM_DIR)/libtiulm.ae66
@@ -73,6 +76,7 @@ BUILTINS=$(BUILTINS_DIR)/dsp.lib
 
 .PHONY: all dsp0 dsp1
 all: dsp0 dsp1
+
 	@diff -q dsp0.syms dsp1.syms
 
 dsp0 : $(PROJECT)/linker.cmd dsp0.out dsp0.syms

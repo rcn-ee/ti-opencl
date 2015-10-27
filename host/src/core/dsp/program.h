@@ -64,12 +64,16 @@ class DSPProgram : public DeviceProgram
 
         bool linkStdLib() const;
         const char* outfile_name() const;
+#ifndef _SYS_BIOS
         void createOptimizationPasses(llvm::PassManager *manager,
                                       bool optimize, bool hasBarrier=false);
+
         bool build(llvm::Module *module, std::string *binary_str,
                    char *binary_filename=NULL);
+#endif
         bool ExtractMixedBinary(std::string *binary_str,
                                 std::string *bitcode, std::string *native);
+
         void WriteNativeOut(std::string *native);
         void ReadEmbeddedBinary(std::string *binary_str);
 
@@ -87,6 +91,9 @@ class DSPProgram : public DeviceProgram
         llvm::Module *p_module;
         int           p_program_handle;
         char          p_outfile[32];
+#ifdef _SYS_BIOS
+         std::string  *p_nativeout;
+#endif
         bool          p_loaded;
         segment_list  p_segments_written;
         bool          p_keep_files;

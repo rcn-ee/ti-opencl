@@ -39,32 +39,66 @@
 #include "mbox_msgq_shared.h"
 
 /* Work around IPC usage of typedef void */
+#ifndef _SYS_BIOS
 #define Void void
 #include <ti/ipc/Ipc.h>
 #include <ti/ipc/transports/TransportRpmsg.h>
 #undef Void
-
+#endif
 #define HostMsgQueString    "OCL:MsgQ:%d"
 
+#ifdef _SYS_BIOS
+#include <xdc/std.h>
+#include <xdc/runtime/Assert.h>
+#include <xdc/runtime/Diags.h>
+#include <xdc/runtime/Error.h>
+#include <xdc/runtime/IHeap.h>
+#include <xdc/runtime/Log.h>
+#include <xdc/runtime/Memory.h>
+#include <xdc/runtime/Registry.h>
+#include <xdc/runtime/System.h>
+#include <ti/ipc/Ipc.h>
+#include <ti/ipc/MultiProc.h>
+#include <ti/ipc/MessageQ.h>
+#include <ti/ipc/SharedRegion.h>
+#include <ti/sysbios/BIOS.h>
+#include <ti/sysbios/knl/Task.h>
+#define snprintf  sprintf
+#endif
 using namespace Coal;
 
 MBoxMsgQ::MBoxMsgQ(Coal::DSPDevice *device)
     : heapId(0), p_device(device)
 {
+#ifndef _SYS_BIOS
     /* Configure the transport factory */
     Ipc_transportConfig(&TransportRpmsg_Factory);
+#endif
+#ifdef _SYS_BIOS
+    int status;
+    IHeap_Handle  heap;
+
+#endif
 
     /* Ipc_start must be called before any Message queue operations */
-    int status = Ipc_start();
+    status = Ipc_start();
     assert (status == Ipc_S_SUCCESS || status == Ipc_S_ALREADYSETUP);
+#ifdef _SYS_BIOS
+    /* get the SR_0 heap handle */
+    heap = (IHeap_Handle)SharedRegion_getHeap(0);
+
+    /* Register this heap with MessageQ */
+    status = MessageQ_registerHeap(heap, heapId);
+
+#endif
 
     /* Create the host message queue (inbound messages from DSPs) */
     MessageQ_Params     msgqParams;
     MessageQ_Params_init(&msgqParams);
 
     char hostQueueName[MSGQ_NAME_LENGTH];
-    snprintf(hostQueueName, MSGQ_NAME_LENGTH, HostMsgQueString, getpid());
-    hostQue = MessageQ_create(hostQueueName, &msgqParams);
+    snprintf(hostQueueName, MSGQ_NAME_LENGTH, HostMsgQueString,"Host" );//getpid()
+    hostQue = MessageQ_create("Host" , &msgqParams);
     assert (hostQue != NULL);
 
     /* Open DSP message queues for DSP1 and DSP2 */
@@ -72,15 +106,20 @@ MBoxMsgQ::MBoxMsgQ(Coal::DSPDevice *device)
     snprintf(dspQueueName, MSGQ_NAME_LENGTH, Ocl_DspMsgQueName, "DSP1");
 
     do {
-        status = MessageQ_open(dspQueueName, &dspQue[0]);
+        status = MessageQ_open("OCL:DSP1:MsgQ", &dspQue[0]);
+#ifdef _SYS_BIOS		
+        if (status == MessageQ_E_NOTFOUND) {
+                       Task_sleep(1);
+         }
+#endif		 
     } while (status == MessageQ_E_NOTFOUND);
 
     snprintf(dspQueueName, MSGQ_NAME_LENGTH, Ocl_DspMsgQueName, "DSP2");
-
+#if 0
     do {
         status = MessageQ_open(dspQueueName, &dspQue[1]);
     } while (status == MessageQ_E_NOTFOUND);
-
+#endif
 
 }
 
@@ -89,10 +128,20 @@ void MBoxMsgQ::write (uint8_t *buf, uint32_t size, uint32_t trans_id,
 { 
     assert (id == 0 || id == 1);
 
+#ifndef _SYS_BIOS
+    IHeap_Handle  heap;
+    /* get the SR_0 heap handle */
+    heap = (IHeap_Handle)SharedRegion_getHeap(0);
+    ocl_msgq_message_t *msg =
+           (ocl_msgq_message_t *)Memory_alloc(heap, sizeof(ocl_msgq_message_t),0, NULL);
+#else
+
     ocl_msgq_message_t *msg = 
        (ocl_msgq_message_t *)MessageQ_alloc(heapId, sizeof(ocl_msgq_message_t));
+#endif
     assert (msg != NULL);
 
+ 
     /* set the return address in the message header */
     MessageQ_setReplyQueue(hostQue, (MessageQ_Msg)msg);
 

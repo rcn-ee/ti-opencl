@@ -725,6 +725,7 @@ KernelEvent::KernelEvent(CommandQueue *parent,
 
     // Populate work_offset, work_size and local_work_size
     size_t work_group_size = 1;
+
     boost::tuple <uint,uint,uint> reqd_work_group_size(
                 kernel->reqdWorkGroupSize(kernel->deviceDependentModule(device)));
 
@@ -823,11 +824,13 @@ KernelEvent::KernelEvent(CommandQueue *parent,
         {
             const MemObject *buffer = *(const MemObject **)(a.value(0));
 
-            if (!BufferEvent::isSubBufferAligned(buffer, device))
+
+            if (!BufferEvent::isSubBufferAligned(buffer,device))
             {
                 *errcode_ret = CL_MISALIGNED_SUB_BUFFER_OFFSET;
                 return;
             }
+
         }
         else if (a.kind() == Kernel::Arg::Image2D)
         {

@@ -19,6 +19,9 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
+#if !defined LLVM_3_2 || !defined LLVM_3_3
+#  include <llvm/IR/Constants.h>
+#endif
 
 #include <fstream>
 #include <iostream>
@@ -32,7 +35,7 @@
 #include "BarrierBlock.h"
 #include "Workgroup.h"
 
-#if (defined LLVM_3_1 or defined LLVM_3_2)
+#if (defined LLVM_3_1 || defined LLVM_3_2)
 #include "llvm/Constants.h"
 #include "llvm/Instructions.h"
 #include "llvm/Module.h"
@@ -54,14 +57,32 @@ static std::string getDotBasicBlockID(llvm::BasicBlock* bb) {
   return namess.str();
 }
 
-static void printBasicBlock
-(llvm::BasicBlock* b, std::ostream& s) {
+static void printBranches(
+  llvm::BasicBlock* b, std::ostream& s, bool /*highlighted*/) {
+
+  llvm::TerminatorInst *term = b->getTerminator();
+  for (unsigned i = 0; i < term->getNumSuccessors(); ++i) 
+    {
+      BasicBlock *succ = term->getSuccessor(i);
+      s << getDotBasicBlockID(b) << " -> " << getDotBasicBlockID(succ) << ";"
+        << std::endl;
+    }
+  s << std::endl;   
+}
+
+static void printBasicBlock(
+  llvm::BasicBlock* b, std::ostream& s, bool highlighted) {
   //      if (!Barrier::hasBarrier(b)) continue;
   s << getDotBasicBlockID(b);
   s << "[shape=rect,style=";
-  if (Barrier::hasBarrier(b)) s << "dotted";
-  else s << "solid";
-
+  if (Barrier::hasBarrier(b)) 
+    s << "dotted";
+  else 
+    s << "solid";
+  
+  if (highlighted) {
+    s << ",color=red,style=filled";
+  }
   s << ",label=\"" << b->getName().str() << ":\\n";
 
   // The work-item loop control structures.
@@ -77,8 +98,7 @@ static void printBasicBlock
     // analyze the contents of the BB
     int previousNonBarriers = 0;
     for (llvm::BasicBlock::iterator instr = b->begin();
-         instr != b->end(); ++instr) 
-      {
+         instr != b->end(); ++instr) {
       
         if (isa<Barrier>(instr)) {
           s << "BARRIER\\n";
@@ -86,29 +106,40 @@ static void printBasicBlock
         } else if (isa<BranchInst>(instr)) {
           s << "branch\\n";
           previousNonBarriers = 0;
+        } else if (isa<PHINode>(instr)) {
+          s << "PHI\\n";
+          previousNonBarriers = 0;
+        } else if (isa<ReturnInst>(instr)) {
+          s << "RETURN\\n";
+          previousNonBarriers = 0;
+        } else if (isa<UnreachableInst>(instr)) {
+          s << "UNREACHABLE\\n";
+          previousNonBarriers = 0;
         } else {
           if (previousNonBarriers == 0) 
             s << "...program instructions...\\n";
           previousNonBarriers++;
-        }          
+        }
       }
   }
   s << "\"";
   s << "]";
   s << ";" << std::endl << std::endl;
-
-  llvm::TerminatorInst *term = b->getTerminator();
-  for (unsigned i = 0; i < term->getNumSuccessors(); ++i) 
-    {
-      BasicBlock *succ = term->getSuccessor(i);
-      s << getDotBasicBlockID(b) << " -> " << getDotBasicBlockID(succ) << ";"
-        << std::endl;
-    }
-  s << std::endl;   
 }
 
-void dumpCFG(llvm::Function& F, std::string fname, 
-             ParallelRegion::ParallelRegionVector* regions) {
+/**
+ * pocl-specific dumping of the LLVM Function as a control flow graph in the
+ * Graphviz dot format.
+ *
+ * @param F the function to dump
+ * @param fname the target file name
+ * @param regions highlight these parallel regions in the graph
+ * @param highlights highlight these basic blocks in the graph
+ */
+void dumpCFG(
+  llvm::Function &F, std::string fname, 
+  ParallelRegion::ParallelRegionVector *regions,
+  std::set<llvm::BasicBlock*> *highlights) {
 
   if (fname == "")
     fname = std::string("pocl_cfg.") + F.getName().str() + ".dot";
@@ -129,23 +160,29 @@ void dumpCFG(llvm::Function& F, std::string fname,
       s << "\tsubgraph cluster" << pr->GetID() << " {" << std::endl;
 
       for (ParallelRegion::iterator i = pr->begin(), e = pr->end(); 
-           i != e; ++i) 
-        {
-          BasicBlock *b = *i;
-          printBasicBlock(b, s);
-          regionBBs.insert(b);
-        }
+           i != e; ++i) {
+        BasicBlock *b = *i;
+        printBasicBlock(
+          b, s, highlights != NULL && 
+          highlights->find(b) != highlights->end());
+        regionBBs.insert(b);
+      }
       s << "label=\"Parallel region #" << pr->GetID() << "\";" << std::endl;
       s << "}" << std::endl;
     }
   }
 
-  for (Function::iterator i = F.begin(), e = F.end(); i != e; ++i) 
-    {
-      BasicBlock *b = i;
-      if (regionBBs.find(b) != regionBBs.end()) continue;
-      printBasicBlock(b, s);
-    }
+  for (Function::iterator i = F.begin(), e = F.end(); i != e; ++i) {
+    BasicBlock *b = i;
+    if (regionBBs.find(b) != regionBBs.end()) continue;
+    printBasicBlock
+      (b, s, highlights != NULL && highlights->find(b) != highlights->end());
+  }
+  for (Function::iterator i = F.begin(), e = F.end(); i != e; ++i) {
+    BasicBlock *b = i;
+    printBranches
+      (b, s, highlights != NULL && highlights->find(b) != highlights->end());
+  }
 
   s << "}" << std::endl;
   s.close();
@@ -179,4 +216,4 @@ bool chopBBs(llvm::Function &F, llvm::Pass &P) {
   return fchanged;
 }
     
-}
+};

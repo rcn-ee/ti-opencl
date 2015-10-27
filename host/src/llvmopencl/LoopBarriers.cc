@@ -22,7 +22,8 @@
 // THE SOFTWARE.
 
 #include "config.h"
-#if (defined LLVM_3_1 or defined LLVM_3_2)
+#include "llvm\Config\llvm-config.h"
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <3
 #include "llvm/Constants.h"
 #include "llvm/Instructions.h"
 #include "llvm/Module.h"
@@ -30,6 +31,9 @@
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Module.h"
+#endif
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR >=6
+#include "llvm/IR/Dominators.h"
 #endif
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include <iostream>
@@ -54,8 +58,13 @@ char LoopBarriers::ID = 0;
 void
 LoopBarriers::getAnalysisUsage(AnalysisUsage &AU) const
 {
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <=4
   AU.addRequired<DominatorTree>();
   AU.addPreserved<DominatorTree>();
+#else
+  AU.addRequired<DominatorTreeWrapperPass>();
+  AU.addPreserved<DominatorTreeWrapperPass>();
+#endif
 }
 
 bool
@@ -64,11 +73,22 @@ LoopBarriers::runOnLoop(Loop *L, LPPassManager &LPM)
   if (!Workgroup::isKernelToProcess(*L->getHeader()->getParent()))
     return false;
 
+  if (!Workgroup::hasWorkgroupBarriers(*L->getHeader()->getParent()))
+    return false;
+
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <=4
   DT = &getAnalysis<DominatorTree>();
+#else
+  DT = &getAnalysis<DominatorTreeWrapperPass>().getDomTree();
+#endif
 
   bool changed = ProcessLoop(L, LPM);
 
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <=4
   DT->verifyAnalysis();
+#else
+  DT->verifyDomTree();
+#endif
 
   return changed;
 }

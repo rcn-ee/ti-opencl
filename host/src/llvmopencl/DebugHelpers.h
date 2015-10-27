@@ -28,23 +28,27 @@
 #include "ParallelRegion.h"
 
 #include "config.h"
-#if (defined LLVM_3_1 or defined LLVM_3_2)
+#if (defined LLVM_3_1 || defined LLVM_3_2)
 #include "llvm/Function.h"
 #else
 #include "llvm/IR/Function.h"
 #endif
 #include "llvm/Pass.h"
 
+#if _MSC_VER
+#  include <set>
+#endif
 namespace pocl {
   // View CFG with visual aids to debug kernel compiler problems.
   void dumpCFG(llvm::Function& F, std::string fname="", 
-               ParallelRegion::ParallelRegionVector* regions=NULL);
+               ParallelRegion::ParallelRegionVector* regions=NULL,
+               std::set<llvm::BasicBlock*> *highlights=NULL);
 
   // Split large basic blocks to smaller one so dot doesn't crash when
   // calling viewCFG on it. This should be fixed in LLVM upstream.
   //
   // @return True in case the function was changed.
   bool chopBBs(llvm::Function& F, llvm::Pass &P);
-}
+};
 
 #endif

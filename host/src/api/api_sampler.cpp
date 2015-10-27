@@ -29,7 +29,9 @@
  * \file api_sampler.cpp
  * \brief Samplers
  */
-
+#ifdef _SYS_BIOS
+#include <xdc/std.h>
+#endif
 #include "CL/cl.h"
 
 #include "core/sampler.h"

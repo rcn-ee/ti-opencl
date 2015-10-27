@@ -38,7 +38,7 @@
 #include <string>
 #include <sstream>
 #include <iostream>
-#include <unistd.h>
+
 #include <clang/Frontend/CompilerInvocation.h>
 #include <clang/Frontend/TextDiagnosticPrinter.h>
 #include <clang/Frontend/LangStandard.h>
@@ -49,6 +49,15 @@
 #include <llvm/Support/MemoryBuffer.h> // ASW
 #include <llvm/IR/Module.h>
 #include <llvm/IR/LLVMContext.h>
+
+#ifndef _MSC_VER 
+#include <unistd.h>
+#else
+#include <io.h>
+#define access  _access
+#define F_OK    0
+#define R_OK    04
+#endif
 
 std::string get_ocl_dsp();
 
@@ -62,10 +71,15 @@ Compiler::~Compiler()
 {
 
 }
-
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <6 
 bool Compiler::compile(const std::string &options,
-                                llvm::MemoryBuffer *source,
-                                std::string filename)
+	                   llvm::MemoryBuffer *source,
+	                   std::string filename)
+#else
+bool Compiler::compile(const std::string &options,
+                                llvm::MemoryBufferRef source,
+								std::string filename)
+#endif
 {
     bool use_pch = access("/usr/share/ti/opencl/clc.h.pch", F_OK) != -1;
 
@@ -259,10 +273,16 @@ bool Compiler::compile(const std::string &options,
     //prep_opts.addRemappedFile(filename.c_str(), source);
 
     // Compile
+	
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <6 	
     llvm::OwningPtr<clang::CodeGenAction> act(
         new clang::EmitLLVMOnlyAction(&llvm::getGlobalContext())
     );
-
+#else
+    std::unique_ptr<clang::CodeGenAction> act(
+        new clang::EmitLLVMOnlyAction(&llvm::getGlobalContext())
+    );
+#endif
     if (!p_compiler.ExecuteAction(*act))
     {
         // DEBUG
@@ -271,10 +291,13 @@ bool Compiler::compile(const std::string &options,
     }
 
     p_log_stream.flush();
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <6 	
     p_module = act->takeModule();
-
+#else
+	p_module = act->takeModule().release();
+#endif
     // uncomment to debug the llvm IR
-    // p_module->dump();  
+     p_module->dump();  
 
     // Cleanup
     //prep_opts.eraseRemappedFile(prep_opts.remapped_file_buffer_end());

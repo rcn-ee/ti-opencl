@@ -30,7 +30,7 @@
 #include "kernel.h"
 
 #include "../program.h"
-
+#ifndef _SYS_BIOS
 #include <llvm/PassManager.h>
 #include <llvm/Analysis/Passes.h>
 #include <llvm/Analysis/Verifier.h>
@@ -58,6 +58,7 @@
 #include <WorkitemLoops.h>
 #include <AllocasToEntry.h>
 #include <Workgroup.h>
+#endif
 #include <TargetAddressSpaces.h>
 
 #include <string>
@@ -72,12 +73,22 @@
 #include <sys/wait.h>
 #include <sys/stat.h>
 #include <unistd.h>
-
+#ifdef _SYS_BIOS
+#include <elf32.h>
+#define ELFMAG0         0x7f            /* EI_MAG */
+#define ELFMAG1         'E'
+#define ELFMAG2         'L'
+#define ELFMAG3         'F'
+#define ELFMAG          "\177ELF"
+#define SELFMAG         4
+#else
 #include <elf.h>
 
+#endif
 #include "genfile_cache.h"
 
 genfile_cache * genfile_cache::pInstance = 0;
+
 
 timespec getTime()
 {
@@ -86,6 +97,7 @@ timespec getTime()
         clock_gettime(CLOCK_REALTIME, &tp);
     return tp;
 }
+
 
 double ts_to_double(const timespec &t)
     { return ((double)t.tv_nsec) /1000000000.0 + (double)t.tv_sec; }
@@ -121,8 +133,11 @@ DSPProgram::segment_list *segments;
 bool DSPProgram::load()
 {
     segments = &p_segments_written;
-
+#ifndef _SYS_BIOS
     p_program_handle = p_device->load(p_outfile);
+#else
+    p_program_handle = p_device->load(p_nativeout);
+#endif
     if (!p_program_handle) return false;
 
     segments = NULL;
@@ -218,10 +233,11 @@ DSPDevicePtr DSPProgram::data_page_ptr()
     DLOAD_get_static_base(p_device->dload_handle(), p_program_handle,  &p);
     return p;
 }
-
+#ifndef _SYS_BIOS
 void DSPProgram::createOptimizationPasses(llvm::PassManager *manager,
                                           bool optimize, bool hasBarrier)
 {
+
     if (hasBarrier)
     {
         manager->add(    llvm::createPromoteMemoryToRegisterPass());
@@ -289,9 +305,10 @@ void DSPProgram::createOptimizationPasses(llvm::PassManager *manager,
     *------------------------------------------------------------------------*/
     if (!hasBarrier)
         manager->add(new pocl::AllocasToEntry());
+
 }
-
-
+#endif
+#ifndef _SYS_BIOS
 std::string process_cl6x_options(std::string options)
 {
     std::istringstream options_stream(options);
@@ -347,7 +364,7 @@ const char *get_cgt_install()
 ******************************************************************************/
 std::string get_ocl_dsp()
 {
-    std::string stdpath("/usr/share/ti/opencl");
+    std::string stdpath("D:/OpenCL/ti/titools/opencl");//("/usr/share/ti/opencl");
 
     const char *ocl_install = getenv("TARGET_ROOTDIR");
     if (ocl_install) stdpath = ocl_install + stdpath;
@@ -438,7 +455,7 @@ static int run_cl6x(char *filename, std::string *llvm_bitcode,
         x = system(strip_command.c_str());
     }
 }
-
+#endif
 /**
  * Extract llvm bitcode and native binary from MixedBinary
  */
@@ -497,6 +514,7 @@ bool DSPProgram::ExtractMixedBinary(std::string *binary_str,
  */
 void DSPProgram::WriteNativeOut(std::string *native)
 {
+#ifndef _SYS_BIOS
     try
     {
         char name_out[] = "/tmp/openclXXXXXX";
@@ -511,6 +529,9 @@ void DSPProgram::WriteNativeOut(std::string *native)
         unlink(name_out);
     }
     catch(...) { std::cout << "ERROR: Binary write out failure" << std::endl; }
+#else
+    p_nativeout = native;
+#endif
 }
 
 /**
@@ -541,8 +562,9 @@ void DSPProgram::ReadEmbeddedBinary(std::string *binary_str)
         delete [] buffer;
     }
     catch(...) { std::cout << "ERROR: Binary read in failure" << std::endl; }
-}
 
+}
+#ifndef _SYS_BIOS
 bool DSPProgram::build(llvm::Module *module, std::string *binary_str,
                        char *binary_filename)
 {
@@ -658,7 +680,7 @@ bool DSPProgram::build(llvm::Module *module, std::string *binary_str,
 
     return true;
 }
-
+#endif
 DSPDevicePtr DSPProgram::query_symbol(const char *symname)
 {
     DSPDevicePtr addr;

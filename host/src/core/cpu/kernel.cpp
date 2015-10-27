@@ -51,7 +51,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
-#include <sys/mman.h>
+//#include <sys/mman.h>
 
 using namespace Coal;
 

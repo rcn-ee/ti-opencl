@@ -20,6 +20,10 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
+#include "llvm/config/llvm-config.h"
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR >=6 
+#  include <llvm/IR/Constants.h>
+#endif
 
 #include "config.h"
 #include "CanonicalizeBarriers.h"
@@ -29,12 +33,17 @@
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include <iostream>
 
-#if (defined LLVM_3_1 or defined LLVM_3_2)
+#include "VariableUniformityAnalysis.h"
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <3
 #include "llvm/Instructions.h"
 #include "llvm/Module.h"
 #else
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Module.h"
+#endif
+
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR >=6
+#include "llvm/IR/Dominators.h"
 #endif
 
 using namespace llvm;
@@ -51,6 +60,12 @@ char CanonicalizeBarriers::ID = 0;
 void
 CanonicalizeBarriers::getAnalysisUsage(AnalysisUsage &AU) const
 {
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <=4 
+  AU.addRequired<DominatorTree>();
+#else
+  AU.addRequired<DominatorTreeWrapperPass>();
+#endif
+  AU.addPreserved<VariableUniformityAnalysis>();    
 }
 
 bool
@@ -72,7 +87,11 @@ CanonicalizeBarriers::runOnFunction(Function &F)
   for (Function::iterator i = F.begin(), e = F.end(); i != e; ++i) {
     BasicBlock *b = i;
     TerminatorInst *t = b->getTerminator();
-    if ((t->getNumSuccessors() == 0) && (!isa<BarrierBlock>(b))) {
+    const bool isExitNode = 
+      (t->getNumSuccessors() == 0) && (!isa<BarrierBlock>(b));
+
+    // The function exits should have barriers.
+    if (isExitNode && !Barrier::hasOnlyBarrier(b)) {
       /* In case the bb is already terminated with a barrier,
          split before the barrier so we dot create an empty
          parallel region.
@@ -92,13 +111,22 @@ CanonicalizeBarriers::runOnFunction(Function &F)
     }
   }
 
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <=4
   DT = getAnalysisIfAvailable<DominatorTree>();
+#else
+  DT = &getAnalysis<DominatorTreeWrapperPass>().getDomTree();
+#endif
   LI = getAnalysisIfAvailable<LoopInfo>();
 
   bool changed = ProcessFunction(F);
 
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <=4 
   if (DT)
     DT->verifyAnalysis();
+#else
+  if (DT)
+    DT->verifyDomTree();
+#endif
   if (LI)
     LI->verifyAnalysis();
 
@@ -108,8 +136,8 @@ CanonicalizeBarriers::runOnFunction(Function &F)
 
 // Canonicalize barriers: ensure all barriers are in a separate BB
 // containing only the barrier and the terminator, with just one
-// predecessor and one successor. This allows us to use
-// those BBs as markers only, they will not be replicated.
+// predecessor. This allows us to use those BBs as markers only, 
+// they will not be replicated.
 bool
 CanonicalizeBarriers::ProcessFunction(Function &F)
 {

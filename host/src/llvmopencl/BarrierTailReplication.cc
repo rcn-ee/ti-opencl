@@ -20,6 +20,9 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
+#if !defined LLVM_3_2 || !defined LLVM_3_3
+#  include <llvm/IR/Constants.h>
+#endif
 
 #include "config.h"
 #include "BarrierTailReplication.h"
@@ -27,13 +30,14 @@
 #include "Workgroup.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include "llvm/Transforms/Utils/Cloning.h"
-#if (defined LLVM_3_1 or defined LLVM_3_2)
+#if (defined LLVM_3_1 || defined LLVM_3_2)
 #include "llvm/InstrTypes.h"
 #include "llvm/Instructions.h"
 #else
 #include "llvm/IR/InstrTypes.h"
 #include "llvm/IR/Instructions.h"
 #endif
+#include "VariableUniformityAnalysis.h"
 
 #include <iostream>
 #include <algorithm>
@@ -56,10 +60,16 @@ char BarrierTailReplication::ID = 0;
 void
 BarrierTailReplication::getAnalysisUsage(AnalysisUsage &AU) const
 {
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <=4
   AU.addRequired<DominatorTree>();
   AU.addPreserved<DominatorTree>();
+#else
+  AU.addRequired<DominatorTreeWrapperPass>();
+  AU.addPreserved<DominatorTreeWrapperPass>();
+#endif
   AU.addRequired<LoopInfo>();
   AU.addPreserved<LoopInfo>();
+  AU.addPreserved<VariableUniformityAnalysis>();
 }
 
 bool
@@ -72,12 +82,21 @@ BarrierTailReplication::runOnFunction(Function &F)
   std::cerr << "### BTR on " << F.getName().str() << std::endl;
 #endif
 
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <=4 
   DT = &getAnalysis<DominatorTree>();
+#else
+  DTP = &getAnalysis<DominatorTreeWrapperPass>();
+  DT = &DTP->getDomTree();
+#endif
   LI = &getAnalysis<LoopInfo>();
 
   bool changed = ProcessFunction(F);
 
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <=4 
   DT->verifyAnalysis();
+#else
+  DT->verifyDomTree();
+#endif
   LI->verifyAnalysis();
 
   /* The created tails might contain PHI nodes with operands 
@@ -138,7 +157,6 @@ BarrierTailReplication::FindBarriersDFS(BasicBlock *bb,
   return changed;
 }
 
-
 // Only replicate those parts of the subgraph that are not
 // dominated by a (barrier) basic block, to avoid excesive
 // (and confusing) code replication.
@@ -148,6 +166,7 @@ BarrierTailReplication::ReplicateJoinedSubgraphs(BasicBlock *dominator,
                                                  BasicBlockSet &processed_bbs)
 {
   bool changed = false;
+  
 
   assert(DT->dominates(dominator, subgraph_entry));
 
@@ -203,7 +222,12 @@ BarrierTailReplication::ReplicateJoinedSubgraphs(BasicBlock *dominator,
       {
         // We have modified the function. Possibly created new loops.
         // Update analysis passes.
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <=4 
         DT->runOnFunction(*f);
+#else
+        DTP->runOnFunction(*f);
+#endif
+
         #ifdef LLVM_3_1
         LI->getBase().Calculate(DT->getBase());
         #else

@@ -53,13 +53,17 @@ Flatten::runOnModule(Module &M)
           f->addFnAttr(Attribute::NoInline);
 #elif defined LLVM_3_2
           AttrBuilder b;
-          f->removeFnAttr(Attributes::get(M.getContext(), b.addAttribute(Attributes::AlwaysInline)));
+          f->removeFnAttr
+            (Attributes::get(M.getContext(), 
+                             b.addAttribute(Attributes::AlwaysInline)));
           f->addFnAttr(Attributes::NoInline);
 #else
           AttributeSet attrs;
           f->removeAttributes(
               AttributeSet::FunctionIndex, 
-              attrs.addAttribute(M.getContext(), AttributeSet::FunctionIndex, Attribute::AlwaysInline));
+              attrs.addAttribute
+              (M.getContext(), 
+               AttributeSet::FunctionIndex, Attribute::AlwaysInline));
 
           f->addFnAttr(Attribute::NoInline);
 #endif
@@ -77,13 +81,17 @@ Flatten::runOnModule(Module &M)
           f->addFnAttr(Attribute::AlwaysInline);
 #elif defined LLVM_3_2
           AttrBuilder b;
-          f->removeFnAttr(Attributes::get(M.getContext(), b.addAttribute(Attributes::NoInline)));
+          f->removeFnAttr(Attributes::get
+                          (M.getContext(), 
+                           b.addAttribute(Attributes::NoInline)));
           f->addFnAttr(Attributes::AlwaysInline);
 #else
           AttributeSet attrs;
           f->removeAttributes(
               AttributeSet::FunctionIndex, 
-              attrs.addAttribute(M.getContext(), AttributeSet::FunctionIndex, Attribute::NoInline));
+              attrs.addAttribute(M.getContext(), 
+                                 AttributeSet::FunctionIndex, 
+                                 Attribute::NoInline));
           f->addFnAttr(Attribute::AlwaysInline);
 #endif
 
@@ -106,7 +114,8 @@ static const char *workgroup_variables[] = {
   "_num_groups_x", "_num_groups_y", "_num_groups_z",
   "_group_id_x", "_group_id_y", "_group_id_z",
   "_global_offset_x", "_global_offset_y", "_global_offset_z",
-  NULL};
+  NULL
+};
 
 bool
 Flatten::runOnModule(Module &M)
@@ -129,7 +138,12 @@ Flatten::runOnModule(Module &M)
 
     for (Value::use_iterator i = v->use_begin(), e = v->use_end();
 	 i != e; ++i) {
-      if (Instruction *ci = dyn_cast<Instruction>(*i)) {
+#if defined LLVM_3_2 || defined LLVM_3_3 || defined LLVM_3_4
+      llvm::User *user = *i;
+#else
+      llvm::User *user = i->getUser();
+#endif
+      if (Instruction *ci = dyn_cast<Instruction>(user) {
         // Prevent infinite looping on recursive functions
         // (though OpenCL does not allow this?)
         Function *f = ci->getParent()->getParent();;

@@ -33,7 +33,9 @@
 
 #include "program.h"
 #include "context.h"
+#ifndef _SYS_BIOS
 #include "compiler.h"
+#endif
 #include "kernel.h"
 #include "propertylist.h"
 #include "deviceinterface.h"
@@ -61,15 +63,17 @@
 #include <llvm/PassManager.h>
 #include <llvm/IR/Metadata.h>
 #include <llvm/IR/Function.h>
+#ifndef _SYS_BIOS
 #include <llvm/Analysis/Passes.h>
 #include <llvm/Transforms/IPO.h>
+#endif
 #include <llvm/IR/Instructions.h>
 #include <llvm/Support/InstIterator.h>
 #include <llvm/Transforms/Scalar.h>
 #include <SimplifyShuffleBIFCall.h>
-
+#ifndef _SYS_BIOS
 #include <runtime/stdlib.c.bc.embed.h>
- 
+#endif
 #include "dsp/genfile_cache.h"
 
 /*-----------------------------------------------------------------------------
@@ -83,17 +87,24 @@ using namespace Coal;
 Program::Program(Context *ctx)
 : Object(Object::T_Program, ctx), p_type(Invalid), p_state(Empty)
 {
+#ifndef _SYS_BIOS
     p_null_device_dependent.compiler = 0;
+#endif
     p_null_device_dependent.device = 0;
+
     p_null_device_dependent.linked_module = 0;
     p_null_device_dependent.program = 0;
+
     p_llvmcontext = new llvm::LLVMContext();
+
 }
 
 Program::~Program()
 {
    resetDeviceDependent();
+
    delete p_llvmcontext;
+
 }
 
 void Program::resetDeviceDependent()
@@ -101,9 +112,11 @@ void Program::resetDeviceDependent()
     while (p_device_dependent.size())
     {
         DeviceDependent &dep = p_device_dependent.back();
-
+#ifndef _SYS_BIOS
         delete dep.compiler;
+#endif
         delete dep.program;
+
         delete dep.linked_module;
         if (dep.native_binary_filename) delete [] dep.native_binary_filename;
 
@@ -124,7 +137,9 @@ void Program::setDevices(cl_uint num_devices, DeviceInterface * const*devices)
         dep.is_native_binary       = false;
         dep.native_binary_filename = NULL;
         dep.linked_module          = 0;
+#ifndef _SYS_BIOS
         dep.compiler               = new Compiler(dep.device);
+#endif
     }
 }
 
@@ -164,8 +179,12 @@ DeviceProgram *Program::deviceDependentProgram(DeviceInterface *device) const
 std::string Program::deviceDependentCompilerOptions(DeviceInterface *device) const
 {
     const DeviceDependent &dep = deviceDependent(device);
-
+#ifndef _SYS_BIOS
     return dep.compiler->options();
+#else
+    return "error";
+#endif
+
 }
 
 std::vector<llvm::Function *> Program::kernelFunctions(DeviceDependent &dep)
@@ -174,6 +193,7 @@ std::vector<llvm::Function *> Program::kernelFunctions(DeviceDependent &dep)
 
     llvm::NamedMDNode *kernels = 
                dep.linked_module->getNamedMetadata("opencl.kernels");
+
 
     if (!kernels) return rs;
 
@@ -219,9 +239,11 @@ Kernel *Program::createKernel(const std::string &name, cl_int *errcode_ret)
         *--------------------------------------------------------------------*/
         for (size_t j=0; j < kernels.size(); ++j)
         {
+
             llvm::Function *func = kernels[j];
 
             if (func->getName().str() == name)
+
             {
                 found = true;
                 *errcode_ret = rs->addFunction(dep.device, func, 
@@ -229,6 +251,7 @@ Kernel *Program::createKernel(const std::string &name, cl_int *errcode_ret)
                 if (*errcode_ret != CL_SUCCESS) return rs;
                 break;
             }
+
         }
 
         /*---------------------------------------------------------------------
@@ -267,7 +290,9 @@ std::vector<Kernel *> Program::createKernels(cl_int *errcode_ret)
     for (size_t i=0; i < kernels.size(); ++i)
     {
         cl_int result  = CL_SUCCESS;
+
         Kernel *kernel = createKernel(kernels[i]->getName().str(), &result);
+
 
         if (result == CL_SUCCESS) rs.push_back(kernel);
         else                      delete kernel;
@@ -331,11 +356,16 @@ cl_int Program::loadBinaries(const unsigned char **data, const size_t *lengths,
         DeviceDependent &dep = deviceDependent(device_list[i]);
         dep.unlinked_binary = std::string((const char *)data[i], lengths[i]);
         dep.is_native_binary = true;
+#ifdef _SYS_BIOS
+
+        dep.program->WriteNativeOut(&dep.unlinked_binary);
+#endif
 
         /*--------------------------------------------------------------------
         * Loaded binary is either native code with LLVM bitcode embedded,
         *                  or     LLVM bitcode itself
         *--------------------------------------------------------------------*/
+
         std::string bitcode;
         if (! dep.program->ExtractMixedBinary(&dep.unlinked_binary, &bitcode, 
                                               NULL))
@@ -343,7 +373,6 @@ cl_int Program::loadBinaries(const unsigned char **data, const size_t *lengths,
             bitcode = dep.unlinked_binary;
             dep.is_native_binary = false;
         }
-
         const llvm::StringRef s_data(bitcode);
         const llvm::StringRef s_name("<binary>");
 
@@ -380,6 +409,7 @@ cl_int Program::build(const char *options,
     // If we've already built this program and are re-building
     // (for example, with different user options) then clear out the
     // device dependent information in preparation for building again.
+
     if( p_state == Built) resetDeviceDependent();
 
     p_state = Failed;
@@ -394,7 +424,7 @@ cl_int Program::build(const char *options,
     for (cl_uint i=0; i<p_device_dependent.size(); ++i)
     {
         DeviceDependent &dep = deviceDependent(device_list[i]);
-
+#ifndef _SYS_BIOS
         // Do we need to compile the source for each device ?
         if (p_type == Source)
         {
@@ -648,6 +678,7 @@ cl_int Program::build(const char *options,
 
             return CL_BUILD_PROGRAM_FAILURE;
         }
+#endif
     }
 
     // TODO: Asynchronous compile
@@ -817,13 +848,17 @@ cl_int Program::buildInfo(DeviceInterface *device,
             break;
 
         case CL_PROGRAM_BUILD_OPTIONS:
+#ifndef _SYS_BIOS
             value = dep.compiler->options().c_str();
             value_length = dep.compiler->options().size() + 1;
+#endif
             break;
 
         case CL_PROGRAM_BUILD_LOG:
+#ifndef _SYS_BIOS
             value = dep.compiler->log().c_str();
             value_length = dep.compiler->log().size() + 1;
+#endif
             break;
 
         default:

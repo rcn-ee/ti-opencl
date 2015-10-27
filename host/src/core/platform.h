@@ -32,7 +32,9 @@
 #include <vector>
 #include <cstring>
 #include "icd.h"
-
+#ifdef _SYS_BIOS
+#include <ti/sysbios/posix/pthread.h>
+#endif
 #include <pthread.h>
 #define  LOKI_PTHREAD_H
 #include <loki/Singleton.h>

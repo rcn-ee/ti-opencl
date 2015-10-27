@@ -42,8 +42,9 @@
 
 #include <ctype.h>
 
-#if !defined(__linux)
 
+#if !defined(__linux)
+#ifndef _SYS_BIOS
 /*****************************************************************************/
 /* STRCASECMP() - Case-insensitive strcmp.                                   */
 /*****************************************************************************/
@@ -72,7 +73,7 @@ static int strncasecmp(const char* s1, const char* s2, size_t n)
 }
 
 #endif
-
+#endif
 /*****************************************************************************/
 /* C implementation of 'bool' type.                                          */
 /*****************************************************************************/
@@ -81,3 +82,4 @@ typedef int BOOL;
 #define FALSE   0
 
 #endif
+

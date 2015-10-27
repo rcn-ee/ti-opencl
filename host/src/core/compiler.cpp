@@ -30,7 +30,7 @@
  * \file compiler.cpp
  * \brief Compiler wrapper around Clang
  */
-
+#ifndef _SYS_BIOS
 #include "compiler.h"
 #include "deviceinterface.h"
 
@@ -70,7 +70,8 @@ bool Compiler::compile(const std::string &options,
                        llvm::MemoryBuffer *source,
                        llvm::LLVMContext *llvmcontext)
 {
-    /* Set options */
+#ifndef _SYS_BIOS
+	/* Set options */
     p_options = options;
 
     clang::CodeGenOptions &codegen_opts = p_compiler.getCodeGenOpts();
@@ -302,7 +303,7 @@ bool Compiler::compile(const std::string &options,
 
     // Cleanup
     prep_opts.eraseRemappedFile(prep_opts.remapped_file_buffer_end());
-
+#endif
     return true;
 }
 
@@ -360,3 +361,4 @@ void Compiler::appendLog(const std::string &log)
 {
     p_log += log;
 }
+#endif

@@ -10,7 +10,10 @@
 #include <algorithm>
 
 #include "file_manip.h"
+#ifdef _MSC_VER
 
+#define strtok_r strtok_s
+#endif
 using std::cout;
 using std::endl;
 using std::string;
@@ -18,8 +21,8 @@ using std::vector;
 using std::ostream_iterator;
 
 int opt_help    = 0;
-int opt_verbose = 0;
-int opt_keep    = 0;
+int opt_verbose = 1;
+int opt_keep    = 1;
 int opt_debug   = 0;
 int opt_lib     = 0;
 int opt_txt     = 0;
@@ -39,6 +42,8 @@ string         files_other;
 
 #define STRINGIZE(x) #x
 #define STRINGIZE2(x) STRINGIZE(x)
+
+#define _PRODUCT_VERSION   1
 
 void print_version()
 {

@@ -19,6 +19,9 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
+#if !defined LLVM_3_2 || !defined LLVM_3_3
+#  include <llvm/IR/Constants.h>
+#endif
 
 #include "IsolateRegions.h"
 #include "Barrier.h"
@@ -28,6 +31,7 @@
 #include "config.h"
 
 #include <iostream>
+#include "VariableUniformityAnalysis.h"
 
 //#define DEBUG_ISOLATE_REGIONS
 using namespace llvm;
@@ -41,9 +45,8 @@ namespace {
 
 char IsolateRegions::ID = 0;
 
-void
-IsolateRegions::getAnalysisUsage(AnalysisUsage &AU) const
-{
+void IsolateRegions::getAnalysisUsage(AnalysisUsage &AU) const {
+  AU.addPreserved<pocl::VariableUniformityAnalysis>();
 }
 
 /* Ensure Single-Entry Single-Exit Regions are isolated from the
@@ -87,9 +90,8 @@ IsolateRegions::getAnalysisUsage(AnalysisUsage &AU) const
 
    
 */
-bool
-IsolateRegions::runOnRegion(Region *R, llvm::RGPassManager&) 
-{
+bool IsolateRegions::runOnRegion(Region *R, llvm::RGPassManager&) {
+
   llvm::BasicBlock *exit = R->getExit();
   if (exit == NULL) return false;
 
@@ -103,22 +105,20 @@ IsolateRegions::runOnRegion(Region *R, llvm::RGPassManager&)
 
   bool changed = false;
 
-  if (Barrier::hasBarrier(exit) || isFunctionExit)
-    {
+  if (Barrier::hasBarrier(exit) || isFunctionExit) {
       addDummyBefore(R, exit);
       changed = true;
-    }
+  }
 
   llvm::BasicBlock *entry = R->getEntry();
   if (entry == NULL) return changed;
 
   bool isFunctionEntry = &entry->getParent()->getEntryBlock() == entry;
 
-  if (Barrier::hasBarrier(entry) || isFunctionEntry)
-    {
-      addDummyAfter(R, entry);
-      changed = true;
-    }
+  if (Barrier::hasBarrier(entry) || isFunctionEntry) {
+    addDummyAfter(R, entry);
+    changed = true;
+  }
 
   return changed;
 }
@@ -127,9 +127,8 @@ IsolateRegions::runOnRegion(Region *R, llvm::RGPassManager&)
 /**
  * Adds a dummy node after the given basic block.
  */
-void
-IsolateRegions::addDummyAfter(llvm::Region *R, llvm::BasicBlock *bb)
-{
+void IsolateRegions::addDummyAfter(llvm::Region *R, llvm::BasicBlock *bb) {
+
   std::vector< llvm::BasicBlock* > regionSuccs;
 
   for (llvm::succ_iterator i = succ_begin(bb), e = succ_end(bb);
@@ -153,8 +152,7 @@ IsolateRegions::addDummyAfter(llvm::Region *R, llvm::BasicBlock *bb)
  * same region.
  */
 void
-IsolateRegions::addDummyBefore(llvm::Region *R, llvm::BasicBlock *bb)
-{
+IsolateRegions::addDummyBefore(llvm::Region *R, llvm::BasicBlock *bb) {
   std::vector< llvm::BasicBlock* > regionPreds;
 
   for (pred_iterator i = pred_begin(bb), e = pred_end(bb);

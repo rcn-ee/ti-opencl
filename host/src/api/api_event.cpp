@@ -29,7 +29,10 @@
  * \file api_event.cpp
  * \brief Special events and event management
  */
-
+#ifdef _SYS_BIOS
+#include <xdc/std.h>
+#include <ti/sysbios/posix/pthread.h>
+#endif
 #include <CL/cl.h>
 
 #include <core/commandqueue.h>

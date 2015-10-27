@@ -29,7 +29,9 @@
  * \file api_memory.cpp
  * \brief Memory objects
  */
-
+#ifdef _SYS_BIOS
+#include <xdc/std.h>
+#endif
 #include "CL/cl.h"
 #include "CL/cl_ext.h"
 #include <core/memobject.h>

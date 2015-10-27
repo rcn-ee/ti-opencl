@@ -24,7 +24,7 @@
 #include <cstdio>
 
 #include "config.h"
-#if (defined LLVM_3_1 or defined LLVM_3_2)
+#if (defined LLVM_3_1 || defined LLVM_3_2)
 #include "llvm/Instructions.h"
 #include "llvm/Function.h"
 #include "llvm/Module.h"
@@ -98,6 +98,11 @@ namespace pocl {
     static bool classof(const User *U) {
       return (llvm::isa<Instruction>(U) &&
               classof(llvm::cast<llvm::Instruction>(U)));
+    }
+   
+    static bool classof(const Value *V) {
+      return (llvm::isa<User>(V) &&
+              classof(llvm::cast<llvm::User>(V)));
     }
 
 

@@ -27,7 +27,11 @@
  *****************************************************************************/
 #include <llvm/PassManager.h>
 #include <llvm/Analysis/Passes.h>
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <3 
+#include <llvm/IR/Verifier.h>
+#else
 #include <llvm/Analysis/Verifier.h>
+#endif
 #include <llvm/Transforms/Scalar.h>
 #include <llvm/Transforms/IPO.h>
 #include <llvm/Transforms/Utils/UnifyFunctionExitNodes.h>
@@ -45,19 +49,30 @@
 #include <stdlib.h>
 #include <vector>
 #include <sys/types.h>
+#ifndef _MSC_VER 
 #include <sys/time.h>
 #include <sys/wait.h>
-#include <sys/stat.h>
 #include <unistd.h>
-
 #include <elf.h>
+#else
+#include <io.h>
+#include <time.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#define access  _access
+#define stat    _stat
+#define F_OK    0
+#define R_OK    04
+#define S_ISDIR(A) ((A) && _S_IFDIR)
+#endif
+
 
 using namespace std;
 
 /******************************************************************************
 * Find the C6000 CGT installation
 ******************************************************************************/
-#define DEFAULT_TI_CGT_INSTALL_PATH "/usr/share/ti/cgt-c6x"
+#define DEFAULT_TI_CGT_INSTALL_PATH "C:/ti/C6000CGTT80"
 
 const char *get_cgt_install()
 {
@@ -84,7 +99,7 @@ const char *get_cgt_install()
 ******************************************************************************/
 std::string get_ocl_dsp()
 {
-    std::string stdpath("/usr/share/ti/opencl");
+    std::string stdpath("D:/OpenCL/osal_dev/builtins/include");
 
     const char *target_rootdir = getenv("TARGET_ROOTDIR");
     if (target_rootdir) stdpath = target_rootdir + stdpath;
@@ -106,7 +121,7 @@ std::string get_ocl_dsp()
 ******************************************************************************/
 int run_cl6x(string filename, string *llvm_bitcode, string addl_files)
 {
-    string command("cl6x --f -q --abi=eabi --use_g3 -mv6600 -mo ");
+    string command("cl6x --f --abi=eabi --use_g3 -mv6600 -mo ");
 
     if (!opt_alias) command += "-mt ";
     if (opt_tmpdir) command += "-ft=/tmp -fs=/tmp -fr=/tmp ";

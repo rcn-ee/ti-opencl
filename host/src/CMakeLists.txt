@@ -15,9 +15,19 @@ elseif (CROSS_COMPILE)
   SET (TARGET_INCLUDES 
     ${CMAKE_FIND_ROOT_PATH} 
     ${HOST_USR_INCLUDE_PATH}  )
-endif()
-
-
+if (${BUILD_OS} MATCHES "SYS_BIOS")
+include_directories (    
+	${PROJECT_SOURCE_DIR}../include
+    ${PROJECT_SOURCE_DIR}
+    ${LLVM_INCLUDE_DIR}
+    ${CLANG_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_BINARY_DIR}
+    ${PROJECT_SOURCE_DIR}/core/dsp/ocl_load/DLOAD_API
+    ${PROJECT_SOURCE_DIR}/core/dsp/ocl_load/DLOAD
+    ${PROJECT_SOURCE_DIR}/llvmopencl
+    ${TARGET_INCLUDES}
+	)
+else()
 include_directories (
     ${PROJECT_SOURCE_DIR}/include
     ${PROJECT_SOURCE_DIR}/src
@@ -29,13 +39,18 @@ include_directories (
     ${PROJECT_SOURCE_DIR}/src/llvmopencl
     ${TARGET_INCLUDES}
     )
-
+	endif()
+endif()
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fpermissive")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_FILE_OFFSET_BITS=64")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_PRODUCT_VERSION=${${PROJECT_NAME}_PKG_VERSION}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DLLVM_3_3")
+if (${BUILD_OS} MATCHES "SYS_BIOS")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDEVICE_AM57 -D_SYS_BIOS -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS -D_POSIX_THREADS -DLLVM_OLDER_THAN_3_6=1 -D_PTHREAD_H -DLOKI_CLASS_LEVEL_THREADING")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I${XDC_INSTALL_PATH} -I${BIOS_INSTALL_PATH} -I${BOOST_INSTALL_PATH} -I${LOKI_INCLUDE_PATH} -I${SQLITE_PATH}")
+endif()
 
 # bfd.h has a check to ensure that config.h is included
 # We don't require config.h (autotools) so we bypass this check by defining
@@ -64,7 +79,51 @@ if (ENABLE_ULM)
 endif()
 
 configure_file(core/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/core/config.h)
+if (${BUILD_OS} MATCHES "SYS_BIOS")
+set(COAL_SRC_FILES
+    api/api_command.cpp
+    api/api_device.cpp
+    api/api_event.cpp
+    api/api_kernel.cpp
+    api/api_platform.cpp
+    api/api_program.cpp
+    api/api_context.cpp
+    api/api_enqueue.cpp
+    api/api_flush.cpp
+    api/api_memory.cpp
+    api/api_profiling.cpp
+    api/api_sampler.cpp
+    
 
+    core/context.cpp
+    core/commandqueue.cpp
+    core/memobject.cpp
+    core/events.cpp
+    core/program.cpp
+    core/compiler.cpp
+    core/kernel.cpp
+    core/sampler.cpp
+    core/object.cpp
+    core/platform.cpp
+    core/icd.cpp
+    core/util.cpp
+ 
+    core/dsp/genfile_cache.cpp
+    core/dsp/program.cpp
+    core/dsp/driver.cpp
+    core/dsp/buffer.cpp
+    core/dsp/device.cpp
+    core/dsp/kernel.cpp
+    core/dsp/worker.cpp
+    core/dsp/mmap_resource.cpp
+	core/dsp/shmem.cpp
+	
+	bios/list.cc
+	bios/strdup.cc
+	bios/tree.cc
+    
+)
+else()
 set(COAL_SRC_FILES
     api/api_command.cpp
     api/api_device.cpp
@@ -92,7 +151,6 @@ set(COAL_SRC_FILES
     core/platform.cpp
     core/icd.cpp
     core/util.cpp
-
     core/cpu/buffer.cpp
     core/cpu/device.cpp
     core/cpu/kernel.cpp
@@ -117,7 +175,6 @@ set(COAL_SRC_FILES
     core/dsp/kernel.cpp
     core/dsp/worker.cpp
     core/dsp/mmap_resource.cpp
-
     llvmopencl/AllocasToEntry.cc
     llvmopencl/BarrierBlock.cc
     llvmopencl/BarrierTailReplication.cc
@@ -144,8 +201,9 @@ set(COAL_SRC_FILES
     llvmopencl/WorkitemLoops.cc
     llvmopencl/WorkitemReplication.cc
     llvmopencl/SimplifyShuffleBIFCall.cpp
-)
 
+)
+endif()
 if (HAWKING_BUILD)
     set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/rm_qmss_res.c)
 endif()
@@ -157,8 +215,13 @@ endif()
 add_subdirectory(runtime)
 
 set(CMAKE_SHARED_LINKER_FLAGS "-Wl,-Bsymbolic")
+if (NOT (${BUILD_OS} MATCHES "SYS_BIOS"))
 add_library(OpenCL SHARED ${COAL_SRC_FILES})
+else()
+add_library(OpenCL STATIC ${COAL_SRC_FILES})
+endif()
 
+if (NOT (${BUILD_OS} MATCHES "SYS_BIOS"))
 set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/runtime/stdlib.h.embed.h
                             PROPERTIES GENERATED 1)
 set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/runtime/stdlib.c.bc.embed.h
@@ -174,9 +237,11 @@ set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/runtime/stdlib_def.h
 
 add_dependencies(OpenCL generate_stdlib_c)
 add_dependencies(OpenCL generate_builtins)
+endif()
 add_dependencies(OpenCL oclload)
+if (NOT (${BUILD_OS} MATCHES "SYS_BIOS"))
 add_dependencies(OpenCL generate_dsp_builtins)
-
+endif()
 add_subdirectory(core/dsp/ocl_load)
 
 SET(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
@@ -185,16 +250,19 @@ SET_TARGET_PROPERTIES(OpenCL PROPERTIES
   VERSION ${${PROJECT_NAME}_VERSION}
   SOVERSION ${${PROJECT_NAME}_SOVERSION}
 )
-
+if (NOT (${BUILD_OS} MATCHES "SYS_BIOS"))
 set_source_files_properties(${COAL_SRC_FILES}
         PROPERTIES COMPILE_FLAGS ${LLVM_COMPILE_FLAGS})
 
 set_target_properties(OpenCL PROPERTIES
   LINK_FLAGS "${LLVM_LDFLAGS}"
   LINK_INTERFACE_LIBRARIES "")
+else()
+endif()  
 
 # Dirty platform.cpp to cause re-compile with every build. It contains
 # a compile-time timestamp used as the library build timestamp.
+if (NOT (${BUILD_OS} MATCHES "SYS_BIOS"))
 add_custom_command (TARGET OpenCL PRE_BUILD 
                  COMMAND touch -c ${CMAKE_CURRENT_SOURCE_DIR}/core/platform.cpp)
 
@@ -207,15 +275,22 @@ set (LIBS
         rt
         dl
 )
+else()
+set (LIBS
+      ${PROJECT_BINARY_DIR}/lib/liboclload.a
+    )
+endif()
 
 # Add non-target dependent libraries
+if (NOT (${BUILD_OS} MATCHES "SYS_BIOS"))
 find_library(FFI_LIB ffi)
 find_library(BFD_LIB bfd)
 find_library(SQLITE3_LIB sqlite3)
 
 LIST (APPEND LIBS ${FFI_LIB} ${BFD_LIB} ${SQLITE3_LIB})
-
+endif()
 # Add target dependent libraries
+if (NOT (${BUILD_OS} MATCHES "SYS_BIOS"))
 if(HAWKING_BUILD)
    find_library(CMEM_LIB          ticmem)
    find_library(MPMMAIL_LIB       mpmmailbox)
@@ -246,7 +321,11 @@ if(ENABLE_ULM)
   find_library(ULM_LIB  NAMES    libtiulm.a)
   LIST (APPEND LIBS ${ULM_LIB} )
 endif()
-
+endif()
 
 TARGET_LINK_LIBRARIES(OpenCL ${LIBS})
+if (NOT (${BUILD_OS} MATCHES "SYS_BIOS"))
 install(TARGETS OpenCL LIBRARY DESTINATION /usr/lib ${OCL_FPERMS})
+else()
+install(TARGETS OpenCL ARCHIVE DESTINATION /usr/lib ${OCL_FPERMS})
+endif()

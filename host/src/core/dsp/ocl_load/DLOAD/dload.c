@@ -2097,11 +2097,11 @@ static void copy_segments(DLOAD_HANDLE handle, LOADER_FILE_DESC* fp,
       (DLIMP_Loaded_Segment*)(dyn_module->loaded_module->loaded_segments.buf);
    int s, seg_size = dyn_module->loaded_module->loaded_segments.size;
    LOADER_OBJECT *pHandle = (LOADER_OBJECT *)handle;
-
+   struct DLOAD_MEMORY_REQUEST targ_req;
 
    for (s=0; s<seg_size; s++)
    {
-      struct DLOAD_MEMORY_REQUEST targ_req;
+
       targ_req.fp = fp;
       targ_req.segment = seg[s].obj_desc;
       targ_req.offset = seg[s].phdr.p_offset;
@@ -3290,7 +3290,7 @@ BOOL DLOAD_unload(DLOAD_HANDLE handle, uint32_t file_handle)
 /*    global symbol linkage.                                                 */
 /*                                                                           */
 /*****************************************************************************/
-int32_t DLOAD_load_symbols(DLOAD_HANDLE handle, LOADER_FILE_DESC *fd)
+BOOL DLOAD_load_symbols(DLOAD_HANDLE handle, LOADER_FILE_DESC *fd)
 {
    DLIMP_Dynamic_Module *dyn_module = new_DLIMP_Dynamic_Module(fd);
    DLIMP_Loaded_Module *loaded_module = NULL;

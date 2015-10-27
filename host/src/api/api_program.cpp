@@ -29,12 +29,11 @@
  * \file api_program.cpp
  * \brief Programs
  */
-
 #include "CL/cl.h"
 #include <core/program.h>
 #include <core/context.h>
 
-#include <cstdlib>
+#include <c++/4.8.4/cstdlib>
 
 // Program Object APIs
 cl_program

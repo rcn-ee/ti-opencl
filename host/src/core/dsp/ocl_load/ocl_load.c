@@ -25,6 +25,9 @@
  *   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  *   THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
+#ifdef _SYS_BIOS
+#include <ti/sysbios/posix/pthread.h>
+#endif
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
@@ -43,15 +46,75 @@ int global_argc;
 char **global_argv;
 
 int DLIF_fseek(LOADER_FILE_DESC *stream, int32_t offset, int origin)
+#ifndef _SYS_BIOS
     { return fseek(stream, offset, origin); }
+#else
+{
+	if(stream->mode == 0)
+	      return fseek(stream->fp, offset, origin);
+
+	else
+	{
+	switch(origin){
+	  case SEEK_SET:
+		  stream->cur = stream->orig;
+		  stream->cur += offset;
+		  stream->read_size = offset;
+		  return 0;
+	  case SEEK_CUR:
+	  	  stream->cur += offset;
+	  	  stream->read_size += offset;
+	  	  return 0;
+	  case SEEK_END:
+		  stream->cur = stream->orig + stream->size;
+	  	  stream->read_size = stream->size;
+  	  	  return 0;
+	  default:
+		  return -1;
+	}
+	}
+}
+#endif
 
 
 size_t DLIF_fread(void *ptr, size_t size, size_t nmemb,
                   LOADER_FILE_DESC *stream)
+#ifndef _SYS_BIOS
     { return fread(ptr, size, nmemb, stream); }
+#else
+{
+	if(stream->mode == 0)
+       return fread(ptr, size, nmemb, stream->fp);
+	else
+	{
+	memcpy(ptr, stream->cur, size*nmemb);
+	stream->cur += size*nmemb;
+	stream->read_size +=size*nmemb;
+	return size*nmemb;
+	}
 
-int32_t DLIF_ftell (LOADER_FILE_DESC *stream) { return ftell(stream); }
-int32_t DLIF_fclose(LOADER_FILE_DESC *fd)     { return fclose(fd); }
+}
+#endif
+
+int32_t DLIF_ftell (LOADER_FILE_DESC *stream)
+#ifndef _SYS_BIOS
+{ return ftell(stream); }
+#else
+{
+	if(stream->mode == 0)
+	  return ftell(stream->fp);
+	else
+	 return (int32_t)stream->cur;
+}
+#endif
+int32_t DLIF_fclose(LOADER_FILE_DESC *fd)
+#ifndef _SYS_BIOS
+{ return fclose(fd); }
+#else
+{
+return 0;
+}
+#endif
 void*   DLIF_malloc(size_t size)              { return malloc(size); }
 void    DLIF_free  (void* ptr)                { free(ptr); }
 
@@ -62,20 +125,23 @@ void    DLIF_free  (void* ptr)                { free(ptr); }
 /*****************************************************************************/
 BOOL DLIF_copy(void* client_handle, struct DLOAD_MEMORY_REQUEST* targ_req)
 {
+#if 1
    struct DLOAD_MEMORY_SEGMENT* obj_desc = targ_req->segment;
    LOADER_FILE_DESC* f = targ_req->fp;
    void *buf = calloc(obj_desc->memsz_in_bytes, 1); 
 
-   fseek(f, targ_req->offset, SEEK_SET);
+   DLIF_fseek(f, targ_req->offset, SEEK_SET);
 
    int result = 1;
    if (obj_desc->objsz_in_bytes)
-       result = fread(buf, obj_desc->objsz_in_bytes, 1, f);
+       result = DLIF_fread(buf, obj_desc->objsz_in_bytes, 1, f);
 
-   assert(result == 1);
+//   assert(result == 1);
 
    targ_req->host_address = buf;
-
+#else
+   targ_req->host_address = (void*)(targ_req->segment->target_address);
+#endif
    return 1;
 }
 

@@ -110,6 +110,7 @@ Kernel::DeviceDependent &Kernel::deviceDependent(DeviceInterface *device)
 cl_int Kernel::addFunction(DeviceInterface *device, llvm::Function *function,
                            llvm::Module *module)
 {
+
     p_name = function->getName().str();
 
     // Get wi_alloca_size, to be used for computing wg_alloca_size
@@ -132,7 +133,9 @@ cl_int Kernel::addFunction(DeviceInterface *device, llvm::Function *function,
     * Build the arg list of the kernel (or verify it if a previous function
     * was already registered)
     *------------------------------------------------------------------------*/
+
     llvm::FunctionType *f = function->getFunctionType();
+
     bool append = (p_args.size() == 0);
 
     if (!append && p_args.size() != f->getNumParams())
@@ -140,7 +143,9 @@ cl_int Kernel::addFunction(DeviceInterface *device, llvm::Function *function,
 
     for (unsigned int i=0; i<f->getNumParams(); ++i)
     {
+
         llvm::Type *arg_type = f->getParamType(i);
+
         Arg::Kind kind = Arg::Invalid;
         Arg::File file = Arg::Private;
         bool is_subword_int_uns = false;
@@ -148,7 +153,8 @@ cl_int Kernel::addFunction(DeviceInterface *device, llvm::Function *function,
 
         if (arg_type->isPointerTy())
         {
-            // It's a pointer, dereference it
+
+        	// It's a pointer, dereference it
             llvm::PointerType *p_type = llvm::cast<llvm::PointerType>(arg_type);
 
             file = (Arg::File)p_type->getAddressSpace();
@@ -163,9 +169,11 @@ cl_int Kernel::addFunction(DeviceInterface *device, llvm::Function *function,
             // If it's a struct, get its name
             if (arg_type->isStructTy())
             {
+
                 llvm::StructType *struct_type =
                     llvm::cast<llvm::StructType>(arg_type);
                 std::string struct_name = struct_type->getName().str();
+
 
                 if (struct_name.compare(0, 14, "struct.image2d") == 0)
                 {
@@ -183,8 +191,10 @@ cl_int Kernel::addFunction(DeviceInterface *device, llvm::Function *function,
         {
             if (arg_type->isVectorTy())
             {
+
                 // It's a vector, we need its element's type
                 llvm::VectorType *v_type = llvm::cast<llvm::VectorType>(arg_type);
+
 
                 vec_dim = v_type->getNumElements();
                 arg_type = v_type->getElementType();
@@ -201,14 +211,18 @@ cl_int Kernel::addFunction(DeviceInterface *device, llvm::Function *function,
             }
             else if (arg_type->isIntegerTy())
             {
+
                 llvm::IntegerType *i_type = llvm::cast<llvm::IntegerType>(arg_type);
+
 
                 /*-------------------------------------------------------------
                 * We offset the arg index by 1, because element 0 is the return 
                 * type.
                 *------------------------------------------------------------*/
+
                 is_subword_int_uns = function->getAttributes().
                                      hasAttribute(i+1, llvm::Attribute::ZExt);
+
 
                 if (i_type->getBitWidth() == 8)
                 {
@@ -421,9 +435,11 @@ cl_int Kernel::info(cl_kernel_info param_name,
 
 boost::tuple<uint,uint,uint> Kernel::reqdWorkGroupSize(llvm::Module *module) const
 {
-    llvm::NamedMDNode *kernels = module->getNamedMetadata("opencl.kernels");
+
 
     boost::tuple<uint,uint,uint> zeros(0,0,0);
+
+	llvm::NamedMDNode *kernels = module->getNamedMetadata("opencl.kernels");
 
     if (!kernels) return zeros;
 
@@ -456,8 +472,10 @@ boost::tuple<uint,uint,uint> Kernel::reqdWorkGroupSize(llvm::Module *module) con
 
             return boost::tuple<uint,uint,uint> (x,y,z);
         }
-        return zeros;
+
+
     }
+    return zeros;
 }
 
 
@@ -486,12 +504,14 @@ cl_int Kernel::workGroupInfo(DeviceInterface *device,
 
         case CL_KERNEL_COMPILE_WORK_GROUP_SIZE:
             {
+
             boost::tuple<uint,uint,uint> res(reqdWorkGroupSize(dep.module));
             three_size_t[0] = res.get<0>();
             three_size_t[1] = res.get<1>();
             three_size_t[2] = res.get<2>();
             value = &three_size_t;
             value_length = sizeof(three_size_t);
+
             }
             break;
 

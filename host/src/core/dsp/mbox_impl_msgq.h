@@ -26,14 +26,22 @@
  *   THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
 #pragma once
-
+#ifndef _SYS_BIOS
 /* package header files */
 #include <ti/ipc/Std.h>
 /* Work around IPC usage of typedef void */
 #define Void void
+#else
+#include <xdc/std.h>
+#include <xdc/runtime/Assert.h>
+#include <xdc/runtime/Diags.h>
+#include <xdc/runtime/Error.h>
+#endif
 #include <ti/ipc/MultiProc.h>
 #include <ti/ipc/MessageQ.h>
+#ifndef _SYS_BIOS
 #undef Void
+#endif
 
 #include "u_locks_pthread.h"
 #include "u_lockable.h"

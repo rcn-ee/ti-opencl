@@ -33,8 +33,11 @@
 #include <cstdlib>
 #include <sys/stat.h>
 #include <string>
+#ifndef _SYS_BIOS
 #include <bfd.h>
-
+#else
+#define   __sync_synchronize()
+#endif
 #if !defined (DEVICE_AM57)
 extern "C"
 {
@@ -73,7 +76,7 @@ Driver* Driver::instance ()
     }
     return tmp;
 }
-
+#ifndef _SYS_BIOS
 /******************************************************************************
 * Convert pci data into a recognizable board name for a device
 ******************************************************************************/
@@ -86,7 +89,7 @@ const char *get_board(unsigned switch_device)
         default    : ERR(1, "Unsupported device"); return "unknown";
     }
 }
-
+#endif
 
 /******************************************************************************
 * wait_for_ready
@@ -404,7 +407,7 @@ int32_t Driver::read(int32_t dsp_id, DSPDevicePtr64 addr, uint8_t *buf,
 
     return 0;
 }
-
+#ifndef _SYS_BIOS
 /******************************************************************************
 * Driver::create_image_handle
 ******************************************************************************/
@@ -497,3 +500,4 @@ DSPDevicePtr Driver::get_symbol(void* image_handle, const char *name)
     std::cout << "ERROR: Get symbol failed" << std::endl;
     exit(-1); 
 }
+#endif

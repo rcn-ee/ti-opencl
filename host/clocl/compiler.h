@@ -73,9 +73,13 @@ class Compiler
          * \sa module()
          * \sa log()
          */
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <6 		 
         bool compile(const std::string &options, llvm::MemoryBuffer *source,
                      std::string filename);
-
+#else
+        bool compile(const std::string &options, llvm::MemoryBufferRef Buffer,
+                     std::string filename);
+#endif
         /**
          * \brief Compilation log
          * \note \c appendLog() can also be used to append custom info at the end

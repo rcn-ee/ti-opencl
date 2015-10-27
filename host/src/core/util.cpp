@@ -33,17 +33,36 @@
 #include <stdint.h>
 #include <ctype.h>
 #include <string.h>
+#ifdef _MSC_VER
+#include <iostream>
+#include <vector>
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 
 #include "util.h"
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR >4 
+#  include <llvm/IR/Constants.h>
+#  include <llvm/IR/DebugInfo.h>
+#endif
 
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/DataLayout.h>
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <=3 
 #include <llvm/Support/InstIterator.h>
-
-
+#else
+#include <llvm/IR/InstIterator.h>
+#endif
 using namespace llvm;
+#ifdef _MSC_VER
+ssize_t getline(char **lineptr, size_t *n, FILE *stream);
+#endif
+#ifndef _MSC_VER
+#  include <unistd.h>
+#  include <sys/types.h>
+#  include <sys/stat.h>
+#  include <fcntl.h>
+#endif
 
 /******************************************************************************
 * Parse first line in a file, read integer immediately following a string
@@ -58,6 +77,7 @@ uint32_t parse_file_line_value(const char *fname, const char *sname,
     size_t len = 0;
 
     if ((fp = fopen(fname, "r")) == NULL) return val;
+#ifndef _SYS_BIOS
     if (getline(&line, &len, fp) != -1)
     {
         if ((str = strstr(line, sname)) != NULL)
@@ -67,7 +87,7 @@ uint32_t parse_file_line_value(const char *fname, const char *sname,
             if (*str != '\0') val = atoi(str);
         }
     }
-
+#endif
     if (fp   != NULL) fclose(fp);
     if (line != NULL) free(line);
     return val;
@@ -142,10 +162,22 @@ bool isKernelFunction(llvm::Function &F)
 {
     llvm::NamedMDNode *ks = F.getParent()->getNamedMetadata("opencl.kernels");
     if (ks == NULL)  return false;
-    for (unsigned int i = 0; i < ks->getNumOperands(); ++i)
+    for (unsigned int i = 0; i < ks->getNumOperands(); ++i){
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR < 6
         if (llvm::Value *value = ks->getOperand(i)->getOperand(0))
+#else
+      llvm::Value *value = NULL;
+      if (isa<ValueAsMetadata>(ks->getOperand(i)->getOperand(0)))
+        value = 
+          dyn_cast<ValueAsMetadata>(ks->getOperand(i)->getOperand(0))->getValue();      
+      else if (isa<ConstantAsMetadata>(ks->getOperand(i)->getOperand(0)))
+        value = 
+          dyn_cast<ConstantAsMetadata>(ks->getOperand(i)->getOperand(0))->getValue();       
+		  if(value)
+#endif		
             if (llvm::cast<llvm::Function>(value) == &F)
                 return true;
+				}
     return false;
 }
 
@@ -159,22 +191,54 @@ bool getReqdWGSize(llvm::Function &F, int wgsizes[3])
     for (unsigned int i = 0; i < ks->getNumOperands(); ++i)
     {
         MDNode *ker = ks->getOperand(i);
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR < 6	
         if (llvm::Value *value = ker->getOperand(0))
-        {
+		 {
             if (llvm::cast<llvm::Function>(value) == &F)
             {
                 if (ker->getNumOperands() <= 1) return false;
                 MDNode *meta = llvm::cast<MDNode>(ker->getOperand(1));
                 if (meta->getNumOperands() == 4 &&
-                    meta->getOperand(0)->getName().str()
+                    (meta->getOperand(0))->getName().str()
                     == std::string("reqd_work_group_size"))
                 {
-                    wgsizes[0] = llvm::cast<ConstantInt>(
+#else
+      llvm::Value *value = NULL;
+      if (isa<ValueAsMetadata>(ker->getOperand(0)))
+        value = 
+          dyn_cast<ValueAsMetadata>(ker->getOperand(0))->getValue();      
+		  if(value)
+		   {
+            if (llvm::cast<llvm::Function>(value) == &F)
+            {
+                if (ker->getNumOperands() <= 1) return false;
+                MDNode *meta = llvm::cast<MDNode>(ker->getOperand(1));
+                if (meta->getNumOperands() == 4 &&
+                    llvm::cast<MDString>(meta->getOperand(0))->getString().str()
+                    == std::string("reqd_work_group_size"))
+                {
+#endif		  
+       
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR < 6
+                wgsizes[0] = llvm::cast<ConstantInt>(
                             meta->getOperand(1))->getValue().getLimitedValue();
-                    wgsizes[1] = llvm::cast<ConstantInt>(
+                wgsizes[1] = llvm::cast<ConstantInt>(
                             meta->getOperand(2))->getValue().getLimitedValue();
-                    wgsizes[2] = llvm::cast<ConstantInt>(
-                            meta->getOperand(3))->getValue().getLimitedValue();
+                wgsizes[2] = llvm::cast<ConstantInt>(
+                            meta->getOperand(3))->getValue().getLimitedValue();				
+               
+#else
+                wgsizes[0] = (llvm::cast<ConstantInt>(
+                           llvm::dyn_cast<ConstantAsMetadata>(
+				 		   meta->getOperand(1))->getValue()))->getLimitedValue();
+                wgsizes[1] = (llvm::cast<ConstantInt>(
+				            llvm::dyn_cast<ConstantAsMetadata>(
+                            meta->getOperand(2))->getValue()))->getLimitedValue();
+                wgsizes[2] = (llvm::cast<ConstantInt>(
+				            llvm::dyn_cast<ConstantAsMetadata>(
+                            meta->getOperand(3))->getValue()))->getLimitedValue();
+
+#endif							
                     return true;
                 }
                 return false;
@@ -188,12 +252,14 @@ bool getReqdWGSize(llvm::Function &F, int wgsizes[3])
 /******************************************************************************
 * getDebugInfo(Function &F, unsigned int &scope_line_num)
 ******************************************************************************/
+#if 1
 llvm::MDNode* getDebugInfo(llvm::Function &F, unsigned int &scope_line_num)
 {
     /*-------------------------------------------------------------------------
     * Obtain Debug Information (func scope line number) (when debug is on)
     *------------------------------------------------------------------------*/
-    DebugInfoFinder di_finder;
+#if 0
+	DebugInfoFinder di_finder;
     di_finder.processModule(* F.getParent());
     for (DebugInfoFinder::iterator i = di_finder.subprogram_begin(),
                                    e = di_finder.subprogram_end();
@@ -206,10 +272,11 @@ llvm::MDNode* getDebugInfo(llvm::Function &F, unsigned int &scope_line_num)
             return ((MDNode *) sub);
         }
     }
+#endif
     scope_line_num = 0;
     return NULL;
 }
-
+#endif
 /******************************************************************************
 * containsBarrierCall(Module &M)
 ******************************************************************************/
