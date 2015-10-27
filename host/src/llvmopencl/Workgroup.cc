@@ -21,7 +21,12 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
+#include "llvm/Config/config.h"
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR >=6
+#  include <llvm/IR/Constants.h>
+#endif
 
+#include "Barrier.h"
 #include "Workgroup.h"
 
 #include "CanonicalizeBarriers.h"
@@ -31,7 +36,7 @@
 #include "llvm/Pass.h"
 #include "llvm/Support/CommandLine.h"
 #include "config.h"
-#ifdef LLVM_3_1
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR ==1
 #include "llvm/Support/IRBuilder.h"
 #include "llvm/Support/TypeBuilder.h"
 #include "llvm/BasicBlock.h"
@@ -39,7 +44,7 @@
 #include "llvm/DerivedTypes.h"
 #include "llvm/InstrTypes.h"
 #include "llvm/Module.h"
-#elif defined LLVM_3_2
+#elif LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR ==2
 #include "llvm/IRBuilder.h"
 #include "llvm/TypeBuilder.h"
 #include "llvm/BasicBlock.h"
@@ -64,6 +69,10 @@
 #include <iostream>
 
 #include "pocl.h"
+
+#if _MSC_VER
+#  include "vccompat.hpp"
+#endif
 
 #define STRING_LENGTH 32
 
@@ -153,6 +162,7 @@ static RegisterPass<Workgroup> X("workgroup", "Workgroup creation pass");
 bool
 Workgroup::runOnModule(Module &M)
 {
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <=4
   if (M.getPointerSize() == llvm::Module::Pointer64)
     {
       TypeBuilder<PoclContext, true>::setSizeTWidth(64);
@@ -165,6 +175,21 @@ Workgroup::runOnModule(Module &M)
     {
       assert (false && "Target has an unsupported pointer width.");
     }  
+#else
+// FIXME 0 here is the address space - this breaks (?) if _local_size_x is not stored in AS0
+  if (M.getDataLayout()->getPointerSize(0) == 8)
+    {
+      TypeBuilder<PoclContext, true>::setSizeTWidth(64);
+    }
+  else if (M.getDataLayout()->getPointerSize(0) == 4)
+    {
+      TypeBuilder<PoclContext, true>::setSizeTWidth(32);
+    }
+  else 
+    {
+      assert (false && "Target has an unsupported pointer width.");
+    }
+#endif
 
   for (Module::iterator i = M.begin(), e = M.end(); i != e; ++i) {
     if (!i->isDeclaration())
@@ -175,7 +200,7 @@ Workgroup::runOnModule(Module &M)
     if (!isKernelToProcess(*i)) continue;
     Function *L = createLauncher(M, i);
       
-#if defined LLVM_3_2
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR ==2
     L->addFnAttr(Attributes::NoInline);
 #else
     L->addFnAttr(Attribute::NoInline);
@@ -247,7 +272,12 @@ createLauncher(Module &M, Function *F)
 
 
   int size_t_width = 32;
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <=4
   if (M.getPointerSize() == llvm::Module::Pointer64)
+#else
+  //FIXME 0 here is the address space: this breaks (?) if _local_size_x is not stored in AS0
+  if (M.getDataLayout()->getPointerSize(0) == 8)
+#endif
     size_t_width = 64;
 
   ptr = builder.CreateStructGEP(ai,
@@ -484,13 +514,13 @@ createWorkgroup(Module &M, Function *F)
      * as is to the function, no need to load form it first. */
     Value *value;
     if (ii->hasByValAttr()) {
-#if defined(LLVM_3_2) || defined(LLVM_3_3)
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR >=2 && LLVM_VERSION_MINOR <=3
         value = builder.CreateBitCast(pointer, t);
 #else
         value = builder.CreatePointerCast(pointer, t);
 #endif
     } else {
-#if defined(LLVM_3_2) || defined(LLVM_3_3)
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR >=2 && LLVM_VERSION_MINOR <=3
         value = builder.CreateBitCast(pointer, t->getPointerTo());
 #else
         value = builder.CreatePointerCast(pointer, t->getPointerTo());
@@ -567,7 +597,7 @@ createWorkgroupFast(Module &M, Function *F)
 
     /* If it's a pass by value pointer argument, we just pass the pointer
      * as is to the function, no need to load from it first. */
-#if defined(LLVM_3_2) || defined(LLVM_3_3)
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR >=2 && LLVM_VERSION_MINOR <=3
     Value *value = builder.CreateBitCast
       (pointer, t->getPointerTo(POCL_ADDRESS_SPACE_GLOBAL));
 #else
@@ -610,10 +640,42 @@ Workgroup::isKernelToProcess(const Function &F)
   for (unsigned i = 0, e = kernels->getNumOperands(); i != e; ++i) {
     if (kernels->getOperand(i)->getOperand(0) == NULL)
       continue; // globaldce might have removed uncalled kernels
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR < 6
     Function *k = cast<Function>(kernels->getOperand(i)->getOperand(0));
+#else
+    Function *k = 
+      cast<Function>(
+        dyn_cast<ValueAsMetadata>(kernels->getOperand(i)->getOperand(0))
+          ->getValue());
+#endif
     if (&F == k)
       return true;
   }
 
+  return false;
+}
+/**
+ * Returns true in case the given function is a kernel 
+ * with work-group barriers inside it.
+ */
+bool
+Workgroup::hasWorkgroupBarriers(const Function &F)
+{
+  for (llvm::Function::const_iterator i = F.begin(), e = F.end();
+       i != e; ++i) {
+    const llvm::BasicBlock* bb = i;
+    if (Barrier::hasBarrier(bb)) {
+
+      // Ignore the implicit entry and exit barriers.
+      if (Barrier::hasOnlyBarrier(bb) && bb == &F.getEntryBlock())
+        continue;
+
+      if (Barrier::hasOnlyBarrier(bb) && 
+          bb->getTerminator()->getNumSuccessors() == 0) 
+        continue;
+
+      return true;
+    }
+  }
   return false;
 }

@@ -23,12 +23,16 @@
 
 #ifndef _POCL_WORKITEM_HANDLER_H
 #define _POCL_WORKITEM_HANDLER_H
-
+#include "llvm/Config/llvm-config.h"
 #include "config.h"
-#if (defined LLVM_3_1 or defined LLVM_3_2)
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <3 
 #include "llvm/Function.h"
 #else
 #include "llvm/IR/Function.h"
+#endif
+
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR >4 
+#include "llvm/IR/Dominators.h"
 #endif
 
 #include "llvm/Pass.h"
@@ -55,8 +59,13 @@ namespace pocl {
   protected:
     
     void movePhiNodes(llvm::BasicBlock* src, llvm::BasicBlock* dst);
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <=4 
     bool fixUndominatedVariableUses(llvm::DominatorTree *DT, llvm::Function &F);
     bool dominatesUse(llvm::DominatorTree *DT, llvm::Instruction &I, unsigned i);
+#else
+    bool fixUndominatedVariableUses(llvm::DominatorTreeWrapperPass *DT, llvm::Function &F);
+    bool dominatesUse(llvm::DominatorTreeWrapperPass *DT, llvm::Instruction &I, unsigned i);
+#endif
 
     int LocalSizeX, LocalSizeY, LocalSizeZ;
 
@@ -68,6 +77,7 @@ namespace pocl {
   };
 
   extern llvm::cl::opt<bool> AddWIMetadata;
+  extern llvm::cl::opt<int> LockStepSIMDWidth;
 }
 
 #endif

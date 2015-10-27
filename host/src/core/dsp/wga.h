@@ -57,7 +57,11 @@ class TIOpenclWorkGroupAggregation : public FunctionPass
     llvm::MDNode          *di_function;
     unsigned int           di_scope_line_num;
     unsigned int           di_end_scope_line;
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <6
     std::vector<Value*>    loop_mdnodes;
+#else
+    std::vector<Metadata*>    loop_mdnodes;
+#endif	
     std::list<Instruction*> loop_mem_instrs;
 
   private:

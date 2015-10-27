@@ -37,6 +37,9 @@
 #include "object.h"
 
 #include <CL/cl.h>
+#ifdef _SYS_BIOS
+#include <ti/sysbios/posix/pthread.h>
+#endif
 #include <pthread.h>
 
 #include <map>

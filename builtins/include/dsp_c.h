@@ -25,15 +25,16 @@
  *   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  *   THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
-#ifndef _DSP_C_H_
+#if 0
+ #ifndef _DSP_C_H_
 #define _DSP_C_H_
 
 #ifndef __OPENCL_VERSION__
 #define __global
 #define __local
 
-#include <stdint.h>
-#include <stdlib.h>
+#include <C:\ti\C6000CGTT80\include\stdint.h>
+#include <C:\ti\C6000CGTT80\include\stdlib.h>
 #endif
 
 #ifdef __cplusplus
@@ -90,4 +91,5 @@ void*    __malloc_l2      (size_t size);
 } /* extern "C" */
 #endif /* __cplusplus */
 
+#endif
 #endif

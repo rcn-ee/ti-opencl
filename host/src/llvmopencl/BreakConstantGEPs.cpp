@@ -17,9 +17,9 @@
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "break-constgeps"
-
 #include "config.h"
-#if (defined LLVM_3_1 or defined LLVM_3_2)
+#include "llvm/config/llvm-config.h"
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <3 
 #include "llvm/Constants.h"
 #include "llvm/InstrTypes.h"
 #include "llvm/Instruction.h"
@@ -33,7 +33,11 @@
 #include "llvm/IR/LLVMContext.h"
 #endif
 #include "llvm/ADT/Statistic.h"
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <=4 
 #include "llvm/Support/InstIterator.h"
+#else
+#include "llvm/IR/InstIterator.h"
+#endif
 
 #include "BreakConstantGEPs.h"
 #include "Workgroup.h"

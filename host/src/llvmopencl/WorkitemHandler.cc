@@ -22,12 +22,12 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
-
+#include "llvm/Config/config.h"
 #include "config.h"
 #include <sstream>
 #include <iostream>
 
-#if (defined LLVM_3_1 or defined LLVM_3_2)
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <=2
 #include "llvm/Metadata.h"
 #include "llvm/Constants.h"
 #include "llvm/Module.h"
@@ -43,6 +43,8 @@
 #include "llvm/Support/CommandLine.h"
 #include "WorkitemHandler.h"
 #include "Kernel.h"
+#include "DebugHelpers.h"
+#include "pocl.h"
 
 //#define DEBUG_REFERENCE_FIXING
 
@@ -50,78 +52,96 @@ namespace pocl {
 
 using namespace llvm;
 
+llvm::cl::list<int>
+LocalSize("local-size",
+          llvm::cl::desc("Local size (x y z)"),
+          llvm::cl::multi_val(3));
 cl::opt<bool>
 AddWIMetadata("add-wi-metadata", cl::init(false), cl::Hidden,
   cl::desc("Adds a work item identifier to each of the instruction in work items."));
 
 
-WorkitemHandler::WorkitemHandler(char& ID) : FunctionPass(ID)
-{
+WorkitemHandler::WorkitemHandler(char& ID) : FunctionPass(ID) {
 }
 
 bool
-WorkitemHandler::runOnFunction(Function &F)
-{
+WorkitemHandler::runOnFunction(Function &F) {
   return false;
 }
 
 void
-WorkitemHandler::Initialize(Kernel *K)
-{
+WorkitemHandler::Initialize(Kernel *K) {
+
   llvm::Module *M = K->getParent();
   
-  LocalSizeX = 3;
-  LocalSizeY = 1;
-  LocalSizeZ = 1;
+  LocalSizeX = LocalSize[0];
+  LocalSizeY = LocalSize[1];
+  LocalSizeZ = LocalSize[2];
   
-// TODO: are we searching reqd_workgroup_size here? If so, we need to enforce it.
   llvm::NamedMDNode *size_info = M->getNamedMetadata("opencl.kernel_wg_size_info");
   if (size_info) {
     for (unsigned i = 0, e = size_info->getNumOperands(); i != e; ++i) {
       llvm::MDNode *KernelSizeInfo = size_info->getOperand(i);
-      if (KernelSizeInfo->getOperand(0) == K) {
-        LocalSizeX = (llvm::cast<ConstantInt>(KernelSizeInfo->getOperand(1)))->getLimitedValue();
-        LocalSizeY = (llvm::cast<ConstantInt>(KernelSizeInfo->getOperand(2)))->getLimitedValue();
-        LocalSizeZ = (llvm::cast<ConstantInt>(KernelSizeInfo->getOperand(3)))->getLimitedValue();
-      }
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR < 6
+      if (KernelSizeInfo->getOperand(0) != K) 
+        continue;
+      LocalSizeX = (llvm::cast<ConstantInt>(KernelSizeInfo->getOperand(1)))->getLimitedValue();
+      LocalSizeY = (llvm::cast<ConstantInt>(KernelSizeInfo->getOperand(2)))->getLimitedValue();
+      LocalSizeZ = (llvm::cast<ConstantInt>(KernelSizeInfo->getOperand(3)))->getLimitedValue();
+#else
+      if (dyn_cast<ValueAsMetadata>(
+        KernelSizeInfo->getOperand(0).get())->getValue() != K) 
+        continue;
+
+      LocalSizeX = (llvm::cast<ConstantInt>(
+                     llvm::dyn_cast<ConstantAsMetadata>(
+                       KernelSizeInfo->getOperand(1))->getValue()))->getLimitedValue();
+      LocalSizeY = (llvm::cast<ConstantInt>(
+                     llvm::dyn_cast<ConstantAsMetadata>(
+                       KernelSizeInfo->getOperand(2))->getValue()))->getLimitedValue();
+      LocalSizeZ = (llvm::cast<ConstantInt>(
+                     llvm::dyn_cast<ConstantAsMetadata>(
+                       KernelSizeInfo->getOperand(3))->getValue()))->getLimitedValue();
+#endif
+      break;
     }
   }
 
   llvm::Type *localIdType; 
+  size_t_width = 0;
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <=4
   if (M->getPointerSize() == llvm::Module::Pointer64)
     size_t_width = 64;
   else if (M->getPointerSize() == llvm::Module::Pointer32)
     size_t_width = 32;
   else
     assert (false && "Only 32 and 64 bit size_t widths supported.");
+#else
+  if (M->getDataLayout()->getPointerSize(0) == 8)
+    size_t_width = 64;
+  else if (M->getDataLayout()->getPointerSize(0) == 4)
+    size_t_width = 32;
+  else
+    assert (false && "Only 32 and 64 bit size_t widths supported.");
+#endif
 
   localIdType = IntegerType::get(K->getContext(), size_t_width);
 
   localIdZ = M->getOrInsertGlobal(POCL_LOCAL_ID_Z_GLOBAL, localIdType);
   localIdY = M->getOrInsertGlobal(POCL_LOCAL_ID_Y_GLOBAL, localIdType);
   localIdX = M->getOrInsertGlobal(POCL_LOCAL_ID_X_GLOBAL, localIdType);
-
-  GlobalVariable *gvx = M->getNamedGlobal(POCL_LOCAL_ID_X_GLOBAL);
-  GlobalVariable *gvy = M->getNamedGlobal(POCL_LOCAL_ID_Y_GLOBAL);
-  GlobalVariable *gvz = M->getNamedGlobal(POCL_LOCAL_ID_Z_GLOBAL);
-  gvx->setSection(StringRef("far"));
-  gvy->setSection(StringRef("far"));
-  gvz->setSection(StringRef("far"));
-
-  //Value *lsx = M->getOrInsertGlobal("_local_size_x", localIdType);
-  //Value *lsy = M->getOrInsertGlobal("_local_size_y", localIdType);
-  //Value *lsz = M->getOrInsertGlobal("_local_size_z", localIdType);
-  //GlobalVariable *gsx = M->getNamedGlobal("_local_size_x");
-  //GlobalVariable *gsy = M->getNamedGlobal("_local_size_y");
-  //GlobalVariable *gsz = M->getNamedGlobal("_local_size_z");
-  //gsx->setSection(StringRef("far"));
-  //gsy->setSection(StringRef("far"));
-  //gsz->setSection(StringRef("far"));
 }
 
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <=4
 bool
 WorkitemHandler::dominatesUse
 (llvm::DominatorTree *DT, Instruction &I, unsigned i) {
+#else
+bool
+WorkitemHandler::dominatesUse
+(llvm::DominatorTreeWrapperPass *DTP, Instruction &I, unsigned i) {
+  DominatorTree *DT = &DTP->getDomTree();
+#endif
   Instruction *Op = cast<Instruction>(I.getOperand(i));
   BasicBlock *OpBlock = Op->getParent();
   PHINode *PN = dyn_cast<PHINode>(&I);
@@ -178,9 +198,15 @@ WorkitemHandler::dominatesUse
    the old one. This should ensure the reachability without 
    the costly dominance analysis.
 */
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <=4
 bool
 WorkitemHandler::fixUndominatedVariableUses(llvm::DominatorTree *DT, 
                                             llvm::Function &F) 
+#else
+bool
+WorkitemHandler::fixUndominatedVariableUses(llvm::DominatorTreeWrapperPass *DT,
+                                            llvm::Function &F)
+#endif
 {
   bool changed = false;
   DT->runOnFunction(F);
@@ -235,8 +261,7 @@ WorkitemHandler::fixUndominatedVariableUses(llvm::DominatorTree *DT,
                 ++copy_i;
               } while (true);
 
-              if (alternative != NULL)
-                {
+              if (alternative != NULL) {
 #ifdef DEBUG_REFERENCE_FIXING
                   std::cout << "### found the alternative:" << std::endl;
                   alternative->dump();
@@ -244,7 +269,7 @@ WorkitemHandler::fixUndominatedVariableUses(llvm::DominatorTree *DT,
                   changed |= true;
                 } else {
 #ifdef DEBUG_REFERENCE_FIXING
-                  std::cout << "### didn't fiund an alternative for" << std::endl;
+                  std::cout << "### didn't find an alternative for" << std::endl;
                   operand->dump();
                   std::cerr << "### BB:" << std::endl;
                   operand->getParent()->dump();
@@ -252,6 +277,7 @@ WorkitemHandler::fixUndominatedVariableUses(llvm::DominatorTree *DT,
                   ins->getParent()->dump();
 #endif
                   std::cerr << "Could not find a dominating alternative variable." << std::endl;
+                  dumpCFG(F, "broken.dot");
                   abort();
               }
             }
@@ -268,8 +294,7 @@ WorkitemHandler::fixUndominatedVariableUses(llvm::DominatorTree *DT,
  * of the replicated BB because it has only one entry.
  */
 void
-WorkitemHandler::movePhiNodes(llvm::BasicBlock* src, llvm::BasicBlock* dst) 
-{
+WorkitemHandler::movePhiNodes(llvm::BasicBlock* src, llvm::BasicBlock* dst) {
   while (PHINode *PN = dyn_cast<PHINode>(src->begin())) 
     PN->moveBefore(dst->getFirstNonPHI());
 }

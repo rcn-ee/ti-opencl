@@ -60,17 +60,28 @@ regenerate_kernel_metadata(llvm::Module &M, FunctionMapping &kernels)
             {
               Function *old_kernel = (*i).first;
               Function *new_kernel = (*i).second;
+              Function *func_from_md;
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR < 6
+              func_from_md = dyn_cast<Function>(wgsizeMD->getOperand(0));
+#else
+              func_from_md = dyn_cast<Function>(
+                dyn_cast<ValueAsMetadata>(wgsizeMD->getOperand(0))->getValue());
+#endif
               if (old_kernel == new_kernel || wgsizeMD->getNumOperands() == 0 ||
-                  dyn_cast<Function>(wgsizeMD->getOperand(0)) != old_kernel) 
+                  func_from_md != old_kernel) 
                 continue;
               // found a wg size metadata that points to the old kernel, copy its
               // operands except the first one to a new MDNode
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR < 6
               SmallVector<Value*, 8> operands;
               operands.push_back(new_kernel);
-              for (unsigned opr = 1; opr < wgsizeMD->getNumOperands(); ++opr)
-                {
+#else
+              SmallVector<Metadata*, 8> operands;
+              operands.push_back(llvm::ValueAsMetadata::get(new_kernel));
+#endif
+              for (unsigned opr = 1; opr < wgsizeMD->getNumOperands(); ++opr) {
                   operands.push_back(wgsizeMD->getOperand(opr));
-                }
+              }
               MDNode *new_wg_md = MDNode::get(M.getContext(), operands);
               wg_sizes->addOperand(new_wg_md);
             } 
@@ -86,7 +97,12 @@ regenerate_kernel_metadata(llvm::Module &M, FunctionMapping &kernels)
   for (FunctionMapping::const_iterator i = kernels.begin(),
          e = kernels.end();
        i != e; ++i) {
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR < 6
     MDNode *md = MDNode::get(M.getContext(), ArrayRef<Value *>((*i).second));
+#else
+    MDNode *md = MDNode::get(M.getContext(), ArrayRef<Metadata *>(
+      llvm::ValueAsMetadata::get((*i).second)));
+#endif
     nmd->addOperand(md);
   }
 }

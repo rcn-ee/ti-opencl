@@ -44,6 +44,10 @@
 
 using namespace Coal;
 
+unsigned int test[10];
+unsigned int test1 = 0;
+
+
 /*
  * MemObject
  */
@@ -206,7 +210,7 @@ cl_int MemObject::init()
         if (!p_devicebuffers[0]->allocate())
             return CL_MEM_OBJECT_ALLOCATION_FAILURE;
     }
-
+    test[test1++] = (unsigned int)p_devicebuffers;
     return CL_SUCCESS;
 }
 

@@ -30,7 +30,7 @@
 #include "cmem.cpp"
 #else
 #include "driver_hawking.cpp"
-#include "shmem.cpp"
+//#include "shmem.cpp"
 #endif
 
 

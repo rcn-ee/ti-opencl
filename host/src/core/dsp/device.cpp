@@ -25,6 +25,10 @@
  *   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  *   THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
+#ifdef _SYS_BIOS
+#include <ti/sysbios/posix/pthread.h>
+#endif
+#include <pthread.h>
 #include "../platform.h"
 #include "device.h"
 #include "buffer.h"
@@ -435,15 +439,29 @@ float         DSPDevice::dspMhz()       const { return p_dsp_mhz; }
 unsigned char DSPDevice::dspID()        const { return p_dsp_id;  }
 DLOAD_HANDLE  DSPDevice::dload_handle() const { return p_dload_handle;  }
 
-
+#ifndef _SYS_BIOS
 int DSPDevice::load(const char *filename)
+#else
+int DSPDevice::load(std::string *binary_str)
+#endif
 { 
+#ifdef _SYS_BIOS
+	    LOADER_FILE_DESC *fn;
+	    LOADER_FILE_DESC f;
+		f.binary = binary_str->data();
+		f.cur =  binary_str->data();
+		f.orig = f.cur;
+		f.length =  binary_str->size();
+		f.read_size = 0;
+		f.size = binary_str->size();
+		f.mode = 1;
+#endif
    if (!p_dload_handle)
    {
        p_dload_handle = DLOAD_create((void*)this);
        DLOAD_initialize(p_dload_handle);
    }
-
+#ifndef _SYS_BIOS
    FILE *fp = fopen(filename, "rb");
    if (!fp) { printf("can't open OpenCL Program file\n"); exit(1); }
 
@@ -452,6 +470,10 @@ int DSPDevice::load(const char *filename)
    int prog_handle = DLOAD_load(p_dload_handle, fp);
 
    fclose(fp);
+#else
+   fn = &f;
+   int prog_handle = DLOAD_load(p_dload_handle, &f);
+#endif
    return prog_handle;
 }
 
@@ -1219,6 +1241,7 @@ BOOL DLIF_write(void* client_handle, struct DLOAD_MEMORY_REQUEST* req)
 ******************************************************************************/
 int DLIF_load_dependent(void* client_handle, const char* so_name)
 {
+#ifndef _SYS_BIOS
    DSPDevice* device = (DSPDevice*) client_handle;
    FILE* fp = fopen(so_name, "rb");
    
@@ -1228,6 +1251,7 @@ int DLIF_load_dependent(void* client_handle, const char* so_name)
       return 0;
    }
 
+
    int to_ret = DLOAD_load(device->dload_handle(), fp);
 
    if (!to_ret)  
@@ -1235,6 +1259,9 @@ int DLIF_load_dependent(void* client_handle, const char* so_name)
 
    fclose(fp);
    return to_ret;
+#else
+   return -1;
+#endif
 }
 
 /******************************************************************************

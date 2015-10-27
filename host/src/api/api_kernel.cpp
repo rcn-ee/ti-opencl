@@ -29,7 +29,9 @@
  * \file api_kernel.cpp
  * \brief Kernels
  */
-
+#ifdef _SYS_BIOS
+#include <xdc/std.h>
+#endif
 #include "CL/cl.h"
 
 #include <core/program.h>
@@ -176,9 +178,9 @@ clSetKernelArg(cl_kernel    kernel,
 cl_int
 clGetKernelInfo(cl_kernel       kernel,
                 cl_kernel_info  param_name,
-                size_t          param_value_size,
+                std::size_t          param_value_size,
                 void *          param_value,
-                size_t *        param_value_size_ret)
+				std::size_t *        param_value_size_ret)
 {
     if (!kernel->isA(Coal::Object::T_Kernel))
         return CL_INVALID_KERNEL;

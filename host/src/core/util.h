@@ -32,8 +32,11 @@
 
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Module.h>
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <=3 
 #include <llvm/DebugInfo.h>
-
+#else
+#include <llvm/IR/DebugInfo.h>
+#endif
 #ifndef _UTIL_H
 #define _UTIL_H
 

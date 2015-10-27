@@ -29,7 +29,10 @@
  * \file api_enqueue.cpp
  * \brief Events
  */
-
+#ifdef _SYS_BIOS
+#include <xdc/std.h>
+#include <ti/sysbios/posix/pthread.h>
+#endif
 #include <CL/cl.h>
 
 #include <core/events.h>

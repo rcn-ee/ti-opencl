@@ -32,7 +32,13 @@
 #if defined (__cplusplus)
 extern "C" {
 #endif
-
+#ifdef _SYS_BIOS
+#include <ti/ipc/Ipc.h>
+#include <ti/ipc/MultiProc.h>
+#include <ti/ipc/MessageQ.h>
+#include <ti/ipc/SharedRegion.h>
+#define snprintf  sprintf
+#endif
 #include "message.h"
 
 /* OpenCL MessageQ message for ARM-DSP communication. The first field in the 

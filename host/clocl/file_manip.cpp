@@ -1,5 +1,17 @@
 #include "file_manip.h"
+#ifndef _MSC_VER 
 #include <unistd.h>
+#else
+#include <io.h>
+#include <time.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#define access  _access
+#define stat    _stat
+#define F_OK    0
+#define R_OK    04
+#define S_ISDIR(A) ((A) && _S_IFDIR)
+#endif
 
 bool fs_exists(std::string path) 
 { 

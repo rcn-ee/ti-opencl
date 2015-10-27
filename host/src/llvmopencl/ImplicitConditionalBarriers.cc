@@ -20,6 +20,10 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
+#include "llvm/Config/llvm-config.h"
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <=3
+#  include <llvm/IR/Constants.h>
+#endif
 
 #include "config.h"
 #include "ImplicitConditionalBarriers.h"
@@ -27,7 +31,7 @@
 #include "BarrierBlock.h"
 #include "Workgroup.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
-#if (defined LLVM_3_1 or defined LLVM_3_2)
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <3
 #include "llvm/Constants.h"
 #include "llvm/Instructions.h"
 #include "llvm/Module.h"
@@ -38,6 +42,7 @@
 #endif
 
 #include <iostream>
+#include "VariableUniformityAnalysis.h"
 
 //#define DEBUG_COND_BARRIERS
 
@@ -57,9 +62,14 @@ ImplicitConditionalBarriers::getAnalysisUsage(AnalysisUsage &AU) const
 {
   AU.addRequired<PostDominatorTree>();
   AU.addPreserved<PostDominatorTree>();
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <=4
   AU.addRequired<DominatorTree>();
   AU.addPreserved<DominatorTree>();
-
+  #else
+  AU.addRequired<DominatorTreeWrapperPass>();
+  AU.addPreserved<DominatorTreeWrapperPass>();
+  #endif
+  AU.addPreserved<VariableUniformityAnalysis>();
 }
 
 /**
@@ -71,7 +81,11 @@ BasicBlock*
 ImplicitConditionalBarriers::firstNonBackedgePredecessor(
     llvm::BasicBlock *bb) {
 
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <=4
     DominatorTree *DT = &getAnalysis<DominatorTree>();
+    #else
+    DominatorTree *DT = &getAnalysis<DominatorTreeWrapperPass>().getDomTree();
+    #endif
 
     pred_iterator I = pred_begin(bb), E = pred_end(bb);
     if (I == E) return NULL;
@@ -84,6 +98,9 @@ bool
 ImplicitConditionalBarriers::runOnFunction(Function &F) {
 {
   if (!Workgroup::isKernelToProcess(F))
+    return false;
+
+  if (!Workgroup::hasWorkgroupBarriers(F))
     return false;
   
   PDT = &getAnalysis<PostDominatorTree>();

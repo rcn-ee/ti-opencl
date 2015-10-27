@@ -36,6 +36,8 @@
 extern "C" {
 #endif
 
+
+
 /******************************************************************************/
 
 typedef struct _cl_platform_id *    cl_platform_id;

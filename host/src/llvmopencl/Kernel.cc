@@ -21,6 +21,9 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
+#if !defined LLVM_3_2 || !defined LLVM_3_3
+#  include <llvm/IR/Constants.h>
+#endif
 
 #include "Kernel.h"
 #include "Barrier.h"
@@ -279,26 +282,33 @@ Kernel::addLocalSizeInitCode(size_t LocalSizeX, size_t LocalSizeY, size_t LocalS
   llvm::Module* M = getParent();
 
   int size_t_width = 32;
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <=4
   if (M->getPointerSize() == llvm::Module::Pointer64)
+#else
+  //FIXME 0 here is the address space: this breaks (?) if _local_size_x is not stored in AS0
+  if (M->getDataLayout()->getPointerSize(0) == 8)
+#endif
     size_t_width = 64;
 
-  FunctionType *ft = FunctionType::get
-        (/*Result=*/   IntegerType::get(M->getContext(), 32),
-         /*Params=*/   IntegerType::get(M->getContext(), 32),
-         /*isVarArg=*/ false);
-  Function *localsize =
-        dyn_cast<Function>(M->getOrInsertFunction("get_local_size", ft));
   gv = M->getGlobalVariable("_local_size_x");
-  builder.CreateStore(builder.CreateCall(localsize, 
-        ConstantInt::get(IntegerType::get(M->getContext(), size_t_width), 0)),
-                      gv);
+  if (gv != NULL)
+    builder.CreateStore
+      (ConstantInt::get
+       (IntegerType::get(M->getContext(), size_t_width),
+        LocalSizeX), gv);
   gv = M->getGlobalVariable("_local_size_y");
-  builder.CreateStore(builder.CreateCall(localsize, 
-        ConstantInt::get(IntegerType::get(M->getContext(), size_t_width), 1)),
-                      gv);
+
+  if (gv != NULL)
+    builder.CreateStore
+      (ConstantInt::get
+       (IntegerType::get(M->getContext(), size_t_width),
+        LocalSizeY), gv);
   gv = M->getGlobalVariable("_local_size_z");
-  builder.CreateStore(builder.CreateCall(localsize, 
-        ConstantInt::get(IntegerType::get(M->getContext(), size_t_width), 2)),
-                      gv);
+
+  if (gv != NULL)
+    builder.CreateStore
+      (ConstantInt::get
+       (IntegerType::get(M->getContext(), size_t_width),
+        LocalSizeZ), gv);
 }
 

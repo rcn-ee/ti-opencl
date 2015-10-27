@@ -24,13 +24,17 @@
 #define POCL_BARRIER_TAIL_REPLICATION
 
 #include "config.h"
-#if (defined LLVM_3_1 or defined LLVM_3_2)
+#if (defined LLVM_3_1 || defined LLVM_3_2)
 #include "llvm/Function.h"
 #else
 #include "llvm/IR/Function.h"
 #endif
 
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <=4 
 #include "llvm/Analysis/Dominators.h"
+#else
+#include "llvm/IR/Dominators.h"
+#endif
 #include "llvm/Analysis/LoopInfo.h"
 #include "llvm/Pass.h"
 #include "llvm/Transforms/Utils/Cloning.h"
@@ -56,6 +60,9 @@ namespace pocl {
     typedef std::map<llvm::Value *, llvm::Value *> ValueValueMap;
 
     llvm::DominatorTree *DT;
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR >=6 
+    llvm::DominatorTreeWrapperPass *DTP;
+#endif
     llvm::LoopInfo *LI;
 
     bool ProcessFunction(llvm::Function &F);

@@ -25,10 +25,15 @@
  *   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  *   THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
+#include "llvm\Config\llvm-config.h"
 #include "SimplifyShuffleBIFCall.h"
 #include <list>
 #include <llvm/IR/IntrinsicInst.h>
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR >=6
+#include <llvm/IR/InstIterator.h>
+#else
 #include <llvm/Support/InstIterator.h>
+#endif
 #include <llvm/Transforms/Utils/BasicBlockUtils.h>
 
 

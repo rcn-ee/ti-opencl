@@ -65,6 +65,7 @@ static int begin_file_lock_crit_section(const char* fname)
                      S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH);
 
     std::string str_fname(fname);
+#ifndef _SYS_BIOS
 
     if (lock_fd < 0) 
     {
@@ -92,7 +93,7 @@ static int begin_file_lock_crit_section(const char* fname)
            exit(-1);
        }
     }
-
+#endif
     return lock_fd;
 
 }
@@ -101,14 +102,18 @@ namespace Coal
 {
     Platform::Platform() : dispatch(&dispatch_table)
     {
-        p_lock_fd = begin_file_lock_crit_section("/var/lock/opencl");
-
+        p_lock_fd = begin_file_lock_crit_section("opencl");
+#ifndef _SYS_BIOS
 #if !defined(DSPC868X)
 	// For now, don't add the CPU device on K2H platforms unless it is
 	// asserted that we want to enable it (eg. the ooo example)
 	if (getenv("TI_OCL_CPU_DEVICE_ENABLE") != NULL)
 #endif
+#endif
+#ifndef _SYS_BIOS
+	/* NO CPU device for Sys Bios */
 	   p_devices.push_back((_cl_device_id*)new Coal::CPUDevice);
+#endif
 
        for (int i = 0; i < Driver::instance()->num_dsps(); i++)
             p_devices.push_back((_cl_device_id*)new Coal::DSPDevice(i));
@@ -120,7 +125,9 @@ namespace Coal
 
     Platform::~Platform()
     {
+#ifndef _SYS_BIOS
         flock(p_lock_fd, LOCK_UN);
+#endif
         close(p_lock_fd);
 
         for (int i = 0; i < p_devices.size(); i++)

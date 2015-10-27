@@ -24,6 +24,10 @@
 // THE SOFTWARE.
 
 #define DEBUG_TYPE "workitem"
+#include "llvm/Config/llvm-config.h"
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR >=4
+#  include <llvm/IR/Constants.h>
+#endif
 
 #include "WorkitemReplication.h"
 #include "Workgroup.h"
@@ -33,13 +37,13 @@
 #include "llvm/Analysis/LoopInfo.h"
 #include "llvm/Support/CommandLine.h"
 #include "config.h"
-#ifdef LLVM_3_1
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR ==1
 #include "llvm/Support/IRBuilder.h"
 #include "llvm/Target/TargetData.h"
 #include "llvm/Instructions.h"
 #include "llvm/Module.h"
 #include "llvm/ValueSymbolTable.h"
-#elif defined LLVM_3_2
+#elif LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR ==2
 #include "llvm/IRBuilder.h"
 #include "llvm/DataLayout.h"
 #include "llvm/Instructions.h"
@@ -54,6 +58,8 @@
 #endif
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include "WorkitemHandlerChooser.h"
+#include "DebugHelpers.h"
+#include "VariableUniformityAnalysis.h"
 
 #include <iostream>
 #include <map>
@@ -84,18 +90,23 @@ char WorkitemReplication::ID = 0;
 void
 WorkitemReplication::getAnalysisUsage(AnalysisUsage &AU) const
 {
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <=4
   AU.addRequired<DominatorTree>();
+#else
+  AU.addRequired<DominatorTreeWrapperPass>();
+#endif
   AU.addRequired<LoopInfo>();
 
 // TODO - removed due to compilation error 
-#if 0
-#ifdef LLVM_3_1
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR ==1
   AU.addRequired<TargetData>();
-#else
+#elif LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <=3
   AU.addRequired<DataLayout>();
-#endif
+#else
+  AU.addRequired<DataLayoutPass>();
 #endif
   AU.addRequired<pocl::WorkitemHandlerChooser>();
+  AU.addPreserved<pocl::VariableUniformityAnalysis>();
 }
 
 bool
@@ -108,7 +119,12 @@ WorkitemReplication::runOnFunction(Function &F)
       pocl::WorkitemHandlerChooser::POCL_WIH_FULL_REPLICATION)
     return false;
 
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <=4
   DT = &getAnalysis<DominatorTree>();
+  #else
+  DTP = &getAnalysis<DominatorTreeWrapperPass>();
+  DT = &DTP->getDomTree();
+  #endif
   LI = &getAnalysis<LoopInfo>();
 
   bool changed = ProcessFunction(F);
@@ -117,7 +133,11 @@ WorkitemReplication::runOnFunction(Function &F)
   cfgPrinter->runOnFunction(F);
 #endif
 
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <=4
   changed |= fixUndominatedVariableUses(DT, F);
+  #else
+  changed |= fixUndominatedVariableUses(DTP, F);
+  #endif
   return changed;
 }
 
@@ -144,10 +164,11 @@ WorkitemReplication::ProcessFunction(Function &F)
   ParallelRegion::ParallelRegionVector* original_parallel_regions =
     K->getParallelRegions(LI);
 
-  std::vector<SmallVector<ParallelRegion *, 8> > parallel_regions(
+  std::vector<ParallelRegion::ParallelRegionVector> parallel_regions(
       workitem_count);
 
   parallel_regions[0] = *original_parallel_regions;
+  //pocl::dumpCFG(F, F.getName().str() + ".before_repl.dot", original_parallel_regions);
 
   /* Enable to get region identification printouts */
 #if 0
@@ -163,10 +184,12 @@ WorkitemReplication::ProcessFunction(Function &F)
 #endif
   
   // Measure the required context (variables alive in more than one region).
-#ifdef LLVM_3_1
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR ==1
   TargetData &TD = getAnalysis<TargetData>();
-#else
+#elif LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <=4
   DataLayout &TD = getAnalysis<DataLayout>();
+#else
+  const DataLayout &TD = getAnalysis<DataLayoutPass>().getDataLayout();
 #endif
 
   for (SmallVector<ParallelRegion *, 8>::iterator
@@ -184,7 +207,11 @@ WorkitemReplication::ProcessFunction(Function &F)
         for (Value::use_iterator i4 = i3->use_begin(), e4 = i3->use_end();
              i4 != e4; ++i4) {
           // Instructions can only be used by instructions.
-          Instruction *user = cast<Instruction> (*i4);
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <=4
+          llvm::Instruction *user = cast<Instruction>(*i4);
+#else
+          llvm::Instruction *user = cast<Instruction>(i4->getUser());
+#endif
           
           if (find (pr->begin(), pr->end(), user->getParent()) ==
               pr->end()) {
@@ -252,6 +279,13 @@ WorkitemReplication::ProcessFunction(Function &F)
           if (index != 0) {
             region->remap(reference_map[index - 1]);
             region->chainAfter(parallel_regions[index - 1][i]);
+#ifdef DEBUG_PR_REPLICATION
+            std::ostringstream s;
+            s << F.getName().str() << ".before_purge_of_" << region->GetID()
+              << ".dot";
+            pocl::dumpCFG
+                (F, s.str(), &parallel_regions[index]);
+#endif
             region->purge();
           }
           region->insertPrologue(x, y, z);
@@ -260,8 +294,10 @@ WorkitemReplication::ProcessFunction(Function &F)
     }
   }
     
-  // Try to merge all workitem first block of each region
-  // together (for PHI predecessor correctness).
+  // Push the PHI nodes from the entry BBs of the chained
+  // region copys to the entry BB of the first copy to retain
+  // their semantics for branches from outside the parallel
+  // region to the beginning of the region copy chain.
   for (int z = LocalSizeZ - 1; z >= 0; --z) {
     for (int y = LocalSizeY - 1; y >= 0; --y) {
       for (int x = LocalSizeX - 1; x >= 0; --x) {
@@ -271,21 +307,20 @@ WorkitemReplication::ProcessFunction(Function &F)
 
         if (index == 0)
           continue;
-          
+
         for (unsigned i = 0, e = parallel_regions[index].size(); i != e; ++i) {
+          ParallelRegion *firstCopy = parallel_regions[0][i];
           ParallelRegion *region = parallel_regions[index][i];
           BasicBlock *entry = region->entryBB();
-
-          assert (entry != NULL);
-          BasicBlock *pred = entry->getUniquePredecessor();
-          assert (pred != NULL && "No unique predecessor.");
 #ifdef DEBUG_BB_MERGING
-          std::cerr << "### pred before merge into predecessor " << std::endl;
-          pred->dump();
-          std::cerr << "### entry before merge into predecessor " << std::endl;
-          entry->dump();
+          std::cerr << "### first entry before hoisting the PHIs " << std::endl;
+          firstCopy->entryBB()->dump();
 #endif
-          movePhiNodes(entry, pred);
+          movePhiNodes(entry, firstCopy->entryBB());
+#ifdef DEBUG_BB_MERGING
+          std::cerr << "### first entry after hoisting the PHIs " << std::endl;
+          firstCopy->entryBB()->dump();
+#endif
         }
       }
     }
@@ -303,6 +338,7 @@ WorkitemReplication::ProcessFunction(Function &F)
 
   delete [] reference_map;
 
+  //pocl::dumpCFG(F, F.getName().str() + ".after_repl.dot", original_parallel_regions);
 //  F.viewCFG();
 
   return true;

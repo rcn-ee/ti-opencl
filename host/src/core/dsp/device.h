@@ -94,8 +94,11 @@ class DSPDevice : public DeviceInterface, public Lockable
         float dspMhz() const;
         unsigned char dspID() const;
         DLOAD_HANDLE dload_handle() const;
-
+#ifndef _SYS_BIOS
         int    load(const char *filename);
+#else
+        int    load(std::string *binary_str);
+#endif
         bool unload(int file_handle);
 
         /*---------------------------------------------------------------------

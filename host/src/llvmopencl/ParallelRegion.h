@@ -25,19 +25,25 @@
 #define _POCL_PARALLEL_REGION_H
 
 #include "BarrierBlock.h"
-#include "llvm/ADT/SmallPtrSet.h"
 #include "config.h"
-#if (defined LLVM_3_1 or defined LLVM_3_2)
+#include "llvm/config/llvm-config.h"
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <3 
 #include "llvm/BasicBlock.h"
 #include "llvm/LLVMContext.h"
 #else
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/LLVMContext.h"
 #endif
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <4 
 #include "llvm/Support/CFG.h"
+#else
+#include "llvm/IR/CFG.h"
+#endif
 #include "llvm/Transforms/Utils/ValueMapper.h"
+#include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/ADT/SmallVector.h"
 #include <vector>
+#include <sstream>
 
 namespace pocl {
 

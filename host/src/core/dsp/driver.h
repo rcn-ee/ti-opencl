@@ -60,8 +60,10 @@ class Driver : public Lockable_off
    int32_t read (int32_t dsp, DSPDevicePtr64 addr, uint8_t *buf, uint32_t sz);
 
    void         reset_and_load   (int chip);
+#ifndef _SYS_BIOS
    void*        create_image_handle(void);
    void         free_image_handle(void *handle);
+#endif
    void         cmem_init(DSPDevicePtr64 *addr1, uint64_t *size1,
                           DSPDevicePtr   *addr2, uint32_t *size2,
                           DSPDevicePtr64 *addr3, uint64_t *size3);

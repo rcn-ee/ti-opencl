@@ -22,15 +22,20 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
+#include "llvm\Config\llvm-config.h"
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR >=6
+#  include <llvm/IR/Constants.h>
+#endif
 
 #include "ParallelRegion.h"
 #include "Barrier.h"
 #include "Kernel.h"
 #include "config.h"
-#ifdef LLVM_3_1
+#include "pocl.h"
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR ==1
 #include "llvm/Support/IRBuilder.h"
 #include "llvm/ValueSymbolTable.h"
-#elif defined LLVM_3_2
+#elif LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR ==2
 #include "llvm/IRBuilder.h"
 #include "llvm/ValueSymbolTable.h"
 #else
@@ -115,7 +120,6 @@ ParallelRegion::replicate(ValueToValueMapTy &map,
      names. Split points can be such paths.*/
   static std::map<std::string, int> cloneCounts;
 
-  LocalizeIDLoads();
 
   for (iterator i = begin(), e = end(); i != e; ++i) {
     BasicBlock *block = *i;
@@ -151,7 +155,7 @@ ParallelRegion::replicate(ValueToValueMapTy &map,
 #ifdef DEBUG_REPLICATE
   Verify();
 #endif
-  // LocalizeIDLoads();
+  LocalizeIDLoads();
   // new_region->LocalIDXLoadInstr = dyn_cast<Instruction>(map[LocalIDXLoadInstr]);
   // new_region->LocalIDYLoadInstr = dyn_cast<Instruction>(map[LocalIDYLoadInstr]);
   // new_region->LocalIDZLoadInstr = dyn_cast<Instruction>(map[LocalIDZLoadInstr]);
@@ -224,11 +228,26 @@ ParallelRegion::chainAfter(ParallelRegion *region)
   t->setSuccessor(0, successor);
 }
 
+/**
+ * Removes known dead side exits from parallel regions.
+ *
+ * These occur with conditional barriers. The head of the path
+ * leading to the conditional barrier is shared by two PRs. The
+ * first work-item defines which path is taken (by definition the
+ * barrier is taken by all or none of the work-items). The blocks 
+ * in the branches are in different regions which can contain branches 
+ * to blocks that are in known non-taken path. This method replaces 
+ * the targets of such branches with undefined BBs so they will be cleaned 
+ * up by the optimizer.
+ */
 void
 ParallelRegion::purge()
 {
   SmallVector<BasicBlock *, 4> new_blocks;
 
+  // Go through all the BBs in the region and check their branch
+  // targets, looking for destinations that are outside the region.
+  // Only the last block in the PR can now contain such branches.
   for (iterator i = begin(), e = end(); i != e; ++i) {
 
     // Exit block has a successor out of the region.
@@ -244,14 +263,17 @@ ParallelRegion::purge()
       BasicBlock *successor = t->getSuccessor(ii);
       if (count(begin(), end(), successor) == 0) {
         // This successor is not on the parallel region, purge.
-        iterator next_block = i;
-        ++next_block;
-        assert ((*i)->getParent() != NULL && *next_block != NULL);
+#ifdef DEBUG_PURGE
+          std::cerr 
+              << "purging a branch to a block " 
+              << successor->getName().str() << " outside the region" 
+              << std::endl;
+#endif
+
         BasicBlock *unreachable =
           BasicBlock::Create((*i)->getContext(),
                              (*i)->getName() + ".unreachable",
-                             (*i)->getParent(),
-                             *next_block);
+                             (*i)->getParent(), back());
         new UnreachableInst(unreachable->getContext(),
                             unreachable);
         t->setSuccessor(ii, unreachable);
@@ -281,7 +303,12 @@ ParallelRegion::insertLocalIdInit(llvm::BasicBlock* entry,
   Module *M = entry->getParent()->getParent();
 
   int size_t_width = 32;
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <=4
   if (M->getPointerSize() == llvm::Module::Pointer64)
+#else
+  // FIXME 0 here is the address space: this breaks (?) if _local_size_x is not stored in AS0
+  if (M->getDataLayout()->getPointerSize(0) == 8)
+#endif
     size_t_width = 64;
 
   GlobalVariable *gvx = M->getGlobalVariable(POCL_LOCAL_ID_X_GLOBAL);
@@ -444,6 +471,7 @@ ParallelRegion::Verify()
 void
 ParallelRegion::AddParallelLoopMetadata(llvm::MDNode *identifier) {
  
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR < 6
   for (iterator i = begin(), e = end(); i != e; ++i) {
     BasicBlock* bb = *i;      
     for (BasicBlock::iterator ii = bb->begin(), ee = bb->end();
@@ -456,12 +484,27 @@ ParallelRegion::AddParallelLoopMetadata(llvm::MDNode *identifier) {
             loopIds.push_back(oldIds->getOperand(i));
           }
         }
-        loopIds.push_back(identifier);
         ii->setMetadata("llvm.mem.parallel_loop_access", 
                         MDNode::get(bb->getContext(), loopIds));
       }
     }
   }
+#else
+  for (iterator i = begin(), e = end(); i != e; ++i) {
+    BasicBlock* bb = *i;      
+    for (BasicBlock::iterator ii = bb->begin(), ee = bb->end();
+         ii != ee; ii++) {
+      if (ii->mayReadOrWriteMemory()) {
+        MDNode *newMD = MDNode::get(bb->getContext(), identifier);
+        MDNode *oldMD = ii->getMetadata("llvm.mem.parallel_loop_access");
+        if (oldMD != NULL) {
+          newMD = llvm::MDNode::concatenate(oldMD, newMD);
+        }
+        ii->setMetadata("llvm.mem.parallel_loop_access", newMD);
+      }
+    }
+  }
+#endif
 }
 
 void
@@ -470,7 +513,7 @@ ParallelRegion::AddIDMetadata(
     std::size_t x, 
     std::size_t y, 
     std::size_t z) {
-  
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR < 6
     int counter = 1;
     Value *v1[] = {
         MDString::get(context, "WI_region"),      
@@ -501,6 +544,44 @@ ParallelRegion::AddIDMetadata(
         ii->setMetadata("wi_counter", mdCounter);
       }
     }
+#else
+    int counter = 1;
+    Metadata *v1[] = {
+        MDString::get(context, "WI_region"),      
+        llvm::ConstantAsMetadata::get(
+          ConstantInt::get(Type::getInt32Ty(context), pRegionId))
+    };
+    MDNode* mdRegion = MDNode::get(context, v1);  
+    Metadata *v2[] = {
+        MDString::get(context, "WI_xyz"),      
+        llvm::ConstantAsMetadata::get(
+          ConstantInt::get(Type::getInt32Ty(context), x)),
+        llvm::ConstantAsMetadata::get(
+          ConstantInt::get(Type::getInt32Ty(context), y)),      
+        llvm::ConstantAsMetadata::get(
+          ConstantInt::get(Type::getInt32Ty(context), z))};
+    MDNode* mdXYZ = MDNode::get(context, v2);  
+    Metadata *v[] = {
+        MDString::get(context, "WI_data"),      
+        mdRegion,
+        mdXYZ};
+    MDNode* md = MDNode::get(context, v);              
+    
+    for (iterator i = begin(), e = end(); i != e; ++i) {
+      BasicBlock* bb = *i;
+      for (BasicBlock::iterator ii = bb->begin();
+            ii != bb->end(); ii++) {
+        Metadata *v3[] = {
+            MDString::get(context, "WI_counter"),      
+            llvm::ConstantAsMetadata::get(
+              ConstantInt::get(Type::getInt32Ty(context), counter))};
+        MDNode* mdCounter = MDNode::get(context, v3);  
+        counter++;
+        ii->setMetadata("wi", md);
+        ii->setMetadata("wi_counter", mdCounter);
+      }
+    }
+#endif
 }
 
 
@@ -628,7 +709,7 @@ ParallelRegion::InjectPrintF
        /*Name=*/"printf", M); 
     printfFunc->setCallingConv(CallingConv::C);
 
-#if (defined LLVM_3_1 or defined LLVM_3_2)
+#if (defined LLVM_3_1 || defined LLVM_3_2)
     AttrListPtr func_printf_PAL;
 #else
     AttributeSet func_printf_PAL;

@@ -33,17 +33,28 @@
 #include <llvm/IR/BasicBlock.h>
 #include <llvm/IR/DataLayout.h>
 #include <llvm/Support/raw_ostream.h>
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <=3 
 #include <llvm/Support/InstIterator.h>
-#include <llvm/IR/IntrinsicInst.h>
 #include "llvm/Support/CFG.h"
+#include "llvm/DebugInfo.h"
+#else
+#include <llvm/IR/InstIterator.h>
+#include "llvm/IR/CFG.h"
+#include "llvm/IR/DebugInfo.h"
+#endif
+#include <llvm/IR/IntrinsicInst.h>
+
 #include "llvm/ADT/DepthFirstIterator.h"
 #include "llvm/ADT/GraphTraits.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include "llvm/Transforms/Utils/UnifyFunctionExitNodes.h"
-#include "llvm/DebugInfo.h"
+
 #include "../util.h"
 #include "boost/assign/std/set.hpp"
 #include <stdio.h>
+#ifdef _MSC_VER
+#define snprintf _snprintf
+#endif
 
 using namespace std;
 using namespace boost::assign;
@@ -671,13 +682,21 @@ void TIOpenclWorkGroupAggregation::add_loop(Function &F, int dimIdx,
    *---------------------------------------------------------------------*/
    if (regLocals)
    {
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR < 6 
        MDNode *dummy = MDNode::getTemporary(ctx, ArrayRef<Value*>());
+#else	   
+	   MDNode *dummy = MDNode::getTemporary(ctx, ArrayRef<Metadata*>());
+#endif	   
        MDNode *loopmeta = MDNode::get(ctx, dummy);
        loopmeta->replaceOperandWith(0, loopmeta);
        MDNode::deleteTemporary(dummy);
 
        cbr2->setMetadata("llvm.loop.parallel", loopmeta);
+#ifdef LLVM_OLDER_THAN_3_6	   
        loop_mdnodes.push_back(loopmeta);
+#else
+       loop_mdnodes.push_back(loopmeta);
+#endif	   
 
        if (ld_upper_bnd)  loop_mem_instrs.push_back(ld_upper_bnd);  // okay for all dimensions?
    }

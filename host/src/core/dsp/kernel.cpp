@@ -45,13 +45,28 @@
 #include <llvm/IR/Module.h>
 #include <llvm/ExecutionEngine/ExecutionEngine.h>
 
-#include <cstdlib>
+#include <stdio.h>
+#include <stdlib.h>
 #include <cstring>
 #include <iostream>
 #include <string>
 #include <vector>
 #include <unistd.h>
+#ifndef _SYS_BIOS
 #include <sys/mman.h>
+#else
+#define MIN(X, Y)  ((X) < (Y) ? (X) : (Y))
+#define MAN(X, Y)  ((X) > (Y) ? (X) : (Y))
+
+inline uint32_t __sync_fetch_and_add(int *kernelID, int i)
+{
+	uint32_t ret = *kernelID;
+	*kernelID += i;
+	return ret;
+}
+
+
+#endif
 #include <sys/param.h>
 
 #if defined(DEVICE_K2H)
@@ -293,6 +308,7 @@ DSPKernelEvent::DSPKernelEvent(DSPDevice *device, KernelEvent *event)
   argref_offset(0)
 { 
     p_kernel_id = __sync_fetch_and_add(&kernelID, 1);
+
 
     char *dbg = getenv("TI_OCL_DEBUG");
     if (dbg) p_debug_kernel = true;

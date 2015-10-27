@@ -44,6 +44,15 @@
 #include <ctime>
 #include <iostream>
 #include <stdio.h>
+#ifdef _SYS_BIOS
+#include <ti/sysbios/posix/pthread.h>
+#endif
+#include <pthread.h>
+
+
+
+#include <list>
+#include <queue>
 
 using namespace Coal;
 
@@ -859,6 +868,7 @@ void Event::updateTiming(Timing timing)
     p_timing[timing] = rs;
 
     pthread_mutex_unlock(&p_state_mutex);
+
 }
 
 /******************************************************************************

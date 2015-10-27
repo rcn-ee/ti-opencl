@@ -20,6 +20,10 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
+#include "llvm/Config/config.h"
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <=3
+#  include <llvm/IR/Constants.h>
+#endif
 
 #include "config.h"
 #include "pocl.h"
@@ -28,16 +32,16 @@
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/raw_ostream.h"
+#include "llvm/Support/FileSystem.h"
 #include "llvm/Transforms/Utils/Cloning.h"
-#ifdef LLVM_3_1
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <=1
 #include "llvm/Target/TargetData.h"
-#elif defined LLVM_3_2
+#elif LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR ==2
 #include "llvm/DataLayout.h"
 #else
 #include "llvm/IR/DataLayout.h"
 #endif
-
-#if (defined LLVM_3_1 or defined LLVM_3_2)
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <3
 #include "llvm/Argument.h"
 #include "llvm/Constants.h"
 #include "llvm/DerivedTypes.h"
@@ -94,7 +98,11 @@ static RegisterPass<GenerateHeader> X("generate-header",
 void
 GenerateHeader::getAnalysisUsage(AnalysisUsage &AU) const
 {
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <=4
   AU.addRequired<DataLayout>();
+#else
+  AU.addRequired<DataLayoutPass>();
+#endif
 }
 
 bool
@@ -107,12 +115,19 @@ GenerateHeader::runOnModule(Module &M)
   // kernels
   FunctionMapping kernels;
 
+  #if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <6
   string ErrorInfo;
-  #if defined LLVM_3_2 or defined LLVM_3_3 
-  raw_fd_ostream out(Header.c_str(), ErrorInfo, raw_fd_ostream::F_Append);
   #else
-  raw_fd_ostream out(Header.c_str(), ErrorInfo, sys::fs::F_Append);
+  std::error_code ErrorInfo;
   #endif
+
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <=3
+  raw_fd_ostream out(Header.c_str(), ErrorInfo, raw_fd_ostream::F_Append);
+#elif LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <=5
+  raw_fd_ostream out(Header.c_str(), ErrorInfo, sys::fs::F_Append);
+#else
+  raw_fd_ostream out(Header, ErrorInfo, sys::fs::F_Append);
+#endif
 
   for (Module::iterator mi = M.begin(), me = M.end(); mi != me; ++mi) {
     if (!Workgroup::isKernelToProcess(*mi))
@@ -159,11 +174,26 @@ GenerateHeader::ProcessReqdWGSize(Function *F,
   if (size_info) {
     for (unsigned i = 0, e = size_info->getNumOperands(); i != e; ++i) {
       llvm::MDNode *KernelSizeInfo = size_info->getOperand(i);
-      if (KernelSizeInfo->getOperand(0) == F) {
-        LocalSizeX = (llvm::cast<ConstantInt>(KernelSizeInfo->getOperand(1)))->getLimitedValue();
-        LocalSizeY = (llvm::cast<ConstantInt>(KernelSizeInfo->getOperand(2)))->getLimitedValue();
-        LocalSizeZ = (llvm::cast<ConstantInt>(KernelSizeInfo->getOperand(3)))->getLimitedValue();
-      }
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR < 6
+      if (KernelSizeInfo->getOperand(0) != F) 
+        continue;
+      LocalSizeX = (llvm::cast<ConstantInt>(KernelSizeInfo->getOperand(1)))->getLimitedValue();
+      LocalSizeY = (llvm::cast<ConstantInt>(KernelSizeInfo->getOperand(2)))->getLimitedValue();
+      LocalSizeZ = (llvm::cast<ConstantInt>(KernelSizeInfo->getOperand(3)))->getLimitedValue();
+#else
+      if (dyn_cast<ValueAsMetadata>(KernelSizeInfo->getOperand(0).get())->getValue() != F) 
+        continue;
+      LocalSizeX = (llvm::cast<ConstantInt>(
+                     llvm::dyn_cast<ConstantAsMetadata>(
+                       KernelSizeInfo->getOperand(1))->getValue()))->getLimitedValue();
+      LocalSizeY = (llvm::cast<ConstantInt>(
+                     llvm::dyn_cast<ConstantAsMetadata>(
+                       KernelSizeInfo->getOperand(2))->getValue()))->getLimitedValue();
+      LocalSizeZ = (llvm::cast<ConstantInt>(
+                     llvm::dyn_cast<ConstantAsMetadata>(
+                       KernelSizeInfo->getOperand(3))->getValue()))->getLimitedValue();
+#endif
+      break;
     }
   }
 
@@ -181,19 +211,12 @@ GenerateHeader::ProcessPointers(Function *F,
   int num_args = F->getFunctionType()->getNumParams();
     
   out << "#define _" << F->getName() << "_NUM_ARGS " << num_args << '\n';
-      
-#if 0
-  bool is_pointer[num_args];
-  bool is_local[num_args];
-  bool is_image[num_args];
-  bool is_sampler[num_args];
-#else
-  std::vector<bool> is_pointer(num_args, false);
-  std::vector<bool> is_local(num_args, false);
-  std::vector<bool> is_image(num_args, false);
-  std::vector<bool> is_sampler(num_args, false);
-#endif
-  
+
+  bool *is_pointer = (bool*) malloc(sizeof(bool) * num_args);
+  bool *is_local = (bool*)malloc(sizeof(bool)* num_args);
+  bool *is_image = (bool*)malloc(sizeof(bool)* num_args);
+  bool *is_sampler = (bool*)malloc(sizeof(bool)* num_args);
+
   int i = 0;
   for (Function::const_arg_iterator ii = F->arg_begin(),
          ee = F->arg_end();
@@ -268,6 +291,10 @@ GenerateHeader::ProcessPointers(Function *F,
       out << ", " << is_sampler[i];
   }
   out << "}\n";
+  free(is_pointer);
+  free(is_local);
+  free(is_image);
+  free(is_sampler);
 }
 
 
@@ -276,7 +303,12 @@ GenerateHeader::ProcessAutomaticLocals(Function *F,
                                        raw_fd_ostream &out)
 {
   Module *M = F->getParent();
-  DataLayout &TD = getAnalysis<DataLayout>();
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <=4
+  DataLayout &TDr = getAnalysis<DataLayout>();
+  DataLayout *TD=&TDr;
+#else
+  const DataLayout *TD = &getAnalysis<DataLayoutPass>().getDataLayout();
+#endif
   
   SmallVector<GlobalVariable *, 8> locals;
 
@@ -304,9 +336,9 @@ GenerateHeader::ProcessAutomaticLocals(Function *F,
   out << "#define _" << F->getName() << "_NUM_LOCALS "<< locals.size() << "\n";
   out << "#define _" << F->getName() << "_LOCAL_SIZE {";
   if (!locals.empty()) {
-    out << TD.getTypeAllocSize(locals[0]->getInitializer()->getType());
+    out << TD->getTypeAllocSize(locals[0]->getInitializer()->getType());
     for (unsigned i = 1; i < locals.size(); ++i)
-      out << ", " << TD.getTypeAllocSize(locals[i]->getInitializer()->getType());
+      out << ", " << TD->getTypeAllocSize(locals[i]->getInitializer()->getType());
   }
   out << "}\n";    
 

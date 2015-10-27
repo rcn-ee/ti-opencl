@@ -86,8 +86,15 @@ WorkItemAliasAnalysis::alias(const Location &LocA,
             // Fall back to other AAs.
             const MDNode* mdRegionA = dyn_cast<MDNode>(mdA->getOperand(1));
             const MDNode* mdRegionB = dyn_cast<MDNode>(mdB->getOperand(1)); 
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR < 6
             ConstantInt* C1 = dyn_cast<ConstantInt>(mdRegionA->getOperand(1));
             ConstantInt* C2 = dyn_cast<ConstantInt>(mdRegionB->getOperand(1));
+#else
+            ConstantInt* C1 = dyn_cast<ConstantInt>(
+              dyn_cast<ConstantAsMetadata>(mdRegionA->getOperand(1))->getValue());
+            ConstantInt* C2 = dyn_cast<ConstantInt>(
+              dyn_cast<ConstantAsMetadata>(mdRegionB->getOperand(1))->getValue());
+#endif
             if (C1->getValue() == C2->getValue()) {
                 // Now we have both locations from same region. Check for different
                 // work items.
@@ -95,15 +102,43 @@ WorkItemAliasAnalysis::alias(const Location &LocA,
                 MDNode* jXYZ= dyn_cast<MDNode>(mdB->getOperand(2));
                 assert(iXYZ->getNumOperands() == 4);
                 assert(jXYZ->getNumOperands() == 4);
-                
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR < 6              
                 ConstantInt *CIX = dyn_cast<ConstantInt>(iXYZ->getOperand(1));
                 ConstantInt *CJX = dyn_cast<ConstantInt>(jXYZ->getOperand(1));
-                
+
                 ConstantInt *CIY = dyn_cast<ConstantInt>(iXYZ->getOperand(2));
                 ConstantInt *CJY = dyn_cast<ConstantInt>(jXYZ->getOperand(2));
                 
                 ConstantInt *CIZ = dyn_cast<ConstantInt>(iXYZ->getOperand(3));
                 ConstantInt *CJZ = dyn_cast<ConstantInt>(jXYZ->getOperand(3));
+#else
+                ConstantInt *CIX = 
+                  dyn_cast<ConstantInt>(
+                      dyn_cast<ConstantAsMetadata>(
+                        iXYZ->getOperand(1))->getValue());
+                ConstantInt *CJX = 
+                  dyn_cast<ConstantInt>(
+                    dyn_cast<ConstantAsMetadata>(
+                      jXYZ->getOperand(1))->getValue());
+
+                ConstantInt *CIY = 
+                  dyn_cast<ConstantInt>(
+                    dyn_cast<ConstantAsMetadata>(
+                      iXYZ->getOperand(2))->getValue());
+                ConstantInt *CJY = 
+                  dyn_cast<ConstantInt>(
+                    dyn_cast<ConstantAsMetadata>(
+                      jXYZ->getOperand(2))->getValue());
+                
+                ConstantInt *CIZ = 
+                  dyn_cast<ConstantInt>(
+                    dyn_cast<ConstantAsMetadata>(
+                      iXYZ->getOperand(3))->getValue());
+                ConstantInt *CJZ = 
+                  dyn_cast<ConstantInt>(
+                    dyn_cast<ConstantAsMetadata>(
+                      jXYZ->getOperand(3))->getValue());
+#endif
                 
                 if ( !(CIX->getValue() == CJX->getValue()
                     && CIY->getValue() == CJY->getValue()

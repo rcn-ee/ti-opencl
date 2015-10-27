@@ -29,7 +29,9 @@
  * \file api_flush.cpp
  * \brief clFlush and clFinish
  */
-
+#ifdef _SYS_BIOS
+#include <xdc/std.h>
+#endif
 #include "CL/cl.h"
 #include "core/commandqueue.h"
 
