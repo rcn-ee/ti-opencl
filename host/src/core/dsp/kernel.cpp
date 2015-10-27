@@ -290,17 +290,15 @@ DSPDevicePtr DSPKernel::locals_in_kernel_extent(uint32_t &ret_size) const
     /*-------------------------------------------------------------------------
     * Get kernel attr indicating size of kernel static local buffers
     *------------------------------------------------------------------------*/
-    llvm::Function* function = p_kernel->function(p_device);
-    std::string fattrs = function->getAttributes().getAsString(
-                                                   llvm::AttributeSet::FunctionIndex);
+    llvm::Function* f = p_kernel->function(p_device);
 
-    uint32_t    locals_in_kernel_size = 0;
-    const char* attr_string           = "_kernel_local_size=";
-    std::size_t found                 = fattrs.find(attr_string);
+    uint32_t locals_in_kernel_size = 0;
 
-    if (found != std::string::npos)
-        locals_in_kernel_size = atoi(fattrs.data() + found + strlen(attr_string));
+    std::string KLS_str = f->getAttributes().getAttribute
+                     (llvm::AttributeSet::FunctionIndex, "_kernel_local_size")
+                     .getValueAsString();
 
+    if (!KLS_str.empty()) locals_in_kernel_size = std::stoi(KLS_str);
     ret_size = ROUNDUP(locals_in_kernel_size, MIN_BLOCK_SIZE);
     return addr;
 }
