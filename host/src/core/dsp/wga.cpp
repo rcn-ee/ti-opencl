@@ -40,6 +40,7 @@
 #include "llvm/IR/CFG.h"
 #include "llvm/ADT/DepthFirstIterator.h"
 #include "llvm/ADT/GraphTraits.h"
+#include "llvm/ADT/StringExtras.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include "llvm/Transforms/Utils/UnifyFunctionExitNodes.h"
 #include "llvm/IR/DebugInfo.h"
@@ -403,9 +404,7 @@ bool TIOpenclWorkGroupAggregation::rewrite_allocas(Function &F)
     }
 
     // put total orig_wi_size into attributes data in the function
-    char *s_wi_alloca_size = new char[32];  // we have to leak this
-    snprintf(s_wi_alloca_size, 32, "_wi_alloca_size=%d", wi_alloca_size);
-    F.addFnAttr(StringRef(s_wi_alloca_size));
+    F.addFnAttr("_wi_alloca_size", llvm::utostr(wi_alloca_size));
 
     return true;
 }
@@ -784,13 +783,8 @@ bool TIOpenclWorkGroupAggregation::add_kernel_local_size_attr(Function &F)
         }
     }
 
-    if (kernel_local_size > 0)
-    {
-        char *s_kernel_local_size = new char[32];  // we have to leak this
-        snprintf(s_kernel_local_size, 32, "_kernel_local_size=%d", kernel_local_size);
-        F.addFnAttr(StringRef(s_kernel_local_size));
-    }
-    else F.addFnAttr(StringRef("_kernel_local_size=0"));
+    F.addFnAttr("_kernel_local_size", llvm::utostr(kernel_local_size));
+
 
     return false;
 }
