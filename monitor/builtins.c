@@ -163,7 +163,7 @@ EXPORT int __cache_l2_none()
 
 EXPORT int __cache_l2_32k()
 {
-    uint32_t scratch_delta = __cache_l2_size() - (32 << 10);
+    int32_t scratch_delta = __cache_l2_size() - (32 << 10);
     uint32_t scratch_size  = kernel_config_l2.L2_scratch_size;
     if (-scratch_delta > scratch_size) return 0;
     kernel_config_l2.L2_scratch_size += scratch_delta;
@@ -177,7 +177,7 @@ EXPORT int __cache_l2_32k()
 
 EXPORT int __cache_l2_64k()
 {
-    uint32_t scratch_delta = __cache_l2_size() - (64 << 10);
+    int32_t scratch_delta = __cache_l2_size() - (64 << 10);
     uint32_t scratch_size  = kernel_config_l2.L2_scratch_size;
     if (-scratch_delta > scratch_size) return 0;
     kernel_config_l2.L2_scratch_size += scratch_delta;
@@ -191,7 +191,7 @@ EXPORT int __cache_l2_64k()
 
 EXPORT int __cache_l2_128k()
 {
-    uint32_t scratch_delta = __cache_l2_size() - (128 << 10);
+    int32_t scratch_delta = __cache_l2_size() - (128 << 10);
     uint32_t scratch_size  = kernel_config_l2.L2_scratch_size;
     if (-scratch_delta > scratch_size) return 0;
     kernel_config_l2.L2_scratch_size += scratch_delta;
@@ -205,7 +205,7 @@ EXPORT int __cache_l2_128k()
 
 EXPORT int __cache_l2_256k()
 {
-    uint32_t scratch_delta = __cache_l2_size() - (256 << 10);
+    int32_t scratch_delta = __cache_l2_size() - (256 << 10);
     uint32_t scratch_size  = kernel_config_l2.L2_scratch_size;
     if (-scratch_delta > scratch_size) return 0;
     kernel_config_l2.L2_scratch_size += scratch_delta;
@@ -219,7 +219,7 @@ EXPORT int __cache_l2_256k()
 
 EXPORT int __cache_l2_512k()
 {
-    uint32_t scratch_delta = __cache_l2_size() - (512 << 10);
+    int32_t scratch_delta = __cache_l2_size() - (512 << 10);
     uint32_t scratch_size  = kernel_config_l2.L2_scratch_size;
     if (-scratch_delta > scratch_size) return 0;
     kernel_config_l2.L2_scratch_size += scratch_delta;
