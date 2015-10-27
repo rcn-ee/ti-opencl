@@ -17,9 +17,9 @@ endif
 # TI C6x CGT
 
 ifeq (,$(findstring arm, $(UNAME_M)))
-    TI_OCL_CGT_INSTALL?=/cgnas/ti-cgt-c6000-8.1.0A15292-linux
+    TI_OCL_CGT_INSTALL?=/cgnas/ti-cgt-c6000-8.1.0A15300-linux
 else
-    TI_OCL_CGT_INSTALL?=/cgnas/ti-cgt-c6000-8.1.0A15292-armlinuxa8hf
+    TI_OCL_CGT_INSTALL?=/cgnas/ti-cgt-c6000-8.1.0A15300-armlinuxa8hf
 endif
 
 # LLVM
@@ -27,9 +27,9 @@ endif
 ARM_LLVM_DIR?=/cgnas/llvm-3.6.0-20151019-arm
 
 ifeq (,$(findstring x86_64, $(UNAME_M)))
-    X86_LLVM_DIR?=/cgnas/llvm-3.6.0-20151019-x86
+    X86_LLVM_DIR?=/cgnas/llvm-3.6.0-20151027-x86
 else
-    X86_LLVM_DIR?=/cgnas/llvm-3.6.0-20151019-x86_64
+    X86_LLVM_DIR?=/cgnas/llvm-3.6.0-20151027-x86_64
 endif
 
 # K2X MCSDK
