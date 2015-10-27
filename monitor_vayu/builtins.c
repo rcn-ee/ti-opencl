@@ -34,6 +34,7 @@
 #endif
 #include <ti/csl/csl_cacheAux.h>
 #include "util.h"
+#include "message.h"
 
 extern uint32_t ocl_l1d_mem_start;
 extern uint32_t ocl_l1d_mem_size;
