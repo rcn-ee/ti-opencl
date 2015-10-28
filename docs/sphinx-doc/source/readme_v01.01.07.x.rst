@@ -112,7 +112,7 @@ The above intrinsics are in addition to the already existing intrinsics below ::
     int    _mpyh    (int, int);
     int    _mpyhus  (uint, int);
     int    _mpyhsu  (int, uint);
-    uint   _mpyhu   (uint, uint, uint);
+    uint   _mpyhu   (uint, uint);
     double _fabs    (double);
     float  _fabsf   (float);
     double _mpyid   (int, int);
@@ -173,7 +173,7 @@ The above intrinsics are in addition to the already existing intrinsics below ::
     int    _sshvr   (int, int);
     int    _sub4    (int, int);
     int    _subabs4 (int, int);
-    int    _abs2    (int, int);
+    int    _abs2    (int);
     uint   _bitc4   (uint);
     uint   _bitr    (uint);
     uint   _deal    (uint);
