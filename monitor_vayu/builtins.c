@@ -212,7 +212,8 @@ EXPORT int __cache_l2_128k()
     return 1;
 }
 
-
+EXPORT int __cache_l2_256k() { return 0; }
+EXPORT int __cache_l2_512k() { return 0; }
 
 EXPORT void __cache_l2_flush()
 {
