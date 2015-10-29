@@ -351,7 +351,7 @@ static void process_task_local(Msg_t* Msg)
     * go wide across all cores, so we broadcast the mpax settings rather
     * than do a simple local mpax setup.
     *--------------------------------------------------------------------*/
-    all_core_copy(&kernel_config_l2,  kcfg, sizeof(kernel_config_t));
+    all_core_copy(&kernel_config_l2,  &kernel_config_l2, sizeof(kernel_config_t));
     broadcast(FLUSH_MSG_KERNEL_PROLOG, fmsg);
 
     /*--------------------------------------------------------------------
