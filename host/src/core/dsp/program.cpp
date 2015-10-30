@@ -59,6 +59,7 @@
 #include <AllocasToEntry.h>
 #include <Workgroup.h>
 #include <TargetAddressSpaces.h>
+#include <PrivatizationAliasAnalysis.h>
 
 #include <string>
 #include <iostream>
@@ -253,6 +254,7 @@ void DSPProgram::createOptimizationPasses(llvm::PassManager *manager,
         manager->add(new pocl::AllocasToEntry());
         //       add(new pocl::Workgroup());           // no need
         manager->add(new pocl::TargetAddressSpaces());
+        manager->add(new tiocl::TIOpenCLPrivatizationAliasAnalysis());
     }
 
     if (optimize)
