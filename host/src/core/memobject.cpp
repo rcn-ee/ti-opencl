@@ -98,7 +98,7 @@ MemObject::~MemObject()
     {
         dtor_callback_t callback;
         if (p_dtor_callback_stack.pop(callback))
-            callback.first((cl_mem)this, callback.second);
+	    callback.first(desc(this), callback.second);
     }
 
     if (p_devicebuffers)
@@ -114,7 +114,7 @@ MemObject::~MemObject()
 cl_int MemObject::init()
 {
     // Get the device list of the context
-    DeviceInterface **devices = 0;
+    cl_device_id *devices = 0;
     cl_int rs;
 
     rs = ((Context *)parent())->info(CL_CONTEXT_NUM_DEVICES,
@@ -125,14 +125,13 @@ cl_int MemObject::init()
         return rs;
 
     p_devices_to_allocate = p_num_devices;
-    devices = (DeviceInterface **)std::malloc(p_num_devices *
-                                        sizeof(DeviceInterface *));
+    devices = (cl_device_id *)std::malloc(p_num_devices * sizeof(cl_device_id));
 
     if (!devices)
         return CL_OUT_OF_HOST_MEMORY;
 
     rs = ((Context *)parent())->info(CL_CONTEXT_DEVICES,
-                                     p_num_devices * sizeof(DeviceInterface *),
+                                     p_num_devices * sizeof(cl_device_id),
                                      devices, 0);
 
     if (rs != CL_SUCCESS)
@@ -178,7 +177,7 @@ cl_int MemObject::init()
 
     for (unsigned int i=0; i<p_num_devices; ++i)
     {
-        DeviceInterface *device = devices[i];
+        auto device = pobj(devices[i]);
 
         rs = CL_SUCCESS;
         p_devicebuffers[i] = device->createDeviceBuffer(this, &rs);
@@ -200,7 +199,7 @@ cl_int MemObject::init()
     std::free((void *)devices);
     devices = 0;
 
-    // If we have only one device, already allocate the buffer
+    // If we have only one device, pre-allocate the buffer
     if (p_num_devices == 1)
     {
         if (!p_devicebuffers[0]->allocate())
@@ -346,21 +345,21 @@ cl_int MemObject::info(cl_mem_info param_name,
             break;
 
         case CL_MEM_CONTEXT:
-            SIMPLE_ASSIGN(cl_context, parent());
+	        SIMPLE_ASSIGN(cl_context, desc((Context *)parent()));
             break;
 
         case CL_MEM_ASSOCIATED_MEMOBJECT:
             if (type() != SubBuffer)
                 SIMPLE_ASSIGN(cl_mem, 0)
             else
-                SIMPLE_ASSIGN(cl_mem, subbuf->parent());
+                SIMPLE_ASSIGN(cl_mem, desc(subbuf->parent()));
             break;
 
         case CL_MEM_OFFSET:
             if (type() != SubBuffer)
-                SIMPLE_ASSIGN(cl_mem, 0)
+                SIMPLE_ASSIGN(size_t, 0)
             else
-                SIMPLE_ASSIGN(cl_mem, subbuf->offset());
+                SIMPLE_ASSIGN(size_t, subbuf->offset());
             break;
 
         default:
@@ -469,7 +468,7 @@ SubBuffer::SubBuffer(class Buffer *parent, size_t offset, size_t size,
 : MemObject((Context *)parent->parent(), flags, 0, errcode_ret), p_offset(offset),
   p_size(size), p_parent(parent)
 {
-    clRetainMemObject((cl_mem) p_parent);
+    clRetainMemObject(desc(p_parent));
 
     if (size == 0)
     {

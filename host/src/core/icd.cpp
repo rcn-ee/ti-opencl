@@ -29,6 +29,10 @@
 #include "platform.h"
 #include "icd.h"
 
+// Note: This must match the OCL 1.2 disptach table in the file icd/icd_dispatch.h
+// which is part of the ICD loader source from the Khronos website.
+// Most recently: https://www.khronos.org/registry/cl/specs/opencl-icd-1.2.11.0.tgz
+
 void * dispatch_table[] = 
 {
     (void*)   clGetPlatformIDs,
@@ -106,12 +110,14 @@ void * dispatch_table[] =
     (void*)   0, //clEnqueueAcquireGLObjects,
     (void*)   0, //clEnqueueReleaseGLObjects,
     (void*)   0, //clGetGLContextInfoKHR,
+
     (void*)   0, //clGetDeviceIDsFromD3D10KHR,
     (void*)   0, //clCreateFromD3D10BufferKHR,
     (void*)   0, //clCreateFromD3D10Texture2DKHR,
     (void*)   0, //clCreateFromD3D10Texture3DKHR,
     (void*)   0, //clEnqueueAcquireD3D10ObjectsKHR,
     (void*)   0, //clEnqueueReleaseD3D10ObjectsKHR,
+
     (void*)   clSetEventCallback,
     (void*)   clCreateSubBuffer,
     (void*)   clSetMemObjectDestructorCallback,
@@ -120,9 +126,43 @@ void * dispatch_table[] =
     (void*)   clEnqueueReadBufferRect,
     (void*)   clEnqueueWriteBufferRect,
     (void*)   clEnqueueCopyBufferRect,
-    (void*)   0, //clCreateSubDevicesEXT,
-    (void*)   0, //clRetainDeviceEXT,
-    (void*)   0, //clReleaseDeviceEXT
+
+    (void*)   0, //clCreateSubDevicesEXT;
+    (void*)   0, //clRetainDeviceEXT;
+    (void*)   0, //clReleaseDeviceEXT;
+
+    (void *)  0, //clCreateEventFromGLsyncKHR;
+
+#if 0 // OpenCL 1.2
+    (void *)  0, //clCreateSubDevices,
+    (void *)  0, //clRetainDevice,
+    (void *)  0, //clReleaseDevice,
+    (void *)  0, //clCreateImage,
+    (void *)  0, // clCreateProgramWithBuiltInKernels;
+    (void *)  0, //clCompileProgram,
+    (void *)  0, //clLinkProgram,
+    (void *)  0, //clUnloadPlatformCompiler,
+    (void *)  0, //clGetKernelArgInfo,
+    (void *)  0, //clEnqueueFillBuffer,
+    (void *)  0, // clEnqueueFillImage;
+    (void *)  0, //clEnqueueMigrateMemObjects,
+    (void *)  0, //clEnqueueMarkerWithWaitList,
+    (void *)  0, //clEnqueueBarrierWithWaitList,
+    (void *)  0, //clGetExtensionFunctionAddressForPlatform,
+    (void *)  0, // clCreateFromGLTexture;
+
+    (void *)  0, // clGetDeviceIDsFromD3D11KHR;
+    (void *)  0, // clCreateFromD3D11BufferKHR;
+    (void *)  0, // clCreateFromD3D11Texture2DKHR;
+    (void *)  0, // clCreateFromD3D11Texture3DKHR;
+    (void *)  0, // clCreateFromDX9MediaSurfaceKHR;
+    (void *)  0, // clEnqueueAcquireD3D11ObjectsKHR;
+    (void *)  0, // clEnqueueReleaseD3D11ObjectsKHR;
+
+    (void *)  0, // clGetDeviceIDsFromDX9MediaAdapterKHR;
+    (void *)  0, // clEnqueueAcquireDX9MediaSurfacesKHR;
+    (void *)  0, // clEnqueueReleaseDX9MediaSurfacesKHR;
+#endif
 };
 
 

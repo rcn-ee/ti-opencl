@@ -35,12 +35,14 @@
 
 // Profiling APIs
 cl_int
-clGetEventProfilingInfo(cl_event            event,
+clGetEventProfilingInfo(cl_event            d_event,
                         cl_profiling_info   param_name,
                         size_t              param_value_size,
                         void *              param_value,
                         size_t *            param_value_size_ret)
 {
+    auto event = pobj(d_event);
+
     if (!event->isA(Coal::Object::T_Event))
         return CL_INVALID_EVENT;
 

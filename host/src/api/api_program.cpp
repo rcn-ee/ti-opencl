@@ -33,18 +33,21 @@
 #include "CL/cl.h"
 #include <core/program.h>
 #include <core/context.h>
+#include <core/platform.h>
+#include <core/deviceinterface.h>
 
 #include <cstdlib>
 
 // Program Object APIs
 cl_program
-clCreateProgramWithSource(cl_context        context,
+clCreateProgramWithSource(cl_context        d_context,
                           cl_uint           count,
                           const char **     strings,
                           const size_t *    lengths,
                           cl_int *          errcode_ret)
 {
     cl_int dummy_errcode;
+    auto context = pobj(d_context);
 
     if (!errcode_ret)
         errcode_ret = &dummy_errcode;
@@ -72,11 +75,11 @@ clCreateProgramWithSource(cl_context        context,
         return 0;
     }
 
-    return (cl_program)program;
+    return desc(program);
 }
 
 cl_program
-clCreateProgramWithBinary(cl_context            context,
+clCreateProgramWithBinary(cl_context            d_context,
                           cl_uint               num_devices,
                           const cl_device_id *  device_list,
                           const size_t *        lengths,
@@ -85,6 +88,7 @@ clCreateProgramWithBinary(cl_context            context,
                           cl_int *              errcode_ret)
 {
     cl_int dummy_errcode;
+    auto context = pobj(d_context);
 
     if (!errcode_ret)
         errcode_ret = &dummy_errcode;
@@ -118,9 +122,10 @@ clCreateProgramWithBinary(cl_context            context,
                                  context_num_devices * sizeof(cl_device_id),
                                  context_devices, 0);
 
-    if (*errcode_ret != CL_SUCCESS)
+    if (*errcode_ret != CL_SUCCESS) {
+        std::free(context_devices);
         return 0;
-
+    }
     for (cl_uint i=0; i<num_devices; ++i)
     {
         bool found = false;
@@ -131,6 +136,7 @@ clCreateProgramWithBinary(cl_context            context,
                 binary_status[i] = CL_INVALID_VALUE;
 
             *errcode_ret = CL_INVALID_VALUE;
+            std::free(context_devices);
             return 0;
         }
 
@@ -146,6 +152,7 @@ clCreateProgramWithBinary(cl_context            context,
         if (!found)
         {
             *errcode_ret = CL_INVALID_DEVICE;
+            std::free(context_devices);
             return 0;
         }
     }
@@ -155,22 +162,29 @@ clCreateProgramWithBinary(cl_context            context,
     *errcode_ret = CL_SUCCESS;
 
     // Init program
+    Coal::DeviceInterface  **devices =
+      (Coal::DeviceInterface **)std::malloc(context_num_devices * sizeof(Coal::DeviceInterface *));
+    pobj_list(devices, device_list, num_devices);
     *errcode_ret = program->loadBinaries(binaries,
-                                         lengths, binary_status, num_devices,
-                                         (Coal::DeviceInterface * const*)device_list);
+                                         lengths, binary_status, num_devices, devices);
 
     if (*errcode_ret != CL_SUCCESS)
     {
         delete program;
+        //std::free(context_devices); -> Why didnt we do this?
+        std::free(devices);
         return 0;
     }
 
-    return (cl_program)program;
+    //std::free(context_devices); -> Why didnt we do this?
+    std::free(devices);
+    return desc(program);
 }
 
 cl_int
-clRetainProgram(cl_program program)
+clRetainProgram(cl_program d_program)
 {
+    auto program = pobj(d_program);
     if (!program->isA(Coal::Object::T_Program))
         return CL_INVALID_PROGRAM;
 
@@ -180,8 +194,9 @@ clRetainProgram(cl_program program)
 }
 
 cl_int
-clReleaseProgram(cl_program program)
+clReleaseProgram(cl_program d_program)
 {
+    auto program = pobj(d_program);
     if (!program->isA(Coal::Object::T_Program))
         return CL_INVALID_PROGRAM;
 
@@ -192,13 +207,15 @@ clReleaseProgram(cl_program program)
 }
 
 cl_int
-clBuildProgram(cl_program           program,
+clBuildProgram(cl_program           d_program,
                cl_uint              num_devices,
                const cl_device_id * device_list,
                const char *         options,
                void (*pfn_notify)(cl_program program, void * user_data),
                void *               user_data)
 {
+    auto program = pobj(d_program);
+
     if (!program->isA(Coal::Object::T_Program))
         return CL_INVALID_PROGRAM;
 
@@ -263,8 +280,15 @@ clBuildProgram(cl_program           program,
         return CL_INVALID_OPERATION;
 
     // Build program
-    return program->build(options, pfn_notify, user_data, num_devices,
-                          (Coal::DeviceInterface * const*)device_list);
+    Coal::DeviceInterface  **devices =
+         (Coal::DeviceInterface **)std::malloc(num_devices * 
+                                               sizeof(Coal::DeviceInterface *));
+    pobj_list(devices, device_list, num_devices);
+    result =  program->build(options, pfn_notify, user_data, 
+                             num_devices, devices);
+    free(devices);
+
+    return result;
 }
 
 cl_int
@@ -274,12 +298,13 @@ clUnloadCompiler(void)
 }
 
 cl_int
-clGetProgramInfo(cl_program         program,
+clGetProgramInfo(cl_program         d_program,
                  cl_program_info    param_name,
                  size_t             param_value_size,
                  void *             param_value,
                  size_t *           param_value_size_ret)
 {
+    auto program = pobj(d_program);
     if (!program->isA(Coal::Object::T_Program))
         return CL_INVALID_PROGRAM;
 
@@ -288,17 +313,23 @@ clGetProgramInfo(cl_program         program,
 }
 
 cl_int
-clGetProgramBuildInfo(cl_program            program,
-                      cl_device_id          device,
+clGetProgramBuildInfo(cl_program            d_program,
+                      cl_device_id          d_device,
                       cl_program_build_info param_name,
                       size_t                param_value_size,
                       void *                param_value,
                       size_t *              param_value_size_ret)
 {
+    auto program = pobj(d_program);
+    auto device = pobj(d_device);
+
     if (!program->isA(Coal::Object::T_Program))
         return CL_INVALID_PROGRAM;
 
-    return program->buildInfo((Coal::DeviceInterface *)device, param_name,
+    if (!device)
+        return CL_INVALID_DEVICE;
+
+    return program->buildInfo(device, param_name,
                               param_value_size, param_value,
                               param_value_size_ret);
 }

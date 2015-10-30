@@ -107,7 +107,7 @@ Sampler::Sampler(Context *ctx, unsigned int bitfield)
 cl_int Sampler::checkImageAvailability() const
 {
     cl_uint num_devices;
-    DeviceInterface **devices;
+    cl_device_id *d_devices;
     cl_int rs;
 
     rs = ((Context *)parent())->info(CL_CONTEXT_NUM_DEVICES,
@@ -117,21 +117,20 @@ cl_int Sampler::checkImageAvailability() const
     if (rs != CL_SUCCESS)
         return rs;
 
-    devices = (DeviceInterface **)std::malloc(num_devices *
-                                              sizeof(DeviceInterface *));
+    d_devices = (cl_device_id*)std::malloc(num_devices * sizeof(cl_device_id));
 
-    if (!devices)
+    if (!d_devices)
     {
         return CL_OUT_OF_HOST_MEMORY;
     }
 
     rs = ((Context *)parent())->info(CL_CONTEXT_DEVICES,
-                                     num_devices * sizeof(DeviceInterface *),
-                                     devices, 0);
+                                     num_devices * sizeof(cl_device_id),
+                                     d_devices, 0);
 
     if (rs != CL_SUCCESS)
     {
-        std::free((void *)devices);
+        std::free((void *)d_devices);
         return rs;
     }
 
@@ -139,23 +138,23 @@ cl_int Sampler::checkImageAvailability() const
     {
         cl_bool image_support;
 
-        rs = devices[i]->info(CL_DEVICE_IMAGE_SUPPORT, sizeof(cl_bool),
+        rs = (pobj(d_devices[i]))->info(CL_DEVICE_IMAGE_SUPPORT, sizeof(cl_bool),
                               &image_support, 0);
 
         if (rs != CL_SUCCESS)
         {
-            std::free((void *)devices);
+            std::free((void *)d_devices);
             return rs;
         }
 
         if (!image_support)
         {
-            std::free((void *)devices);
+            std::free((void *)d_devices);
             return CL_INVALID_OPERATION;
         }
     }
 
-    std::free((void *)devices);
+    std::free((void *)d_devices);
 
     return CL_SUCCESS;
 }
@@ -188,7 +187,7 @@ cl_int Sampler::info(cl_sampler_info param_name,
             break;
 
         case CL_SAMPLER_CONTEXT:
-            SIMPLE_ASSIGN(cl_context, parent());
+            SIMPLE_ASSIGN(cl_context, desc((Context *)parent()));
             break;
 
         case CL_SAMPLER_NORMALIZED_COORDS:

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2012-2014, Texas Instruments Incorporated - http://www.ti.com/
+ * Copyright (c) 2012-2015, Texas Instruments Incorporated - http://www.ti.com/
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -50,6 +50,11 @@
 #include <signal.h>
 
 using namespace Coal;
+
+// Ensure that Class Platform remains mutable to the ICD "POD" C structure, as
+// expected by the ICD loader
+static_assert(std::is_standard_layout<Platform>::value,
+              "Class Platform must be of C++ standard layout type.");
 
 /******************************************************************************
 * begin_file_lock_crit_section
@@ -106,10 +111,16 @@ namespace Coal
 	// For now, don't add the CPU device on K2X platforms unless it is
 	// asserted that we want to enable it (eg. the ooo example)
 	if (getenv("TI_OCL_CPU_DEVICE_ENABLE") != NULL)
-	   p_devices.push_back((_cl_device_id*)new Coal::CPUDevice);
+        {
+	    Coal::DeviceInterface * device = new Coal::CPUDevice;
+            p_devices.push_back(desc(device));
+        }
 
-       for (int i = 0; i < Driver::instance()->num_dsps(); i++)
-            p_devices.push_back((_cl_device_id*)new Coal::DSPDevice(i));
+        for (int i = 0; i < Driver::instance()->num_dsps(); i++)
+        {
+	    Coal::DeviceInterface * device = new Coal::DSPDevice(i);
+            p_devices.push_back(desc(device));
+        }
 
         signal(SIGINT,  exit);
         signal(SIGABRT, exit);
@@ -122,7 +133,7 @@ namespace Coal
         close(p_lock_fd);
 
         for (int i = 0; i < p_devices.size(); i++)
-            delete p_devices[i];
+	    delete pobj(p_devices[i]);
     }
 
     cl_uint Platform::getDevices(cl_device_type device_type, 
@@ -136,7 +147,8 @@ namespace Coal
         for (int d = 0; d < p_devices.size(); d++)
         {
             cl_device_type type;
-            p_devices[d]->info(CL_DEVICE_TYPE, sizeof(cl_device_type), &type,0);
+            auto device = pobj(p_devices[d]);
+            device->info(CL_DEVICE_TYPE, sizeof(cl_device_type), &type,0);
 
             if (type & device_type)
             {
@@ -190,7 +202,7 @@ namespace Coal
                 if (getenv("TI_OCL_ENABLE_FP64"))
                     STRING_ASSIGN("cl_khr_byte_addressable_store cl_khr_fp64 cl_ti_msmc_buffers cl_ti_clmalloc")
                 else
-                    STRING_ASSIGN("cl_khr_byte_addressable_store cl_ti_msmc_buffers cl_ti_clmalloc")
+                    STRING_ASSIGN("cl_khr_byte_addressable_store cl_ti_msmc_buffers cl_ti_clmalloc cl_khr_icd")
                 break;
 
             case CL_PLATFORM_ICD_SUFFIX_KHR:

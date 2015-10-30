@@ -57,7 +57,7 @@ class BufferEvent : public Event
         BufferEvent(CommandQueue *parent,
                     MemObject *buffer,
                     cl_uint num_events_in_wait_list,
-                    const Event **event_wait_list,
+                    const cl_event *event_wait_list,
                     cl_int *errcode_ret);
         virtual ~BufferEvent();
 
@@ -94,7 +94,7 @@ class ReadWriteBufferEvent : public BufferEvent
                              size_t cb,
                              void *ptr,
                              cl_uint num_events_in_wait_list,
-                             const Event **event_wait_list,
+                             const cl_event *event_wait_list,
                              cl_int *errcode_ret);
 
         size_t offset() const; /*!< \brief Offset in the buffer of the operation, in bytes */
@@ -118,7 +118,7 @@ class ReadBufferEvent : public ReadWriteBufferEvent
                         size_t cb,
                         void *ptr,
                         cl_uint num_events_in_wait_list,
-                        const Event **event_wait_list,
+                        const cl_event *event_wait_list,
                         cl_int *errcode_ret);
 
         Type type() const; /*!< \brief Say the event is a \c Coal::Event::ReadBuffer one */
@@ -136,7 +136,7 @@ class WriteBufferEvent : public ReadWriteBufferEvent
                          size_t cb,
                          void *ptr,
                          cl_uint num_events_in_wait_list,
-                         const Event **event_wait_list,
+                         const cl_event *event_wait_list,
                          cl_int *errcode_ret);
 
         Type type() const; /*!< \brief Say the event is a \c Coal::Event::WriteBuffer one */
@@ -154,7 +154,7 @@ class MapBufferEvent : public BufferEvent
                        size_t cb,
                        cl_map_flags map_flags,
                        cl_uint num_events_in_wait_list,
-                       const Event **event_wait_list,
+                       const cl_event *event_wait_list,
                        cl_int *errcode_ret);
 
         Type type() const; /*!< \brief Say the event is a \c Coal::Event::MapBuffer one */
@@ -193,7 +193,7 @@ class MapImageEvent : public BufferEvent
                       const size_t origin[3],
                       const size_t region[3],
                       cl_uint num_events_in_wait_list,
-                      const Event **event_wait_list,
+                      const cl_event *event_wait_list,
                       cl_int *errcode_ret);
 
         Type type() const; /*!< \brief Say the event is a \c Coal::Event::MapImage one */
@@ -248,7 +248,7 @@ class UnmapBufferEvent : public BufferEvent
                          MemObject *buffer,
                          void *mapped_addr,
                          cl_uint num_events_in_wait_list,
-                         const Event **event_wait_list,
+                         const cl_event *event_wait_list,
                          cl_int *errcode_ret);
 
         Type type() const;     /*!< \brief Say the event is a \c Coal::Event::UnmapBuffer one */
@@ -272,7 +272,7 @@ class CopyBufferEvent : public BufferEvent
                         size_t dst_offset,
                         size_t cb,
                         cl_uint num_events_in_wait_list,
-                        const Event **event_wait_list,
+                        const cl_event *event_wait_list,
                         cl_int *errcode_ret);
         ~CopyBufferEvent();
 
@@ -308,7 +308,7 @@ class ReadWriteCopyBufferRectEvent : public BufferEvent
                                      size_t dst_slice_pitch,
                                      unsigned int bytes_per_element,
                                      cl_uint num_events_in_wait_list,
-                                     const Event **event_wait_list,
+                                     const cl_event *event_wait_list,
                                      cl_int *errcode_ret);
 
         size_t src_origin(unsigned int index) const; /*!< \brief Source origin for the \p index dimension */
@@ -344,7 +344,7 @@ class CopyBufferRectEvent : public ReadWriteCopyBufferRectEvent
                             size_t dst_slice_pitch,
                             unsigned int bytes_per_element,
                             cl_uint num_events_in_wait_list,
-                            const Event **event_wait_list,
+                            const cl_event *event_wait_list,
                             cl_int *errcode_ret);
 
         virtual Type type() const;      /*!< \brief Say the event is a \c Coal::Event::CopyBufferRect one */
@@ -372,7 +372,7 @@ class ReadWriteBufferRectEvent : public ReadWriteCopyBufferRectEvent
                                  void *ptr,
                                  unsigned int bytes_per_element,
                                  cl_uint num_events_in_wait_list,
-                                 const Event **event_wait_list,
+                                 const cl_event *event_wait_list,
                                  cl_int *errcode_ret);
 
         void *ptr() const; /*!< \brief Pointer in host memory in which to put the data */
@@ -398,7 +398,7 @@ class ReadBufferRectEvent : public ReadWriteBufferRectEvent
                             size_t host_slice_pitch,
                             void *ptr,
                             cl_uint num_events_in_wait_list,
-                            const Event **event_wait_list,
+                            const cl_event *event_wait_list,
                             cl_int *errcode_ret);
 
         Type type() const; /*!< \brief Say the event is a \c Coal::Event::ReadBufferRect one */
@@ -421,7 +421,7 @@ class WriteBufferRectEvent : public ReadWriteBufferRectEvent
                              size_t host_slice_pitch,
                              void *ptr,
                              cl_uint num_events_in_wait_list,
-                             const Event **event_wait_list,
+                             const cl_event *event_wait_list,
                              cl_int *errcode_ret);
 
         Type type() const; /*!< \brief Say the event is a \c Coal::Event::WriteBufferRect one */
@@ -445,7 +445,7 @@ class ReadWriteImageEvent : public ReadWriteBufferRectEvent
                             size_t slice_pitch,
                             void *ptr,
                             cl_uint num_events_in_wait_list,
-                            const Event **event_wait_list,
+                            const cl_event *event_wait_list,
                             cl_int *errcode_ret);
 };
 
@@ -463,7 +463,7 @@ class ReadImageEvent : public ReadWriteImageEvent
                        size_t slice_pitch,
                        void *ptr,
                        cl_uint num_events_in_wait_list,
-                       const Event **event_wait_list,
+                       const cl_event *event_wait_list,
                        cl_int *errcode_ret);
 
         Type type() const; /*!< \brief Say the event is a \c Coal::Event::ReadImage one */
@@ -483,7 +483,7 @@ class WriteImageEvent : public ReadWriteImageEvent
                         size_t slice_pitch,
                         void *ptr,
                         cl_uint num_events_in_wait_list,
-                        const Event **event_wait_list,
+                        const cl_event *event_wait_list,
                         cl_int *errcode_ret);
 
         Type type() const; /*!< \brief Say the event is a \c Coal::Event::WriteImage one */
@@ -502,7 +502,7 @@ class CopyImageEvent : public CopyBufferRectEvent
                        const size_t dst_origin[3],
                        const size_t region[3],
                        cl_uint num_events_in_wait_list,
-                       const Event **event_wait_list,
+                       const cl_event *event_wait_list,
                        cl_int *errcode_ret);
 
         Type type() const; /*!< \brief Say the event is a \c Coal::Event::CopyImage one */
@@ -521,7 +521,7 @@ class CopyImageToBufferEvent : public CopyBufferRectEvent
                                const size_t region[3],
                                size_t dst_offset,
                                cl_uint num_events_in_wait_list,
-                               const Event **event_wait_list,
+                               const cl_event *event_wait_list,
                                cl_int *errcode_ret);
 
         size_t offset() const; /*!< \brief Offset in the buffer at which writing the image */
@@ -544,7 +544,7 @@ class CopyBufferToImageEvent : public CopyBufferRectEvent
                                const size_t dst_origin[3],
                                const size_t region[3],
                                cl_uint num_events_in_wait_list,
-                               const Event **event_wait_list,
+                               const cl_event *event_wait_list,
                                cl_int *errcode_ret);
 
         size_t offset() const; /*!< \brief Offset in the buffer at which the copy starts */
@@ -570,10 +570,10 @@ class NativeKernelEvent : public Event
                           void *args,
                           size_t cb_args,
                           cl_uint num_mem_objects,
-                          const MemObject **mem_list,
+                          const cl_mem *mem_list,
                           const void **args_mem_loc,
                           cl_uint num_events_in_wait_list,
-                          const Event **event_wait_list,
+                          const cl_event *event_wait_list,
                           cl_int *errcode_ret);
         ~NativeKernelEvent();
 
@@ -600,7 +600,7 @@ class KernelEvent : public Event
                     const size_t *global_work_size,
                     const size_t *local_work_size,
                     cl_uint num_events_in_wait_list,
-                    const Event **event_wait_list,
+                    const cl_event *event_wait_list,
                     cl_int *errcode_ret);
         ~KernelEvent();
 
@@ -642,7 +642,7 @@ class TaskEvent : public KernelEvent
         TaskEvent(CommandQueue *parent,
                   Kernel *kernel,
                   cl_uint num_events_in_wait_list,
-                  const Event **event_wait_list,
+                  const cl_event *event_wait_list,
                   cl_int *errcode_ret);
 
         Type type() const; /*!< \brief Say the event is a \c Coal::Event::TaskKernel one */
@@ -694,7 +694,7 @@ class WaitForEventsEvent : public Event
     public:
         WaitForEventsEvent(CommandQueue *parent,
                            cl_uint num_events_in_wait_list,
-                           const Event **event_wait_list,
+                           const cl_event *event_wait_list,
                            cl_int *errcode_ret);
 
         virtual Type type() const; /*!< \brief Say the event is a \c Coal::Event::WaitForEvents one */
@@ -708,7 +708,7 @@ class MarkerEvent : public WaitForEventsEvent
     public:
         MarkerEvent(CommandQueue *parent,
                     cl_uint num_events_in_wait_list,
-                    const Event **event_wait_list,
+                    const cl_event *event_wait_list,
                     cl_int *errcode_ret);
 
         Type type() const; /*!< \brief Say the event is a \c Coal::Event::Marker one */

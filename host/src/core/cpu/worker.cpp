@@ -69,12 +69,14 @@ void *worker(void *data)
 
         // Get info about the event and its command queue
         Event::Type t = event->type();
-        CommandQueue *queue = 0;
+        Coal::CommandQueue * queue = NULL;
+        cl_command_queue d_queue = 0;
         cl_command_queue_properties queue_props = 0;
 
         errcode = CL_SUCCESS;
 
-        event->info(CL_EVENT_COMMAND_QUEUE, sizeof(CommandQueue *), &queue, 0);
+        event->info(CL_EVENT_COMMAND_QUEUE, sizeof(cl_command_queue), &d_queue, 0);
+        queue = pobj(d_queue);
 
         if (queue)
             queue->info(CL_QUEUE_PROPERTIES, sizeof(cl_command_queue_properties),

@@ -706,7 +706,7 @@ cl_int Program::info(cl_program_info param_name,
     void *value = 0;
     size_t value_length = 0;
     llvm::SmallVector<size_t, 4> binary_sizes;
-    llvm::SmallVector<DeviceInterface *, 4> devices;
+    llvm::SmallVector<cl_device_id, 4> devices;
 
     union {
         cl_uint cl_uint_var;
@@ -720,37 +720,37 @@ cl_int Program::info(cl_program_info param_name,
             break;
 
         case CL_PROGRAM_NUM_DEVICES:
-	    // Use devices associated with any built kernels, otherwise use 
+            // Use devices associated with any built kernels, otherwise use
             // the devices associated with the program context
-	    if (p_device_dependent.size() != 0)
-	       { SIMPLE_ASSIGN(cl_uint, p_device_dependent.size()); }
-	    else
-	       return ((Context *)parent())->info(CL_CONTEXT_NUM_DEVICES, 
-			   param_value_size, param_value, param_value_size_ret);
-	    break;
+            if (p_device_dependent.size() != 0)
+               { SIMPLE_ASSIGN(cl_uint, p_device_dependent.size()); }
+            else
+               return ((Context *)parent())->info(CL_CONTEXT_NUM_DEVICES,
+                           param_value_size, param_value, param_value_size_ret);
+            break;
 
         case CL_PROGRAM_DEVICES:
-	    // Use devices associated with any built kernels, otherwise use 
+            // Use devices associated with any built kernels, otherwise use
             // the devices associated with the program context
-	    if (p_device_dependent.size() != 0)
-	    {
-	       for (size_t i=0; i<p_device_dependent.size(); ++i)
-	       {
-		  const DeviceDependent &dep = p_device_dependent[i];
-		 
-		  devices.push_back(dep.device);
-	       }
+            if (p_device_dependent.size() != 0)
+            {
+               for (size_t i=0; i<p_device_dependent.size(); ++i)
+               {
+                  const DeviceDependent &dep = p_device_dependent[i];
 
-	       value = devices.data();
-	       value_length = devices.size() * sizeof(DeviceInterface *);
-	   }
-	   else
-	      return ((Context *)parent())->info(CL_CONTEXT_DEVICES,  
-			   param_value_size, param_value, param_value_size_ret);
-	   break;
+                  devices.push_back(desc(dep.device));
+               }
+
+               value = devices.data();
+               value_length = devices.size() * sizeof(cl_device_id);
+           }
+           else
+              return ((Context *)parent())->info(CL_CONTEXT_DEVICES,
+                           param_value_size, param_value, param_value_size_ret);
+           break;
 
         case CL_PROGRAM_CONTEXT:
-            SIMPLE_ASSIGN(cl_context, parent());
+	        SIMPLE_ASSIGN(cl_context, desc((Context *)parent()));
             break;
 
         case CL_PROGRAM_SOURCE:

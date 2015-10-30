@@ -36,6 +36,7 @@
 #include "memobject.h"
 #include "kernel.h"
 #include "deviceinterface.h"
+#include "context.h"
 
 #include <cstdlib>
 #include <cstring>
@@ -50,12 +51,12 @@ using namespace Coal;
 BufferEvent::BufferEvent(CommandQueue *parent,
                          MemObject *buffer,
                          cl_uint num_events_in_wait_list,
-                         const Event **event_wait_list,
+                         const cl_event *event_wait_list,
                          cl_int *errcode_ret)
 : Event(parent, Queued, num_events_in_wait_list, event_wait_list, errcode_ret),
   p_buffer(buffer)
 {
-    clRetainMemObject((cl_mem) p_buffer);
+    clRetainMemObject(desc(p_buffer));
 
     if (*errcode_ret != CL_SUCCESS) return;
 
@@ -67,25 +68,25 @@ BufferEvent::BufferEvent(CommandQueue *parent,
     }
 
     // Buffer's context must match the CommandQueue one
-    Context *ctx = 0;
-    *errcode_ret = parent->info(CL_QUEUE_CONTEXT, sizeof(Context *), &ctx, 0);
+    cl_context d_ctx = 0;
+    *errcode_ret = parent->info(CL_QUEUE_CONTEXT, sizeof(cl_context), &d_ctx, 0);
 
     if (*errcode_ret != CL_SUCCESS) return;
 
-    if ((Context *)buffer->parent() != ctx)
+    if ((Context *)buffer->parent() != pobj(d_ctx))
     {
         *errcode_ret = CL_INVALID_CONTEXT;
         return;
     }
 
     // Alignment of SubBuffers
-    DeviceInterface *device = 0;
-    *errcode_ret = parent->info(CL_QUEUE_DEVICE, sizeof(DeviceInterface *),
-                                &device, 0);
+    cl_device_id d_device = 0;
+    *errcode_ret = parent->info(CL_QUEUE_DEVICE, sizeof(cl_device_id), &d_device, 0);
 
     if (*errcode_ret != CL_SUCCESS)
         return;
 
+    auto device = pobj(d_device);
     if (!isSubBufferAligned(buffer, device))
     {
         *errcode_ret = CL_MISALIGNED_SUB_BUFFER_OFFSET;
@@ -102,7 +103,7 @@ BufferEvent::BufferEvent(CommandQueue *parent,
 
 BufferEvent::~BufferEvent()
 {
-    clReleaseMemObject((cl_mem) p_buffer);
+    clReleaseMemObject(desc(p_buffer));
 }
 
 MemObject *BufferEvent::buffer() const
@@ -140,7 +141,7 @@ ReadWriteBufferEvent::ReadWriteBufferEvent(CommandQueue *parent,
                                            size_t cb,
                                            void *ptr,
                                            cl_uint num_events_in_wait_list,
-                                           const Event **event_wait_list,
+                                           const cl_event *event_wait_list,
                                            cl_int *errcode_ret)
 : BufferEvent(parent, buffer, num_events_in_wait_list, event_wait_list, errcode_ret),
   p_offset(offset), p_cb(cb), p_ptr(ptr)
@@ -182,7 +183,7 @@ ReadBufferEvent::ReadBufferEvent(CommandQueue *parent,
                                  size_t cb,
                                  void *ptr,
                                  cl_uint num_events_in_wait_list,
-                                 const Event **event_wait_list,
+                                 const cl_event *event_wait_list,
                                  cl_int *errcode_ret)
 : ReadWriteBufferEvent(parent, buffer, offset, cb, ptr, num_events_in_wait_list,
                        event_wait_list, errcode_ret)
@@ -199,7 +200,7 @@ WriteBufferEvent::WriteBufferEvent(CommandQueue *parent,
                                    size_t cb,
                                    void *ptr,
                                    cl_uint num_events_in_wait_list,
-                                   const Event **event_wait_list,
+                                   const cl_event *event_wait_list,
                                    cl_int *errcode_ret)
 : ReadWriteBufferEvent(parent, buffer, offset, cb, ptr, num_events_in_wait_list,
                        event_wait_list, errcode_ret)
@@ -216,7 +217,7 @@ MapBufferEvent::MapBufferEvent(CommandQueue *parent,
                                size_t cb,
                                cl_map_flags map_flags,
                                cl_uint num_events_in_wait_list,
-                               const Event **event_wait_list,
+                               const cl_event *event_wait_list,
                                cl_int *errcode_ret)
 : BufferEvent(parent, buffer, num_events_in_wait_list, event_wait_list, errcode_ret),
   p_offset(offset), p_cb(cb), p_map_flags(map_flags)
@@ -285,7 +286,7 @@ MapImageEvent::MapImageEvent(CommandQueue *parent,
                              const size_t origin[3],
                              const size_t region[3],
                              cl_uint num_events_in_wait_list,
-                             const Event **event_wait_list,
+                             const cl_event *event_wait_list,
                              cl_int *errcode_ret)
 : BufferEvent (parent, image, num_events_in_wait_list, event_wait_list, errcode_ret)
 {
@@ -392,7 +393,7 @@ UnmapBufferEvent::UnmapBufferEvent(CommandQueue *parent,
                                    MemObject *buffer,
                                    void *mapped_addr,
                                    cl_uint num_events_in_wait_list,
-                                   const Event **event_wait_list,
+                                   const cl_event *event_wait_list,
                                    cl_int *errcode_ret)
 : BufferEvent(parent, buffer, num_events_in_wait_list, event_wait_list, errcode_ret),
   p_mapping(mapped_addr)
@@ -424,13 +425,13 @@ CopyBufferEvent::CopyBufferEvent(CommandQueue *parent,
                                  size_t dst_offset,
                                  size_t cb,
                                  cl_uint num_events_in_wait_list,
-                                 const Event **event_wait_list,
+                                 const cl_event *event_wait_list,
                                  cl_int *errcode_ret)
 : BufferEvent(parent, source, num_events_in_wait_list, event_wait_list,
               errcode_ret), p_destination(destination), p_src_offset(src_offset),
   p_dst_offset(dst_offset), p_cb(cb)
 {
-    clRetainMemObject((cl_mem) p_destination);
+    clRetainMemObject(desc(p_destination));
 
     if (*errcode_ret != CL_SUCCESS) return;
 
@@ -460,13 +461,12 @@ CopyBufferEvent::CopyBufferEvent(CommandQueue *parent,
     }
 
     // Check alignement of destination
-    DeviceInterface *device = 0;
-    *errcode_ret = parent->info(CL_QUEUE_DEVICE, sizeof(DeviceInterface *),
-                                &device, 0);
-
+    cl_device_id d_device = 0;
+    *errcode_ret = parent->info(CL_QUEUE_DEVICE, sizeof(cl_device_id), &d_device, 0);
     if (*errcode_ret != CL_SUCCESS)
         return;
 
+    auto device = pobj(d_device);
     if (!isSubBufferAligned(destination, device))
     {
         *errcode_ret = CL_MISALIGNED_SUB_BUFFER_OFFSET;
@@ -483,7 +483,7 @@ CopyBufferEvent::CopyBufferEvent(CommandQueue *parent,
 
 CopyBufferEvent::~CopyBufferEvent()
 {
-    clReleaseMemObject((cl_mem) p_destination);
+    clReleaseMemObject(desc(p_destination));
 }
 
 MemObject *CopyBufferEvent::source() const
@@ -524,10 +524,10 @@ NativeKernelEvent::NativeKernelEvent(CommandQueue *parent,
                                      void *args,
                                      size_t cb_args,
                                      cl_uint num_mem_objects,
-                                     const MemObject **mem_list,
+                                     const cl_mem *mem_list,
                                      const void **args_mem_loc,
                                      cl_uint num_events_in_wait_list,
-                                     const Event **event_wait_list,
+                                     const cl_event *event_wait_list,
                                      cl_int *errcode_ret)
 : Event (parent, Queued, num_events_in_wait_list, event_wait_list, errcode_ret),
   p_user_func((void *)user_func), p_args(0)
@@ -566,15 +566,14 @@ NativeKernelEvent::NativeKernelEvent(CommandQueue *parent,
     }
 
     // Check that the device can execute a native kernel
-    DeviceInterface *device;
     cl_device_exec_capabilities caps;
-
-    *errcode_ret = parent->info(CL_QUEUE_DEVICE, sizeof(DeviceInterface *),
-                                &device, 0);
+    cl_device_id   d_device = 0;
+    *errcode_ret = parent->info(CL_QUEUE_DEVICE, sizeof(cl_device_id), &d_device, 0);
 
     if (*errcode_ret != CL_SUCCESS)
         return;
 
+    auto device = pobj(d_device);
     *errcode_ret = device->info(CL_DEVICE_EXECUTION_CAPABILITIES,
                                 sizeof(cl_device_exec_capabilities), &caps, 0);
 
@@ -603,7 +602,7 @@ NativeKernelEvent::NativeKernelEvent(CommandQueue *parent,
         // Replace memory objects with global pointers
         for (cl_uint i=0; i<num_mem_objects; ++i)
         {
-            const MemObject *buffer = mem_list[i];
+            const MemObject *buffer = pobj(mem_list[i]);
             const char *loc = (const char *)args_mem_loc[i];
 
             if (!buffer)
@@ -652,12 +651,12 @@ KernelEvent::KernelEvent(CommandQueue *parent,
                          const size_t *global_work_size,
                          const size_t *local_work_size,
                          cl_uint num_events_in_wait_list,
-                         const Event **event_wait_list,
+                         const cl_event *event_wait_list,
                          cl_int *errcode_ret)
 : Event(parent, Queued, num_events_in_wait_list, event_wait_list, errcode_ret),
   p_work_dim(work_dim), p_kernel(kernel)
 {
-    clRetainKernel((cl_kernel) p_kernel);
+    clRetainKernel(desc(p_kernel));
 
     if (*errcode_ret != CL_SUCCESS) return;
 
@@ -671,19 +670,19 @@ KernelEvent::KernelEvent(CommandQueue *parent,
     }
 
     // Check that the kernel was built for parent's device.
-    DeviceInterface *device;
-    Context *k_ctx, *q_ctx;
+    cl_device_id d_device = 0;
+    cl_context k_ctx, q_ctx;
     size_t max_work_group_size;
     cl_uint max_dims = 0;
 
-    *errcode_ret = parent->info(CL_QUEUE_DEVICE, sizeof(DeviceInterface *),
-                                &device, 0);
+    *errcode_ret = parent->info(CL_QUEUE_DEVICE, sizeof(cl_device_id), &d_device, 0);
 
     if (*errcode_ret != CL_SUCCESS)
         return;
 
-    *errcode_ret = parent->info(CL_QUEUE_CONTEXT, sizeof(Context *), &q_ctx, 0);
-    *errcode_ret |= kernel->info(CL_KERNEL_CONTEXT, sizeof(Context *), &k_ctx, 0);
+    auto device = pobj(d_device);
+    *errcode_ret = parent->info(CL_QUEUE_CONTEXT, sizeof(cl_context), &q_ctx, 0);
+    *errcode_ret |= kernel->info(CL_KERNEL_CONTEXT, sizeof(cl_context), &k_ctx, 0);
     *errcode_ret |= device->info(CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(size_t),
                                 &max_work_group_size, 0);
     *errcode_ret |= device->info(CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS, sizeof(size_t),
@@ -821,7 +820,7 @@ KernelEvent::KernelEvent(CommandQueue *parent,
 
         if (a.kind() == Kernel::Arg::Buffer && a.file() != Kernel::Arg::Local)
         {
-            const MemObject *buffer = *(const MemObject **)(a.value(0));
+            MemObject *buffer = *(MemObject **)(a.value(0));
 
             if (!BufferEvent::isSubBufferAligned(buffer, device))
             {
@@ -829,12 +828,12 @@ KernelEvent::KernelEvent(CommandQueue *parent,
                 return;
             }
 
-            clRetainMemObject((cl_mem) buffer);
+            clRetainMemObject(desc(buffer));
             p_mem_objects.push_back((MemObject *) buffer);
         }
         else if (a.kind() == Kernel::Arg::Image2D)
         {
-            const Image2D *image = *(const Image2D **)(a.value(0));
+            Image2D *image = *(Image2D **)(a.value(0));
             size_t maxWidth, maxHeight;
 
             *errcode_ret = device->info(CL_DEVICE_IMAGE2D_MAX_WIDTH,
@@ -851,12 +850,12 @@ KernelEvent::KernelEvent(CommandQueue *parent,
                 return;
             }
 
-            clRetainMemObject((cl_mem) image);
+            clRetainMemObject(desc(image));
             p_mem_objects.push_back((MemObject *) image);
         }
         else if (a.kind() == Kernel::Arg::Image3D)
         {
-            const Image3D *image = *(const Image3D **)a.value(0);
+            Image3D *image = *(Image3D **)a.value(0);
             size_t maxWidth, maxHeight, maxDepth;
 
             *errcode_ret = device->info(CL_DEVICE_IMAGE3D_MAX_WIDTH,
@@ -876,7 +875,7 @@ KernelEvent::KernelEvent(CommandQueue *parent,
                 return;
             }
 
-            clRetainMemObject((cl_mem) image);
+            clRetainMemObject(desc(image));
             p_mem_objects.push_back((MemObject *) image);
         }
     }
@@ -885,9 +884,9 @@ KernelEvent::KernelEvent(CommandQueue *parent,
 KernelEvent::~KernelEvent()
 {
     for (MemObject *mem_object : p_mem_objects)
-        clReleaseMemObject((cl_mem) mem_object);
+        clReleaseMemObject(desc(mem_object));
 
-    clReleaseKernel((cl_kernel) p_kernel);
+    clReleaseKernel(desc(p_kernel));
 }
 
 cl_uint KernelEvent::work_dim() const
@@ -930,7 +929,7 @@ static size_t one = 1;
 TaskEvent::TaskEvent(CommandQueue *parent,
                      Kernel *kernel,
                      cl_uint num_events_in_wait_list,
-                     const Event **event_wait_list,
+                     const cl_event *event_wait_list,
                      cl_int *errcode_ret)
 : KernelEvent(parent, kernel, 1, 0, &one, &one, num_events_in_wait_list,
               event_wait_list, errcode_ret)
@@ -975,7 +974,7 @@ ReadWriteCopyBufferRectEvent::ReadWriteCopyBufferRectEvent(CommandQueue *parent,
                                                            size_t dst_slice_pitch,
                                                            unsigned int bytes_per_element,
                                                            cl_uint num_events_in_wait_list,
-                                                           const Event **event_wait_list,
+                                                           const cl_event *event_wait_list,
                                                            cl_int *errcode_ret)
 : BufferEvent (parent, source, num_events_in_wait_list, event_wait_list,
                errcode_ret)
@@ -1115,7 +1114,7 @@ CopyBufferRectEvent::CopyBufferRectEvent(CommandQueue *parent,
                                          size_t dst_slice_pitch,
                                          unsigned int bytes_per_element,
                                          cl_uint num_events_in_wait_list,
-                                         const Event **event_wait_list,
+                                         const cl_event *event_wait_list,
                                          cl_int *errcode_ret)
 : ReadWriteCopyBufferRectEvent(parent, source, src_origin, dst_origin, region,
                                src_row_pitch, src_slice_pitch, dst_row_pitch,
@@ -1169,13 +1168,13 @@ CopyBufferRectEvent::CopyBufferRectEvent(CommandQueue *parent,
     }
 
     // Check alignment of destination (source already checked by BufferEvent)
-    DeviceInterface *device = 0;
-    *errcode_ret = parent->info(CL_QUEUE_DEVICE, sizeof(DeviceInterface *),
-                                &device, 0);
+    cl_device_id d_device = 0;
+    *errcode_ret = parent->info(CL_QUEUE_DEVICE, sizeof(cl_device_id), &d_device, 0);
 
     if (*errcode_ret != CL_SUCCESS)
         return;
 
+    auto device = pobj(d_device);
     if (!isSubBufferAligned(destination, device))
     {
         *errcode_ret = CL_MISALIGNED_SUB_BUFFER_OFFSET;
@@ -1212,7 +1211,7 @@ ReadWriteBufferRectEvent::ReadWriteBufferRectEvent(CommandQueue *parent,
                                                    void *ptr,
                                                    unsigned int bytes_per_element,
                                                    cl_uint num_events_in_wait_list,
-                                                   const Event **event_wait_list,
+                                                   const cl_event *event_wait_list,
                                                    cl_int *errcode_ret)
 : ReadWriteCopyBufferRectEvent(parent, buffer, buffer_origin, host_origin, region,
                                buffer_row_pitch, buffer_slice_pitch,
@@ -1254,7 +1253,7 @@ ReadBufferRectEvent::ReadBufferRectEvent (CommandQueue *parent,
                                           size_t host_slice_pitch,
                                           void *ptr,
                                           cl_uint num_events_in_wait_list,
-                                          const Event **event_wait_list,
+                                          const cl_event *event_wait_list,
                                           cl_int *errcode_ret)
 : ReadWriteBufferRectEvent(parent, buffer, buffer_origin, host_origin, region,
                            buffer_row_pitch, buffer_slice_pitch, host_row_pitch,
@@ -1279,7 +1278,7 @@ WriteBufferRectEvent::WriteBufferRectEvent (CommandQueue *parent,
                                             size_t host_slice_pitch,
                                             void *ptr,
                                             cl_uint num_events_in_wait_list,
-                                            const Event **event_wait_list,
+                                            const cl_event *event_wait_list,
                                             cl_int *errcode_ret)
 : ReadWriteBufferRectEvent (parent, buffer, buffer_origin, host_origin, region,
                             buffer_row_pitch, buffer_slice_pitch, host_row_pitch,
@@ -1301,7 +1300,7 @@ ReadWriteImageEvent::ReadWriteImageEvent (CommandQueue *parent,
                                           size_t slice_pitch,
                                           void *ptr,
                                           cl_uint num_events_in_wait_list,
-                                          const Event **event_wait_list,
+                                          const cl_event *event_wait_list,
                                           cl_int *errcode_ret)
 : ReadWriteBufferRectEvent(parent, image, origin, 0, region, image->row_pitch(),
                            image->slice_pitch(), row_pitch, slice_pitch, ptr,
@@ -1326,7 +1325,7 @@ ReadImageEvent::ReadImageEvent(CommandQueue *parent,
                                size_t slice_pitch,
                                void *ptr,
                                cl_uint num_events_in_wait_list,
-                               const Event **event_wait_list,
+                               const cl_event *event_wait_list,
                                cl_int *errcode_ret)
 : ReadWriteImageEvent(parent, image, origin, region, row_pitch, slice_pitch, ptr,
                       num_events_in_wait_list, event_wait_list, errcode_ret)
@@ -1345,7 +1344,7 @@ WriteImageEvent::WriteImageEvent(CommandQueue *parent,
                                  size_t slice_pitch,
                                  void *ptr,
                                  cl_uint num_events_in_wait_list,
-                                 const Event **event_wait_list,
+                                 const cl_event *event_wait_list,
                                  cl_int *errcode_ret)
 : ReadWriteImageEvent (parent, image, origin, region, row_pitch, slice_pitch, ptr,
                        num_events_in_wait_list, event_wait_list, errcode_ret)
@@ -1369,7 +1368,7 @@ CopyImageEvent::CopyImageEvent(CommandQueue *parent,
                                const size_t dst_origin[3],
                                const size_t region[3],
                                cl_uint num_events_in_wait_list,
-                               const Event **event_wait_list,
+                               const cl_event *event_wait_list,
                                cl_int *errcode_ret)
 : CopyBufferRectEvent (parent, source, destination, src_origin, dst_origin,
                        region, source->row_pitch(), source->slice_pitch(),
@@ -1414,7 +1413,7 @@ CopyImageToBufferEvent::CopyImageToBufferEvent(CommandQueue *parent,
                                                const size_t region[3],
                                                size_t dst_offset,
                                                cl_uint num_events_in_wait_list,
-                                               const Event **event_wait_list,
+                                               const cl_event *event_wait_list,
                                                cl_int *errcode_ret)
 : CopyBufferRectEvent(parent, source, destination, src_origin, 0, region,
                       source->row_pitch(), source->slice_pitch(), 0, 0,
@@ -1459,7 +1458,7 @@ CopyBufferToImageEvent::CopyBufferToImageEvent(CommandQueue *parent,
                                                const size_t dst_origin[3],
                                                const size_t region[3],
                                                cl_uint num_events_in_wait_list,
-                                               const Event **event_wait_list,
+                                               const cl_event *event_wait_list,
                                                cl_int *errcode_ret)
 : CopyBufferRectEvent(parent, source, destination, 0, dst_origin, region, 0, 0,
                       destination->row_pitch(), destination->slice_pitch(),
@@ -1516,7 +1515,7 @@ Event::Type BarrierEvent::type() const
 
 WaitForEventsEvent::WaitForEventsEvent(CommandQueue *parent,
                                        cl_uint num_events_in_wait_list,
-                                       const Event **event_wait_list,
+                                       const cl_event *event_wait_list,
                                        cl_int *errcode_ret)
 : Event(parent, Queued, num_events_in_wait_list, event_wait_list, errcode_ret)
 {}
@@ -1531,7 +1530,7 @@ Event::Type WaitForEventsEvent::type() const
  */
 MarkerEvent::MarkerEvent(CommandQueue *parent,
                          cl_uint num_events_in_wait_list,
-                         const Event **event_wait_list,
+                         const cl_event *event_wait_list,
                          cl_int *errcode_ret)
 : WaitForEventsEvent(parent, num_events_in_wait_list, event_wait_list, errcode_ret)
 {}

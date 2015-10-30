@@ -671,8 +671,10 @@ extern "C" {
 
 Coal::DSPDevice *getDspDevice();
 
-uint64_t __query_symbol(cl_program program, const char *sym_name)
+uint64_t __query_symbol(cl_program d_program, const char *sym_name)
 {
+    auto program = pobj(d_program);
+
     if (!program->isA(Coal::Object::T_Program))
         return 0;
 

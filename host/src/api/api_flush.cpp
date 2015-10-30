@@ -35,8 +35,10 @@
 
 // Flush and Finish APIs
 cl_int
-clFlush(cl_command_queue command_queue)
+clFlush(cl_command_queue d_command_queue)
 {
+    auto command_queue = pobj(d_command_queue);
+
     if (!command_queue->isA(Coal::Object::T_CommandQueue))
         return CL_INVALID_COMMAND_QUEUE;
 
@@ -46,8 +48,10 @@ clFlush(cl_command_queue command_queue)
 }
 
 cl_int
-clFinish(cl_command_queue command_queue)
+clFinish(cl_command_queue d_command_queue)
 {
+    auto command_queue = pobj(d_command_queue);
+
     if (!command_queue->isA(Coal::Object::T_CommandQueue))
         return CL_INVALID_COMMAND_QUEUE;
 

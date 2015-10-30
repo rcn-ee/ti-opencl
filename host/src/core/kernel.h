@@ -35,6 +35,7 @@
 #define __KERNEL_H__
 
 #include "object.h"
+#include "icd.h"
 
 #include <CL/cl.h>
 #include <CL/cl_ext.h>
@@ -42,6 +43,12 @@
 #include <vector>
 #include <string>
 #include <boost/tuple/tuple.hpp>
+
+namespace Coal
+{
+  class Kernel;
+}
+struct _cl_kernel: public Coal::descriptor<Coal::Kernel, _cl_kernel> {};
 
 namespace llvm
 {
@@ -65,7 +72,7 @@ class DeviceKernel;
  * but it also contains a list of LLVM functions for each device for which its
  * parent \c Coal::Program has been built
  */
-class Kernel : public Object
+class Kernel : public _cl_kernel, public Object
 {
     public:
         /**
@@ -319,8 +326,5 @@ class Kernel : public Object
 };
 
 }
-
-struct _cl_kernel : public Coal::Kernel
-{};
 
 #endif
