@@ -55,30 +55,6 @@ int32_t DLIF_fclose(LOADER_FILE_DESC *fd)     { return fclose(fd); }
 void*   DLIF_malloc(size_t size)              { return malloc(size); }
 void    DLIF_free  (void* ptr)                { free(ptr); }
 
-/*****************************************************************************/
-/* DLIF_COPY() - Copy data from file to host-accessible memory.              */
-/*      Returns a host pointer to the data in the host_address field of the  */
-/*      DLOAD_MEMORY_REQUEST object.                                         */
-/*****************************************************************************/
-BOOL DLIF_copy(void* client_handle, struct DLOAD_MEMORY_REQUEST* targ_req)
-{
-   struct DLOAD_MEMORY_SEGMENT* obj_desc = targ_req->segment;
-   LOADER_FILE_DESC* f = targ_req->fp;
-   void *buf = calloc(obj_desc->memsz_in_bytes, 1); 
-
-   fseek(f, targ_req->offset, SEEK_SET);
-
-   int result = 1;
-   if (obj_desc->objsz_in_bytes)
-       result = fread(buf, obj_desc->objsz_in_bytes, 1, f);
-
-   assert(result == 1);
-
-   targ_req->host_address = buf;
-
-   return 1;
-}
-
 BOOL DLIF_read(void* client_handle, 
                void *ptr, size_t size, size_t nmemb, TARGET_ADDRESS src)
     { assert(0); }

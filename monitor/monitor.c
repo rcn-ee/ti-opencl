@@ -127,7 +127,7 @@ PRIVATE(Msg_t*, printMsg)   = NULL;
 PRIVATE_1D(char, print_msg_mem, sizeof(Msg_t));
 
 /******************************************************************************
-* Defines a fixed area of 64 bytes in L2, where the kernels will
+* Defines an area of bytes in L2, where the kernels will
 * resolve the get_global_id type calls
 ******************************************************************************/
 #pragma DATA_SECTION(kernel_config_l2, ".workgroup_config");
@@ -143,7 +143,7 @@ PRIVATE(kernel_msg_t, kernel_attributes);
 * This initialization is dependent on the order of fields in kernel_config_t
 ******************************************************************************/
 FAST_SHARED(kernel_config_t, task_config) = 
-     { 1, {1,1,1}, {1,1,1}, {0,0,0}, {0,0,0}, 0, 0, 0 };
+     { 1, {1,1,1}, {1,1,1}, {0,0,0}, {0,0,0}, 0, 0, 0, 0, 0 };
 
 /******************************************************************************
 * Initialization Routines
@@ -187,6 +187,8 @@ typedef struct {
     uint32_t     cmd; 
     uint32_t     WG_alloca_start; 
     uint32_t     WG_alloca_size; 
+    uint32_t     L2_scratch_start;
+    uint32_t     L2_scratch_size;
     kernel_msg_t kmsg; 
     flush_msg_t  fmsg;
 } task_pkt_t;
@@ -341,12 +343,15 @@ static void process_task_local(Msg_t* Msg)
     memcpy((void*)&kernel_config_l2, (void*)&task_config, sizeof(kernel_config_t));
     kernel_config_l2.WG_alloca_start  = kcfg->WG_alloca_start;
     kernel_config_l2.WG_alloca_size   = kcfg->WG_alloca_size;
+    kernel_config_l2.L2_scratch_start = kcfg->L2_scratch_start;
+    kernel_config_l2.L2_scratch_size  = kcfg->L2_scratch_size;
 
     /*---------------------------------------------------------------------
     * OpenCL will run local to this core, but for IOT case, OpenMP may
     * go wide across all cores, so we broadcast the mpax settings rather
     * than do a simple local mpax setup.
     *--------------------------------------------------------------------*/
+    all_core_copy(&kernel_config_l2,  &kernel_config_l2, sizeof(kernel_config_t));
     broadcast(FLUSH_MSG_KERNEL_PROLOG, fmsg);
 
     /*--------------------------------------------------------------------
@@ -383,9 +388,11 @@ static void process_task_distributed(Msg_t* Msg)
 
     task_pkt_t* pkt = (task_pkt_t*) ocl_descriptorAlloc();
 
-    pkt->cmd             = Msg->command; 
-    pkt->WG_alloca_start = Msg->u.k.config.WG_alloca_start;
-    pkt->WG_alloca_size  = Msg->u.k.config.WG_alloca_size ;
+    pkt->cmd              = Msg->command; 
+    pkt->WG_alloca_start  = Msg->u.k.config.WG_alloca_start;
+    pkt->WG_alloca_size   = Msg->u.k.config.WG_alloca_size ;
+    pkt->L2_scratch_start = Msg->u.k.config.L2_scratch_start;
+    pkt->L2_scratch_size  = Msg->u.k.config.L2_scratch_size;
     memcpy(&pkt->kmsg, &Msg->u.k.kernel, sizeof(kernel_msg_t));
     memcpy(&pkt->fmsg, &Msg->u.k.flush,  sizeof(flush_msg_t));
 
@@ -622,6 +629,8 @@ void service_task(void *ptr)
     memcpy((void*)&kernel_config_l2, (void*)&task_config, sizeof(kernel_config_t));
     kernel_config_l2.WG_alloca_start  = pkt->WG_alloca_start;
     kernel_config_l2.WG_alloca_size   = pkt->WG_alloca_size;
+    kernel_config_l2.L2_scratch_start = pkt->L2_scratch_start;
+    kernel_config_l2.L2_scratch_size  = pkt->L2_scratch_size;
 
     set_mpax_for_extended_memory(fmsg);
 
@@ -794,6 +803,8 @@ static void all_core_copy(void *dest, void *src, size_t size)
     int i;
 
     // assert(dest) is an L2 location
+    // assert region dest to dest+size is not valid in core i's L1D cache
+    //   or will not be by the time core i access the region
    
     for (i = 0; i < n_cores; i++)
     {

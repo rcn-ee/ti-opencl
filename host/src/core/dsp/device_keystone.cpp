@@ -56,7 +56,6 @@ DSPDevice::DSPDevice(unsigned char dsp_id)
       p_device_ddr_heap1(),
       p_device_ddr_heap2(),
       p_device_ddr_heap3(),
-      p_device_l2_heap  (),
       p_dload_handle    (0),
       p_complete_pending(),
       p_mpax_default_res(NULL)
@@ -72,7 +71,6 @@ DSPDevice::DSPDevice(unsigned char dsp_id)
     p_addr_kernel_config = driver->get_symbol(hdl, "kernel_config_l2");
     p_addr_local_mem     = driver->get_symbol(hdl, "ocl_local_mem_start");
     p_size_local_mem     = driver->get_symbol(hdl, "ocl_local_mem_size");
-
 
     DSPDevicePtr64 global3 = 0;
     uint64_t       gsize3  = 0;
@@ -96,6 +94,7 @@ DSPDevice::DSPDevice(unsigned char dsp_id)
     p_addr_msmc_mem      = driver->get_symbol(hdl, "ocl_msmc_mem_start");
     p_size_msmc_mem      = driver->get_symbol(hdl, "ocl_msmc_mem_size");
 #endif
+
 
     driver->free_image_handle(hdl);
 

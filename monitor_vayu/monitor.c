@@ -315,6 +315,8 @@ static void process_task_command(ocl_msgq_message_t* msgq_pkt)
     kernel_config_l2.WG_id            = 0;
     kernel_config_l2.WG_alloca_start  = kcfg->WG_alloca_start;
     kernel_config_l2.WG_alloca_size   = kcfg->WG_alloca_size;
+    kernel_config_l2.L2_scratch_start = kcfg->L2_scratch_start;
+    kernel_config_l2.L2_scratch_size  = kcfg->L2_scratch_size;
 
     /*--------------------------------------------------------------------
     * Run the Task 

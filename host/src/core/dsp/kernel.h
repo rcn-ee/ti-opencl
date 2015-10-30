@@ -84,6 +84,9 @@ class DSPKernel : public DeviceKernel
         llvm::Function *function() const { return p_function; }
         static size_t typeOffset(size_t &offset, size_t type_len);
 
+        DSPDevicePtr locals_in_kernel_extent(uint32_t& size) const;
+        DSPDevicePtr locals_as_args_extent(uint32_t& size) const;
+
     private:
         DSPDevice *     p_device;
         Kernel *        p_kernel;

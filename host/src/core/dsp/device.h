@@ -28,6 +28,7 @@
 #ifndef __DSP_DEVICE_H__
 #define __DSP_DEVICE_H__
 
+
 extern "C" {
 /*-----------------------------------------------------------------------------
 * Add ULM memory state messages if ULM library is available
@@ -48,6 +49,7 @@ extern "C" {
 #include <string>
 #include <list>
 #include "mbox.h"
+
 
 namespace Coal
 {
@@ -97,6 +99,9 @@ class DSPDevice : public DeviceInterface, public Lockable
         int    load(const char *filename);
         bool unload(int file_handle);
 
+        bool addr_is_l2  (DSPDevicePtr addr) const ;
+        bool addr_is_msmc(DSPDevicePtr addr) const ;
+
         /*---------------------------------------------------------------------
         * These malloc routines return a uint32_t instead of a pointer
         * Because the target memory space is 32 bit and is independent of the 
@@ -104,9 +109,7 @@ class DSPDevice : public DeviceInterface, public Lockable
         * Device/Target global memory could be 36-bit.
         * get_local_scratch returns max local free block for per kernel use.
         *--------------------------------------------------------------------*/
-        DSPDevicePtr   get_local_scratch(uint32_t &size, uint32_t &block_size);
-        DSPDevicePtr   malloc_local (size_t   size);
-        void           free_local   (DSPDevicePtr add);
+        DSPDevicePtr   get_L2_extent(uint32_t &size);
         DSPDevicePtr   malloc_msmc  (size_t   size);
         void           free_msmc    (DSPDevicePtr add);
         DSPDevicePtr64 malloc_global(size_t   size, bool prefer_32bit=true);
@@ -178,7 +181,6 @@ class DSPDevice : public DeviceInterface, public Lockable
         dspheap            p_device_ddr_heap1;  // persistently mapped memory
         dspheap            p_device_ddr_heap2;  // ondemand mapped memory
         dspheap            p_device_ddr_heap3;  // addl ondemand mapped memory
-        dspheap            p_device_l2_heap;
         dspheap            p_device_msmc_heap;
         clMallocMapping    p_clMalloc_mapping;
 

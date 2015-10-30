@@ -66,6 +66,8 @@ typedef struct
     uint32_t WG_id;
     uint32_t WG_alloca_start;
     uint32_t WG_alloca_size;
+    uint32_t L2_scratch_start;
+    uint32_t L2_scratch_size;
 } kernel_config_t;
 
 typedef struct 

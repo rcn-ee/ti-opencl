@@ -114,11 +114,11 @@ cl_int Kernel::addFunction(DeviceInterface *device, llvm::Function *function,
     p_name = function->getName().str();
 
     // Get wi_alloca_size, to be used for computing wg_alloca_size
-    std::string fattrs = function->getAttributes().getAsString(
-                                           llvm::AttributeSet::FunctionIndex);
-    std::size_t found = fattrs.find("_wi_alloca_size=");
-    if (found != std::string::npos)
-        wi_alloca_size = atoi(fattrs.data() + found + 16);
+    std::string WAS_str = function->getAttributes().getAttribute
+                         (llvm::AttributeSet::FunctionIndex, "_wi_alloca_size")
+                                             .getValueAsString();
+
+    if (!WAS_str.empty()) wi_alloca_size = std::stoi(WAS_str);
 
     /*-------------------------------------------------------------------------
     * Add a device dependent

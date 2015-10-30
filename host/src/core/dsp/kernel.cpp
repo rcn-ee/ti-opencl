@@ -239,10 +239,77 @@ size_t DSPKernel::workGroupSize()  const
  
 /******************************************************************************
 * localMemSize() 
+*   This does not comprehend barrier variable expansion that may be allocated
+*   int L2.  We will not know the size until we know the local size in the 
+*   DSPKernelEvent.  If a reqd_work_group_size pragma is used, we could know 
+*   here.  TODO
 ******************************************************************************/
 cl_ulong DSPKernel::localMemSize() const
 {
-    cl_ulong local_mem = 0;
+    Program    *p     = (Program *)p_kernel->parent();
+    DSPProgram *prog  = (DSPProgram *)(p->deviceDependentProgram(p_device));
+
+    uint32_t  size;
+    DSPDevicePtr end_allocated_l2 = locals_as_args_extent(size);
+
+    end_allocated_l2  += size;
+
+    DSPDevicePtr L2addr = p_device->get_L2_extent(size);
+
+    return end_allocated_l2 - L2addr;
+}
+
+Kernel *         DSPKernel::kernel()   const { return p_kernel; }
+DSPDevice *      DSPKernel::device()   const { return p_device; }
+
+/******************************************************************************
+* locals_in_kernel_extent
+*
+* Assuming an L2 layout beyond the monitor reserved area like the below:
+*    return the kernel .ocl_local_overlay address and a kernel specific 
+*    .ocl_local_overlay size.
+*
+* +=========+====================+=================+====================+=========+
+* | .mem_l2 | .ocl_local_overlay | local arguments | variable expansion | scratch |
+* +=========+====================+=================+====================+=========+
+* ^                                                                     ^
+* |                                                                     |
+* L2 start                                                        scratch start
+*
+******************************************************************************/
+DSPDevicePtr DSPKernel::locals_in_kernel_extent(uint32_t &ret_size) const 
+{
+    Program    *p     = (Program *)p_kernel->parent();
+    DSPProgram *prog  = (DSPProgram *)(p->deviceDependentProgram(p_device));
+
+    uint32_t size;
+    DSPDevicePtr addr = prog->mem_l2_section_extent(size);
+
+    addr += size;
+
+    /*-------------------------------------------------------------------------
+    * Get kernel attr indicating size of kernel static local buffers
+    *------------------------------------------------------------------------*/
+    llvm::Function* f = p_kernel->function(p_device);
+
+    uint32_t locals_in_kernel_size = 0;
+
+    std::string KLS_str = f->getAttributes().getAttribute
+                     (llvm::AttributeSet::FunctionIndex, "_kernel_local_size")
+                     .getValueAsString();
+
+    if (!KLS_str.empty()) locals_in_kernel_size = std::stoi(KLS_str);
+    ret_size = ROUNDUP(locals_in_kernel_size, MIN_BLOCK_SIZE);
+    return addr;
+}
+
+DSPDevicePtr DSPKernel::locals_as_args_extent(uint32_t &ret_size) const
+{
+    uint32_t size;
+    DSPDevicePtr addr = locals_in_kernel_extent(size);
+    addr += size;
+
+    uint32_t local_args_size = 0;
 
     for (int i = 0;  i < kernel()->numArgs(); ++i)
     {
@@ -250,17 +317,12 @@ cl_ulong DSPKernel::localMemSize() const
 
         if (arg.kind() == Kernel::Arg::Buffer && 
             arg.file() == Kernel::Arg::Local)
-              local_mem += arg.allocAtKernelRuntime();
+              local_args_size += ROUNDUP(arg.allocAtKernelRuntime(), MIN_BLOCK_SIZE);
     }
 
-    Program    *p     = (Program *)p_kernel->parent();
-    DSPProgram *prog  = (DSPProgram *)(p->deviceDependentProgram(p_device));
-
-    return local_mem + prog->l2_allocated();
+    ret_size = local_args_size;
+    return addr;
 }
-
-Kernel *         DSPKernel::kernel()   const { return p_kernel; }
-DSPDevice *      DSPKernel::device()   const { return p_device; }
 
 size_t DSPKernel::typeOffset(size_t &offset, size_t type_len)
 {
@@ -689,15 +751,21 @@ cl_int DSPKernelEvent::run(Event::Type evtype)
 cl_int DSPKernelEvent::allocate_and_assign_local_buffers(
            uint32_t &remaining_l2_size, DSPDevicePtr &local_scratch)
 {
-    uint32_t block_sz;
-    local_scratch = p_device->get_local_scratch(remaining_l2_size, block_sz);
+    uint32_t     l2size;
+    DSPDevicePtr l2start = p_device->get_L2_extent(l2size);
+
+    uint32_t     size;
+    DSPDevicePtr addr    = p_kernel->locals_in_kernel_extent(size);
+
+    local_scratch        = addr + size;
+    remaining_l2_size    = l2size - (local_scratch - l2start);
 
     for (size_t i = 0; i < p_local_bufs.size(); ++i)
     {
         DSPVirtPtr *p_arg_word     = p_local_bufs[i].first; 
         unsigned    local_buf_size = p_local_bufs[i].second;
 
-        uint32_t rounded_sz = ROUNDUP(local_buf_size, block_sz);
+        uint32_t rounded_sz = ROUNDUP(local_buf_size, MIN_BLOCK_SIZE);
         if (rounded_sz > remaining_l2_size)
         {
             QERR("Total size of local buffers exceeds available local size",
@@ -791,6 +859,10 @@ cl_int DSPKernelEvent::init_kernel_runtime_variables(Event::Type evtype,
              * set 0 so that each core get same WG_alloca_start in L2
              *---------------------------------------------------------------*/
             cfg->WG_alloca_size = 0;
+
+            uint32_t rounded_sz = ROUNDUP(cfg->WG_alloca_size, MIN_BLOCK_SIZE);
+            local_scratch      += rounded_sz;
+            remaining_l2_size  -= rounded_sz;
         }
         else 
         {
@@ -811,6 +883,10 @@ cl_int DSPKernelEvent::init_kernel_runtime_variables(Event::Type evtype,
             p_64bit_bufs.push_back(DSPMemRange(DSPPtrPair(
                  p_WG_alloca_start, &cfg->WG_alloca_start), chip_alloca_size));
     }
+
+    cfg->L2_scratch_start = local_scratch;
+    cfg->L2_scratch_size  = remaining_l2_size;
+
     return CL_SUCCESS;
 }
 

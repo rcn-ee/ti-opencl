@@ -54,17 +54,22 @@ void     __mfence          (void);
 void*    __scratch_l1d_start(void);
 uint32_t __scratch_l1d_size (void);
 
-void     __cache_l1d_none  (void);
-void     __cache_l1d_all   (void);
-void     __cache_l1d_4k    (void);
-void     __cache_l1d_8k    (void);
-void     __cache_l1d_16k   (void);
+void*    __scratch_l2_start (void);
+uint32_t __scratch_l2_size  (void);
+
+int      __cache_l1d_none  (void);
+int      __cache_l1d_all   (void);
+int      __cache_l1d_4k    (void);
+int      __cache_l1d_8k    (void);
+int      __cache_l1d_16k   (void);
 void     __cache_l1d_flush (void);
 
-void     __cache_l2_none   (void);
-void     __cache_l2_128k   (void);
-void     __cache_l2_256k   (void);
-void     __cache_l2_512k   (void);
+int      __cache_l2_none   (void);
+int      __cache_l2_32k    (void);
+int      __cache_l2_64k    (void);
+int      __cache_l2_128k   (void);
+int      __cache_l2_256k   (void);
+int      __cache_l2_512k   (void);
 void     __cache_l2_flush  (void);
 
 void     __heap_init_ddr  (__global void *ptr, size_t size);
