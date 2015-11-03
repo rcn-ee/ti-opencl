@@ -106,6 +106,20 @@ OpenCL subbuffers created from OpenCL buffers defined with CL_MEM_USE_HOST_PTR
 and a supplied pointer originating from __malloc_ddr, will also benefit from the 
 underlying subbuffer memory residing in :ref:`CMEM<CMEM>`.
 
+.. Caution::
+    OpenCL buffers can also be created with CL_MEM_USE_HOST_PTR and a supplied
+    pointer in the middle of a __malloc_ddr/__malloc_msmc allocated region.
+    However, when doing so, extra caution should be taken not to create
+    overlapping buffers, as it is undefined behavior when they are accessed
+    by the same kernel and at least one of them is write access.
+    If such undefined scenario is absolutely intended, user needs to pass
+    "-a" option to the kernel compiler, telling the compiler that kernel
+    arguments could alias each other.  "-a" should be specified in the
+    clBuildProgram API call for online compilation and on the clocl command
+    line for offline compilation.
+    Even so, it is still user's responsibility to ensure correct parallel
+    execution semantics, for example, when there are multiple workgroups.
+
 .. Important::
 
     Since the ARM CPU is a 32 bit architecture, Linux will only support 4GB
