@@ -15,3 +15,4 @@ Frequently Asked Questions
    icd
    lock
    dload-error
+   evm-logsize
