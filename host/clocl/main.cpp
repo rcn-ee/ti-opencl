@@ -78,6 +78,7 @@
 #include <Workgroup.h>
 #include <TargetAddressSpaces.h>
 #include <SimplifyShuffleBIFCall.h>
+#include <PrivatizationAliasAnalysis.h>
 
 using namespace std;
 using llvm::Module;
@@ -265,6 +266,7 @@ bool llvm_xforms(Module *module, bool optimize)
         manager->add(new pocl::AllocasToEntry());
         //       add(new pocl::Workgroup());           // no need
         manager->add(new pocl::TargetAddressSpaces());
+        manager->add(new tiocl::TIOpenCLPrivatizationAliasAnalysis());
     }
 
     if (optimize)

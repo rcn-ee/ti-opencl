@@ -386,6 +386,8 @@ bool TIOpenclWorkGroupAggregation::rewrite_allocas(Function &F)
         // cast to alloca type
         Instruction * new_alloca = new IntToPtrInst(curr_alloca_addr,
                                                     alloca->getType());
+        if (MDNode *mdnode = alloca->getMetadata("ocl.restrict"))
+            new_alloca->setMetadata("ocl.restrict", mdnode);
 
         // replace AllocaInst with new _wg_alloca()
         ReplaceInstWithInst(alloca, new_alloca);

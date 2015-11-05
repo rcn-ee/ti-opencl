@@ -62,7 +62,7 @@ OBJS        = AllocasToEntry.o BarrierBlock.o BarrierTailReplication.o \
               VariableUniformityAnalysis.o WIVectorize.o Workgroup.o \
               WorkItemAliasAnalysis.o WorkitemHandler.o \
               WorkitemHandlerChooser.o WorkitemLoops.o WorkitemReplication.o\
-              SimplifyShuffleBIFCall.o \
+              SimplifyShuffleBIFCall.o PrivatizationAliasAnalysis.o \
               main.o compiler.o wga.o program.o file_manip.o options.o \
               util.o
 

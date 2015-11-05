@@ -1099,6 +1099,28 @@ WorkitemLoops::GetContextArray(llvm::Instruction *instruction)
   llvm::Instruction *alloca =
     builder.CreateAlloca(elementType, wgsize, varName);
 
+  llvm::Module *M = instruction->getParent()->getParent()->getParent();
+  llvm::NamedMDNode *named = M->getOrInsertNamedMetadata("ocl.restrict");
+  if (named->getNumOperands() == 0)
+  {
+    /* This creation of the identifier metadata is copied from
+       LLVM's MDBuilder::createAnonymousTBAARoot(). */
+    LLVMContext &C = instruction->getContext();
+    MDNode *Dummy = MDNode::getTemporary(C, ArrayRef<Metadata*>());
+    MDNode *Root = MDNode::get(C, Dummy);
+    // At this point we have
+    //   !0 = metadata !{}            <- dummy
+    //   !1 = metadata !{metadata !0} <- root
+    // Replace the dummy operand with the root node itself and delete the dummy
+    Root->replaceOperandWith(0, Root);
+    MDNode::deleteTemporary(Dummy);
+    // We now have
+    //   !1 = metadata !{metadata !1} <- self-referential root
+    named->addOperand(Root);
+  }
+  llvm::MDNode *mdnode = named->getOperand(0);
+  alloca->setMetadata("ocl.restrict", mdnode);
+
   contextArrays[varName] = alloca;
   return alloca;
 }

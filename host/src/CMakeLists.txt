@@ -148,6 +148,7 @@ set(COAL_SRC_FILES
     llvmopencl/WorkitemLoops.cc
     llvmopencl/WorkitemReplication.cc
     llvmopencl/SimplifyShuffleBIFCall.cpp
+    llvmopencl/PrivatizationAliasAnalysis.cpp
 )
 
 if (K2X_BUILD)
