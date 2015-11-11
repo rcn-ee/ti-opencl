@@ -35,6 +35,7 @@ else ifeq ($(BUILD_DSPC),1)
 else
     ifeq ($(MAKECMDGOALS),clean)
     else ifeq ($(MAKECMDGOALS),realclean)
+    else ifeq ($(MAKECMDGOALS),version)
     else
         $(error must specify one of: \
             BUILD_AM57=1 \
@@ -93,3 +94,6 @@ $(DESTDIR):
 
 change:
 	git log --pretty=format:"- %s%n%b" $(TAG).. ; \
+
+version:
+	@echo $(OCL_VER)
