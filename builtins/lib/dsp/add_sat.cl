@@ -27,11 +27,11 @@
  *****************************************************************************/
 #include "dsp.h"
 
-BINARY_VEC_DEF(char, char,   add_sat, add_sat)
-BINARY_VEC_DEF(uchar, uchar,  add_sat, add_sat)
-BINARY_VEC_DEF(short, short,  add_sat, add_sat)
-BINARY_VEC_DEF(ushort, ushort, add_sat, add_sat)
-BINARY_VEC_DEF(int, int,    add_sat, add_sat)
-BINARY_VEC_DEF(uint, uint,   add_sat, add_sat)
-BINARY_VEC_DEF(long, long,   add_sat, add_sat)
-BINARY_VEC_DEF(ulong, ulong,  add_sat, add_sat)
+_BINARY_VEC_DEF(char, char,   add_sat, add_sat)
+_BINARY_VEC_DEF(uchar, uchar,  add_sat, add_sat)
+_BINARY_VEC_DEF(short, short,  add_sat, add_sat)
+_BINARY_VEC_DEF(ushort, ushort, add_sat, add_sat)
+_BINARY_VEC_DEF(int, int,    add_sat, add_sat)
+_BINARY_VEC_DEF(uint, uint,   add_sat, add_sat)
+_BINARY_VEC_DEF(long, long,   add_sat, add_sat)
+_BINARY_VEC_DEF(ulong, ulong,  add_sat, add_sat)

@@ -27,11 +27,11 @@
  *****************************************************************************/
 #include "dsp.h"
 
-UNARY_VEC_DEF(char,   char,  clz, clz)
-UNARY_VEC_DEF(uchar,  uchar, clz, clz)
-UNARY_VEC_DEF(short,  short, clz, clz)
-UNARY_VEC_DEF(ushort, ushort,clz, clz)
-UNARY_VEC_DEF(int,    int,   clz, clz)
-UNARY_VEC_DEF(uint,   uint,  clz, clz)
-UNARY_VEC_DEF(long,   long,  clz, clz)
-UNARY_VEC_DEF(ulong,  ulong, clz, clz)
+_UNARY_VEC_DEF(char,   char,  clz, clz)
+_UNARY_VEC_DEF(uchar,  uchar, clz, clz)
+_UNARY_VEC_DEF(short,  short, clz, clz)
+_UNARY_VEC_DEF(ushort, ushort,clz, clz)
+_UNARY_VEC_DEF(int,    int,   clz, clz)
+_UNARY_VEC_DEF(uint,   uint,  clz, clz)
+_UNARY_VEC_DEF(long,   long,  clz, clz)
+_UNARY_VEC_DEF(ulong,  ulong, clz, clz)

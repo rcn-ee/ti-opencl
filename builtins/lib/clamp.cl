@@ -27,7 +27,7 @@
  *****************************************************************************/
 #include "clc.h"
 
-#define EXPAND_SIZES(type)             \
+#define _EXPAND_SIZES(type)             \
     IMPLEMENTATION (_VEC_TYPE(type,2), type)  \
     IMPLEMENTATION (_VEC_TYPE(type,3), type)  \
     IMPLEMENTATION (_VEC_TYPE(type,4), type)  \

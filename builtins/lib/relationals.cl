@@ -27,38 +27,38 @@
  *****************************************************************************/
 #include "clc.h"
 
-UNARY_VEC_DEF(float,  int,  isnan, -isnan)
-UNARY_VEC_DEF(double, long, isnan, -isnan)
+_UNARY_VEC_DEF(float,  int,  isnan, -isnan)
+_UNARY_VEC_DEF(double, long, isnan, -isnan)
 
-UNARY_VEC_DEF(float,  int,  isfinite, -isfinite)
-UNARY_VEC_DEF(double, long, isfinite, -isfinite)
+_UNARY_VEC_DEF(float,  int,  isfinite, -isfinite)
+_UNARY_VEC_DEF(double, long, isfinite, -isfinite)
 
-UNARY_VEC_DEF(float,  int,  isinf, -isinf)
-UNARY_VEC_DEF(double, long, isinf, -isinf)
+_UNARY_VEC_DEF(float,  int,  isinf, -isinf)
+_UNARY_VEC_DEF(double, long, isinf, -isinf)
 
-UNARY_VEC_DEF(float,  int,  isnormal, -isnormal)
-UNARY_VEC_DEF(double, long, isnormal, -isnormal)
+_UNARY_VEC_DEF(float,  int,  isnormal, -isnormal)
+_UNARY_VEC_DEF(double, long, isnormal, -isnormal)
 
-UNARY_VEC_DEF(float,  int,  signbit, -signbit)
-UNARY_VEC_DEF(double, long, signbit, -signbit)
+_UNARY_VEC_DEF(float,  int,  signbit, -signbit)
+_UNARY_VEC_DEF(double, long, signbit, -signbit)
 
-BINARY_VEC_DEF(float,  int,  isequal, -isequal)
-BINARY_VEC_DEF(double, long, isequal, -isequal)
+_BINARY_VEC_DEF(float,  int,  isequal, -isequal)
+_BINARY_VEC_DEF(double, long, isequal, -isequal)
 
-BINARY_VEC_DEF(float,  int,  isnotequal, -isnotequal)
-BINARY_VEC_DEF(double, long, isnotequal, -isnotequal)
+_BINARY_VEC_DEF(float,  int,  isnotequal, -isnotequal)
+_BINARY_VEC_DEF(double, long, isnotequal, -isnotequal)
 
-BINARY_VEC_DEF(float,  int,  isless, -isless)
-BINARY_VEC_DEF(double, long, isless, -isless)
+_BINARY_VEC_DEF(float,  int,  isless, -isless)
+_BINARY_VEC_DEF(double, long, isless, -isless)
 
-BINARY_VEC_DEF(float,  int,  islessequal, -islessequal)
-BINARY_VEC_DEF(double, long, islessequal, -islessequal)
+_BINARY_VEC_DEF(float,  int,  islessequal, -islessequal)
+_BINARY_VEC_DEF(double, long, islessequal, -islessequal)
 
-BINARY_VEC_DEF(float,  int,  isgreater, -isgreater)
-BINARY_VEC_DEF(double, long, isgreater, -isgreater)
+_BINARY_VEC_DEF(float,  int,  isgreater, -isgreater)
+_BINARY_VEC_DEF(double, long, isgreater, -isgreater)
 
-BINARY_VEC_DEF(float,  int,  isgreaterequal, -isgreaterequal)
-BINARY_VEC_DEF(double, long, isgreaterequal, -isgreaterequal)
+_BINARY_VEC_DEF(float,  int,  isgreaterequal, -isgreaterequal)
+_BINARY_VEC_DEF(double, long, isgreaterequal, -isgreaterequal)
 
-BINARY_VEC_DEF(float,  int,  islessgreater, -islessgreater)
-BINARY_VEC_DEF(double, long, islessgreater, -islessgreater)
+_BINARY_VEC_DEF(float,  int,  islessgreater, -islessgreater)
+_BINARY_VEC_DEF(double, long, islessgreater, -islessgreater)

@@ -41,141 +41,141 @@
 #define _CLC_INLINE    __attribute__((always_inline)) inline
 #define _CLC_NODUP     __attribute__((noduplicate))
 
-#define UNARY_VEC_DECL(type,utype,name) \
-_CLC_OVERLOAD _CLC_DECL utype##2  name(type##2 x); \
-_CLC_OVERLOAD _CLC_DECL utype##3  name(type##3 x); \
-_CLC_OVERLOAD _CLC_DECL utype##4  name(type##4 x); \
-_CLC_OVERLOAD _CLC_DECL utype##8  name(type##8 x); \
-_CLC_OVERLOAD _CLC_DECL utype##16 name(type##16 x);\
+#define _UNARY_VEC_DECL(__type,__utype,__name) \
+_CLC_OVERLOAD _CLC_DECL __utype##2  __name(__type##2 __x); \
+_CLC_OVERLOAD _CLC_DECL __utype##3  __name(__type##3 __x); \
+_CLC_OVERLOAD _CLC_DECL __utype##4  __name(__type##4 __x); \
+_CLC_OVERLOAD _CLC_DECL __utype##8  __name(__type##8 __x); \
+_CLC_OVERLOAD _CLC_DECL __utype##16 __name(__type##16 __x);\
 
-#define BINARY_VEC_DECL(type,utype,name) \
-_CLC_OVERLOAD _CLC_DECL utype##2   name(type##2 x, type##2 y);  \
-_CLC_OVERLOAD _CLC_DECL utype##3   name(type##3 x, type##3 y);  \
-_CLC_OVERLOAD _CLC_DECL utype##4   name(type##4 x, type##4 y);  \
-_CLC_OVERLOAD _CLC_DECL utype##8   name(type##8 x, type##8 y);  \
-_CLC_OVERLOAD _CLC_DECL utype##16  name(type##16 x, type##16 y);\
+#define _BINARY_VEC_DECL(__type,__utype,__name) \
+_CLC_OVERLOAD _CLC_DECL __utype##2   __name(__type##2 __x, __type##2 __y);  \
+_CLC_OVERLOAD _CLC_DECL __utype##3   __name(__type##3 __x, __type##3 __y);  \
+_CLC_OVERLOAD _CLC_DECL __utype##4   __name(__type##4 __x, __type##4 __y);  \
+_CLC_OVERLOAD _CLC_DECL __utype##8   __name(__type##8 __x, __type##8 __y);  \
+_CLC_OVERLOAD _CLC_DECL __utype##16  __name(__type##16 __x, __type##16 __y);\
 
-#define BINARY_VEC_DECL_ALT(type,utype,type2,name) \
-_CLC_OVERLOAD _CLC_DECL utype##2   name(type##2 x, type2##2 y);  \
-_CLC_OVERLOAD _CLC_DECL utype##3   name(type##3 x, type2##3 y);  \
-_CLC_OVERLOAD _CLC_DECL utype##4   name(type##4 x, type2##4 y);  \
-_CLC_OVERLOAD _CLC_DECL utype##8   name(type##8 x, type2##8 y);  \
-_CLC_OVERLOAD _CLC_DECL utype##16  name(type##16 x, type2##16 y);\
+#define _BINARY_VEC_DECL_ALT(__type,__utype,__type2,__name) \
+_CLC_OVERLOAD _CLC_DECL __utype##2   __name(__type##2 __x, __type2##2 __y);  \
+_CLC_OVERLOAD _CLC_DECL __utype##3   __name(__type##3 __x, __type2##3 __y);  \
+_CLC_OVERLOAD _CLC_DECL __utype##4   __name(__type##4 __x, __type2##4 __y);  \
+_CLC_OVERLOAD _CLC_DECL __utype##8   __name(__type##8 __x, __type2##8 __y);  \
+_CLC_OVERLOAD _CLC_DECL __utype##16  __name(__type##16 __x, __type2##16 __y);\
 
-#define TERNARY_VEC_DECL(type,utype,name) \
-_CLC_OVERLOAD _CLC_DECL utype##2   name(type##2 x, type##2 y,  type##2 z);  \
-_CLC_OVERLOAD _CLC_DECL utype##3   name(type##3 x, type##3 y,  type##3 z);  \
-_CLC_OVERLOAD _CLC_DECL utype##4   name(type##4 x, type##4 y,  type##4 z);  \
-_CLC_OVERLOAD _CLC_DECL utype##8   name(type##8 x, type##8 y,  type##8 z);  \
-_CLC_OVERLOAD _CLC_DECL utype##16  name(type##16 x, type##16 y,type##16 z);\
+#define _TERNARY_VEC_DECL(__type,__utype,__name) \
+_CLC_OVERLOAD _CLC_DECL __utype##2   __name(__type##2 __x, __type##2 __y,  __type##2 __z);  \
+_CLC_OVERLOAD _CLC_DECL __utype##3   __name(__type##3 __x, __type##3 __y,  __type##3 __z);  \
+_CLC_OVERLOAD _CLC_DECL __utype##4   __name(__type##4 __x, __type##4 __y,  __type##4 __z);  \
+_CLC_OVERLOAD _CLC_DECL __utype##8   __name(__type##8 __x, __type##8 __y,  __type##8 __z);  \
+_CLC_OVERLOAD _CLC_DECL __utype##16  __name(__type##16 __x, __type##16 __y,__type##16 __z);\
 
-#define UNARY_INLINE(type,utype,name,op) \
-_CLC_PROTECTED utype op(type x); \
-_CLC_OVERLOAD _CLC_INLINE utype name(type x) { return op(x); }
+#define _UNARY_INLINE(__type,__utype,__name,__op) \
+_CLC_PROTECTED __utype __op(__type __x); \
+_CLC_OVERLOAD _CLC_INLINE __utype __name(__type __x) { return __op(__x); }
 
-#define BINARY_INLINE(type,utype,name,op) \
-_CLC_PROTECTED utype op(type x, type y); \
-_CLC_OVERLOAD _CLC_INLINE utype  name(type x, type y) { return op(x, y); }
+#define _BINARY_INLINE(__type,__utype,__name,__op) \
+_CLC_PROTECTED __utype __op(__type __x, __type __y); \
+_CLC_OVERLOAD _CLC_INLINE __utype  __name(__type __x, __type __y) { return __op(__x, __y); }
 
-#define BINARY_INLINE_ALT(type,utype,type2,name,op) \
-_CLC_PROTECTED utype op(type x, type2 y); \
-_CLC_OVERLOAD _CLC_INLINE utype  name(type x, type2 y) { return op(x, y); }
+#define _BINARY_INLINE_ALT(__type,__utype,__type2,__name,__op) \
+_CLC_PROTECTED __utype __op(__type __x, __type2 __y); \
+_CLC_OVERLOAD _CLC_INLINE __utype  __name(__type __x, __type2 __y) { return __op(__x, __y); }
 
-#define UNARY_VEC_DEF(type,utype,name,op)\
-_CLC_OVERLOAD _CLC_DEF utype##2  name(type##2 x)   \
-{ return (utype##2)  (op(x.s0), op(x.s1)); }\
-_CLC_OVERLOAD _CLC_DEF utype##3  name(type##3 x)   \
-{ return (utype##3)  (op(x.s0), op(x.s1), op(x.s2)); }\
-_CLC_OVERLOAD _CLC_DEF utype##4  name(type##4 x)   \
-{ return (utype##4)  (op(x.s0), op(x.s1), op(x.s2), op(x.s3)); }\
-_CLC_OVERLOAD _CLC_DEF utype##8  name(type##8 x)   \
-{ return (utype##8)  (op(x.s0), op(x.s1), op(x.s2), op(x.s3),\
-                     op(x.s4), op(x.s5), op(x.s6), op(x.s7)); }\
-_CLC_OVERLOAD _CLC_DEF utype##16  name(type##16 x)   \
-{ return (utype##16)  (op(x.s0), op(x.s1), op(x.s2), op(x.s3),\
-                      op(x.s4), op(x.s5), op(x.s6), op(x.s7),\
-                      op(x.s8), op(x.s9), op(x.sa), op(x.sb),\
-                      op(x.sc), op(x.sd), op(x.se), op(x.sf)); }
+#define _UNARY_VEC_DEF(__type,__utype,__name,__op)\
+_CLC_OVERLOAD _CLC_DEF __utype##2  __name(__type##2 __x)   \
+{ return (__utype##2)  (__op(__x.s0), __op(__x.s1)); }\
+_CLC_OVERLOAD _CLC_DEF __utype##3  __name(__type##3 __x)   \
+{ return (__utype##3)  (__op(__x.s0), __op(__x.s1), __op(__x.s2)); }\
+_CLC_OVERLOAD _CLC_DEF __utype##4  __name(__type##4 __x)   \
+{ return (__utype##4)  (__op(__x.s0), __op(__x.s1), __op(__x.s2), __op(__x.s3)); }\
+_CLC_OVERLOAD _CLC_DEF __utype##8  __name(__type##8 __x)   \
+{ return (__utype##8)  (__op(__x.s0), __op(__x.s1), __op(__x.s2), __op(__x.s3),\
+                     __op(__x.s4), __op(__x.s5), __op(__x.s6), __op(__x.s7)); }\
+_CLC_OVERLOAD _CLC_DEF __utype##16  __name(__type##16 __x)   \
+{ return (__utype##16)  (__op(__x.s0), __op(__x.s1), __op(__x.s2), __op(__x.s3),\
+                      __op(__x.s4), __op(__x.s5), __op(__x.s6), __op(__x.s7),\
+                      __op(__x.s8), __op(__x.s9), __op(__x.sa), __op(__x.sb),\
+                      __op(__x.sc), __op(__x.sd), __op(__x.se), __op(__x.sf)); }
 
-#define BINARY_VEC_DEF(type,utype,name,op)\
-_CLC_OVERLOAD _CLC_DEF utype##2  name(type##2 x, type##2 y)   \
-{ return (utype##2)  (op(x.s0,y.s0), op(x.s1,y.s1)); }\
-_CLC_OVERLOAD _CLC_DEF utype##3  name(type##3 x, type##3 y)   \
-{ return (utype##3)  (op(x.s0,y.s0), op(x.s1,y.s1), op(x.s2,y.s2)); }\
-_CLC_OVERLOAD _CLC_DEF utype##4  name(type##4 x, type##4 y)   \
-{ return (utype##4)  (op(x.s0,y.s0), op(x.s1,y.s1), op(x.s2,y.s2), op(x.s3,y.s3)); }\
-_CLC_OVERLOAD _CLC_DEF utype##8  name(type##8 x, type##8 y)   \
-{ return (utype##8)  (op(x.s0,y.s0), op(x.s1,y.s1), op(x.s2,y.s2), op(x.s3,y.s3),\
-                     op(x.s4,y.s4), op(x.s5,y.s5), op(x.s6,y.s6), op(x.s7,y.s7)); }\
-_CLC_OVERLOAD _CLC_DEF utype##16  name(type##16 x, type##16 y)   \
-{ return (utype##16)  (op(x.s0,y.s0), op(x.s1,y.s1), op(x.s2,y.s2), op(x.s3,y.s3),\
-                      op(x.s4,y.s4), op(x.s5,y.s5), op(x.s6,y.s6), op(x.s7,y.s7),\
-                      op(x.s8,y.s8), op(x.s9,y.s9), op(x.sa,y.sa), op(x.sb,y.sb),\
-                      op(x.sc,y.sc), op(x.sd,y.sd), op(x.se,y.se), op(x.sf,y.sf)); }
+#define _BINARY_VEC_DEF(__type,__utype,__name,__op)\
+_CLC_OVERLOAD _CLC_DEF __utype##2  __name(__type##2 __x, __type##2 __y)   \
+{ return (__utype##2)  (__op(__x.s0,__y.s0), __op(__x.s1,__y.s1)); }\
+_CLC_OVERLOAD _CLC_DEF __utype##3  __name(__type##3 __x, __type##3 __y)   \
+{ return (__utype##3)  (__op(__x.s0,__y.s0), __op(__x.s1,__y.s1), __op(__x.s2,__y.s2)); }\
+_CLC_OVERLOAD _CLC_DEF __utype##4  __name(__type##4 __x, __type##4 __y)   \
+{ return (__utype##4)  (__op(__x.s0,__y.s0), __op(__x.s1,__y.s1), __op(__x.s2,__y.s2), __op(__x.s3,__y.s3)); }\
+_CLC_OVERLOAD _CLC_DEF __utype##8  __name(__type##8 __x, __type##8 __y)   \
+{ return (__utype##8)  (__op(__x.s0,__y.s0), __op(__x.s1,__y.s1), __op(__x.s2,__y.s2), __op(__x.s3,__y.s3),\
+                     __op(__x.s4,__y.s4), __op(__x.s5,__y.s5), __op(__x.s6,__y.s6), __op(__x.s7,__y.s7)); }\
+_CLC_OVERLOAD _CLC_DEF __utype##16  __name(__type##16 __x, __type##16 __y)   \
+{ return (__utype##16)  (__op(__x.s0,__y.s0), __op(__x.s1,__y.s1), __op(__x.s2,__y.s2), __op(__x.s3,__y.s3),\
+                      __op(__x.s4,__y.s4), __op(__x.s5,__y.s5), __op(__x.s6,__y.s6), __op(__x.s7,__y.s7),\
+                      __op(__x.s8,__y.s8), __op(__x.s9,__y.s9), __op(__x.sa,__y.sa), __op(__x.sb,__y.sb),\
+                      __op(__x.sc,__y.sc), __op(__x.sd,__y.sd), __op(__x.se,__y.se), __op(__x.sf,__y.sf)); }
 
-#define BINARY_VEC_DEF_ALT(type,utype,type2,name,op)\
-_CLC_OVERLOAD _CLC_DEF utype##2  name(type##2 x, type2##2 y)   \
-{ return (utype##2)  (op(x.s0,y.s0), op(x.s1,y.s1)); }\
-_CLC_OVERLOAD _CLC_DEF utype##3  name(type##3 x, type2##3 y)   \
-{ return (utype##3)  (op(x.s0,y.s0), op(x.s1,y.s1), op(x.s2,y.s2)); }\
-_CLC_OVERLOAD _CLC_DEF utype##4  name(type##4 x, type2##4 y)   \
-{ return (utype##4)  (op(x.s0,y.s0), op(x.s1,y.s1), op(x.s2,y.s2), op(x.s3,y.s3)); }\
-_CLC_OVERLOAD _CLC_DEF utype##8  name(type##8 x, type2##8 y)   \
-{ return (utype##8)  (op(x.s0,y.s0), op(x.s1,y.s1), op(x.s2,y.s2), op(x.s3,y.s3),\
-                     op(x.s4,y.s4), op(x.s5,y.s5), op(x.s6,y.s6), op(x.s7,y.s7)); }\
-_CLC_OVERLOAD _CLC_DEF utype##16  name(type##16 x, type2##16 y)   \
-{ return (utype##16)  (op(x.s0,y.s0), op(x.s1,y.s1), op(x.s2,y.s2), op(x.s3,y.s3),\
-                      op(x.s4,y.s4), op(x.s5,y.s5), op(x.s6,y.s6), op(x.s7,y.s7),\
-                      op(x.s8,y.s8), op(x.s9,y.s9), op(x.sa,y.sa), op(x.sb,y.sb),\
-                      op(x.sc,y.sc), op(x.sd,y.sd), op(x.se,y.se), op(x.sf,y.sf)); }
+#define _BINARY_VEC_DEF_ALT(__type,__utype,__type2,__name,__op)\
+_CLC_OVERLOAD _CLC_DEF __utype##2  __name(__type##2 __x, __type2##2 __y)   \
+{ return (__utype##2)  (__op(__x.s0,__y.s0), __op(__x.s1,__y.s1)); }\
+_CLC_OVERLOAD _CLC_DEF __utype##3  __name(__type##3 __x, __type2##3 __y)   \
+{ return (__utype##3)  (__op(__x.s0,__y.s0), __op(__x.s1,__y.s1), __op(__x.s2,__y.s2)); }\
+_CLC_OVERLOAD _CLC_DEF __utype##4  __name(__type##4 __x, __type2##4 __y)   \
+{ return (__utype##4)  (__op(__x.s0,__y.s0), __op(__x.s1,__y.s1), __op(__x.s2,__y.s2), __op(__x.s3,__y.s3)); }\
+_CLC_OVERLOAD _CLC_DEF __utype##8  __name(__type##8 __x, __type2##8 __y)   \
+{ return (__utype##8)  (__op(__x.s0,__y.s0), __op(__x.s1,__y.s1), __op(__x.s2,__y.s2), __op(__x.s3,__y.s3),\
+                     __op(__x.s4,__y.s4), __op(__x.s5,__y.s5), __op(__x.s6,__y.s6), __op(__x.s7,__y.s7)); }\
+_CLC_OVERLOAD _CLC_DEF __utype##16  __name(__type##16 __x, __type2##16 __y)   \
+{ return (__utype##16)  (__op(__x.s0,__y.s0), __op(__x.s1,__y.s1), __op(__x.s2,__y.s2), __op(__x.s3,__y.s3),\
+                      __op(__x.s4,__y.s4), __op(__x.s5,__y.s5), __op(__x.s6,__y.s6), __op(__x.s7,__y.s7),\
+                      __op(__x.s8,__y.s8), __op(__x.s9,__y.s9), __op(__x.sa,__y.sa), __op(__x.sb,__y.sb),\
+                      __op(__x.sc,__y.sc), __op(__x.sd,__y.sd), __op(__x.se,__y.se), __op(__x.sf,__y.sf)); }
 
-#define TERNARY_VEC_DEF(type,utype,name,op)\
-_CLC_OVERLOAD _CLC_DEF utype##2  name(type##2 x, type##2 y, type##2 z)   \
-{ return (utype##2)  (op(x.s0,y.s0,z.s0), op(x.s1,y.s1,z.s1)); }\
-_CLC_OVERLOAD _CLC_DEF utype##3  name(type##3 x, type##3 y, type##3 z)   \
-{ return (utype##3)  (op(x.s0,y.s0,z.s0), op(x.s1,y.s1,z.s1), op(x.s2,y.s2,z.s2)); }\
-_CLC_OVERLOAD _CLC_DEF utype##4  name(type##4 x, type##4 y, type##4 z)   \
-{ return (utype##4)  (op(x.s0,y.s0,z.s0), op(x.s1,y.s1,z.s1), \
-                      op(x.s2,y.s2,z.s2), op(x.s3,y.s3,z.s3)); }\
-_CLC_OVERLOAD _CLC_DEF utype##8  name(type##8 x, type##8 y, type##8 z)   \
-{ return (utype##8)  (op(x.s0,y.s0,z.s0), op(x.s1,y.s1,z.s1), \
-                      op(x.s2,y.s2,z.s2), op(x.s3,y.s3,z.s3),\
-                      op(x.s4,y.s4,z.s4), op(x.s5,y.s5,z.s5), \
-                      op(x.s6,y.s6,z.s6), op(x.s7,y.s7,z.s7)); }\
-_CLC_OVERLOAD _CLC_DEF utype##16  name(type##16 x, type##16 y, type##16 z)   \
-{ return (utype##16)  (op(x.s0,y.s0,z.s0), op(x.s1,y.s1,z.s1), \
-                       op(x.s2,y.s2,z.s2), op(x.s3,y.s3,z.s3),\
-                       op(x.s4,y.s4,z.s4), op(x.s5,y.s5,z.s5), \
-                       op(x.s6,y.s6,z.s6), op(x.s7,y.s7,z.s7),\
-                       op(x.s8,y.s8,z.s8), op(x.s9,y.s9,z.s9), \
-                       op(x.sa,y.sa,z.sa), op(x.sb,y.sb,z.sb),\
-                       op(x.sc,y.sc,z.sc), op(x.sd,y.sd,z.sd), \
-                       op(x.se,y.se,z.se), op(x.sf,y.sf,z.sf)); }
+#define _TERNARY_VEC_DEF(__type,__utype,__name,__op)\
+_CLC_OVERLOAD _CLC_DEF __utype##2  __name(__type##2 __x, __type##2 __y, __type##2 __z)   \
+{ return (__utype##2)  (__op(__x.s0,__y.s0,__z.s0), __op(__x.s1,__y.s1,__z.s1)); }\
+_CLC_OVERLOAD _CLC_DEF __utype##3  __name(__type##3 __x, __type##3 __y, __type##3 __z)   \
+{ return (__utype##3)  (__op(__x.s0,__y.s0,__z.s0), __op(__x.s1,__y.s1,__z.s1), __op(__x.s2,__y.s2,__z.s2)); }\
+_CLC_OVERLOAD _CLC_DEF __utype##4  __name(__type##4 __x, __type##4 __y, __type##4 __z)   \
+{ return (__utype##4)  (__op(__x.s0,__y.s0,__z.s0), __op(__x.s1,__y.s1,__z.s1), \
+                      __op(__x.s2,__y.s2,__z.s2), __op(__x.s3,__y.s3,__z.s3)); }\
+_CLC_OVERLOAD _CLC_DEF __utype##8  __name(__type##8 __x, __type##8 __y, __type##8 __z)   \
+{ return (__utype##8)  (__op(__x.s0,__y.s0,__z.s0), __op(__x.s1,__y.s1,__z.s1), \
+                      __op(__x.s2,__y.s2,__z.s2), __op(__x.s3,__y.s3,__z.s3),\
+                      __op(__x.s4,__y.s4,__z.s4), __op(__x.s5,__y.s5,__z.s5), \
+                      __op(__x.s6,__y.s6,__z.s6), __op(__x.s7,__y.s7,__z.s7)); }\
+_CLC_OVERLOAD _CLC_DEF __utype##16  __name(__type##16 __x, __type##16 __y, __type##16 __z)   \
+{ return (__utype##16)  (__op(__x.s0,__y.s0,__z.s0), __op(__x.s1,__y.s1,__z.s1), \
+                       __op(__x.s2,__y.s2,__z.s2), __op(__x.s3,__y.s3,__z.s3),\
+                       __op(__x.s4,__y.s4,__z.s4), __op(__x.s5,__y.s5,__z.s5), \
+                       __op(__x.s6,__y.s6,__z.s6), __op(__x.s7,__y.s7,__z.s7),\
+                       __op(__x.s8,__y.s8,__z.s8), __op(__x.s9,__y.s9,__z.s9), \
+                       __op(__x.sa,__y.sa,__z.sa), __op(__x.sb,__y.sb,__z.sb),\
+                       __op(__x.sc,__y.sc,__z.sc), __op(__x.sd,__y.sd,__z.sd), \
+                       __op(__x.se,__y.se,__z.se), __op(__x.sf,__y.sf,__z.sf)); }
 
 
-#define _VEC_TYPE(type,sz) type##sz
+#define _VEC_TYPE(__type,__sz) __type##__sz
 
 #define _EXPAND_TYPES()   \
-    EXPAND_SIZES(char)   \
-    EXPAND_SIZES(uchar)  \
-    EXPAND_SIZES(short)  \
-    EXPAND_SIZES(ushort) \
-    EXPAND_SIZES(int)    \
-    EXPAND_SIZES(uint)   \
-    EXPAND_SIZES(long)   \
-    EXPAND_SIZES(ulong)  \
-    EXPAND_SIZES(float)  \
-    EXPAND_SIZES(double) 
+    _EXPAND_SIZES(char)   \
+    _EXPAND_SIZES(uchar)  \
+    _EXPAND_SIZES(short)  \
+    _EXPAND_SIZES(ushort) \
+    _EXPAND_SIZES(int)    \
+    _EXPAND_SIZES(uint)   \
+    _EXPAND_SIZES(long)   \
+    _EXPAND_SIZES(ulong)  \
+    _EXPAND_SIZES(float)  \
+    _EXPAND_SIZES(double) 
 
 #define _EXPAND_INTEGER_TYPES()   \
-    EXPAND_SIZES(char)   \
-    EXPAND_SIZES(uchar)  \
-    EXPAND_SIZES(short)  \
-    EXPAND_SIZES(ushort) \
-    EXPAND_SIZES(int)    \
-    EXPAND_SIZES(uint)   \
-    EXPAND_SIZES(long)   \
-    EXPAND_SIZES(ulong)  
+    _EXPAND_SIZES(char)   \
+    _EXPAND_SIZES(uchar)  \
+    _EXPAND_SIZES(short)  \
+    _EXPAND_SIZES(ushort) \
+    _EXPAND_SIZES(int)    \
+    _EXPAND_SIZES(uint)   \
+    _EXPAND_SIZES(long)   \
+    _EXPAND_SIZES(ulong)  
 
 typedef unsigned int cl_mem_fence_flags;
 
@@ -191,9 +191,9 @@ typedef __UINT16_TYPE__ uint16_t;
 typedef __INT8_TYPE__  int8_t;
 typedef __UINT8_TYPE__  uint8_t;
 
-#define __stdint_join3(a,b,c) a ## b ## c
-#define  __intn_t(n) __stdint_join3( int, n, _t)
-#define __uintn_t(n) __stdint_join3(uint, n, _t)
+#define __stdint_join3(__a,__b,__c) __a ## __b ## __c
+#define  __intn_t(__n) __stdint_join3( int, __n, _t)
+#define __uintn_t(__n) __stdint_join3(uint, __n, _t)
 
 typedef __typeof__(((int*)0)-((int*)0)) ptrdiff_t;
 typedef __typeof__(sizeof(int))         size_t;
@@ -221,36 +221,36 @@ typedef struct image3d *image3d_t;
 /*-----------------------------------------------------------------------------
 * Vectors
 *----------------------------------------------------------------------------*/
-#define COAL_VECTOR(type, len)                                  \
-   typedef type type##len __attribute__((ext_vector_type(len)))
+#define _COAL_VECTOR(__type, __len)                                  \
+   typedef __type __type##__len __attribute__((ext_vector_type(__len)))
 
-#define COAL_VECTOR_SET(type) \
-   COAL_VECTOR(type, 2);      \
-   COAL_VECTOR(type, 3);      \
-   COAL_VECTOR(type, 4);      \
-   COAL_VECTOR(type, 8);      \
-   COAL_VECTOR(type, 16);
+#define _COAL_VECTOR_SET(__type) \
+   _COAL_VECTOR(__type, 2);      \
+   _COAL_VECTOR(__type, 3);      \
+   _COAL_VECTOR(__type, 4);      \
+   _COAL_VECTOR(__type, 8);      \
+   _COAL_VECTOR(__type, 16);
 
-COAL_VECTOR_SET(char)
-COAL_VECTOR_SET(uchar)
-COAL_VECTOR_SET(short)
-COAL_VECTOR_SET(ushort)
-COAL_VECTOR_SET(int)
-COAL_VECTOR_SET(uint)
-COAL_VECTOR_SET(long)
-COAL_VECTOR_SET(ulong)
-COAL_VECTOR_SET(float)
-COAL_VECTOR_SET(double)
+_COAL_VECTOR_SET(char)
+_COAL_VECTOR_SET(uchar)
+_COAL_VECTOR_SET(short)
+_COAL_VECTOR_SET(ushort)
+_COAL_VECTOR_SET(int)
+_COAL_VECTOR_SET(uint)
+_COAL_VECTOR_SET(long)
+_COAL_VECTOR_SET(ulong)
+_COAL_VECTOR_SET(float)
+_COAL_VECTOR_SET(double)
 
-#undef COAL_VECTOR_SET
-#undef COAL_VECTOR
+#undef _COAL_VECTOR_SET
+#undef _COAL_VECTOR
 
 #define CL_VERSION_1_0          100
 #define CL_VERSION_1_1          110
 #define __OPENCL_VERSION__      110
 #define __ENDIAN_LITTLE__       1
-#define __kernel_exec(X, typen) __kernel __attribute__((work_group_size_hint(X, 1, 1))) \
-                                __attribute__((vec_type_hint(typen)))
+#define __kernel_exec(__X, __typen) __kernel __attribute__((work_group_size_hint(__X, 1, 1))) \
+                                __attribute__((vec_type_hint(__typen)))
 #define kernel_exec             __kernel_exec
 
 #define __write_only
@@ -299,124 +299,124 @@ COAL_VECTOR_SET(double)
 #define CLK_HALF_FLOAT              0x10DD
 #define CLK_FLOAT                   0x10DE
 
-_CLC_PROTECTED _CLC_NODUP void  barrier(cl_mem_fence_flags flags);
-_CLC_PROTECTED void   mem_fence        (cl_mem_fence_flags flags);
-_CLC_PROTECTED void   read_mem_fence   (cl_mem_fence_flags flags);
-_CLC_PROTECTED void   write_mem_fence  (cl_mem_fence_flags flags);
+_CLC_PROTECTED _CLC_NODUP void  barrier(cl_mem_fence_flags __flags);
+_CLC_PROTECTED void   mem_fence        (cl_mem_fence_flags __flags);
+_CLC_PROTECTED void   read_mem_fence   (cl_mem_fence_flags __flags);
+_CLC_PROTECTED void   write_mem_fence  (cl_mem_fence_flags __flags);
 
 /******************************************************************************
 * AS_<type> functions
 ******************************************************************************/
-#define as_char(x)      __builtin_astype(x, char)
-#define as_uchar(x)     __builtin_astype(x, uchar)
-#define as_short(x)     __builtin_astype(x, short)
-#define as_ushort(x)    __builtin_astype(x, ushort)
-#define as_int(x)       __builtin_astype(x, int)
-#define as_uint(x)      __builtin_astype(x, uint)
-#define as_long(x)      __builtin_astype(x, long)
-#define as_ulong(x)     __builtin_astype(x, ulong)
-#define as_float(x)     __builtin_astype(x, float)
-#define as_double(x)    __builtin_astype(x, double)
+#define as_char(__x)      __builtin_astype(__x, char)
+#define as_uchar(__x)     __builtin_astype(__x, uchar)
+#define as_short(__x)     __builtin_astype(__x, short)
+#define as_ushort(__x)    __builtin_astype(__x, ushort)
+#define as_int(__x)       __builtin_astype(__x, int)
+#define as_uint(__x)      __builtin_astype(__x, uint)
+#define as_long(__x)      __builtin_astype(__x, long)
+#define as_ulong(__x)     __builtin_astype(__x, ulong)
+#define as_float(__x)     __builtin_astype(__x, float)
+#define as_double(__x)    __builtin_astype(__x, double)
 
-#define as_char2(x)     __builtin_astype(x, char2)
-#define as_uchar2(x)    __builtin_astype(x, uchar2)
-#define as_short2(x)    __builtin_astype(x, short2)
-#define as_ushort2(x)   __builtin_astype(x, ushort2)
-#define as_int2(x)      __builtin_astype(x, int2)
-#define as_uint2(x)     __builtin_astype(x, uint2)
-#define as_long2(x)     __builtin_astype(x, long2)
-#define as_ulong2(x)    __builtin_astype(x, ulong2)
-#define as_float2(x)    __builtin_astype(x, float2)
-#define as_double2(x)   __builtin_astype(x, double2)
+#define as_char2(__x)     __builtin_astype(__x, char2)
+#define as_uchar2(__x)    __builtin_astype(__x, uchar2)
+#define as_short2(__x)    __builtin_astype(__x, short2)
+#define as_ushort2(__x)   __builtin_astype(__x, ushort2)
+#define as_int2(__x)      __builtin_astype(__x, int2)
+#define as_uint2(__x)     __builtin_astype(__x, uint2)
+#define as_long2(__x)     __builtin_astype(__x, long2)
+#define as_ulong2(__x)    __builtin_astype(__x, ulong2)
+#define as_float2(__x)    __builtin_astype(__x, float2)
+#define as_double2(__x)   __builtin_astype(__x, double2)
 
-#define as_char3(x)     __builtin_astype(x, char3)
-#define as_uchar3(x)    __builtin_astype(x, uchar3)
-#define as_short3(x)    __builtin_astype(x, short3)
-#define as_ushort3(x)   __builtin_astype(x, ushort3)
-#define as_int3(x)      __builtin_astype(x, int3)
-#define as_uint3(x)     __builtin_astype(x, uint3)
-#define as_long3(x)     __builtin_astype(x, long3)
-#define as_ulong3(x)    __builtin_astype(x, ulong3)
-#define as_float3(x)    __builtin_astype(x, float3)
-#define as_double3(x)   __builtin_astype(x, double3)
+#define as_char3(__x)     __builtin_astype(__x, char3)
+#define as_uchar3(__x)    __builtin_astype(__x, uchar3)
+#define as_short3(__x)    __builtin_astype(__x, short3)
+#define as_ushort3(__x)   __builtin_astype(__x, ushort3)
+#define as_int3(__x)      __builtin_astype(__x, int3)
+#define as_uint3(__x)     __builtin_astype(__x, uint3)
+#define as_long3(__x)     __builtin_astype(__x, long3)
+#define as_ulong3(__x)    __builtin_astype(__x, ulong3)
+#define as_float3(__x)    __builtin_astype(__x, float3)
+#define as_double3(__x)   __builtin_astype(__x, double3)
 
-#define as_char4(x)     __builtin_astype(x, char4)
-#define as_uchar4(x)    __builtin_astype(x, uchar4)
-#define as_short4(x)    __builtin_astype(x, short4)
-#define as_ushort4(x)   __builtin_astype(x, ushort4)
-#define as_int4(x)      __builtin_astype(x, int4)
-#define as_uint4(x)     __builtin_astype(x, uint4)
-#define as_long4(x)     __builtin_astype(x, long4)
-#define as_ulong4(x)    __builtin_astype(x, ulong4)
-#define as_float4(x)    __builtin_astype(x, float4)
-#define as_double4(x)   __builtin_astype(x, double4)
+#define as_char4(__x)     __builtin_astype(__x, char4)
+#define as_uchar4(__x)    __builtin_astype(__x, uchar4)
+#define as_short4(__x)    __builtin_astype(__x, short4)
+#define as_ushort4(__x)   __builtin_astype(__x, ushort4)
+#define as_int4(__x)      __builtin_astype(__x, int4)
+#define as_uint4(__x)     __builtin_astype(__x, uint4)
+#define as_long4(__x)     __builtin_astype(__x, long4)
+#define as_ulong4(__x)    __builtin_astype(__x, ulong4)
+#define as_float4(__x)    __builtin_astype(__x, float4)
+#define as_double4(__x)   __builtin_astype(__x, double4)
 
-#define as_char8(x)     __builtin_astype(x, char8)
-#define as_uchar8(x)    __builtin_astype(x, uchar8)
-#define as_short8(x)    __builtin_astype(x, short8)
-#define as_ushort8(x)   __builtin_astype(x, ushort8)
-#define as_int8(x)      __builtin_astype(x, int8)
-#define as_uint8(x)     __builtin_astype(x, uint8)
-#define as_long8(x)     __builtin_astype(x, long8)
-#define as_ulong8(x)    __builtin_astype(x, ulong8)
-#define as_float8(x)    __builtin_astype(x, float8)
-#define as_double8(x)   __builtin_astype(x, double8)
+#define as_char8(__x)     __builtin_astype(__x, char8)
+#define as_uchar8(__x)    __builtin_astype(__x, uchar8)
+#define as_short8(__x)    __builtin_astype(__x, short8)
+#define as_ushort8(__x)   __builtin_astype(__x, ushort8)
+#define as_int8(__x)      __builtin_astype(__x, int8)
+#define as_uint8(__x)     __builtin_astype(__x, uint8)
+#define as_long8(__x)     __builtin_astype(__x, long8)
+#define as_ulong8(__x)    __builtin_astype(__x, ulong8)
+#define as_float8(__x)    __builtin_astype(__x, float8)
+#define as_double8(__x)   __builtin_astype(__x, double8)
 
-#define as_char16(x)    __builtin_astype(x, char16)
-#define as_uchar16(x)   __builtin_astype(x, uchar16)
-#define as_short16(x)   __builtin_astype(x, short16)
-#define as_ushort16(x)  __builtin_astype(x, ushort16)
-#define as_int16(x)     __builtin_astype(x, int16)
-#define as_uint16(x)    __builtin_astype(x, uint16)
-#define as_long16(x)    __builtin_astype(x, long16)
-#define as_ulong16(x)   __builtin_astype(x, ulong16)
-#define as_float16(x)   __builtin_astype(x, float16)
-#define as_double16(x)  __builtin_astype(x, double16)
+#define as_char16(__x)    __builtin_astype(__x, char16)
+#define as_uchar16(__x)   __builtin_astype(__x, uchar16)
+#define as_short16(__x)   __builtin_astype(__x, short16)
+#define as_ushort16(__x)  __builtin_astype(__x, ushort16)
+#define as_int16(__x)     __builtin_astype(__x, int16)
+#define as_uint16(__x)    __builtin_astype(__x, uint16)
+#define as_long16(__x)    __builtin_astype(__x, long16)
+#define as_ulong16(__x)   __builtin_astype(__x, ulong16)
+#define as_float16(__x)   __builtin_astype(__x, float16)
+#define as_double16(__x)  __builtin_astype(__x, double16)
 
-#define _CLC_CONVERT_DECL(FROM_TYPE, TO_TYPE, SUFFIX) \
-  _CLC_OVERLOAD _CLC_DECL TO_TYPE convert_##TO_TYPE##SUFFIX(FROM_TYPE x);
+#define _CLC_CONVERT_DECL(_FROM_TYPE, _TO_TYPE, _SUFFIX) \
+  _CLC_OVERLOAD _CLC_DECL _TO_TYPE convert_##_TO_TYPE##_SUFFIX(_FROM_TYPE __x);
 
-#define _CLC_VECTOR_CONVERT_DECL(FROM_TYPE, TO_TYPE, SUFFIX) \
-  _CLC_CONVERT_DECL(FROM_TYPE, TO_TYPE, SUFFIX) \
-  _CLC_CONVERT_DECL(FROM_TYPE##2, TO_TYPE##2, SUFFIX) \
-  _CLC_CONVERT_DECL(FROM_TYPE##3, TO_TYPE##3, SUFFIX) \
-  _CLC_CONVERT_DECL(FROM_TYPE##4, TO_TYPE##4, SUFFIX) \
-  _CLC_CONVERT_DECL(FROM_TYPE##8, TO_TYPE##8, SUFFIX) \
-  _CLC_CONVERT_DECL(FROM_TYPE##16, TO_TYPE##16, SUFFIX)
+#define _CLC_VECTOR_CONVERT_DECL(_FROM_TYPE, _TO_TYPE, _SUFFIX) \
+  _CLC_CONVERT_DECL(_FROM_TYPE, _TO_TYPE, _SUFFIX) \
+  _CLC_CONVERT_DECL(_FROM_TYPE##2, _TO_TYPE##2, _SUFFIX) \
+  _CLC_CONVERT_DECL(_FROM_TYPE##3, _TO_TYPE##3, _SUFFIX) \
+  _CLC_CONVERT_DECL(_FROM_TYPE##4, _TO_TYPE##4, _SUFFIX) \
+  _CLC_CONVERT_DECL(_FROM_TYPE##8, _TO_TYPE##8, _SUFFIX) \
+  _CLC_CONVERT_DECL(_FROM_TYPE##16, _TO_TYPE##16, _SUFFIX)
 
-#define _CLC_VECTOR_CONVERT_FROM1(FROM_TYPE, SUFFIX) \
-  _CLC_VECTOR_CONVERT_DECL(FROM_TYPE, char, SUFFIX) \
-  _CLC_VECTOR_CONVERT_DECL(FROM_TYPE, uchar, SUFFIX) \
-  _CLC_VECTOR_CONVERT_DECL(FROM_TYPE, int, SUFFIX) \
-  _CLC_VECTOR_CONVERT_DECL(FROM_TYPE, uint, SUFFIX) \
-  _CLC_VECTOR_CONVERT_DECL(FROM_TYPE, short, SUFFIX) \
-  _CLC_VECTOR_CONVERT_DECL(FROM_TYPE, ushort, SUFFIX) \
-  _CLC_VECTOR_CONVERT_DECL(FROM_TYPE, long, SUFFIX) \
-  _CLC_VECTOR_CONVERT_DECL(FROM_TYPE, ulong, SUFFIX) \
-  _CLC_VECTOR_CONVERT_DECL(FROM_TYPE, float, SUFFIX)
+#define _CLC_VECTOR_CONVERT_FROM1(_FROM_TYPE, _SUFFIX) \
+  _CLC_VECTOR_CONVERT_DECL(_FROM_TYPE, char, _SUFFIX) \
+  _CLC_VECTOR_CONVERT_DECL(_FROM_TYPE, uchar, _SUFFIX) \
+  _CLC_VECTOR_CONVERT_DECL(_FROM_TYPE, int, _SUFFIX) \
+  _CLC_VECTOR_CONVERT_DECL(_FROM_TYPE, uint, _SUFFIX) \
+  _CLC_VECTOR_CONVERT_DECL(_FROM_TYPE, short, _SUFFIX) \
+  _CLC_VECTOR_CONVERT_DECL(_FROM_TYPE, ushort, _SUFFIX) \
+  _CLC_VECTOR_CONVERT_DECL(_FROM_TYPE, long, _SUFFIX) \
+  _CLC_VECTOR_CONVERT_DECL(_FROM_TYPE, ulong, _SUFFIX) \
+  _CLC_VECTOR_CONVERT_DECL(_FROM_TYPE, float, _SUFFIX)
 
-#define _CLC_VECTOR_CONVERT_FROM(FROM_TYPE, SUFFIX) \
-  _CLC_VECTOR_CONVERT_FROM1(FROM_TYPE, SUFFIX) \
-  _CLC_VECTOR_CONVERT_DECL(FROM_TYPE, double, SUFFIX)
+#define _CLC_VECTOR_CONVERT_FROM(_FROM_TYPE, _SUFFIX) \
+  _CLC_VECTOR_CONVERT_FROM1(_FROM_TYPE, _SUFFIX) \
+  _CLC_VECTOR_CONVERT_DECL(_FROM_TYPE, double, _SUFFIX)
 
-#define _CLC_VECTOR_CONVERT_TO1(SUFFIX) \
-  _CLC_VECTOR_CONVERT_FROM(char, SUFFIX) \
-  _CLC_VECTOR_CONVERT_FROM(uchar, SUFFIX) \
-  _CLC_VECTOR_CONVERT_FROM(int, SUFFIX) \
-  _CLC_VECTOR_CONVERT_FROM(uint, SUFFIX) \
-  _CLC_VECTOR_CONVERT_FROM(short, SUFFIX) \
-  _CLC_VECTOR_CONVERT_FROM(ushort, SUFFIX) \
-  _CLC_VECTOR_CONVERT_FROM(long, SUFFIX) \
-  _CLC_VECTOR_CONVERT_FROM(ulong, SUFFIX) \
-  _CLC_VECTOR_CONVERT_FROM(float, SUFFIX)
+#define _CLC_VECTOR_CONVERT_TO1(_SUFFIX) \
+  _CLC_VECTOR_CONVERT_FROM(char, _SUFFIX) \
+  _CLC_VECTOR_CONVERT_FROM(uchar, _SUFFIX) \
+  _CLC_VECTOR_CONVERT_FROM(int, _SUFFIX) \
+  _CLC_VECTOR_CONVERT_FROM(uint, _SUFFIX) \
+  _CLC_VECTOR_CONVERT_FROM(short, _SUFFIX) \
+  _CLC_VECTOR_CONVERT_FROM(ushort, _SUFFIX) \
+  _CLC_VECTOR_CONVERT_FROM(long, _SUFFIX) \
+  _CLC_VECTOR_CONVERT_FROM(ulong, _SUFFIX) \
+  _CLC_VECTOR_CONVERT_FROM(float, _SUFFIX)
 
-#define _CLC_VECTOR_CONVERT_TO(SUFFIX) \
-  _CLC_VECTOR_CONVERT_TO1(SUFFIX) \
-  _CLC_VECTOR_CONVERT_FROM(double, SUFFIX)
+#define _CLC_VECTOR_CONVERT_TO(_SUFFIX) \
+  _CLC_VECTOR_CONVERT_TO1(_SUFFIX) \
+  _CLC_VECTOR_CONVERT_FROM(double, _SUFFIX)
 
-#define _CLC_VECTOR_CONVERT_TO_SUFFIX(ROUND) \
-  _CLC_VECTOR_CONVERT_TO(_sat##ROUND) \
-  _CLC_VECTOR_CONVERT_TO(ROUND)
+#define _CLC_VECTOR_CONVERT_TO_SUFFIX(_ROUND) \
+  _CLC_VECTOR_CONVERT_TO(_sat##_ROUND) \
+  _CLC_VECTOR_CONVERT_TO(_ROUND)
 
 _CLC_VECTOR_CONVERT_TO_SUFFIX(_rtn)
 _CLC_VECTOR_CONVERT_TO_SUFFIX(_rte)
@@ -424,19 +424,19 @@ _CLC_VECTOR_CONVERT_TO_SUFFIX(_rtz)
 _CLC_VECTOR_CONVERT_TO_SUFFIX(_rtp)
 _CLC_VECTOR_CONVERT_TO_SUFFIX()
 
-#define VLOAD_HALF_VECTORIZE(SPACE) \
-_CLC_OVERLOAD _CLC_DEF float  vload_half(size_t offset, const SPACE half *p);  \
-_CLC_OVERLOAD _CLC_DEF float2 vload_half2(size_t offset, const SPACE half *p); \
-_CLC_OVERLOAD _CLC_DEF float3 vload_half3(size_t offset, const SPACE half *p); \
-_CLC_OVERLOAD _CLC_DEF float3 vloada_half3(size_t offset, const SPACE half *p);\
-_CLC_OVERLOAD _CLC_DEF float4 vload_half4(size_t offset, const SPACE half *p); \
-_CLC_OVERLOAD _CLC_DEF float8 vload_half8(size_t offset, const SPACE half *p); \
-_CLC_OVERLOAD _CLC_DEF float16 vload_half16(size_t offset, const SPACE half *p);
+#define _VLOAD_HALF_VECTORIZE(_SPACE) \
+_CLC_OVERLOAD _CLC_DEF float  vload_half(size_t __offset, const _SPACE half *__p);  \
+_CLC_OVERLOAD _CLC_DEF float2 vload_half2(size_t __offset, const _SPACE half *__p); \
+_CLC_OVERLOAD _CLC_DEF float3 vload_half3(size_t __offset, const _SPACE half *__p); \
+_CLC_OVERLOAD _CLC_DEF float3 vloada_half3(size_t __offset, const _SPACE half *__p);\
+_CLC_OVERLOAD _CLC_DEF float4 vload_half4(size_t __offset, const _SPACE half *__p); \
+_CLC_OVERLOAD _CLC_DEF float8 vload_half8(size_t __offset, const _SPACE half *__p); \
+_CLC_OVERLOAD _CLC_DEF float16 vload_half16(size_t __offset, const _SPACE half *__p);
 
-VLOAD_HALF_VECTORIZE(__global)
-VLOAD_HALF_VECTORIZE(__local)
-VLOAD_HALF_VECTORIZE(__constant)
-VLOAD_HALF_VECTORIZE(__private)
+_VLOAD_HALF_VECTORIZE(__global)
+_VLOAD_HALF_VECTORIZE(__local)
+_VLOAD_HALF_VECTORIZE(__constant)
+_VLOAD_HALF_VECTORIZE(__private)
 
 #define vloada_half vload_half
 #define vloada_half2 vload_half2
@@ -444,359 +444,359 @@ VLOAD_HALF_VECTORIZE(__private)
 #define vloada_half8 vload_half8
 #define vloada_half16 vload_half16
 
-#undef VLOAD_HALF_VECTORIZE
+#undef _VLOAD_HALF_VECTORIZE
 
-#define DECL_VSTORE_HALF_SPACE_ROUND(SPACE, ROUND, FUNC) \
-   _CLC_OVERLOAD _CLC_DECL void vstore_half##ROUND(float data, size_t offset, SPACE half *p); \
-   _CLC_OVERLOAD _CLC_DECL void vstorea_half##ROUND(float data, size_t offset, SPACE half *p); \
-   _CLC_OVERLOAD _CLC_DECL void vstore_half2##ROUND(float2 data, size_t offset, SPACE half *p);\
-   _CLC_OVERLOAD _CLC_DECL void vstorea_half2##ROUND(float2 data, size_t offset, SPACE half *p);\
-   _CLC_OVERLOAD _CLC_DECL void vstore_half3##ROUND(float3 data, size_t offset, SPACE half *p); \
-   _CLC_OVERLOAD _CLC_DECL void vstorea_half3##ROUND(float3 data, size_t offset, SPACE half *p); \
-   _CLC_OVERLOAD _CLC_DECL void vstore_half4##ROUND(float4 data, size_t offset, SPACE half *p); \
-   _CLC_OVERLOAD _CLC_DECL void vstorea_half4##ROUND(float4 data, size_t offset, SPACE half *p);\
-   _CLC_OVERLOAD _CLC_DECL void vstore_half8##ROUND(float8 data, size_t offset, SPACE half *p);\
-   _CLC_OVERLOAD _CLC_DECL void vstorea_half8##ROUND(float8 data, size_t offset, SPACE half *p);\
-   _CLC_OVERLOAD _CLC_DECL void vstore_half16##ROUND(float16 data, size_t offset, SPACE half *p);\
-   _CLC_OVERLOAD _CLC_DECL void vstorea_half16##ROUND(float16 data, size_t offset, SPACE half *p);
+#define _DECL_VSTORE_HALF_SPACE_ROUND(_SPACE, _ROUND, _FUNC) \
+   _CLC_OVERLOAD _CLC_DECL void vstore_half##_ROUND(float __data, size_t __offset, _SPACE half *__p); \
+   _CLC_OVERLOAD _CLC_DECL void vstorea_half##_ROUND(float __data, size_t __offset, _SPACE half *__p); \
+   _CLC_OVERLOAD _CLC_DECL void vstore_half2##_ROUND(float2 __data, size_t __offset, _SPACE half *__p);\
+   _CLC_OVERLOAD _CLC_DECL void vstorea_half2##_ROUND(float2 __data, size_t __offset, _SPACE half *__p);\
+   _CLC_OVERLOAD _CLC_DECL void vstore_half3##_ROUND(float3 __data, size_t __offset, _SPACE half *__p); \
+   _CLC_OVERLOAD _CLC_DECL void vstorea_half3##_ROUND(float3 __data, size_t __offset, _SPACE half *__p); \
+   _CLC_OVERLOAD _CLC_DECL void vstore_half4##_ROUND(float4 __data, size_t __offset, _SPACE half *__p); \
+   _CLC_OVERLOAD _CLC_DECL void vstorea_half4##_ROUND(float4 __data, size_t __offset, _SPACE half *__p);\
+   _CLC_OVERLOAD _CLC_DECL void vstore_half8##_ROUND(float8 __data, size_t __offset, _SPACE half *__p);\
+   _CLC_OVERLOAD _CLC_DECL void vstorea_half8##_ROUND(float8 __data, size_t __offset, _SPACE half *__p);\
+   _CLC_OVERLOAD _CLC_DECL void vstore_half16##_ROUND(float16 __data, size_t __offset, _SPACE half *__p);\
+   _CLC_OVERLOAD _CLC_DECL void vstorea_half16##_ROUND(float16 __data, size_t __offset, _SPACE half *__p);
 
-#define DECL_VSTORE_HALF_SPACE(SPACE) \
-  DECL_VSTORE_HALF_SPACE_ROUND(SPACE,     , __ocl_float_to_half) \
-  DECL_VSTORE_HALF_SPACE_ROUND(SPACE, _rte, __ocl_float_to_half_rte) \
-  DECL_VSTORE_HALF_SPACE_ROUND(SPACE, _rtz, __ocl_float_to_half_rtz) \
-  DECL_VSTORE_HALF_SPACE_ROUND(SPACE, _rtp, __ocl_float_to_half_rtp) \
-  DECL_VSTORE_HALF_SPACE_ROUND(SPACE, _rtn, __ocl_float_to_half_rtn) 
+#define _DECL_VSTORE_HALF_SPACE(_SPACE) \
+  _DECL_VSTORE_HALF_SPACE_ROUND(_SPACE,     , __ocl_float_to_half) \
+  _DECL_VSTORE_HALF_SPACE_ROUND(_SPACE, _rte, __ocl_float_to_half_rte) \
+  _DECL_VSTORE_HALF_SPACE_ROUND(_SPACE, _rtz, __ocl_float_to_half_rtz) \
+  _DECL_VSTORE_HALF_SPACE_ROUND(_SPACE, _rtp, __ocl_float_to_half_rtp) \
+  _DECL_VSTORE_HALF_SPACE_ROUND(_SPACE, _rtn, __ocl_float_to_half_rtn) 
 
-DECL_VSTORE_HALF_SPACE(__global)
-DECL_VSTORE_HALF_SPACE(__local)
-DECL_VSTORE_HALF_SPACE(__private)
+_DECL_VSTORE_HALF_SPACE(__global)
+_DECL_VSTORE_HALF_SPACE(__local)
+_DECL_VSTORE_HALF_SPACE(__private)
 
-#undef DECL_VSTORE_HALF_SPACE
-#undef DECL_VSTORE_HALF_SPACE_ROUND
+#undef _DECL_VSTORE_HALF_SPACE
+#undef _DECL_VSTORE_HALF_SPACE_ROUND
 
 /*-----------------------------------------------------------------------------
 * Relational
 *----------------------------------------------------------------------------*/
-#define INLN(type) \
-_CLC_OVERLOAD _CLC_INLINE type bitselect(type a, type b, type c) { return a^(c&(b^a)); }
+#define _INLN(__type) \
+_CLC_OVERLOAD _CLC_INLINE __type bitselect(__type __a, __type __b, __type __c) { return __a^(__c&(__b^__a)); }
 
-#define DECL(type) \
-_CLC_OVERLOAD _CLC_DECL type bitselect(type a, type b, type c);
+#define _DECL(__type) \
+_CLC_OVERLOAD _CLC_DECL __type bitselect(__type __a, __type __b, __type __c);
 
-INLN(char)
-INLN(uchar)
-INLN(short)
-INLN(ushort)
-INLN(int)
-INLN(uint)
-INLN(long)
-INLN(ulong)
+_INLN(char)
+_INLN(uchar)
+_INLN(short)
+_INLN(ushort)
+_INLN(int)
+_INLN(uint)
+_INLN(long)
+_INLN(ulong)
 
-DECL(char2)
-DECL(uchar2)
-INLN(short2)
-INLN(ushort2)
-INLN(int2)
-INLN(uint2)
-DECL(long2)
-DECL(ulong2)
+_DECL(char2)
+_DECL(uchar2)
+_INLN(short2)
+_INLN(ushort2)
+_INLN(int2)
+_INLN(uint2)
+_DECL(long2)
+_DECL(ulong2)
 
-DECL(char3)
-DECL(uchar3)
-DECL(short3)
-DECL(ushort3)
-DECL(int3)
-DECL(uint3)
-DECL(long3)
-DECL(ulong3)
+_DECL(char3)
+_DECL(uchar3)
+_DECL(short3)
+_DECL(ushort3)
+_DECL(int3)
+_DECL(uint3)
+_DECL(long3)
+_DECL(ulong3)
 
-INLN(char4)
-INLN(uchar4)
-INLN(short4)
-INLN(ushort4)
-DECL(int4)
-DECL(uint4)
-DECL(long4)
-DECL(ulong4)
+_INLN(char4)
+_INLN(uchar4)
+_INLN(short4)
+_INLN(ushort4)
+_DECL(int4)
+_DECL(uint4)
+_DECL(long4)
+_DECL(ulong4)
 
-INLN(char8)
-INLN(uchar8)
-DECL(short8)
-DECL(ushort8)
-DECL(int8)
-DECL(uint8)
-DECL(long8)
-DECL(ulong8)
+_INLN(char8)
+_INLN(uchar8)
+_DECL(short8)
+_DECL(ushort8)
+_DECL(int8)
+_DECL(uint8)
+_DECL(long8)
+_DECL(ulong8)
 
-DECL(char16)
-DECL(uchar16)
-DECL(short16)
-DECL(ushort16)
-DECL(int16)
-DECL(uint16)
-DECL(long16)
-DECL(ulong16)
+_DECL(char16)
+_DECL(uchar16)
+_DECL(short16)
+_DECL(ushort16)
+_DECL(int16)
+_DECL(uint16)
+_DECL(long16)
+_DECL(ulong16)
 
-DECL(float)
-DECL(float2)
-DECL(float3)
-DECL(float4)
-DECL(float8)
-DECL(float16)
+_DECL(float)
+_DECL(float2)
+_DECL(float3)
+_DECL(float4)
+_DECL(float8)
+_DECL(float16)
 
-DECL(double)
-DECL(double2)
-DECL(double3)
-DECL(double4)
-DECL(double8)
-DECL(double16)
+_DECL(double)
+_DECL(double2)
+_DECL(double3)
+_DECL(double4)
+_DECL(double8)
+_DECL(double16)
 
-#undef INLN
-#undef DECL
+#undef _INLN
+#undef _DECL
 
-#define EXTU(x,l,r)     (((x) << l) >> r)
+#define _EXTU(__x,__l,__r)     (((__x) << __l) >> __r)
 
-#define SIGND(x)        (as_uint2(x).hi >> 31)
-#define EXPD(x)         EXTU(as_uint2(x).hi, 1, 21)
-#define MANTD_HI(x)     EXTU(as_uint2(x).hi, 12, 12)
-#define MANTD_LO(x)     as_uint2(x).lo
-#define MANTD_ZERO(x)   (MANTD_HI(x) == 0 && MANTD_LO(x) == 0)
-#define ANY_ZEROD(x)    ((as_ulong(x) << 1) == 0)
-#define SUBNORMD(x)     (EXPD(x) == 0 && !MANTD_ZERO(x))
+#define _SIGND(__x)        (as_uint2(__x).hi >> 31)
+#define _EXPD(__x)         _EXTU(as_uint2(__x).hi, 1, 21)
+#define _MANTD_HI(__x)     _EXTU(as_uint2(__x).hi, 12, 12)
+#define _MANTD_LO(__x)     as_uint2(__x).lo
+#define _MANTD_ZERO(__x)   (_MANTD_HI(__x) == 0 && _MANTD_LO(__x) == 0)
+#define ANY_ZEROD(__x)    ((as_ulong(__x) << 1) == 0)
+#define SUBNORMD(__x)     (_EXPD(__x) == 0 && !_MANTD_ZERO(__x))
 
-#define FABSF(x)        ((as_uint(x) << 1) >> 1)
-#define SIGNF(x)        (as_uint(x) >> 31)
-#define EXPF(x)         ((as_uint(x) << 1) >> 24)
-#define MANTF(x)        ((as_uint(x) << 9) >> 9)
+#define _FABSF(__x)        ((as_uint(__x) << 1) >> 1)
+#define _SIGNF(__x)        (as_uint(__x) >> 31)
+#define _EXPF(__x)         ((as_uint(__x) << 1) >> 24)
+#define _MANTF(__x)        ((as_uint(__x) << 9) >> 9)
 
-#define isordered(x,y)          (!isnan(x) & !isnan(y))
-#define isunordered(x,y)        (isnan(x)  | isnan(y))
+#define isordered(__x,__y)          (!isnan(__x) & !isnan(__y))
+#define isunordered(__x,__y)        (isnan(__x)  | isnan(__y))
 
-_CLC_OVERLOAD _CLC_INLINE int  isnan(float  x)   { return FABSF(x) > 0x7F800000; }
-UNARY_INLINE  (double, int,  isnan, __builtin_isnan)
-UNARY_VEC_DECL(float,  int,  isnan)
-UNARY_VEC_DECL(double, long, isnan)
+_CLC_OVERLOAD _CLC_INLINE int  isnan(float  __x)   { return _FABSF(__x) > 0x7F800000; }
+_UNARY_INLINE  (double, int,  isnan, __builtin_isnan)
+_UNARY_VEC_DECL(float,  int,  isnan)
+_UNARY_VEC_DECL(double, long, isnan)
 
-_CLC_OVERLOAD _CLC_INLINE int  isfinite(float  x)   { return EXPF(x) != 255; }
-UNARY_INLINE  (double, int,  isfinite, __builtin_isfinite)
-UNARY_VEC_DECL(float,  int,  isfinite)
-UNARY_VEC_DECL(double, long, isfinite)
+_CLC_OVERLOAD _CLC_INLINE int  isfinite(float  __x)   { return _EXPF(__x) != 255; }
+_UNARY_INLINE  (double, int,  isfinite, __builtin_isfinite)
+_UNARY_VEC_DECL(float,  int,  isfinite)
+_UNARY_VEC_DECL(double, long, isfinite)
 
-_CLC_OVERLOAD _CLC_INLINE int  isinf(float  x)   { return FABSF(x) == 0x7F800000; }
-UNARY_INLINE  (double, int,  isinf, __builtin_isinf)
-UNARY_VEC_DECL(float,  int,  isinf)
-UNARY_VEC_DECL(double, long, isinf)
+_CLC_OVERLOAD _CLC_INLINE int  isinf(float  __x)   { return _FABSF(__x) == 0x7F800000; }
+_UNARY_INLINE  (double, int,  isinf, __builtin_isinf)
+_UNARY_VEC_DECL(float,  int,  isinf)
+_UNARY_VEC_DECL(double, long, isinf)
 
-_CLC_OVERLOAD _CLC_INLINE int  isnormal(float  x)   { return EXPF(x) != 0 && EXPF(x) != 255; }
-UNARY_INLINE  (double, int,  isnormal, __builtin_isnormal)
-UNARY_VEC_DECL(float,  int,  isnormal)
-UNARY_VEC_DECL(double, long, isnormal)
+_CLC_OVERLOAD _CLC_INLINE int  isnormal(float  __x)   { return _EXPF(__x) != 0 && _EXPF(__x) != 255; }
+_UNARY_INLINE  (double, int,  isnormal, __builtin_isnormal)
+_UNARY_VEC_DECL(float,  int,  isnormal)
+_UNARY_VEC_DECL(double, long, isnormal)
 
-_CLC_OVERLOAD _CLC_INLINE int  signbit(float  x) { return SIGNF(x); }
-_CLC_OVERLOAD _CLC_INLINE int  signbit(double x) { return SIGND(x); }
-UNARY_VEC_DECL(float,  int,  signbit)
-UNARY_VEC_DECL(double, long, signbit)
+_CLC_OVERLOAD _CLC_INLINE int  signbit(float  __x) { return _SIGNF(__x); }
+_CLC_OVERLOAD _CLC_INLINE int  signbit(double __x) { return _SIGND(__x); }
+_UNARY_VEC_DECL(float,  int,  signbit)
+_UNARY_VEC_DECL(double, long, signbit)
 
-_CLC_OVERLOAD _CLC_INLINE float copysign(float x, float y)
-    { return as_float(FABSF(x) | (SIGNF(y) << 31)); }
+_CLC_OVERLOAD _CLC_INLINE float copysign(float __x, float __y)
+    { return as_float(_FABSF(__x) | (_SIGNF(__y) << 31)); }
 
-_CLC_OVERLOAD _CLC_INLINE double copysign(double x, double y)
-{ return as_double(((as_ulong(x) << 1) >> 1) | ((as_ulong(y) >> 63) << 63)); }
+_CLC_OVERLOAD _CLC_INLINE double copysign(double __x, double __y)
+{ return as_double(((as_ulong(__x) << 1) >> 1) | ((as_ulong(__y) >> 63) << 63)); }
 
-BINARY_VEC_DECL(float,  float,  copysign)
-BINARY_VEC_DECL(double, double, copysign)
+_BINARY_VEC_DECL(float,  float,  copysign)
+_BINARY_VEC_DECL(double, double, copysign)
 
-_CLC_OVERLOAD _CLC_INLINE int  isequal(float  x, float y)  { return x == y; }
-_CLC_OVERLOAD _CLC_INLINE int  isequal(double x, double y) 
+_CLC_OVERLOAD _CLC_INLINE int  isequal(float  __x, float __y)  { return __x == __y; }
+_CLC_OVERLOAD _CLC_INLINE int  isequal(double __x, double __y) 
 { 
-    if (EXPD(x) == 0 && EXPD(y) == 0)
+    if (_EXPD(__x) == 0 && _EXPD(__y) == 0)
     {
-        if (MANTD_ZERO(x) && MANTD_ZERO(y)) return 1;
-        return as_ulong(x) == as_ulong(y);
+        if (_MANTD_ZERO(__x) && _MANTD_ZERO(__y)) return 1;
+        return as_ulong(__x) == as_ulong(__y);
     }
-    return x == y;
+    return __x == __y;
 
 }
-BINARY_VEC_DECL(float,  int,  isequal)
-BINARY_VEC_DECL(double, long, isequal)
+_BINARY_VEC_DECL(float,  int,  isequal)
+_BINARY_VEC_DECL(double, long, isequal)
 
-_CLC_OVERLOAD _CLC_INLINE int  isnotequal(float  x, float y)  { return x != y; }
-_CLC_OVERLOAD _CLC_INLINE int  isnotequal(double x, double y) 
+_CLC_OVERLOAD _CLC_INLINE int  isnotequal(float  __x, float __y)  { return __x != __y; }
+_CLC_OVERLOAD _CLC_INLINE int  isnotequal(double __x, double __y) 
 { 
-    if (EXPD(x) == 0 && EXPD(y) == 0)
+    if (_EXPD(__x) == 0 && _EXPD(__y) == 0)
     {
-        if (MANTD_ZERO(x) && MANTD_ZERO(y)) return 0;
-        return as_ulong(x) != as_ulong(y);
+        if (_MANTD_ZERO(__x) && _MANTD_ZERO(__y)) return 0;
+        return as_ulong(__x) != as_ulong(__y);
     }
-    return x != y;
+    return __x != __y;
 
 }
-BINARY_VEC_DECL(float,  int,  isnotequal)
-BINARY_VEC_DECL(double, long, isnotequal)
+_BINARY_VEC_DECL(float,  int,  isnotequal)
+_BINARY_VEC_DECL(double, long, isnotequal)
 
-_CLC_OVERLOAD _CLC_INLINE int  isless(float  x, float y)  { return x < y; }
-_CLC_OVERLOAD _CLC_INLINE int  isless(double x, double y) 
+_CLC_OVERLOAD _CLC_INLINE int  isless(float  __x, float __y)  { return __x < __y; }
+_CLC_OVERLOAD _CLC_INLINE int  isless(double __x, double __y) 
 { 
-    if (SUBNORMD(x) || SUBNORMD(y))
+    if (SUBNORMD(__x) || SUBNORMD(__y))
     {
-        if (isunordered(x,y))    return 0;
-        if (SIGND(x) ^ SIGND(y)) return (SIGND(x)) ? 1 : 0;
-        return SIGND(x) ? as_ulong(x) > as_ulong(y)
-                        : as_ulong(x) < as_ulong(y);
+        if (isunordered(__x,__y))    return 0;
+        if (_SIGND(__x) ^ _SIGND(__y)) return (_SIGND(__x)) ? 1 : 0;
+        return _SIGND(__x) ? as_ulong(__x) > as_ulong(__y)
+                        : as_ulong(__x) < as_ulong(__y);
     }
-    return x < y;
+    return __x < __y;
 }
-BINARY_VEC_DECL(float,  int,  isless)
-BINARY_VEC_DECL(double, long, isless)
+_BINARY_VEC_DECL(float,  int,  isless)
+_BINARY_VEC_DECL(double, long, isless)
 
-_CLC_OVERLOAD _CLC_INLINE int  islessequal(float  x, float y)  { return x <= y; }
-_CLC_OVERLOAD _CLC_INLINE int  islessequal(double x, double y) 
+_CLC_OVERLOAD _CLC_INLINE int  islessequal(float  __x, float __y)  { return __x <= __y; }
+_CLC_OVERLOAD _CLC_INLINE int  islessequal(double __x, double __y) 
 { 
-    if (SUBNORMD(x) || SUBNORMD(y))
+    if (SUBNORMD(__x) || SUBNORMD(__y))
     {
-        if (isunordered(x,y))    return 0;
-        if (SIGND(x) ^ SIGND(y)) return (SIGND(x)) ? 1 : 0;
-        return SIGND(x) ? as_ulong(x) >= as_ulong(y)
-                        : as_ulong(x) <= as_ulong(y);
+        if (isunordered(__x,__y))    return 0;
+        if (_SIGND(__x) ^ _SIGND(__y)) return (_SIGND(__x)) ? 1 : 0;
+        return _SIGND(__x) ? as_ulong(__x) >= as_ulong(__y)
+                        : as_ulong(__x) <= as_ulong(__y);
     }
-    return x <= y;
+    return __x <= __y;
 }
-BINARY_VEC_DECL(float,  int,  islessequal)
-BINARY_VEC_DECL(double, long, islessequal)
+_BINARY_VEC_DECL(float,  int,  islessequal)
+_BINARY_VEC_DECL(double, long, islessequal)
 
-_CLC_OVERLOAD _CLC_INLINE int  isgreater(float  x, float y)  { return x > y; }
-_CLC_OVERLOAD _CLC_INLINE int  isgreater(double x, double y) 
+_CLC_OVERLOAD _CLC_INLINE int  isgreater(float  __x, float __y)  { return __x > __y; }
+_CLC_OVERLOAD _CLC_INLINE int  isgreater(double __x, double __y) 
 { 
-    if (SUBNORMD(x) || SUBNORMD(y))
+    if (SUBNORMD(__x) || SUBNORMD(__y))
     {
-        if (isunordered(x,y))    return 0;
-        if (SIGND(x) ^ SIGND(y)) return (SIGND(x)) ? 0 : 1;
-        return SIGND(x) ? as_ulong(x) < as_ulong(y)
-                        : as_ulong(x) > as_ulong(y);
+        if (isunordered(__x,__y))    return 0;
+        if (_SIGND(__x) ^ _SIGND(__y)) return (_SIGND(__x)) ? 0 : 1;
+        return _SIGND(__x) ? as_ulong(__x) < as_ulong(__y)
+                        : as_ulong(__x) > as_ulong(__y);
     }
-    return x > y;
+    return __x > __y;
 }
-BINARY_VEC_DECL(float,  int,  isgreater)
-BINARY_VEC_DECL(double, long, isgreater)
+_BINARY_VEC_DECL(float,  int,  isgreater)
+_BINARY_VEC_DECL(double, long, isgreater)
 
-_CLC_OVERLOAD _CLC_INLINE int  isgreaterequal(float  x, float y)  { return x >= y; }
-_CLC_OVERLOAD _CLC_INLINE int  isgreaterequal(double x, double y) 
+_CLC_OVERLOAD _CLC_INLINE int  isgreaterequal(float  __x, float __y)  { return __x >= __y; }
+_CLC_OVERLOAD _CLC_INLINE int  isgreaterequal(double __x, double __y) 
 { 
-    if (SUBNORMD(x) || SUBNORMD(y))
+    if (SUBNORMD(__x) || SUBNORMD(__y))
     {
-        if (isunordered(x,y))    return 0;
-        if (SIGND(x) ^ SIGND(y)) return (SIGND(x)) ? 0 : 1;
-        return SIGND(x) ? as_ulong(x) <= as_ulong(y)
-                        : as_ulong(x) >= as_ulong(y);
+        if (isunordered(__x,__y))    return 0;
+        if (_SIGND(__x) ^ _SIGND(__y)) return (_SIGND(__x)) ? 0 : 1;
+        return _SIGND(__x) ? as_ulong(__x) <= as_ulong(__y)
+                        : as_ulong(__x) >= as_ulong(__y);
     }
-    return x >= y;
+    return __x >= __y;
 }
-BINARY_VEC_DECL(float,  int,  isgreaterequal)
-BINARY_VEC_DECL(double, long, isgreaterequal)
+_BINARY_VEC_DECL(float,  int,  isgreaterequal)
+_BINARY_VEC_DECL(double, long, isgreaterequal)
 
-_CLC_OVERLOAD _CLC_INLINE int  islessgreater(float  x, float y)  
-{ return isless(x,y) | isgreater(x, y); }
-_CLC_OVERLOAD _CLC_INLINE int  islessgreater(double x, double y) 
-{ return isless(x,y) | isgreater(x, y); }
-BINARY_VEC_DECL(float,  int,  islessgreater)
-BINARY_VEC_DECL(double, long, islessgreater)
+_CLC_OVERLOAD _CLC_INLINE int  islessgreater(float  __x, float __y)  
+{ return isless(__x,__y) | isgreater(__x, __y); }
+_CLC_OVERLOAD _CLC_INLINE int  islessgreater(double __x, double __y) 
+{ return isless(__x,__y) | isgreater(__x, __y); }
+_BINARY_VEC_DECL(float,  int,  islessgreater)
+_BINARY_VEC_DECL(double, long, islessgreater)
 
-#undef EXPD
-#undef MANTD_HI
-#undef MANTD_LO
-#undef MANTD_ZERO
-#undef SIGND
-#undef FABSF
-#undef SIGNF
-#undef EXPF
-#undef MANTF
-#undef EXTU
+#undef _EXPD
+#undef _MANTD_HI
+#undef _MANTD_LO
+#undef _MANTD_ZERO
+#undef _SIGND
+#undef _FABSF
+#undef _SIGNF
+#undef _EXPF
+#undef _MANTF
+#undef _EXTU
 
 
-#define TEMPLATE(type) \
-_CLC_OVERLOAD _CLC_INLINE int any(type x)     { return x < 0; } \
-_CLC_OVERLOAD _CLC_INLINE int any(type##2 x)  { return (x.s0 | x.s1) < 0; } \
-_CLC_OVERLOAD _CLC_DECL   int any(type##3 x); \
-_CLC_OVERLOAD _CLC_DECL   int any(type##4 x); \
-_CLC_OVERLOAD _CLC_DECL   int any(type##8 x); \
-_CLC_OVERLOAD _CLC_DECL   int any(type##16 x); \
+#define _TEMPLATE(__type) \
+_CLC_OVERLOAD _CLC_INLINE int any(__type __x)     { return __x < 0; } \
+_CLC_OVERLOAD _CLC_INLINE int any(__type##2 __x)  { return (__x.s0 | __x.s1) < 0; } \
+_CLC_OVERLOAD _CLC_DECL   int any(__type##3 __x); \
+_CLC_OVERLOAD _CLC_DECL   int any(__type##4 __x); \
+_CLC_OVERLOAD _CLC_DECL   int any(__type##8 __x); \
+_CLC_OVERLOAD _CLC_DECL   int any(__type##16 __x); \
 
-TEMPLATE(char)
-TEMPLATE(short)
-TEMPLATE(int)
-TEMPLATE(long)
+_TEMPLATE(char)
+_TEMPLATE(short)
+_TEMPLATE(int)
+_TEMPLATE(long)
 
-#undef TEMPLATE
+#undef _TEMPLATE
 
-#define TEMPLATE(type) \
-_CLC_OVERLOAD _CLC_INLINE int all(type x)     { return x < 0; } \
-_CLC_OVERLOAD _CLC_INLINE int all(type##2 x)  { return (x.s0 & x.s1) < 0; } \
-_CLC_OVERLOAD _CLC_DECL   int all(type##3 x); \
-_CLC_OVERLOAD _CLC_DECL   int all(type##4 x); \
-_CLC_OVERLOAD _CLC_DECL   int all(type##8 x); \
-_CLC_OVERLOAD _CLC_DECL   int all(type##16 x); \
+#define _TEMPLATE(__type) \
+_CLC_OVERLOAD _CLC_INLINE int all(__type __x)     { return __x < 0; } \
+_CLC_OVERLOAD _CLC_INLINE int all(__type##2 __x)  { return (__x.s0 & __x.s1) < 0; } \
+_CLC_OVERLOAD _CLC_DECL   int all(__type##3 __x); \
+_CLC_OVERLOAD _CLC_DECL   int all(__type##4 __x); \
+_CLC_OVERLOAD _CLC_DECL   int all(__type##8 __x); \
+_CLC_OVERLOAD _CLC_DECL   int all(__type##16 __x); \
 
-TEMPLATE(char)
-TEMPLATE(short)
-TEMPLATE(int)
-TEMPLATE(long)
+_TEMPLATE(char)
+_TEMPLATE(short)
+_TEMPLATE(int)
+_TEMPLATE(long)
 
-#undef TEMPLATE
+#undef _TEMPLATE
 
-#define DEFINE(type, otype) \
-_CLC_OVERLOAD _CLC_INLINE type select(type a, type b, otype c) { return c ? b : a; }
+#define _DEFINE(__type, __otype) \
+_CLC_OVERLOAD _CLC_INLINE __type select(__type __a, __type __b, __otype __c) { return __c ? __b : __a; }
 
-DEFINE(char, char)
-DEFINE(char, uchar)
-DEFINE(uchar, char)
-DEFINE(uchar, uchar)
-DEFINE(short, short)
-DEFINE(short, ushort)
-DEFINE(ushort, short)
-DEFINE(ushort, ushort)
-DEFINE(int, int)
-DEFINE(int, uint)
-DEFINE(uint, int)
-DEFINE(uint, uint)
-DEFINE(long, long)
-DEFINE(long, ulong)
-DEFINE(ulong, long)
-DEFINE(ulong, ulong)
-DEFINE(float, int)
-DEFINE(float, uint)
-DEFINE(double, long)
-DEFINE(double, ulong)
+_DEFINE(char, char)
+_DEFINE(char, uchar)
+_DEFINE(uchar, char)
+_DEFINE(uchar, uchar)
+_DEFINE(short, short)
+_DEFINE(short, ushort)
+_DEFINE(ushort, short)
+_DEFINE(ushort, ushort)
+_DEFINE(int, int)
+_DEFINE(int, uint)
+_DEFINE(uint, int)
+_DEFINE(uint, uint)
+_DEFINE(long, long)
+_DEFINE(long, ulong)
+_DEFINE(ulong, long)
+_DEFINE(ulong, ulong)
+_DEFINE(float, int)
+_DEFINE(float, uint)
+_DEFINE(double, long)
+_DEFINE(double, ulong)
 
-#undef  DEFINE
+#undef  _DEFINE
 
-#define DECLARATION(type, itype, utype) \
-_CLC_OVERLOAD _CLC_DECL type select(type a, type b, itype c);\
-_CLC_OVERLOAD _CLC_DECL type select(type a, type b, utype c);
+#define _DECLARATION(__type, __itype, __utype) \
+_CLC_OVERLOAD _CLC_DECL __type select(__type __a, __type __b, __itype __c);\
+_CLC_OVERLOAD _CLC_DECL __type select(__type __a, __type __b, __utype __c);
 
-#define SELECT_EXPAND_SIZES(type,itype,utype) \
-    DECLARATION(_VEC_TYPE(type,2), _VEC_TYPE(itype,2), _VEC_TYPE(utype,2))  \
-    DECLARATION(_VEC_TYPE(type,3), _VEC_TYPE(itype,3), _VEC_TYPE(utype,3))  \
-    DECLARATION(_VEC_TYPE(type,4), _VEC_TYPE(itype,4), _VEC_TYPE(utype,4))  \
-    DECLARATION(_VEC_TYPE(type,8), _VEC_TYPE(itype,8), _VEC_TYPE(utype,8))  \
-    DECLARATION(_VEC_TYPE(type,16), _VEC_TYPE(itype,16), _VEC_TYPE(utype,16))  \
+#define _SELECT_EXPAND_SIZES(__type,__itype,__utype) \
+    _DECLARATION(_VEC_TYPE(__type,2), _VEC_TYPE(__itype,2), _VEC_TYPE(__utype,2))  \
+    _DECLARATION(_VEC_TYPE(__type,3), _VEC_TYPE(__itype,3), _VEC_TYPE(__utype,3))  \
+    _DECLARATION(_VEC_TYPE(__type,4), _VEC_TYPE(__itype,4), _VEC_TYPE(__utype,4))  \
+    _DECLARATION(_VEC_TYPE(__type,8), _VEC_TYPE(__itype,8), _VEC_TYPE(__utype,8))  \
+    _DECLARATION(_VEC_TYPE(__type,16), _VEC_TYPE(__itype,16), _VEC_TYPE(__utype,16))  \
 
-#define SELECT_EXPAND_TYPES   \
-    SELECT_EXPAND_SIZES(char, char, uchar)   \
-    SELECT_EXPAND_SIZES(uchar, char, uchar)  \
-    SELECT_EXPAND_SIZES(short, short, ushort)  \
-    SELECT_EXPAND_SIZES(ushort, short, ushort) \
-    SELECT_EXPAND_SIZES(int, int, uint)    \
-    SELECT_EXPAND_SIZES(uint, int, uint)   \
-    SELECT_EXPAND_SIZES(long, long, ulong)   \
-    SELECT_EXPAND_SIZES(ulong, long, ulong)  \
-    SELECT_EXPAND_SIZES(float, int, uint)  \
-    SELECT_EXPAND_SIZES(double, long, ulong)
+#define _SELECT_EXPAND_TYPES   \
+    _SELECT_EXPAND_SIZES(char, char, uchar)   \
+    _SELECT_EXPAND_SIZES(uchar, char, uchar)  \
+    _SELECT_EXPAND_SIZES(short, short, ushort)  \
+    _SELECT_EXPAND_SIZES(ushort, short, ushort) \
+    _SELECT_EXPAND_SIZES(int, int, uint)    \
+    _SELECT_EXPAND_SIZES(uint, int, uint)   \
+    _SELECT_EXPAND_SIZES(long, long, ulong)   \
+    _SELECT_EXPAND_SIZES(ulong, long, ulong)  \
+    _SELECT_EXPAND_SIZES(float, int, uint)  \
+    _SELECT_EXPAND_SIZES(double, long, ulong)
 
-SELECT_EXPAND_TYPES
+_SELECT_EXPAND_TYPES
 
-#undef DECLARATION
-#undef SELECT_EXPAND_SIZES
-#undef SELECT_EXPAND_TYPES
+#undef _DECLARATION
+#undef _SELECT_EXPAND_SIZES
+#undef _SELECT_EXPAND_TYPES
 
 /*-----------------------------------------------------------------------------
 * Math
@@ -819,10 +819,10 @@ SELECT_EXPAND_TYPES
 
 #define FLT_DIG         6
 #define FLT_MANT_DIG    24
-#define FLT_MAX_10_EXP  +38
-#define FLT_MAX_EXP     +128
-#define FLT_MIN_10_EXP  -37
-#define FLT_MIN_EXP     -125
+#define FLT_MAX_10_EXP  (+38)
+#define FLT_MAX_EXP     (+128)
+#define FLT_MIN_10_EXP  (-37)
+#define FLT_MIN_EXP     (-125)
 #define FLT_RADIX       2
 #define FLT_MAX         0x1.fffffep127f
 #define FLT_MIN         0x1.0p-126f
@@ -830,10 +830,10 @@ SELECT_EXPAND_TYPES
 
 #define DBL_DIG         15
 #define DBL_MANT_DIG    53
-#define DBL_MAX_10_EXP  +308
-#define DBL_MAX_EXP     +1024
-#define DBL_MIN_10_EXP  -307
-#define DBL_MIN_EXP     -1021
+#define DBL_MAX_10_EXP  (+308)
+#define DBL_MAX_EXP     (+1024)
+#define DBL_MIN_10_EXP  (-307)
+#define DBL_MIN_EXP     (-1021)
 #define DBL_RADIX       2
 #define DBL_MAX         0x1.fffffffffffffp1023
 #define DBL_MIN         0x1.0p-1022
@@ -877,963 +877,963 @@ SELECT_EXPAND_TYPES
 #define FP_ILOGB0       (-INT_MAX)
 #define FP_ILOGBNAN     (INT_MAX)
 
-#define UNARY(function) \
-UNARY_INLINE  (float,  float,  function, function##f)\
-UNARY_INLINE  (double, double, function, function##d)\
-UNARY_VEC_DECL(float,  float,  function)\
-UNARY_VEC_DECL(double, double, function)\
+#define _UNARY(__function) \
+_UNARY_INLINE  (float,  float,  __function, __function##f)\
+_UNARY_INLINE  (double, double, __function, __function##d)\
+_UNARY_VEC_DECL(float,  float,  __function)\
+_UNARY_VEC_DECL(double, double, __function)\
 
-#define UNARYT(type1, type2, function,op) \
-UNARY_INLINE  (type1,  type2,  function, op)\
-UNARY_VEC_DECL(type1,  type2,  function)\
+#define _UNARYT(__type1, __type2, __function,__op) \
+_UNARY_INLINE  (__type1,  __type2,  __function, __op)\
+_UNARY_VEC_DECL(__type1,  __type2,  __function)\
 
-#define BINARY(function) \
-BINARY_INLINE  (float,  float,  function, function##f)\
-BINARY_INLINE  (double, double, function, function##d)\
-BINARY_VEC_DECL(float,  float,  function)\
-BINARY_VEC_DECL(double, double, function)\
+#define _BINARY(__function) \
+_BINARY_INLINE  (float,  float,  __function, __function##f)\
+_BINARY_INLINE  (double, double, __function, __function##d)\
+_BINARY_VEC_DECL(float,  float,  __function)\
+_BINARY_VEC_DECL(double, double, __function)\
 
 /*-------------------------------------------------------------------------
 * Prototypes for the math builtins 
 *------------------------------------------------------------------------*/
-UNARY(acos)
-UNARY(acosh)
+_UNARY(acos)
+_UNARY(acosh)
 
 _CLC_PROTECTED float  acosf(float);
 _CLC_PROTECTED double acosd(double);
-_CLC_OVERLOAD _CLC_INLINE float  acospi(float x)  { return acosf(x) * M_1_PI; }
-_CLC_OVERLOAD _CLC_INLINE double acospi(double x) { return acosd(x) * M_1_PI; }
-UNARY_VEC_DECL(float,  float,  acospi)
-UNARY_VEC_DECL(double, double, acospi)
+_CLC_OVERLOAD _CLC_INLINE float  acospi(float __x)  { return acosf(__x) * M_1_PI; }
+_CLC_OVERLOAD _CLC_INLINE double acospi(double __x) { return acosd(__x) * M_1_PI; }
+_UNARY_VEC_DECL(float,  float,  acospi)
+_UNARY_VEC_DECL(double, double, acospi)
 
-UNARY(asin)
-UNARY(asinh)
+_UNARY(asin)
+_UNARY(asinh)
 
 _CLC_PROTECTED float  asinf(float);
 _CLC_PROTECTED double asind(double);
-_CLC_OVERLOAD _CLC_INLINE float  asinpi(float x)  { return asinf(x) * M_1_PI; }
-_CLC_OVERLOAD _CLC_INLINE double asinpi(double x) { return asind(x) * M_1_PI; }
-UNARY_VEC_DECL(float,  float,  asinpi)
-UNARY_VEC_DECL(double, double, asinpi)
+_CLC_OVERLOAD _CLC_INLINE float  asinpi(float __x)  { return asinf(__x) * M_1_PI; }
+_CLC_OVERLOAD _CLC_INLINE double asinpi(double __x) { return asind(__x) * M_1_PI; }
+_UNARY_VEC_DECL(float,  float,  asinpi)
+_UNARY_VEC_DECL(double, double, asinpi)
 
-UNARY(atan)
-UNARY(atanh)
+_UNARY(atan)
+_UNARY(atanh)
 
 _CLC_PROTECTED float  atanf(float);
 _CLC_PROTECTED double atand(double);
-_CLC_OVERLOAD _CLC_INLINE float  atanpi(float x)  { return atanf(x) * M_1_PI; }
-_CLC_OVERLOAD _CLC_INLINE double atanpi(double x) { return atand(x) * M_1_PI; }
-UNARY_VEC_DECL(float,  float,  atanpi)
-UNARY_VEC_DECL(double, double, atanpi)
+_CLC_OVERLOAD _CLC_INLINE float  atanpi(float __x)  { return atanf(__x) * M_1_PI; }
+_CLC_OVERLOAD _CLC_INLINE double atanpi(double __x) { return atand(__x) * M_1_PI; }
+_UNARY_VEC_DECL(float,  float,  atanpi)
+_UNARY_VEC_DECL(double, double, atanpi)
 
-BINARY(atan2)
+_BINARY(atan2)
 
-_CLC_OVERLOAD _CLC_INLINE float atan2pi(float y, float x)
-    { return atan2f(y,x) * (float) M_1_PI; }
-_CLC_OVERLOAD _CLC_INLINE double atan2pi(double y, double x)
-    { return atan2d(y,x) *  M_1_PI; }
-BINARY_VEC_DECL(float,  float,  atan2pi)
-BINARY_VEC_DECL(double, double, atan2pi)
+_CLC_OVERLOAD _CLC_INLINE float atan2pi(float __y, float __x)
+    { return atan2f(__y,__x) * (float) M_1_PI; }
+_CLC_OVERLOAD _CLC_INLINE double atan2pi(double __y, double __x)
+    { return atan2d(__y,__x) *  M_1_PI; }
+_BINARY_VEC_DECL(float,  float,  atan2pi)
+_BINARY_VEC_DECL(double, double, atan2pi)
 
-UNARY(cbrt)
-UNARY(ceil)
+_UNARY(cbrt)
+_UNARY(ceil)
 
-UNARY(cos)
-UNARY(cosh)
-UNARY(cospi)
-UNARY(erf)
-UNARY(erfc)
-UNARY(exp)
-UNARY(exp2)
-UNARY(exp10)
-UNARY(expm1)
+_UNARY(cos)
+_UNARY(cosh)
+_UNARY(cospi)
+_UNARY(erf)
+_UNARY(erfc)
+_UNARY(exp)
+_UNARY(exp2)
+_UNARY(exp10)
+_UNARY(expm1)
 
-UNARY_INLINE  (float,  float,  fabs, _fabsf)\
-UNARY_INLINE  (double, double, fabs, _fabs)\
-UNARY_VEC_DECL(float,  float,  fabs)
-UNARY_VEC_DECL(double, double, fabs)
+_UNARY_INLINE  (float,  float,  fabs, _fabsf)\
+_UNARY_INLINE  (double, double, fabs, _fabs)\
+_UNARY_VEC_DECL(float,  float,  fabs)
+_UNARY_VEC_DECL(double, double, fabs)
 
-BINARY(fdim)
-UNARY(floor)
+_BINARY(fdim)
+_UNARY(floor)
 
 _CLC_PROTECTED float  fmaf(float, float, float);
 _CLC_PROTECTED double fmad(double, double, double);
-_CLC_OVERLOAD _CLC_INLINE float  fma(float a,  float b,  float c)  { return fmaf(a,b,c); }
-_CLC_OVERLOAD _CLC_INLINE double fma(double a, double b, double c) { return fmad(a,b,c); }
-TERNARY_VEC_DECL(float,  float,  fma)
-TERNARY_VEC_DECL(double, double, fma)
+_CLC_OVERLOAD _CLC_INLINE float  fma(float __a,  float __b,  float __c)  { return fmaf(__a,__b,__c); }
+_CLC_OVERLOAD _CLC_INLINE double fma(double __a, double __b, double __c) { return fmad(__a,__b,__c); }
+_TERNARY_VEC_DECL(float,  float,  fma)
+_TERNARY_VEC_DECL(double, double, fma)
 
-BINARY(fmax)
-BINARY(fmin)
-BINARY(fmod)
-BINARY(hypot)
+_BINARY(fmax)
+_BINARY(fmin)
+_BINARY(fmod)
+_BINARY(hypot)
 
-UNARYT(float,  int, ilogb, ilogbf)
-UNARYT(double, int, ilogb, ilogbd)
+_UNARYT(float,  int, ilogb, ilogbf)
+_UNARYT(double, int, ilogb, ilogbd)
 
-BINARY_INLINE_ALT  (float,  float,  int, ldexp, ldexpf)
-BINARY_INLINE_ALT  (double, double, int, ldexp, ldexpd)
-BINARY_VEC_DECL_ALT(float,  float,  int, ldexp)
-BINARY_VEC_DECL_ALT(double, double, int, ldexp)
+_BINARY_INLINE_ALT  (float,  float,  int, ldexp, ldexpf)
+_BINARY_INLINE_ALT  (double, double, int, ldexp, ldexpd)
+_BINARY_VEC_DECL_ALT(float,  float,  int, ldexp)
+_BINARY_VEC_DECL_ALT(double, double, int, ldexp)
 
-UNARY(lgamma)
-UNARY(log)
-UNARY(log2)
-UNARY(log10)
-UNARY(log1p)
-UNARY(logb)
+_UNARY(lgamma)
+_UNARY(log)
+_UNARY(log2)
+_UNARY(log10)
+_UNARY(log1p)
+_UNARY(logb)
 
-_CLC_OVERLOAD _CLC_INLINE float  mad(float a,  float b,  float c)  { return (a*b)+c; }
-_CLC_OVERLOAD _CLC_INLINE double mad(double a, double b, double c) { return (a*b)+c; }
-TERNARY_VEC_DECL(float,  float,  mad)
-TERNARY_VEC_DECL(double, double, mad)
+_CLC_OVERLOAD _CLC_INLINE float  mad(float __a,  float __b,  float __c)  { return (__a*__b)+__c; }
+_CLC_OVERLOAD _CLC_INLINE double mad(double __a, double __b, double __c) { return (__a*__b)+__c; }
+_TERNARY_VEC_DECL(float,  float,  mad)
+_TERNARY_VEC_DECL(double, double, mad)
 
-BINARY(maxmag)
-BINARY(minmag)
+_BINARY(maxmag)
+_BINARY(minmag)
 
-_CLC_OVERLOAD _CLC_INLINE float  nan(uint  nancode)
-    { return as_float(0x7FC00000 | nancode); }
-_CLC_OVERLOAD _CLC_INLINE double nan(ulong nancode)
-    { return as_double(0x7FF8000000000000ul | nancode); }
-UNARY_VEC_DECL(uint,  float,  nan)
-UNARY_VEC_DECL(ulong, double, nan)
+_CLC_OVERLOAD _CLC_INLINE float  nan(uint  __nancode)
+    { return as_float(0x7FC00000 | __nancode); }
+_CLC_OVERLOAD _CLC_INLINE double nan(ulong __nancode)
+    { return as_double(0x7FF8000000000000ul | __nancode); }
+_UNARY_VEC_DECL(uint,  float,  nan)
+_UNARY_VEC_DECL(ulong, double, nan)
 
-BINARY(nextafter)
-BINARY(pow)
+_BINARY(nextafter)
+_BINARY(pow)
 
-BINARY_INLINE_ALT  (float,  float,  int, pown, pownf)
-BINARY_INLINE_ALT  (double, double, int, pown, pownd)
-BINARY_VEC_DECL_ALT(float,  float,  int, pown)
-BINARY_VEC_DECL_ALT(double, double, int, pown)
+_BINARY_INLINE_ALT  (float,  float,  int, pown, pownf)
+_BINARY_INLINE_ALT  (double, double, int, pown, pownd)
+_BINARY_VEC_DECL_ALT(float,  float,  int, pown)
+_BINARY_VEC_DECL_ALT(double, double, int, pown)
 
-BINARY(powr)
+_BINARY(powr)
 
-BINARY(remainder)
-UNARY(rint)
+_BINARY(remainder)
+_UNARY(rint)
 
-BINARY_INLINE_ALT  (float,  float,  int, rootn, rootnf)
-BINARY_INLINE_ALT  (double, double, int, rootn, rootnd)
-BINARY_VEC_DECL_ALT(float,  float,  int, rootn)
-BINARY_VEC_DECL_ALT(double, double, int, rootn)
+_BINARY_INLINE_ALT  (float,  float,  int, rootn, rootnf)
+_BINARY_INLINE_ALT  (double, double, int, rootn, rootnd)
+_BINARY_VEC_DECL_ALT(float,  float,  int, rootn)
+_BINARY_VEC_DECL_ALT(double, double, int, rootn)
 
-UNARY(round)
-UNARY(rsqrt)
-UNARY(sin)
-UNARY(sinh)
-UNARY(sinpi)
-UNARY(sqrt)
-UNARY(tan)
-UNARY(tanh)
-UNARY(trunc)
-UNARY(tanpi)
-UNARY(tgamma)
+_UNARY(round)
+_UNARY(rsqrt)
+_UNARY(sin)
+_UNARY(sinh)
+_UNARY(sinpi)
+_UNARY(sqrt)
+_UNARY(tan)
+_UNARY(tanh)
+_UNARY(trunc)
+_UNARY(tanpi)
+_UNARY(tgamma)
 
 /*-----------------------------------------------------------------------------
 * Half versions
 *----------------------------------------------------------------------------*/
-#define half_cos(x)             cos(x)
-#define half_divide(x,y)        (x/y)
-#define half_exp(x)             exp(x)
-#define half_exp2(x)            exp2(x)
-#define half_exp10(x)           exp10(x)
-#define half_log(x)             log(x)
-#define half_log2(x)            log2(x)
-#define half_log10(x)           log10(x)
-#define half_powr(x,y)          powr(x,y)
-#define half_recip(x)           reciprocal(x)
-#define half_rsqrt(x)           rsqrt(x)
-#define half_sin(x)             sin(x)
-#define half_sqrt(x)            sqrt(x)
-#define half_tan(x)             tan(x)
+#define half_cos(__x)             cos(__x)
+#define half_divide(__x,__y)        (__x/__y)
+#define half_exp(__x)             exp(__x)
+#define half_exp2(__x)            exp2(__x)
+#define half_exp10(__x)           exp10(__x)
+#define half_log(__x)             log(__x)
+#define half_log2(__x)            log2(__x)
+#define half_log10(__x)           log10(__x)
+#define half_powr(__x,__y)          powr(__x,__y)
+#define half_recip(__x)           reciprocal(__x)
+#define half_rsqrt(__x)           rsqrt(__x)
+#define half_sin(__x)             sin(__x)
+#define half_sqrt(__x)            sqrt(__x)
+#define half_tan(__x)             tan(__x)
 
 /*-----------------------------------------------------------------------------
 * Native versions
 *----------------------------------------------------------------------------*/
-#define native_sin(x)           sin(x)
-#define native_cos(x)           cos(x)
-#define native_powr(x,y)        powr(x,y)
-#define native_exp(x)           exp(x)
-#define native_exp2(x)          exp2(x)
-#define native_exp10(x)         exp10(x)
-#define native_log2(x)          log2(x)
-#define native_log10(x)         log10(x)
-
-UNARY(reciprocal)
-UNARY(native_divide)
-UNARY(native_recip)
-UNARY(native_rsqrt)
-UNARY(native_sqrt)
-
-#define native_tan(x)           tan(x)
-
-#undef UNARY
-#undef UNARYT
-#undef BINARY
-
-_CLC_OVERLOAD _CLC_DECL float modf(float x, global  float * iptr);
-_CLC_OVERLOAD _CLC_DECL float modf(float x, local   float * iptr);
-_CLC_OVERLOAD _CLC_DECL float modf(float x, private float * iptr);
-
-_CLC_OVERLOAD _CLC_DECL float2 modf(float2 x, global  float2 * iptr);
-_CLC_OVERLOAD _CLC_DECL float2 modf(float2 x, local   float2 * iptr);
-_CLC_OVERLOAD _CLC_DECL float2 modf(float2 x, private float2 * iptr);
-
-_CLC_OVERLOAD _CLC_DECL float3 modf(float3 x, global  float3 * iptr);
-_CLC_OVERLOAD _CLC_DECL float3 modf(float3 x, local   float3 * iptr);
-_CLC_OVERLOAD _CLC_DECL float3 modf(float3 x, private float3 * iptr);
-
-_CLC_OVERLOAD _CLC_DECL float4 modf(float4 x, global  float4 * iptr);
-_CLC_OVERLOAD _CLC_DECL float4 modf(float4 x, local   float4 * iptr);
-_CLC_OVERLOAD _CLC_DECL float4 modf(float4 x, private float4 * iptr);
-
-_CLC_OVERLOAD _CLC_DECL float8 modf(float8 x, global  float8 * iptr);
-_CLC_OVERLOAD _CLC_DECL float8 modf(float8 x, local   float8 * iptr);
-_CLC_OVERLOAD _CLC_DECL float8 modf(float8 x, private float8 * iptr);
-
-_CLC_OVERLOAD _CLC_DECL float16 modf(float16 x, global  float16 * iptr);
-_CLC_OVERLOAD _CLC_DECL float16 modf(float16 x, local   float16 * iptr);
-_CLC_OVERLOAD _CLC_DECL float16 modf(float16 x, private float16 * iptr);
-
-_CLC_OVERLOAD _CLC_DECL double modf(double x, global  double * iptr);
-_CLC_OVERLOAD _CLC_DECL double modf(double x, local   double * iptr);
-_CLC_OVERLOAD _CLC_DECL double modf(double x, private double * iptr);
-
-_CLC_OVERLOAD _CLC_DECL double2 modf(double2 x, global  double2 * iptr);
-_CLC_OVERLOAD _CLC_DECL double2 modf(double2 x, local   double2 * iptr);
-_CLC_OVERLOAD _CLC_DECL double2 modf(double2 x, private double2 * iptr);
-
-_CLC_OVERLOAD _CLC_DECL double3 modf(double3 x, global  double3 * iptr);
-_CLC_OVERLOAD _CLC_DECL double3 modf(double3 x, local   double3 * iptr);
-_CLC_OVERLOAD _CLC_DECL double3 modf(double3 x, private double3 * iptr);
-
-_CLC_OVERLOAD _CLC_DECL double4 modf(double4 x, global  double4 * iptr);
-_CLC_OVERLOAD _CLC_DECL double4 modf(double4 x, local   double4 * iptr);
-_CLC_OVERLOAD _CLC_DECL double4 modf(double4 x, private double4 * iptr);
-
-_CLC_OVERLOAD _CLC_DECL double8 modf(double8 x, global  double8 * iptr);
-_CLC_OVERLOAD _CLC_DECL double8 modf(double8 x, local   double8 * iptr);
-_CLC_OVERLOAD _CLC_DECL double8 modf(double8 x, private double8 * iptr);
-
-_CLC_OVERLOAD _CLC_DECL double16 modf(double16 x, global  double16 * iptr);
-_CLC_OVERLOAD _CLC_DECL double16 modf(double16 x, local   double16 * iptr);
-_CLC_OVERLOAD _CLC_DECL double16 modf(double16 x, private double16 * iptr);
-
-_CLC_OVERLOAD _CLC_DECL float frexp(float x, global  int * ptr);
-_CLC_OVERLOAD _CLC_DECL float frexp(float x, local   int * ptr);
-_CLC_OVERLOAD _CLC_DECL float frexp(float x, private int * ptr);
-
-_CLC_OVERLOAD _CLC_DECL float2 frexp(float2 x, global  int2 * ptr);
-_CLC_OVERLOAD _CLC_DECL float2 frexp(float2 x, local   int2 * ptr);
-_CLC_OVERLOAD _CLC_DECL float2 frexp(float2 x, private int2 * ptr);
-
-_CLC_OVERLOAD _CLC_DECL float3 frexp(float3 x, global  int3 * ptr);
-_CLC_OVERLOAD _CLC_DECL float3 frexp(float3 x, local   int3 * ptr);
-_CLC_OVERLOAD _CLC_DECL float3 frexp(float3 x, private int3 * ptr);
-
-_CLC_OVERLOAD _CLC_DECL float4 frexp(float4 x, global  int4 * ptr);
-_CLC_OVERLOAD _CLC_DECL float4 frexp(float4 x, local   int4 * ptr);
-_CLC_OVERLOAD _CLC_DECL float4 frexp(float4 x, private int4 * ptr);
-
-_CLC_OVERLOAD _CLC_DECL float8 frexp(float8 x, global  int8 * ptr);
-_CLC_OVERLOAD _CLC_DECL float8 frexp(float8 x, local   int8 * ptr);
-_CLC_OVERLOAD _CLC_DECL float8 frexp(float8 x, private int8 * ptr);
-
-_CLC_OVERLOAD _CLC_DECL float16 frexp(float16 x, global  int16 * ptr);
-_CLC_OVERLOAD _CLC_DECL float16 frexp(float16 x, local   int16 * ptr);
-_CLC_OVERLOAD _CLC_DECL float16 frexp(float16 x, private int16 * ptr);
-
-_CLC_OVERLOAD _CLC_DECL double frexp(double x, global  int * ptr);
-_CLC_OVERLOAD _CLC_DECL double frexp(double x, local   int * ptr);
-_CLC_OVERLOAD _CLC_DECL double frexp(double x, private int * ptr);
-
-_CLC_OVERLOAD _CLC_DECL double2 frexp(double2 x, global  int2 * ptr);
-_CLC_OVERLOAD _CLC_DECL double2 frexp(double2 x, local   int2 * ptr);
-_CLC_OVERLOAD _CLC_DECL double2 frexp(double2 x, private int2 * ptr);
-
-_CLC_OVERLOAD _CLC_DECL double3 frexp(double3 x, global  int3 * ptr);
-_CLC_OVERLOAD _CLC_DECL double3 frexp(double3 x, local   int3 * ptr);
-_CLC_OVERLOAD _CLC_DECL double3 frexp(double3 x, private int3 * ptr);
+#define native_sin(__x)           sin(__x)
+#define native_cos(__x)           cos(__x)
+#define native_powr(__x,__y)        powr(__x,__y)
+#define native_exp(__x)           exp(__x)
+#define native_exp2(__x)          exp2(__x)
+#define native_exp10(__x)         exp10(__x)
+#define native_log2(__x)          log2(__x)
+#define native_log10(__x)         log10(__x)
+
+_UNARY(reciprocal)
+_UNARY(native_divide)
+_UNARY(native_recip)
+_UNARY(native_rsqrt)
+_UNARY(native_sqrt)
+
+#define native_tan(__x)           tan(__x)
+
+#undef _UNARY
+#undef _UNARYT
+#undef _BINARY
+
+_CLC_OVERLOAD _CLC_DECL float modf(float __x, __global  float * __iptr);
+_CLC_OVERLOAD _CLC_DECL float modf(float __x, __local   float * __iptr);
+_CLC_OVERLOAD _CLC_DECL float modf(float __x, __private float * __iptr);
+
+_CLC_OVERLOAD _CLC_DECL float2 modf(float2 __x, __global  float2 * __iptr);
+_CLC_OVERLOAD _CLC_DECL float2 modf(float2 __x, __local   float2 * __iptr);
+_CLC_OVERLOAD _CLC_DECL float2 modf(float2 __x, __private float2 * __iptr);
+
+_CLC_OVERLOAD _CLC_DECL float3 modf(float3 __x, __global  float3 * __iptr);
+_CLC_OVERLOAD _CLC_DECL float3 modf(float3 __x, __local   float3 * __iptr);
+_CLC_OVERLOAD _CLC_DECL float3 modf(float3 __x, __private float3 * __iptr);
+
+_CLC_OVERLOAD _CLC_DECL float4 modf(float4 __x, __global  float4 * __iptr);
+_CLC_OVERLOAD _CLC_DECL float4 modf(float4 __x, __local   float4 * __iptr);
+_CLC_OVERLOAD _CLC_DECL float4 modf(float4 __x, __private float4 * __iptr);
+
+_CLC_OVERLOAD _CLC_DECL float8 modf(float8 __x, __global  float8 * __iptr);
+_CLC_OVERLOAD _CLC_DECL float8 modf(float8 __x, __local   float8 * __iptr);
+_CLC_OVERLOAD _CLC_DECL float8 modf(float8 __x, __private float8 * __iptr);
+
+_CLC_OVERLOAD _CLC_DECL float16 modf(float16 __x, __global  float16 * __iptr);
+_CLC_OVERLOAD _CLC_DECL float16 modf(float16 __x, __local   float16 * __iptr);
+_CLC_OVERLOAD _CLC_DECL float16 modf(float16 __x, __private float16 * __iptr);
+
+_CLC_OVERLOAD _CLC_DECL double modf(double __x, __global  double * __iptr);
+_CLC_OVERLOAD _CLC_DECL double modf(double __x, __local   double * __iptr);
+_CLC_OVERLOAD _CLC_DECL double modf(double __x, __private double * __iptr);
+
+_CLC_OVERLOAD _CLC_DECL double2 modf(double2 __x, __global  double2 * __iptr);
+_CLC_OVERLOAD _CLC_DECL double2 modf(double2 __x, __local   double2 * __iptr);
+_CLC_OVERLOAD _CLC_DECL double2 modf(double2 __x, __private double2 * __iptr);
+
+_CLC_OVERLOAD _CLC_DECL double3 modf(double3 __x, __global  double3 * __iptr);
+_CLC_OVERLOAD _CLC_DECL double3 modf(double3 __x, __local   double3 * __iptr);
+_CLC_OVERLOAD _CLC_DECL double3 modf(double3 __x, __private double3 * __iptr);
+
+_CLC_OVERLOAD _CLC_DECL double4 modf(double4 __x, __global  double4 * __iptr);
+_CLC_OVERLOAD _CLC_DECL double4 modf(double4 __x, __local   double4 * __iptr);
+_CLC_OVERLOAD _CLC_DECL double4 modf(double4 __x, __private double4 * __iptr);
+
+_CLC_OVERLOAD _CLC_DECL double8 modf(double8 __x, __global  double8 * __iptr);
+_CLC_OVERLOAD _CLC_DECL double8 modf(double8 __x, __local   double8 * __iptr);
+_CLC_OVERLOAD _CLC_DECL double8 modf(double8 __x, __private double8 * __iptr);
+
+_CLC_OVERLOAD _CLC_DECL double16 modf(double16 __x, __global  double16 * __iptr);
+_CLC_OVERLOAD _CLC_DECL double16 modf(double16 __x, __local   double16 * __iptr);
+_CLC_OVERLOAD _CLC_DECL double16 modf(double16 __x, __private double16 * __iptr);
+
+_CLC_OVERLOAD _CLC_DECL float frexp(float __x, __global  int * __ptr);
+_CLC_OVERLOAD _CLC_DECL float frexp(float __x, __local   int * __ptr);
+_CLC_OVERLOAD _CLC_DECL float frexp(float __x, __private int * __ptr);
+
+_CLC_OVERLOAD _CLC_DECL float2 frexp(float2 __x, __global  int2 * __ptr);
+_CLC_OVERLOAD _CLC_DECL float2 frexp(float2 __x, __local   int2 * __ptr);
+_CLC_OVERLOAD _CLC_DECL float2 frexp(float2 __x, __private int2 * __ptr);
+
+_CLC_OVERLOAD _CLC_DECL float3 frexp(float3 __x, __global  int3 * __ptr);
+_CLC_OVERLOAD _CLC_DECL float3 frexp(float3 __x, __local   int3 * __ptr);
+_CLC_OVERLOAD _CLC_DECL float3 frexp(float3 __x, __private int3 * __ptr);
+
+_CLC_OVERLOAD _CLC_DECL float4 frexp(float4 __x, __global  int4 * __ptr);
+_CLC_OVERLOAD _CLC_DECL float4 frexp(float4 __x, __local   int4 * __ptr);
+_CLC_OVERLOAD _CLC_DECL float4 frexp(float4 __x, __private int4 * __ptr);
+
+_CLC_OVERLOAD _CLC_DECL float8 frexp(float8 __x, __global  int8 * __ptr);
+_CLC_OVERLOAD _CLC_DECL float8 frexp(float8 __x, __local   int8 * __ptr);
+_CLC_OVERLOAD _CLC_DECL float8 frexp(float8 __x, __private int8 * __ptr);
+
+_CLC_OVERLOAD _CLC_DECL float16 frexp(float16 __x, __global  int16 * __ptr);
+_CLC_OVERLOAD _CLC_DECL float16 frexp(float16 __x, __local   int16 * __ptr);
+_CLC_OVERLOAD _CLC_DECL float16 frexp(float16 __x, __private int16 * __ptr);
+
+_CLC_OVERLOAD _CLC_DECL double frexp(double __x, __global  int * __ptr);
+_CLC_OVERLOAD _CLC_DECL double frexp(double __x, __local   int * __ptr);
+_CLC_OVERLOAD _CLC_DECL double frexp(double __x, __private int * __ptr);
+
+_CLC_OVERLOAD _CLC_DECL double2 frexp(double2 __x, __global  int2 * __ptr);
+_CLC_OVERLOAD _CLC_DECL double2 frexp(double2 __x, __local   int2 * __ptr);
+_CLC_OVERLOAD _CLC_DECL double2 frexp(double2 __x, __private int2 * __ptr);
+
+_CLC_OVERLOAD _CLC_DECL double3 frexp(double3 __x, __global  int3 * __ptr);
+_CLC_OVERLOAD _CLC_DECL double3 frexp(double3 __x, __local   int3 * __ptr);
+_CLC_OVERLOAD _CLC_DECL double3 frexp(double3 __x, __private int3 * __ptr);
 
-_CLC_OVERLOAD _CLC_DECL double4 frexp(double4 x, global  int4 * ptr);
-_CLC_OVERLOAD _CLC_DECL double4 frexp(double4 x, local   int4 * ptr);
-_CLC_OVERLOAD _CLC_DECL double4 frexp(double4 x, private int4 * ptr);
+_CLC_OVERLOAD _CLC_DECL double4 frexp(double4 __x, __global  int4 * __ptr);
+_CLC_OVERLOAD _CLC_DECL double4 frexp(double4 __x, __local   int4 * __ptr);
+_CLC_OVERLOAD _CLC_DECL double4 frexp(double4 __x, __private int4 * __ptr);
 
-_CLC_OVERLOAD _CLC_DECL double8 frexp(double8 x, global  int8 * ptr);
-_CLC_OVERLOAD _CLC_DECL double8 frexp(double8 x, local   int8 * ptr);
-_CLC_OVERLOAD _CLC_DECL double8 frexp(double8 x, private int8 * ptr);
+_CLC_OVERLOAD _CLC_DECL double8 frexp(double8 __x, __global  int8 * __ptr);
+_CLC_OVERLOAD _CLC_DECL double8 frexp(double8 __x, __local   int8 * __ptr);
+_CLC_OVERLOAD _CLC_DECL double8 frexp(double8 __x, __private int8 * __ptr);
 
-_CLC_OVERLOAD _CLC_DECL double16 frexp(double16 x, global  int16 * ptr);
-_CLC_OVERLOAD _CLC_DECL double16 frexp(double16 x, local   int16 * ptr);
-_CLC_OVERLOAD _CLC_DECL double16 frexp(double16 x, private int16 * ptr);
+_CLC_OVERLOAD _CLC_DECL double16 frexp(double16 __x, __global  int16 * __ptr);
+_CLC_OVERLOAD _CLC_DECL double16 frexp(double16 __x, __local   int16 * __ptr);
+_CLC_OVERLOAD _CLC_DECL double16 frexp(double16 __x, __private int16 * __ptr);
 
-_CLC_OVERLOAD _CLC_DECL float lgamma_r(float x, global  int * ptr);
-_CLC_OVERLOAD _CLC_DECL float lgamma_r(float x, local   int * ptr);
-_CLC_OVERLOAD _CLC_DECL float lgamma_r(float x, private int * ptr);
+_CLC_OVERLOAD _CLC_DECL float lgamma_r(float __x, __global  int * __ptr);
+_CLC_OVERLOAD _CLC_DECL float lgamma_r(float __x, __local   int * __ptr);
+_CLC_OVERLOAD _CLC_DECL float lgamma_r(float __x, __private int * __ptr);
 
-_CLC_OVERLOAD _CLC_DECL float2 lgamma_r(float2 x, global  int2 * ptr);
-_CLC_OVERLOAD _CLC_DECL float2 lgamma_r(float2 x, local   int2 * ptr);
-_CLC_OVERLOAD _CLC_DECL float2 lgamma_r(float2 x, private int2 * ptr);
+_CLC_OVERLOAD _CLC_DECL float2 lgamma_r(float2 __x, __global  int2 * __ptr);
+_CLC_OVERLOAD _CLC_DECL float2 lgamma_r(float2 __x, __local   int2 * __ptr);
+_CLC_OVERLOAD _CLC_DECL float2 lgamma_r(float2 __x, __private int2 * __ptr);
 
-_CLC_OVERLOAD _CLC_DECL float3 lgamma_r(float3 x, global  int3 * ptr);
-_CLC_OVERLOAD _CLC_DECL float3 lgamma_r(float3 x, local   int3 * ptr);
-_CLC_OVERLOAD _CLC_DECL float3 lgamma_r(float3 x, private int3 * ptr);
+_CLC_OVERLOAD _CLC_DECL float3 lgamma_r(float3 __x, __global  int3 * __ptr);
+_CLC_OVERLOAD _CLC_DECL float3 lgamma_r(float3 __x, __local   int3 * __ptr);
+_CLC_OVERLOAD _CLC_DECL float3 lgamma_r(float3 __x, __private int3 * __ptr);
 
-_CLC_OVERLOAD _CLC_DECL float4 lgamma_r(float4 x, global  int4 * ptr);
-_CLC_OVERLOAD _CLC_DECL float4 lgamma_r(float4 x, local   int4 * ptr);
-_CLC_OVERLOAD _CLC_DECL float4 lgamma_r(float4 x, private int4 * ptr);
+_CLC_OVERLOAD _CLC_DECL float4 lgamma_r(float4 __x, __global  int4 * __ptr);
+_CLC_OVERLOAD _CLC_DECL float4 lgamma_r(float4 __x, __local   int4 * __ptr);
+_CLC_OVERLOAD _CLC_DECL float4 lgamma_r(float4 __x, __private int4 * __ptr);
 
-_CLC_OVERLOAD _CLC_DECL float8 lgamma_r(float8 x, global  int8 * ptr);
-_CLC_OVERLOAD _CLC_DECL float8 lgamma_r(float8 x, local   int8 * ptr);
-_CLC_OVERLOAD _CLC_DECL float8 lgamma_r(float8 x, private int8 * ptr);
+_CLC_OVERLOAD _CLC_DECL float8 lgamma_r(float8 __x, __global  int8 * __ptr);
+_CLC_OVERLOAD _CLC_DECL float8 lgamma_r(float8 __x, __local   int8 * __ptr);
+_CLC_OVERLOAD _CLC_DECL float8 lgamma_r(float8 __x, __private int8 * __ptr);
 
-_CLC_OVERLOAD _CLC_DECL float16 lgamma_r(float16 x, global  int16 * ptr);
-_CLC_OVERLOAD _CLC_DECL float16 lgamma_r(float16 x, local   int16 * ptr);
-_CLC_OVERLOAD _CLC_DECL float16 lgamma_r(float16 x, private int16 * ptr);
+_CLC_OVERLOAD _CLC_DECL float16 lgamma_r(float16 __x, __global  int16 * __ptr);
+_CLC_OVERLOAD _CLC_DECL float16 lgamma_r(float16 __x, __local   int16 * __ptr);
+_CLC_OVERLOAD _CLC_DECL float16 lgamma_r(float16 __x, __private int16 * __ptr);
 
-_CLC_OVERLOAD _CLC_DECL double lgamma_r(double x, global  int * ptr);
-_CLC_OVERLOAD _CLC_DECL double lgamma_r(double x, local   int * ptr);
-_CLC_OVERLOAD _CLC_DECL double lgamma_r(double x, private int * ptr);
+_CLC_OVERLOAD _CLC_DECL double lgamma_r(double __x, __global  int * __ptr);
+_CLC_OVERLOAD _CLC_DECL double lgamma_r(double __x, __local   int * __ptr);
+_CLC_OVERLOAD _CLC_DECL double lgamma_r(double __x, __private int * __ptr);
 
-_CLC_OVERLOAD _CLC_DECL double2 lgamma_r(double2 x, global  int2 * ptr);
-_CLC_OVERLOAD _CLC_DECL double2 lgamma_r(double2 x, local   int2 * ptr);
-_CLC_OVERLOAD _CLC_DECL double2 lgamma_r(double2 x, private int2 * ptr);
+_CLC_OVERLOAD _CLC_DECL double2 lgamma_r(double2 __x, __global  int2 * __ptr);
+_CLC_OVERLOAD _CLC_DECL double2 lgamma_r(double2 __x, __local   int2 * __ptr);
+_CLC_OVERLOAD _CLC_DECL double2 lgamma_r(double2 __x, __private int2 * __ptr);
 
-_CLC_OVERLOAD _CLC_DECL double3 lgamma_r(double3 x, global  int3 * ptr);
-_CLC_OVERLOAD _CLC_DECL double3 lgamma_r(double3 x, local   int3 * ptr);
-_CLC_OVERLOAD _CLC_DECL double3 lgamma_r(double3 x, private int3 * ptr);
+_CLC_OVERLOAD _CLC_DECL double3 lgamma_r(double3 __x, __global  int3 * __ptr);
+_CLC_OVERLOAD _CLC_DECL double3 lgamma_r(double3 __x, __local   int3 * __ptr);
+_CLC_OVERLOAD _CLC_DECL double3 lgamma_r(double3 __x, __private int3 * __ptr);
 
-_CLC_OVERLOAD _CLC_DECL double4 lgamma_r(double4 x, global  int4 * ptr);
-_CLC_OVERLOAD _CLC_DECL double4 lgamma_r(double4 x, local   int4 * ptr);
-_CLC_OVERLOAD _CLC_DECL double4 lgamma_r(double4 x, private int4 * ptr);
+_CLC_OVERLOAD _CLC_DECL double4 lgamma_r(double4 __x, __global  int4 * __ptr);
+_CLC_OVERLOAD _CLC_DECL double4 lgamma_r(double4 __x, __local   int4 * __ptr);
+_CLC_OVERLOAD _CLC_DECL double4 lgamma_r(double4 __x, __private int4 * __ptr);
 
-_CLC_OVERLOAD _CLC_DECL double8 lgamma_r(double8 x, global  int8 * ptr);
-_CLC_OVERLOAD _CLC_DECL double8 lgamma_r(double8 x, local   int8 * ptr);
-_CLC_OVERLOAD _CLC_DECL double8 lgamma_r(double8 x, private int8 * ptr);
+_CLC_OVERLOAD _CLC_DECL double8 lgamma_r(double8 __x, __global  int8 * __ptr);
+_CLC_OVERLOAD _CLC_DECL double8 lgamma_r(double8 __x, __local   int8 * __ptr);
+_CLC_OVERLOAD _CLC_DECL double8 lgamma_r(double8 __x, __private int8 * __ptr);
 
-_CLC_OVERLOAD _CLC_DECL double16 lgamma_r(double16 x, global  int16 * ptr);
-_CLC_OVERLOAD _CLC_DECL double16 lgamma_r(double16 x, local   int16 * ptr);
-_CLC_OVERLOAD _CLC_DECL double16 lgamma_r(double16 x, private int16 * ptr);
+_CLC_OVERLOAD _CLC_DECL double16 lgamma_r(double16 __x, __global  int16 * __ptr);
+_CLC_OVERLOAD _CLC_DECL double16 lgamma_r(double16 __x, __local   int16 * __ptr);
+_CLC_OVERLOAD _CLC_DECL double16 lgamma_r(double16 __x, __private int16 * __ptr);
 
 
-_CLC_OVERLOAD _CLC_DECL float fract(float x, global  float * ptr);
-_CLC_OVERLOAD _CLC_DECL float fract(float x, local   float * ptr);
-_CLC_OVERLOAD _CLC_DECL float fract(float x, private float * ptr);
+_CLC_OVERLOAD _CLC_DECL float fract(float __x, __global  float * __ptr);
+_CLC_OVERLOAD _CLC_DECL float fract(float __x, __local   float * __ptr);
+_CLC_OVERLOAD _CLC_DECL float fract(float __x, __private float * __ptr);
 
-_CLC_OVERLOAD _CLC_DECL float2 fract(float2 x, global  float2 * ptr);
-_CLC_OVERLOAD _CLC_DECL float2 fract(float2 x, local   float2 * ptr);
-_CLC_OVERLOAD _CLC_DECL float2 fract(float2 x, private float2 * ptr);
+_CLC_OVERLOAD _CLC_DECL float2 fract(float2 __x, __global  float2 * __ptr);
+_CLC_OVERLOAD _CLC_DECL float2 fract(float2 __x, __local   float2 * __ptr);
+_CLC_OVERLOAD _CLC_DECL float2 fract(float2 __x, __private float2 * __ptr);
 
-_CLC_OVERLOAD _CLC_DECL float3 fract(float3 x, global  float3 * ptr);
-_CLC_OVERLOAD _CLC_DECL float3 fract(float3 x, local   float3 * ptr);
-_CLC_OVERLOAD _CLC_DECL float3 fract(float3 x, private float3 * ptr);
+_CLC_OVERLOAD _CLC_DECL float3 fract(float3 __x, __global  float3 * __ptr);
+_CLC_OVERLOAD _CLC_DECL float3 fract(float3 __x, __local   float3 * __ptr);
+_CLC_OVERLOAD _CLC_DECL float3 fract(float3 __x, __private float3 * __ptr);
 
-_CLC_OVERLOAD _CLC_DECL float4 fract(float4 x, global  float4 * ptr);
-_CLC_OVERLOAD _CLC_DECL float4 fract(float4 x, local   float4 * ptr);
-_CLC_OVERLOAD _CLC_DECL float4 fract(float4 x, private float4 * ptr);
+_CLC_OVERLOAD _CLC_DECL float4 fract(float4 __x, __global  float4 * __ptr);
+_CLC_OVERLOAD _CLC_DECL float4 fract(float4 __x, __local   float4 * __ptr);
+_CLC_OVERLOAD _CLC_DECL float4 fract(float4 __x, __private float4 * __ptr);
 
-_CLC_OVERLOAD _CLC_DECL float8 fract(float8 x, global  float8 * ptr);
-_CLC_OVERLOAD _CLC_DECL float8 fract(float8 x, local   float8 * ptr);
-_CLC_OVERLOAD _CLC_DECL float8 fract(float8 x, private float8 * ptr);
+_CLC_OVERLOAD _CLC_DECL float8 fract(float8 __x, __global  float8 * __ptr);
+_CLC_OVERLOAD _CLC_DECL float8 fract(float8 __x, __local   float8 * __ptr);
+_CLC_OVERLOAD _CLC_DECL float8 fract(float8 __x, __private float8 * __ptr);
 
-_CLC_OVERLOAD _CLC_DECL float16 fract(float16 x, global  float16 * ptr);
-_CLC_OVERLOAD _CLC_DECL float16 fract(float16 x, local   float16 * ptr);
-_CLC_OVERLOAD _CLC_DECL float16 fract(float16 x, private float16 * ptr);
+_CLC_OVERLOAD _CLC_DECL float16 fract(float16 __x, __global  float16 * __ptr);
+_CLC_OVERLOAD _CLC_DECL float16 fract(float16 __x, __local   float16 * __ptr);
+_CLC_OVERLOAD _CLC_DECL float16 fract(float16 __x, __private float16 * __ptr);
 
-_CLC_OVERLOAD _CLC_DECL double fract(double x, global  double * ptr);
-_CLC_OVERLOAD _CLC_DECL double fract(double x, local   double * ptr);
-_CLC_OVERLOAD _CLC_DECL double fract(double x, private double * ptr);
+_CLC_OVERLOAD _CLC_DECL double fract(double __x, __global  double * __ptr);
+_CLC_OVERLOAD _CLC_DECL double fract(double __x, __local   double * __ptr);
+_CLC_OVERLOAD _CLC_DECL double fract(double __x, __private double * __ptr);
 
-_CLC_OVERLOAD _CLC_DECL double2 fract(double2 x, global  double2 * ptr);
-_CLC_OVERLOAD _CLC_DECL double2 fract(double2 x, local   double2 * ptr);
-_CLC_OVERLOAD _CLC_DECL double2 fract(double2 x, private double2 * ptr);
+_CLC_OVERLOAD _CLC_DECL double2 fract(double2 __x, __global  double2 * __ptr);
+_CLC_OVERLOAD _CLC_DECL double2 fract(double2 __x, __local   double2 * __ptr);
+_CLC_OVERLOAD _CLC_DECL double2 fract(double2 __x, __private double2 * __ptr);
 
-_CLC_OVERLOAD _CLC_DECL double3 fract(double3 x, global  double3 * ptr);
-_CLC_OVERLOAD _CLC_DECL double3 fract(double3 x, local   double3 * ptr);
-_CLC_OVERLOAD _CLC_DECL double3 fract(double3 x, private double3 * ptr);
+_CLC_OVERLOAD _CLC_DECL double3 fract(double3 __x, __global  double3 * __ptr);
+_CLC_OVERLOAD _CLC_DECL double3 fract(double3 __x, __local   double3 * __ptr);
+_CLC_OVERLOAD _CLC_DECL double3 fract(double3 __x, __private double3 * __ptr);
 
-_CLC_OVERLOAD _CLC_DECL double4 fract(double4 x, global  double4 * ptr);
-_CLC_OVERLOAD _CLC_DECL double4 fract(double4 x, local   double4 * ptr);
-_CLC_OVERLOAD _CLC_DECL double4 fract(double4 x, private double4 * ptr);
+_CLC_OVERLOAD _CLC_DECL double4 fract(double4 __x, __global  double4 * __ptr);
+_CLC_OVERLOAD _CLC_DECL double4 fract(double4 __x, __local   double4 * __ptr);
+_CLC_OVERLOAD _CLC_DECL double4 fract(double4 __x, __private double4 * __ptr);
 
-_CLC_OVERLOAD _CLC_DECL double8 fract(double8 x, global  double8 * ptr);
-_CLC_OVERLOAD _CLC_DECL double8 fract(double8 x, local   double8 * ptr);
-_CLC_OVERLOAD _CLC_DECL double8 fract(double8 x, private double8 * ptr);
+_CLC_OVERLOAD _CLC_DECL double8 fract(double8 __x, __global  double8 * __ptr);
+_CLC_OVERLOAD _CLC_DECL double8 fract(double8 __x, __local   double8 * __ptr);
+_CLC_OVERLOAD _CLC_DECL double8 fract(double8 __x, __private double8 * __ptr);
 
-_CLC_OVERLOAD _CLC_DECL double16 fract(double16 x, global  double16 * ptr);
-_CLC_OVERLOAD _CLC_DECL double16 fract(double16 x, local   double16 * ptr);
-_CLC_OVERLOAD _CLC_DECL double16 fract(double16 x, private double16 * ptr);
+_CLC_OVERLOAD _CLC_DECL double16 fract(double16 __x, __global  double16 * __ptr);
+_CLC_OVERLOAD _CLC_DECL double16 fract(double16 __x, __local   double16 * __ptr);
+_CLC_OVERLOAD _CLC_DECL double16 fract(double16 __x, __private double16 * __ptr);
 
-_CLC_PROTECTED float remquof(float x, float y, int *ptr);
+_CLC_PROTECTED float remquof(float __x, float __y, int *__ptr);
 
-_CLC_OVERLOAD _CLC_INLINE float remquo(float x, float y, global  int * quo) 
-    { return remquof(x, y, (int*)quo); }
+_CLC_OVERLOAD _CLC_INLINE float remquo(float __x, float __y, __global  int * __quo) 
+    { return remquof(__x, __y, (int*)__quo); }
 
-_CLC_OVERLOAD _CLC_INLINE float remquo(float x, float y, local   int * quo) 
-    { return remquof(x, y, (int*)quo); }
+_CLC_OVERLOAD _CLC_INLINE float remquo(float __x, float __y, __local   int * __quo) 
+    { return remquof(__x, __y, (int*)__quo); }
 
-_CLC_OVERLOAD _CLC_INLINE float remquo(float x, float y, private int * quo) 
-    { return remquof(x, y, (int*)quo); }
+_CLC_OVERLOAD _CLC_INLINE float remquo(float __x, float __y, __private int * __quo) 
+    { return remquof(__x, __y, (int*)__quo); }
 
-_CLC_OVERLOAD _CLC_DECL float2 remquo(float2 x, float2 y, global  int2 * quo);
-_CLC_OVERLOAD _CLC_DECL float2 remquo(float2 x, float2 y, local   int2 * quo);
-_CLC_OVERLOAD _CLC_DECL float2 remquo(float2 x, float2 y, private int2 * quo);
+_CLC_OVERLOAD _CLC_DECL float2 remquo(float2 __x, float2 __y, __global  int2 * __quo);
+_CLC_OVERLOAD _CLC_DECL float2 remquo(float2 __x, float2 __y, __local   int2 * __quo);
+_CLC_OVERLOAD _CLC_DECL float2 remquo(float2 __x, float2 __y, __private int2 * __quo);
 
-_CLC_OVERLOAD _CLC_DECL float3 remquo(float3 x, float3 y, global  int3 * quo);
-_CLC_OVERLOAD _CLC_DECL float3 remquo(float3 x, float3 y, local   int3 * quo);
-_CLC_OVERLOAD _CLC_DECL float3 remquo(float3 x, float3 y, private int3 * quo);
+_CLC_OVERLOAD _CLC_DECL float3 remquo(float3 __x, float3 __y, __global  int3 * __quo);
+_CLC_OVERLOAD _CLC_DECL float3 remquo(float3 __x, float3 __y, __local   int3 * __quo);
+_CLC_OVERLOAD _CLC_DECL float3 remquo(float3 __x, float3 __y, __private int3 * __quo);
 
-_CLC_OVERLOAD _CLC_DECL float4 remquo(float4 x, float4 y, global  int4 * quo);
-_CLC_OVERLOAD _CLC_DECL float4 remquo(float4 x, float4 y, local   int4 * quo);
-_CLC_OVERLOAD _CLC_DECL float4 remquo(float4 x, float4 y, private int4 * quo);
+_CLC_OVERLOAD _CLC_DECL float4 remquo(float4 __x, float4 __y, __global  int4 * __quo);
+_CLC_OVERLOAD _CLC_DECL float4 remquo(float4 __x, float4 __y, __local   int4 * __quo);
+_CLC_OVERLOAD _CLC_DECL float4 remquo(float4 __x, float4 __y, __private int4 * __quo);
 
-_CLC_OVERLOAD _CLC_DECL float8 remquo(float8 x, float8 y, global  int8 * quo);
-_CLC_OVERLOAD _CLC_DECL float8 remquo(float8 x, float8 y, local   int8 * quo);
-_CLC_OVERLOAD _CLC_DECL float8 remquo(float8 x, float8 y, private int8 * quo);
+_CLC_OVERLOAD _CLC_DECL float8 remquo(float8 __x, float8 __y, __global  int8 * __quo);
+_CLC_OVERLOAD _CLC_DECL float8 remquo(float8 __x, float8 __y, __local   int8 * __quo);
+_CLC_OVERLOAD _CLC_DECL float8 remquo(float8 __x, float8 __y, __private int8 * __quo);
 
-_CLC_OVERLOAD _CLC_DECL float16 remquo(float16 x, float16 y, global  int16 * quo);
-_CLC_OVERLOAD _CLC_DECL float16 remquo(float16 x, float16 y, local   int16 * quo);
-_CLC_OVERLOAD _CLC_DECL float16 remquo(float16 x, float16 y, private int16 * quo);
+_CLC_OVERLOAD _CLC_DECL float16 remquo(float16 __x, float16 __y, __global  int16 * __quo);
+_CLC_OVERLOAD _CLC_DECL float16 remquo(float16 __x, float16 __y, __local   int16 * __quo);
+_CLC_OVERLOAD _CLC_DECL float16 remquo(float16 __x, float16 __y, __private int16 * __quo);
 
-_CLC_PROTECTED double remquod(double x, double y, int *ptr);
+_CLC_PROTECTED double remquod(double __x, double __y, int *__ptr);
 
-_CLC_OVERLOAD _CLC_INLINE double remquo(double x, double y, global  int * quo) 
-    { return remquod(x, y, (int*)quo); }
+_CLC_OVERLOAD _CLC_INLINE double remquo(double __x, double __y, __global  int * __quo) 
+    { return remquod(__x, __y, (int*)__quo); }
 
-_CLC_OVERLOAD _CLC_INLINE double remquo(double x, double y, local   int * quo) 
-    { return remquod(x, y, (int*)quo); }
+_CLC_OVERLOAD _CLC_INLINE double remquo(double __x, double __y, __local   int * __quo) 
+    { return remquod(__x, __y, (int*)__quo); }
 
-_CLC_OVERLOAD _CLC_INLINE double remquo(double x, double y, private int * quo) 
-    { return remquod(x, y, (int*)quo); }
+_CLC_OVERLOAD _CLC_INLINE double remquo(double __x, double __y, __private int * __quo) 
+    { return remquod(__x, __y, (int*)__quo); }
 
-_CLC_OVERLOAD _CLC_DECL double2 remquo(double2 x, double2 y, global  int2 * quo);
-_CLC_OVERLOAD _CLC_DECL double2 remquo(double2 x, double2 y, local   int2 * quo);
-_CLC_OVERLOAD _CLC_DECL double2 remquo(double2 x, double2 y, private int2 * quo);
+_CLC_OVERLOAD _CLC_DECL double2 remquo(double2 __x, double2 __y, __global  int2 * __quo);
+_CLC_OVERLOAD _CLC_DECL double2 remquo(double2 __x, double2 __y, __local   int2 * __quo);
+_CLC_OVERLOAD _CLC_DECL double2 remquo(double2 __x, double2 __y, __private int2 * __quo);
 
-_CLC_OVERLOAD _CLC_DECL double3 remquo(double3 x, double3 y, global  int3 * quo);
-_CLC_OVERLOAD _CLC_DECL double3 remquo(double3 x, double3 y, local   int3 * quo);
-_CLC_OVERLOAD _CLC_DECL double3 remquo(double3 x, double3 y, private int3 * quo);
+_CLC_OVERLOAD _CLC_DECL double3 remquo(double3 __x, double3 __y, __global  int3 * __quo);
+_CLC_OVERLOAD _CLC_DECL double3 remquo(double3 __x, double3 __y, __local   int3 * __quo);
+_CLC_OVERLOAD _CLC_DECL double3 remquo(double3 __x, double3 __y, __private int3 * __quo);
 
-_CLC_OVERLOAD _CLC_DECL double4 remquo(double4 x, double4 y, global  int4 * quo);
-_CLC_OVERLOAD _CLC_DECL double4 remquo(double4 x, double4 y, local   int4 * quo);
-_CLC_OVERLOAD _CLC_DECL double4 remquo(double4 x, double4 y, private int4 * quo);
+_CLC_OVERLOAD _CLC_DECL double4 remquo(double4 __x, double4 __y, __global  int4 * __quo);
+_CLC_OVERLOAD _CLC_DECL double4 remquo(double4 __x, double4 __y, __local   int4 * __quo);
+_CLC_OVERLOAD _CLC_DECL double4 remquo(double4 __x, double4 __y, __private int4 * __quo);
 
-_CLC_OVERLOAD _CLC_DECL double8 remquo(double8 x, double8 y, global  int8 * quo);
-_CLC_OVERLOAD _CLC_DECL double8 remquo(double8 x, double8 y, local   int8 * quo);
-_CLC_OVERLOAD _CLC_DECL double8 remquo(double8 x, double8 y, private int8 * quo);
+_CLC_OVERLOAD _CLC_DECL double8 remquo(double8 __x, double8 __y, __global  int8 * __quo);
+_CLC_OVERLOAD _CLC_DECL double8 remquo(double8 __x, double8 __y, __local   int8 * __quo);
+_CLC_OVERLOAD _CLC_DECL double8 remquo(double8 __x, double8 __y, __private int8 * __quo);
 
-_CLC_OVERLOAD _CLC_DECL double16 remquo(double16 x, double16 y, global  int16 * quo);
-_CLC_OVERLOAD _CLC_DECL double16 remquo(double16 x, double16 y, local   int16 * quo);
-_CLC_OVERLOAD _CLC_DECL double16 remquo(double16 x, double16 y, private int16 * quo);
+_CLC_OVERLOAD _CLC_DECL double16 remquo(double16 __x, double16 __y, __global  int16 * __quo);
+_CLC_OVERLOAD _CLC_DECL double16 remquo(double16 __x, double16 __y, __local   int16 * __quo);
+_CLC_OVERLOAD _CLC_DECL double16 remquo(double16 __x, double16 __y, __private int16 * __quo);
 
-_CLC_PROTECTED void sincosf(float x, float * sinval, float * cosval);
+_CLC_PROTECTED void sincosf(float __x, float * __sinval, float * __cosval);
 
-_CLC_OVERLOAD _CLC_INLINE float sincos(float x, global  float * cosval) 
-    {   float sinval; 
-        sincosf(x, (float*)&sinval, (float*)cosval); 
-        return sinval;
+_CLC_OVERLOAD _CLC_INLINE float sincos(float __x, __global  float * __cosval) 
+    {   float __sinval; 
+        sincosf(__x, (float*)&__sinval, (float*)__cosval); 
+        return __sinval;
     }
 
-_CLC_OVERLOAD _CLC_INLINE float sincos(float x, local   float * cosval) 
-    {   float sinval; 
-        sincosf(x, (float*)&sinval, (float*)cosval); 
-        return sinval;
+_CLC_OVERLOAD _CLC_INLINE float sincos(float __x, __local   float * __cosval) 
+    {   float __sinval; 
+        sincosf(__x, (float*)&__sinval, (float*)__cosval); 
+        return __sinval;
     }
 
-_CLC_OVERLOAD _CLC_INLINE float sincos(float x, private float * cosval) 
-    {   float sinval; 
-        sincosf(x, (float*)&sinval, (float*)cosval); 
-        return sinval;
+_CLC_OVERLOAD _CLC_INLINE float sincos(float __x, __private float * __cosval) 
+    {   float __sinval; 
+        sincosf(__x, (float*)&__sinval, (float*)__cosval); 
+        return __sinval;
     }
 
-_CLC_OVERLOAD _CLC_DECL float2 sincos(float2 x, global  float2 * cosval);
-_CLC_OVERLOAD _CLC_DECL float2 sincos(float2 x, local   float2 * cosval);
-_CLC_OVERLOAD _CLC_DECL float2 sincos(float2 x, private float2 * cosval);
+_CLC_OVERLOAD _CLC_DECL float2 sincos(float2 __x, __global  float2 * __cosval);
+_CLC_OVERLOAD _CLC_DECL float2 sincos(float2 __x, __local   float2 * __cosval);
+_CLC_OVERLOAD _CLC_DECL float2 sincos(float2 __x, __private float2 * __cosval);
 
-_CLC_OVERLOAD _CLC_DECL float3 sincos(float3 x, global  float3 * cosval);
-_CLC_OVERLOAD _CLC_DECL float3 sincos(float3 x, local   float3 * cosval);
-_CLC_OVERLOAD _CLC_DECL float3 sincos(float3 x, private float3 * cosval);
+_CLC_OVERLOAD _CLC_DECL float3 sincos(float3 __x, __global  float3 * __cosval);
+_CLC_OVERLOAD _CLC_DECL float3 sincos(float3 __x, __local   float3 * __cosval);
+_CLC_OVERLOAD _CLC_DECL float3 sincos(float3 __x, __private float3 * __cosval);
 
-_CLC_OVERLOAD _CLC_DECL float4 sincos(float4 x, global  float4 * cosval);
-_CLC_OVERLOAD _CLC_DECL float4 sincos(float4 x, local   float4 * cosval);
-_CLC_OVERLOAD _CLC_DECL float4 sincos(float4 x, private float4 * cosval);
+_CLC_OVERLOAD _CLC_DECL float4 sincos(float4 __x, __global  float4 * __cosval);
+_CLC_OVERLOAD _CLC_DECL float4 sincos(float4 __x, __local   float4 * __cosval);
+_CLC_OVERLOAD _CLC_DECL float4 sincos(float4 __x, __private float4 * __cosval);
 
-_CLC_OVERLOAD _CLC_DECL float8 sincos(float8 x, global  float8 * cosval);
-_CLC_OVERLOAD _CLC_DECL float8 sincos(float8 x, local   float8 * cosval);
-_CLC_OVERLOAD _CLC_DECL float8 sincos(float8 x, private float8 * cosval);
+_CLC_OVERLOAD _CLC_DECL float8 sincos(float8 __x, __global  float8 * __cosval);
+_CLC_OVERLOAD _CLC_DECL float8 sincos(float8 __x, __local   float8 * __cosval);
+_CLC_OVERLOAD _CLC_DECL float8 sincos(float8 __x, __private float8 * __cosval);
 
-_CLC_OVERLOAD _CLC_DECL float16 sincos(float16 x, global  float16 * cosval);
-_CLC_OVERLOAD _CLC_DECL float16 sincos(float16 x, local   float16 * cosval);
-_CLC_OVERLOAD _CLC_DECL float16 sincos(float16 x, private float16 * cosval);
+_CLC_OVERLOAD _CLC_DECL float16 sincos(float16 __x, __global  float16 * __cosval);
+_CLC_OVERLOAD _CLC_DECL float16 sincos(float16 __x, __local   float16 * __cosval);
+_CLC_OVERLOAD _CLC_DECL float16 sincos(float16 __x, __private float16 * __cosval);
 
-_CLC_PROTECTED void sincosd(double x, double * sinval, double * cosval);
+_CLC_PROTECTED void sincosd(double __x, double * __sinval, double * __cosval);
 
-_CLC_OVERLOAD _CLC_INLINE double sincos(double x, global  double * cosval) 
-    {   double sinval; 
-        sincosd(x, (double*)&sinval, (double*)cosval); 
-        return sinval;
+_CLC_OVERLOAD _CLC_INLINE double sincos(double __x, __global  double * __cosval) 
+    {   double __sinval; 
+        sincosd(__x, (double*)&__sinval, (double*)__cosval); 
+        return __sinval;
     }
 
-_CLC_OVERLOAD _CLC_INLINE double sincos(double x, local   double * cosval) 
-    {   double sinval; 
-        sincosd(x, (double*)&sinval, (double*)cosval); 
-        return sinval;
+_CLC_OVERLOAD _CLC_INLINE double sincos(double __x, __local   double * __cosval) 
+    {   double __sinval; 
+        sincosd(__x, (double*)&__sinval, (double*)__cosval); 
+        return __sinval;
     }
 
-_CLC_OVERLOAD _CLC_INLINE double sincos(double x, private double * cosval) 
-    {   double sinval; 
-        sincosd(x, (double*)&sinval, (double*)cosval); 
-        return sinval;
+_CLC_OVERLOAD _CLC_INLINE double sincos(double __x, __private double * __cosval) 
+    {   double __sinval; 
+        sincosd(__x, (double*)&__sinval, (double*)__cosval); 
+        return __sinval;
     }
 
-_CLC_OVERLOAD _CLC_DECL double2 sincos(double2 x, global  double2 * cosval);
-_CLC_OVERLOAD _CLC_DECL double2 sincos(double2 x, local   double2 * cosval);
-_CLC_OVERLOAD _CLC_DECL double2 sincos(double2 x, private double2 * cosval);
+_CLC_OVERLOAD _CLC_DECL double2 sincos(double2 __x, __global  double2 * __cosval);
+_CLC_OVERLOAD _CLC_DECL double2 sincos(double2 __x, __local   double2 * __cosval);
+_CLC_OVERLOAD _CLC_DECL double2 sincos(double2 __x, __private double2 * __cosval);
 
-_CLC_OVERLOAD _CLC_DECL double3 sincos(double3 x, global  double3 * cosval);
-_CLC_OVERLOAD _CLC_DECL double3 sincos(double3 x, local   double3 * cosval);
-_CLC_OVERLOAD _CLC_DECL double3 sincos(double3 x, private double3 * cosval);
+_CLC_OVERLOAD _CLC_DECL double3 sincos(double3 __x, __global  double3 * __cosval);
+_CLC_OVERLOAD _CLC_DECL double3 sincos(double3 __x, __local   double3 * __cosval);
+_CLC_OVERLOAD _CLC_DECL double3 sincos(double3 __x, __private double3 * __cosval);
 
-_CLC_OVERLOAD _CLC_DECL double4 sincos(double4 x, global  double4 * cosval);
-_CLC_OVERLOAD _CLC_DECL double4 sincos(double4 x, local   double4 * cosval);
-_CLC_OVERLOAD _CLC_DECL double4 sincos(double4 x, private double4 * cosval);
+_CLC_OVERLOAD _CLC_DECL double4 sincos(double4 __x, __global  double4 * __cosval);
+_CLC_OVERLOAD _CLC_DECL double4 sincos(double4 __x, __local   double4 * __cosval);
+_CLC_OVERLOAD _CLC_DECL double4 sincos(double4 __x, __private double4 * __cosval);
 
-_CLC_OVERLOAD _CLC_DECL double8 sincos(double8 x, global  double8 * cosval);
-_CLC_OVERLOAD _CLC_DECL double8 sincos(double8 x, local   double8 * cosval);
-_CLC_OVERLOAD _CLC_DECL double8 sincos(double8 x, private double8 * cosval);
+_CLC_OVERLOAD _CLC_DECL double8 sincos(double8 __x, __global  double8 * __cosval);
+_CLC_OVERLOAD _CLC_DECL double8 sincos(double8 __x, __local   double8 * __cosval);
+_CLC_OVERLOAD _CLC_DECL double8 sincos(double8 __x, __private double8 * __cosval);
 
-_CLC_OVERLOAD _CLC_DECL double16 sincos(double16 x, global  double16 * cosval);
-_CLC_OVERLOAD _CLC_DECL double16 sincos(double16 x, local   double16 * cosval);
-_CLC_OVERLOAD _CLC_DECL double16 sincos(double16 x, private double16 * cosval);
+_CLC_OVERLOAD _CLC_DECL double16 sincos(double16 __x, __global  double16 * __cosval);
+_CLC_OVERLOAD _CLC_DECL double16 sincos(double16 __x, __local   double16 * __cosval);
+_CLC_OVERLOAD _CLC_DECL double16 sincos(double16 __x, __private double16 * __cosval);
 
 /*-----------------------------------------------------------------------------
 * Integer
 *----------------------------------------------------------------------------*/
-#define EXPAND_SIZES(type) \
-    SCALAR(type)              \
-    TEMPLATE(_VEC_TYPE(type,2))  \
-    TEMPLATE(_VEC_TYPE(type,3))  \
-    TEMPLATE(_VEC_TYPE(type,4))  \
-    TEMPLATE(_VEC_TYPE(type,8))  \
-    TEMPLATE(_VEC_TYPE(type,16)) \
+#define _EXPAND_SIZES(__type) \
+    _SCALAR(__type)              \
+    _TEMPLATE(_VEC_TYPE(__type,2))  \
+    _TEMPLATE(_VEC_TYPE(__type,3))  \
+    _TEMPLATE(_VEC_TYPE(__type,4))  \
+    _TEMPLATE(_VEC_TYPE(__type,8))  \
+    _TEMPLATE(_VEC_TYPE(__type,16)) \
 
-#define TEMPLATE(gentype) \
-    _CLC_OVERLOAD _CLC_DECL gentype hadd(gentype x1, gentype x2);
+#define _TEMPLATE(__gentype) \
+    _CLC_OVERLOAD _CLC_DECL __gentype hadd(__gentype __x1, __gentype __x2);
 
-#define SCALAR(gentype) \
-    _CLC_OVERLOAD _CLC_INLINE gentype hadd(gentype x, gentype y) \
-    { return (x >> 1) + (y >> 1) + (x & y & 1); } 
+#define _SCALAR(__gentype) \
+    _CLC_OVERLOAD _CLC_INLINE __gentype hadd(__gentype __x, __gentype __y) \
+    { return (__x >> 1) + (__y >> 1) + (__x & __y & 1); } 
 
 _EXPAND_INTEGER_TYPES()
 
-#undef SCALAR
-#undef TEMPLATE
+#undef _SCALAR
+#undef _TEMPLATE
 
-#define TEMPLATE(gentype) \
-    _CLC_OVERLOAD _CLC_DECL gentype rhadd(gentype x1, gentype x2);\
+#define _TEMPLATE(__gentype) \
+    _CLC_OVERLOAD _CLC_DECL __gentype rhadd(__gentype __x1, __gentype __x2);\
 
-#define SCALAR(gentype) \
-    _CLC_OVERLOAD _CLC_INLINE gentype rhadd(gentype x, gentype y) \
-    { return (x >> 1) + (y >> 1) + ((x&1)|(y&1)); } \
+#define _SCALAR(__gentype) \
+    _CLC_OVERLOAD _CLC_INLINE __gentype rhadd(__gentype __x, __gentype __y) \
+    { return (__x >> 1) + (__y >> 1) + ((__x&1)|(__y&1)); } \
 
-EXPAND_SIZES(char)   
-// EXPAND_SIZES(uchar)  uchar inlined in dsp.h
-// EXPAND_SIZES(short)  short inlined in dsp.h
-EXPAND_SIZES(ushort) 
-EXPAND_SIZES(int)    
-EXPAND_SIZES(uint)   
-EXPAND_SIZES(long)   
-EXPAND_SIZES(ulong)  
+_EXPAND_SIZES(char)   
+// _EXPAND_SIZES(uchar)  uchar inlined in dsp.h
+// _EXPAND_SIZES(short)  short inlined in dsp.h
+_EXPAND_SIZES(ushort) 
+_EXPAND_SIZES(int)    
+_EXPAND_SIZES(uint)   
+_EXPAND_SIZES(long)   
+_EXPAND_SIZES(ulong)  
 
-#undef EXPAND_SIZES
-#undef SCALAR
-#undef TEMPLATE
+#undef _EXPAND_SIZES
+#undef _SCALAR
+#undef _TEMPLATE
 
-#define EXPAND_SIZES(type)             \
-    SCALAR_IMPLEMENTATION(type)              \
-    DECLARATION(_VEC_TYPE(type,2), type)  \
-    DECLARATION(_VEC_TYPE(type,3), type)  \
-    DECLARATION(_VEC_TYPE(type,4), type)  \
-    DECLARATION(_VEC_TYPE(type,8), type)  \
-    DECLARATION(_VEC_TYPE(type,16), type) \
+#define _EXPAND_SIZES(__type)             \
+    _SCALAR_IMPLEMENTATION(__type)              \
+    _DECLARATION(_VEC_TYPE(__type,2), __type)  \
+    _DECLARATION(_VEC_TYPE(__type,3), __type)  \
+    _DECLARATION(_VEC_TYPE(__type,4), __type)  \
+    _DECLARATION(_VEC_TYPE(__type,8), __type)  \
+    _DECLARATION(_VEC_TYPE(__type,16), __type) \
 
-#define DECLARATION(gentype, sgentype) \
-_CLC_OVERLOAD _CLC_DECL gentype clamp(gentype x, gentype minval, gentype maxval);  \
-_CLC_OVERLOAD _CLC_DECL gentype clamp(gentype x, sgentype minval, sgentype maxval); \
+#define _DECLARATION(__gentype, __sgentype) \
+_CLC_OVERLOAD _CLC_DECL __gentype clamp(__gentype __x, __gentype __minval, __gentype __maxval);  \
+_CLC_OVERLOAD _CLC_DECL __gentype clamp(__gentype __x, __sgentype __minval, __sgentype __maxval); \
 
-#define SCALAR_IMPLEMENTATION(gentype) \
-_CLC_OVERLOAD _CLC_INLINE gentype clamp(gentype x, gentype minval, gentype maxval)  \
-    { return x > maxval ? maxval : x < minval ? minval : x; } \
-
-_EXPAND_TYPES()
-
-#undef EXPAND_SIZES
-#undef IMPLEMENTATION
-#undef DECLARATION
-#undef SCALAR_IMPLEMENTATION
-
-#define EXPAND_SIZES(type)                  \
-    SCALAR_IMPLEMENTATION(type)             \
-    IMPLEMENTATION(_VEC_TYPE(type,2), type)  \
-    DECLARATION(_VEC_TYPE(type,3), type)  \
-    DECLARATION(_VEC_TYPE(type,4), type)  \
-    DECLARATION(_VEC_TYPE(type,8), type)  \
-    DECLARATION(_VEC_TYPE(type,16), type) \
-
-#define DECLARATION(gentype, sgentype) \
-_CLC_OVERLOAD _CLC_DECL gentype min(gentype x, gentype y); \
-_CLC_OVERLOAD _CLC_DECL gentype min(gentype x, sgentype y); \
-_CLC_OVERLOAD _CLC_DECL gentype max(gentype x, gentype y); \
-_CLC_OVERLOAD _CLC_DECL gentype max(gentype x, sgentype y); \
-
-#define IMPLEMENTATION(gentype, sgentype) \
-_CLC_OVERLOAD _CLC_INLINE gentype min(gentype x, gentype y)  \
-    { return y < x ? y : x; } \
-_CLC_OVERLOAD _CLC_INLINE gentype min(gentype x, sgentype y) \
-    { return (gentype)y < x ? (gentype)y : x; } \
-_CLC_OVERLOAD _CLC_INLINE gentype max(gentype x, gentype y)  \
-    { return y > x ? y : x; } \
-_CLC_OVERLOAD _CLC_INLINE gentype max(gentype x, sgentype y) \
-    { return (gentype)y > x ? (gentype)y : x; } \
-
-#define SCALAR_IMPLEMENTATION(gentype) \
-_CLC_OVERLOAD _CLC_INLINE gentype min(gentype x, gentype y)  \
-    { return y < x ? y : x; } \
-_CLC_OVERLOAD _CLC_INLINE gentype max(gentype x, gentype y)  \
-    { return y > x ? y : x; } \
+#define _SCALAR_IMPLEMENTATION(__gentype) \
+_CLC_OVERLOAD _CLC_INLINE __gentype clamp(__gentype __x, __gentype __minval, __gentype __maxval)  \
+    { return __x > __maxval ? __maxval : __x < __minval ? __minval : __x; } \
 
 _EXPAND_TYPES()
 
-#undef EXPAND_SIZES
-#undef DECLARATION
-#undef IMPLEMENTATION
-#undef SCALAR_IMPLEMENTATION
+#undef _EXPAND_SIZES
+#undef _IMPLEMENTATION
+#undef _DECLARATION
+#undef _SCALAR_IMPLEMENTATION
 
-#define EXPAND_SIZES(type)                  \
-    SCALAR_IMPLEMENTATION(type)             \
-    IMPLEMENTATION(_VEC_TYPE(type,2), type)  \
-    DECLARATION(_VEC_TYPE(type,3), type)  \
-    DECLARATION(_VEC_TYPE(type,4), type)  \
-    DECLARATION(_VEC_TYPE(type,8), type)  \
-    DECLARATION(_VEC_TYPE(type,16), type) \
+#define _EXPAND_SIZES(__type)                  \
+    _SCALAR_IMPLEMENTATION(__type)             \
+    _IMPLEMENTATION(_VEC_TYPE(__type,2), __type)  \
+    _DECLARATION(_VEC_TYPE(__type,3), __type)  \
+    _DECLARATION(_VEC_TYPE(__type,4), __type)  \
+    _DECLARATION(_VEC_TYPE(__type,8), __type)  \
+    _DECLARATION(_VEC_TYPE(__type,16), __type) \
 
-#define DECLARATION(gentype, sgentype) \
-_CLC_OVERLOAD _CLC_DECL gentype mix(gentype x, gentype y, gentype a); \
-_CLC_OVERLOAD _CLC_DECL gentype mix(gentype x, gentype y, sgentype a); \
+#define _DECLARATION(__gentype, __sgentype) \
+_CLC_OVERLOAD _CLC_DECL __gentype min(__gentype __x, __gentype __y); \
+_CLC_OVERLOAD _CLC_DECL __gentype min(__gentype __x, __sgentype __y); \
+_CLC_OVERLOAD _CLC_DECL __gentype max(__gentype __x, __gentype __y); \
+_CLC_OVERLOAD _CLC_DECL __gentype max(__gentype __x, __sgentype __y); \
 
-#define IMPLEMENTATION(gentype, sgentype) \
-_CLC_OVERLOAD _CLC_INLINE gentype mix(gentype x, gentype y, gentype a)  \
-    { return x + (y-x) * a; } \
-_CLC_OVERLOAD _CLC_INLINE gentype mix(gentype x, gentype y, sgentype a) \
-    { return x + (y-x) * (gentype)a; } \
+#define _IMPLEMENTATION(__gentype, __sgentype) \
+_CLC_OVERLOAD _CLC_INLINE __gentype min(__gentype __x, __gentype __y)  \
+    { return __y < __x ? __y : __x; } \
+_CLC_OVERLOAD _CLC_INLINE __gentype min(__gentype __x, __sgentype __y) \
+    { return (__gentype)__y < __x ? (__gentype)__y : __x; } \
+_CLC_OVERLOAD _CLC_INLINE __gentype max(__gentype __x, __gentype __y)  \
+    { return __y > __x ? __y : __x; } \
+_CLC_OVERLOAD _CLC_INLINE __gentype max(__gentype __x, __sgentype __y) \
+    { return (__gentype)__y > __x ? (__gentype)__y : __x; } \
 
-#define SCALAR_IMPLEMENTATION(gentype) \
-_CLC_OVERLOAD _CLC_INLINE gentype mix(gentype x, gentype y, gentype a)  \
-    { return x + (y-x) * a; } \
+#define _SCALAR_IMPLEMENTATION(__gentype) \
+_CLC_OVERLOAD _CLC_INLINE __gentype min(__gentype __x, __gentype __y)  \
+    { return __y < __x ? __y : __x; } \
+_CLC_OVERLOAD _CLC_INLINE __gentype max(__gentype __x, __gentype __y)  \
+    { return __y > __x ? __y : __x; } \
 
-EXPAND_SIZES(float)
-EXPAND_SIZES(double)
+_EXPAND_TYPES()
 
-#undef EXPAND_SIZES
-#undef DECLARATION
-#undef IMPLEMENTATION
-#undef SCALAR_IMPLEMENTATION
+#undef _EXPAND_SIZES
+#undef _DECLARATION
+#undef _IMPLEMENTATION
+#undef _SCALAR_IMPLEMENTATION
 
-#define EXPAND_SIZES(type, utype) \
-    TEMPLATE(_VEC_TYPE(type,2), _VEC_TYPE(utype,2))  \
-    TEMPLATE(_VEC_TYPE(type,3), _VEC_TYPE(utype,3))  \
-    TEMPLATE(_VEC_TYPE(type,4), _VEC_TYPE(utype,4))  \
-    TEMPLATE(_VEC_TYPE(type,8), _VEC_TYPE(utype,8))  \
-    TEMPLATE(_VEC_TYPE(type,16), _VEC_TYPE(utype,16)) \
+#define _EXPAND_SIZES(__type)                  \
+    _SCALAR_IMPLEMENTATION(__type)             \
+    _IMPLEMENTATION(_VEC_TYPE(__type,2), __type)  \
+    _DECLARATION(_VEC_TYPE(__type,3), __type)  \
+    _DECLARATION(_VEC_TYPE(__type,4), __type)  \
+    _DECLARATION(_VEC_TYPE(__type,8), __type)  \
+    _DECLARATION(_VEC_TYPE(__type,16), __type) \
 
-#define TEMPLATE(gentype, ugentype) \
-    _CLC_OVERLOAD _CLC_DECL ugentype abs_diff(gentype x, gentype y);\
+#define _DECLARATION(__gentype, __sgentype) \
+_CLC_OVERLOAD _CLC_DECL __gentype mix(__gentype __x, __gentype __y, __gentype __a); \
+_CLC_OVERLOAD _CLC_DECL __gentype mix(__gentype __x, __gentype __y, __sgentype __a); \
 
-EXPAND_SIZES(char, uchar)
-EXPAND_SIZES(uchar, uchar)
-EXPAND_SIZES(short, ushort)
-EXPAND_SIZES(ushort, ushort)
-EXPAND_SIZES(int, uint)
-EXPAND_SIZES(uint, uint)
-EXPAND_SIZES(long, ulong)
-EXPAND_SIZES(ulong, ulong)
+#define _IMPLEMENTATION(__gentype, __sgentype) \
+_CLC_OVERLOAD _CLC_INLINE __gentype mix(__gentype __x, __gentype __y, __gentype __a)  \
+    { return __x + (__y-__x) * __a; } \
+_CLC_OVERLOAD _CLC_INLINE __gentype mix(__gentype __x, __gentype __y, __sgentype __a) \
+    { return __x + (__y-__x) * (__gentype)__a; } \
 
-_CLC_OVERLOAD _CLC_INLINE uchar  abs_diff (char x,   char y)   { return x>y ? x-y : y-x; }
-_CLC_OVERLOAD _CLC_INLINE uchar  abs_diff (uchar x,  uchar y)  { return x>y ? x-y : y-x; }
-_CLC_OVERLOAD _CLC_INLINE ushort abs_diff (short x,  short y)  { return x>y ? x-y : y-x; }
-_CLC_OVERLOAD _CLC_INLINE ushort abs_diff (ushort x, ushort y) { return x>y ? x-y : y-x; }
-_CLC_OVERLOAD _CLC_INLINE uint   abs_diff (uint x,   uint y)   { return x>y ? x-y : y-x; }
-_CLC_OVERLOAD _CLC_INLINE ulong  abs_diff (ulong x,  ulong y)  { return x>y ? x-y : y-x; }
+#define _SCALAR_IMPLEMENTATION(__gentype) \
+_CLC_OVERLOAD _CLC_INLINE __gentype mix(__gentype __x, __gentype __y, __gentype __a)  \
+    { return __x + (__y-__x) * __a; } \
 
-_CLC_OVERLOAD _CLC_DECL uint abs_diff(int x,  int y);
-_CLC_OVERLOAD _CLC_DECL ulong abs_diff(long x,  long y);
+_EXPAND_SIZES(float)
+_EXPAND_SIZES(double)
 
-#undef EXPAND_SIZES
-#undef TEMPLATE
+#undef _EXPAND_SIZES
+#undef _DECLARATION
+#undef _IMPLEMENTATION
+#undef _SCALAR_IMPLEMENTATION
 
-#define mad_hi(a, b, c) (mul_hi((a),(b))+(c))
-#define mul24(a, b)     ((a)*(b))
-#define mad24(a, b, c)  (((a)*(b))+(c))
+#define _EXPAND_SIZES(__type, __utype) \
+    _TEMPLATE(_VEC_TYPE(__type,2), _VEC_TYPE(__utype,2))  \
+    _TEMPLATE(_VEC_TYPE(__type,3), _VEC_TYPE(__utype,3))  \
+    _TEMPLATE(_VEC_TYPE(__type,4), _VEC_TYPE(__utype,4))  \
+    _TEMPLATE(_VEC_TYPE(__type,8), _VEC_TYPE(__utype,8))  \
+    _TEMPLATE(_VEC_TYPE(__type,16), _VEC_TYPE(__utype,16)) \
+
+#define _TEMPLATE(__gentype, __ugentype) \
+    _CLC_OVERLOAD _CLC_DECL __ugentype abs_diff(__gentype __x, __gentype __y);\
+
+_EXPAND_SIZES(char, uchar)
+_EXPAND_SIZES(uchar, uchar)
+_EXPAND_SIZES(short, ushort)
+_EXPAND_SIZES(ushort, ushort)
+_EXPAND_SIZES(int, uint)
+_EXPAND_SIZES(uint, uint)
+_EXPAND_SIZES(long, ulong)
+_EXPAND_SIZES(ulong, ulong)
+
+_CLC_OVERLOAD _CLC_INLINE uchar  abs_diff (char __x,   char __y)   { return __x>__y ? __x-__y : __y-__x; }
+_CLC_OVERLOAD _CLC_INLINE uchar  abs_diff (uchar __x,  uchar __y)  { return __x>__y ? __x-__y : __y-__x; }
+_CLC_OVERLOAD _CLC_INLINE ushort abs_diff (short __x,  short __y)  { return __x>__y ? __x-__y : __y-__x; }
+_CLC_OVERLOAD _CLC_INLINE ushort abs_diff (ushort __x, ushort __y) { return __x>__y ? __x-__y : __y-__x; }
+_CLC_OVERLOAD _CLC_INLINE uint   abs_diff (uint __x,   uint __y)   { return __x>__y ? __x-__y : __y-__x; }
+_CLC_OVERLOAD _CLC_INLINE ulong  abs_diff (ulong __x,  ulong __y)  { return __x>__y ? __x-__y : __y-__x; }
+
+_CLC_OVERLOAD _CLC_DECL uint abs_diff(int __x,  int __y);
+_CLC_OVERLOAD _CLC_DECL ulong abs_diff(long __x,  long __y);
+
+#undef _EXPAND_SIZES
+#undef _TEMPLATE
+
+#define mad_hi(__a, __b, __c) (mul_hi((__a),(__b))+(__c))
+#define mul24(__a, __b)     ((__a)*(__b))
+#define mad24(__a, __b, __c)  (((__a)*(__b))+(__c))
 
 /*-----------------------------------------------------------------------------
 * Common
 *----------------------------------------------------------------------------*/
-#define EXPAND_SIZES(type) \
-    IMPLEMENTATION(type)              \
-    IMPLEMENTATION(_VEC_TYPE(type,2))  \
-    DECLARATION(_VEC_TYPE(type,3))  \
-    DECLARATION(_VEC_TYPE(type,4))  \
-    DECLARATION(_VEC_TYPE(type,8))  \
-    DECLARATION(_VEC_TYPE(type,16)) \
+#define _EXPAND_SIZES(__type) \
+    _IMPLEMENTATION(__type)              \
+    _IMPLEMENTATION(_VEC_TYPE(__type,2))  \
+    _DECLARATION(_VEC_TYPE(__type,3))  \
+    _DECLARATION(_VEC_TYPE(__type,4))  \
+    _DECLARATION(_VEC_TYPE(__type,8))  \
+    _DECLARATION(_VEC_TYPE(__type,16)) \
 
-#define DECLARATION(gentype) \
-_CLC_OVERLOAD _CLC_DECL gentype degrees(gentype radians); \
-_CLC_OVERLOAD _CLC_DECL gentype radians(gentype degrees); \
+#define _DECLARATION(__gentype) \
+_CLC_OVERLOAD _CLC_DECL __gentype degrees(__gentype __radians); \
+_CLC_OVERLOAD _CLC_DECL __gentype radians(__gentype __degrees); \
 
-#define IMPLEMENTATION(gentype) \
-_CLC_OVERLOAD _CLC_INLINE gentype degrees(gentype radians) { return radians * (gentype)180.0 * (gentype)M_1_PI; } \
-_CLC_OVERLOAD _CLC_INLINE gentype radians(gentype degrees) { return degrees * (gentype)M_PI / (gentype)180.0; } 
+#define _IMPLEMENTATION(__gentype) \
+_CLC_OVERLOAD _CLC_INLINE __gentype degrees(__gentype __radians) { return __radians * (__gentype)180.0 * (__gentype)M_1_PI; } \
+_CLC_OVERLOAD _CLC_INLINE __gentype radians(__gentype __degrees) { return __degrees * (__gentype)M_PI / (__gentype)180.0; } 
 
-EXPAND_SIZES(float)
-EXPAND_SIZES(double)
+_EXPAND_SIZES(float)
+_EXPAND_SIZES(double)
 
-#undef EXPAND_SIZES
-#undef DECLARATION
-#undef IMPLEMENTATION
+#undef _EXPAND_SIZES
+#undef _DECLARATION
+#undef _IMPLEMENTATION
 
-#define EXPAND_SIZES(type)                  \
-    SCALAR_IMPLEMENTATION(type)             \
-    IMPLEMENTATION(_VEC_TYPE(type,2), type)  \
-    DECLARATION(_VEC_TYPE(type,3), type)  \
-    DECLARATION(_VEC_TYPE(type,4), type)  \
-    DECLARATION(_VEC_TYPE(type,8), type)  \
-    DECLARATION(_VEC_TYPE(type,16), type) \
+#define _EXPAND_SIZES(__type)                  \
+    _SCALAR_IMPLEMENTATION(__type)             \
+    _IMPLEMENTATION(_VEC_TYPE(__type,2), __type)  \
+    _DECLARATION(_VEC_TYPE(__type,3), __type)  \
+    _DECLARATION(_VEC_TYPE(__type,4), __type)  \
+    _DECLARATION(_VEC_TYPE(__type,8), __type)  \
+    _DECLARATION(_VEC_TYPE(__type,16), __type) \
 
-#define DECLARATION(gentype, sgentype) \
-_CLC_OVERLOAD _CLC_DECL gentype step(gentype edge, gentype x); \
-_CLC_OVERLOAD _CLC_DECL gentype step(sgentype edge, gentype x); \
+#define _DECLARATION(__gentype, __sgentype) \
+_CLC_OVERLOAD _CLC_DECL __gentype step(__gentype __edge, __gentype __x); \
+_CLC_OVERLOAD _CLC_DECL __gentype step(__sgentype __edge, __gentype __x); \
 
-#define IMPLEMENTATION(gentype, sgentype) \
-_CLC_OVERLOAD _CLC_INLINE gentype step(gentype edge, gentype x)  \
-    { return x < edge ? (gentype)0.0 : (gentype)1.0 ; } \
-_CLC_OVERLOAD _CLC_INLINE gentype step(sgentype edge, gentype x) \
-    { return x < (gentype)edge ? (gentype)0.0 : (gentype)1.0 ; } \
+#define _IMPLEMENTATION(__gentype, __sgentype) \
+_CLC_OVERLOAD _CLC_INLINE __gentype step(__gentype __edge, __gentype __x)  \
+    { return __x < __edge ? (__gentype)0.0 : (__gentype)1.0 ; } \
+_CLC_OVERLOAD _CLC_INLINE __gentype step(__sgentype __edge, __gentype __x) \
+    { return __x < (__gentype)__edge ? (__gentype)0.0 : (__gentype)1.0 ; } \
 
-#define SCALAR_IMPLEMENTATION(gentype) \
-_CLC_OVERLOAD _CLC_INLINE gentype step(gentype edge, gentype x)  \
-    { return x < edge ? 0.0 : 1.0 ; } \
+#define _SCALAR_IMPLEMENTATION(__gentype) \
+_CLC_OVERLOAD _CLC_INLINE __gentype step(__gentype __edge, __gentype __x)  \
+    { return __x < __edge ? 0.0 : 1.0 ; } \
 
-EXPAND_SIZES(float)
-EXPAND_SIZES(double)
+_EXPAND_SIZES(float)
+_EXPAND_SIZES(double)
 
-#undef EXPAND_SIZES
-#undef DECLARATION
-#undef IMPLEMENTATION
-#undef SCALAR_IMPLEMENTATION
+#undef _EXPAND_SIZES
+#undef _DECLARATION
+#undef _IMPLEMENTATION
+#undef _SCALAR_IMPLEMENTATION
 
-_CLC_OVERLOAD _CLC_DECL float   smoothstep(float edge0, float edge1, float x);
-_CLC_OVERLOAD _CLC_DECL float2  smoothstep(float2  edge0, float2  edge1,  
-                                           float2  x);
-_CLC_OVERLOAD _CLC_DECL float3  smoothstep(float3  edge0, float3  edge1,  
-                                           float3  x);
-_CLC_OVERLOAD _CLC_DECL float4  smoothstep(float4  edge0, float4  edge1,  
-                                           float4  x);
-_CLC_OVERLOAD _CLC_DECL float8  smoothstep(float8  edge0, float8  edge1,  
-                                           float8  x);
-_CLC_OVERLOAD _CLC_DECL float16 smoothstep(float16 edge0, float16 edge1,  
-                                           float16 x);
+_CLC_OVERLOAD _CLC_DECL float   smoothstep(float __edge0, float __edge1, float __x);
+_CLC_OVERLOAD _CLC_DECL float2  smoothstep(float2  __edge0, float2  __edge1,  
+                                           float2  __x);
+_CLC_OVERLOAD _CLC_DECL float3  smoothstep(float3  __edge0, float3  __edge1,  
+                                           float3  __x);
+_CLC_OVERLOAD _CLC_DECL float4  smoothstep(float4  __edge0, float4  __edge1,  
+                                           float4  __x);
+_CLC_OVERLOAD _CLC_DECL float8  smoothstep(float8  __edge0, float8  __edge1,  
+                                           float8  __x);
+_CLC_OVERLOAD _CLC_DECL float16 smoothstep(float16 __edge0, float16 __edge1,  
+                                           float16 __x);
 
-_CLC_OVERLOAD _CLC_DECL float2  smoothstep(float edge0, float edge1, float2  x);
-_CLC_OVERLOAD _CLC_DECL float3  smoothstep(float edge0, float edge1, float3  x);
-_CLC_OVERLOAD _CLC_DECL float4  smoothstep(float edge0, float edge1, float4  x);
-_CLC_OVERLOAD _CLC_DECL float8  smoothstep(float edge0, float edge1, float8  x);
-_CLC_OVERLOAD _CLC_DECL float16 smoothstep(float edge0, float edge1, float16 x);
+_CLC_OVERLOAD _CLC_DECL float2  smoothstep(float __edge0, float __edge1, float2  __x);
+_CLC_OVERLOAD _CLC_DECL float3  smoothstep(float __edge0, float __edge1, float3  __x);
+_CLC_OVERLOAD _CLC_DECL float4  smoothstep(float __edge0, float __edge1, float4  __x);
+_CLC_OVERLOAD _CLC_DECL float8  smoothstep(float __edge0, float __edge1, float8  __x);
+_CLC_OVERLOAD _CLC_DECL float16 smoothstep(float __edge0, float __edge1, float16 __x);
 
-_CLC_OVERLOAD _CLC_DECL double   smoothstep(double edge0, double edge1, double x);
-_CLC_OVERLOAD _CLC_DECL double2  smoothstep(double2  edge0, double2  edge1,  
-                                            double2  x);
-_CLC_OVERLOAD _CLC_DECL double3  smoothstep(double3  edge0, double3  edge1,  
-                                            double3  x);
-_CLC_OVERLOAD _CLC_DECL double4  smoothstep(double4  edge0, double4  edge1,  
-                                            double4  x);
-_CLC_OVERLOAD _CLC_DECL double8  smoothstep(double8  edge0, double8  edge1,  
-                                            double8  x);
-_CLC_OVERLOAD _CLC_DECL double16 smoothstep(double16 edge0, double16 edge1,  
-                                            double16 x);
+_CLC_OVERLOAD _CLC_DECL double   smoothstep(double __edge0, double __edge1, double __x);
+_CLC_OVERLOAD _CLC_DECL double2  smoothstep(double2  __edge0, double2  __edge1,  
+                                            double2  __x);
+_CLC_OVERLOAD _CLC_DECL double3  smoothstep(double3  __edge0, double3  __edge1,  
+                                            double3  __x);
+_CLC_OVERLOAD _CLC_DECL double4  smoothstep(double4  __edge0, double4  __edge1,  
+                                            double4  __x);
+_CLC_OVERLOAD _CLC_DECL double8  smoothstep(double8  __edge0, double8  __edge1,  
+                                            double8  __x);
+_CLC_OVERLOAD _CLC_DECL double16 smoothstep(double16 __edge0, double16 __edge1,  
+                                            double16 __x);
 
-_CLC_OVERLOAD _CLC_DECL double2  smoothstep(double edge0, double edge1, 
-                                            double2  x);
-_CLC_OVERLOAD _CLC_DECL double3  smoothstep(double edge0, double edge1, 
-                                            double3  x);
-_CLC_OVERLOAD _CLC_DECL double4  smoothstep(double edge0, double edge1, 
-                                            double4  x);
-_CLC_OVERLOAD _CLC_DECL double8  smoothstep(double edge0, double edge1, 
-                                            double8  x);
-_CLC_OVERLOAD _CLC_DECL double16 smoothstep(double edge0, double edge1, 
-                                            double16 x);
+_CLC_OVERLOAD _CLC_DECL double2  smoothstep(double __edge0, double __edge1, 
+                                            double2  __x);
+_CLC_OVERLOAD _CLC_DECL double3  smoothstep(double __edge0, double __edge1, 
+                                            double3  __x);
+_CLC_OVERLOAD _CLC_DECL double4  smoothstep(double __edge0, double __edge1, 
+                                            double4  __x);
+_CLC_OVERLOAD _CLC_DECL double8  smoothstep(double __edge0, double __edge1, 
+                                            double8  __x);
+_CLC_OVERLOAD _CLC_DECL double16 smoothstep(double __edge0, double __edge1, 
+                                            double16 __x);
 
-#define EXPAND_SIZES(type)            \
-    IMPLEMENTATION(type)              \
-    IMPLEMENTATION(_VEC_TYPE(type,2)) \
-    DECLARATION(_VEC_TYPE(type,3))  \
-    DECLARATION(_VEC_TYPE(type,4))  \
-    DECLARATION(_VEC_TYPE(type,8))  \
-    DECLARATION(_VEC_TYPE(type,16)) \
+#define _EXPAND_SIZES(__type)            \
+    _IMPLEMENTATION(__type)              \
+    _IMPLEMENTATION(_VEC_TYPE(__type,2)) \
+    _DECLARATION(_VEC_TYPE(__type,3))  \
+    _DECLARATION(_VEC_TYPE(__type,4))  \
+    _DECLARATION(_VEC_TYPE(__type,8))  \
+    _DECLARATION(_VEC_TYPE(__type,16)) \
 
-#define DECLARATION(gentype) \
-_CLC_OVERLOAD _CLC_DECL gentype sign(gentype x); \
+#define _DECLARATION(__gentype) \
+_CLC_OVERLOAD _CLC_DECL __gentype sign(__gentype __x); \
 
-#define IMPLEMENTATION(gentype) \
-_CLC_OVERLOAD _CLC_INLINE gentype sign(gentype x) \
-{  return x > (gentype)0.0 ? (gentype) 1.0 : \
-          x < (gentype)0.0 ? (gentype)-1.0 : \
-          isnan(x)         ? (gentype) 0.0 : x; } \
+#define _IMPLEMENTATION(__gentype) \
+_CLC_OVERLOAD _CLC_INLINE __gentype sign(__gentype __x) \
+{  return __x > (__gentype)0.0 ? (__gentype) 1.0 : \
+          __x < (__gentype)0.0 ? (__gentype)-1.0 : \
+          isnan(__x)         ? (__gentype) 0.0 : __x; } \
 
-EXPAND_SIZES(float)
-EXPAND_SIZES(double)
+_EXPAND_SIZES(float)
+_EXPAND_SIZES(double)
 
-#undef EXPAND_SIZES
-#undef DECLARATION
-#undef IMPLEMENTATION
+#undef _EXPAND_SIZES
+#undef _DECLARATION
+#undef _IMPLEMENTATION
 
 /*-----------------------------------------------------------------------------
 * Geometric
 *----------------------------------------------------------------------------*/
-_CLC_OVERLOAD _CLC_INLINE float  dot(float p0, float p1)   {return p0*p1;}
-_CLC_OVERLOAD _CLC_INLINE float  dot(float2 p0, float2 p1) {return p0.x*p1.x+p0.y*p1.y;}
-_CLC_OVERLOAD _CLC_DECL   float  dot(float3 p0, float3 p1);
-_CLC_OVERLOAD _CLC_DECL   float  dot(float4 p0, float4 p1);
-_CLC_OVERLOAD _CLC_INLINE double dot(double p0, double p1)   {return p0*p1;}
-_CLC_OVERLOAD _CLC_INLINE double dot(double2 p0, double2 p1) {return p0.x*p1.x+p0.y*p1.y;}
-_CLC_OVERLOAD _CLC_DECL   double dot(double3 p0, double3 p1) ;
-_CLC_OVERLOAD _CLC_DECL   double dot(double4 p0, double4 p1) ;
+_CLC_OVERLOAD _CLC_INLINE float  dot(float __p0, float __p1)   {return __p0*__p1;}
+_CLC_OVERLOAD _CLC_INLINE float  dot(float2 __p0, float2 __p1) {return __p0.x*__p1.x+__p0.y*__p1.y;}
+_CLC_OVERLOAD _CLC_DECL   float  dot(float3 __p0, float3 __p1);
+_CLC_OVERLOAD _CLC_DECL   float  dot(float4 __p0, float4 __p1);
+_CLC_OVERLOAD _CLC_INLINE double dot(double __p0, double __p1)   {return __p0*__p1;}
+_CLC_OVERLOAD _CLC_INLINE double dot(double2 __p0, double2 __p1) {return __p0.x*__p1.x+__p0.y*__p1.y;}
+_CLC_OVERLOAD _CLC_DECL   double dot(double3 __p0, double3 __p1) ;
+_CLC_OVERLOAD _CLC_DECL   double dot(double4 __p0, double4 __p1) ;
 
-_CLC_OVERLOAD _CLC_DECL float3  cross(float3 p0, float3 p1);
-_CLC_OVERLOAD _CLC_DECL float4  cross(float4 p0, float4 p1);
-_CLC_OVERLOAD _CLC_DECL double3 cross(double3 p0, double3 p1);
-_CLC_OVERLOAD _CLC_DECL double4 cross(double4 p0, double4 p1);
+_CLC_OVERLOAD _CLC_DECL float3  cross(float3 __p0, float3 __p1);
+_CLC_OVERLOAD _CLC_DECL float4  cross(float4 __p0, float4 __p1);
+_CLC_OVERLOAD _CLC_DECL double3 cross(double3 __p0, double3 __p1);
+_CLC_OVERLOAD _CLC_DECL double4 cross(double4 __p0, double4 __p1);
 
-_CLC_OVERLOAD _CLC_INLINE float  length(float p)         {return fabs(p);}
-_CLC_OVERLOAD _CLC_INLINE double length(double p)        {return fabs(p);}
-_CLC_OVERLOAD _CLC_INLINE float  fast_length(float p)    {return fabs(p);}
-_CLC_OVERLOAD _CLC_INLINE double fast_length(double p)   {return fabs(p);}
+_CLC_OVERLOAD _CLC_INLINE float  length(float __p)         {return fabs(__p);}
+_CLC_OVERLOAD _CLC_INLINE double length(double __p)        {return fabs(__p);}
+_CLC_OVERLOAD _CLC_INLINE float  fast_length(float __p)    {return fabs(__p);}
+_CLC_OVERLOAD _CLC_INLINE double fast_length(double __p)   {return fabs(__p);}
 
-_CLC_OVERLOAD _CLC_DECL   float  length(float2 p);
-_CLC_OVERLOAD _CLC_DECL   float  length(float3 p);
-_CLC_OVERLOAD _CLC_DECL   float  length(float4 p);
-_CLC_OVERLOAD _CLC_DECL   double length(double2 p);
-_CLC_OVERLOAD _CLC_DECL   double length(double3 p);
-_CLC_OVERLOAD _CLC_DECL   double length(double4 p);
+_CLC_OVERLOAD _CLC_DECL   float  length(float2 __p);
+_CLC_OVERLOAD _CLC_DECL   float  length(float3 __p);
+_CLC_OVERLOAD _CLC_DECL   float  length(float4 __p);
+_CLC_OVERLOAD _CLC_DECL   double length(double2 __p);
+_CLC_OVERLOAD _CLC_DECL   double length(double3 __p);
+_CLC_OVERLOAD _CLC_DECL   double length(double4 __p);
 
-_CLC_OVERLOAD _CLC_DECL   float  fast_length(float2 p);
-_CLC_OVERLOAD _CLC_DECL   float  fast_length(float3 p);
-_CLC_OVERLOAD _CLC_DECL   float  fast_length(float4 p);
-_CLC_OVERLOAD _CLC_DECL   double fast_length(double2 p);
-_CLC_OVERLOAD _CLC_DECL   double fast_length(double3 p);
-_CLC_OVERLOAD _CLC_DECL   double fast_length(double4 p);
+_CLC_OVERLOAD _CLC_DECL   float  fast_length(float2 __p);
+_CLC_OVERLOAD _CLC_DECL   float  fast_length(float3 __p);
+_CLC_OVERLOAD _CLC_DECL   float  fast_length(float4 __p);
+_CLC_OVERLOAD _CLC_DECL   double fast_length(double2 __p);
+_CLC_OVERLOAD _CLC_DECL   double fast_length(double3 __p);
+_CLC_OVERLOAD _CLC_DECL   double fast_length(double4 __p);
 
-_CLC_OVERLOAD _CLC_INLINE float  distance(float p0,   float p1)    { return fabs(p1-p0);}
-_CLC_OVERLOAD _CLC_INLINE float  distance(float2 p0,  float2 p1)   { return length(p1-p0); }
-_CLC_OVERLOAD _CLC_INLINE float  distance(float3 p0,  float3 p1)   { return length(p1-p0); }
-_CLC_OVERLOAD _CLC_INLINE float  distance(float4 p0,  float4 p1)   { return length(p1-p0); }
-_CLC_OVERLOAD _CLC_INLINE double distance(double p0,  double p1)   { return fabs(p1-p0);}
-_CLC_OVERLOAD _CLC_INLINE double distance(double2 p0, double2 p1)  { return length(p1-p0); }
-_CLC_OVERLOAD _CLC_INLINE double distance(double3 p0, double3 p1)  { return length(p1-p0); }
-_CLC_OVERLOAD _CLC_INLINE double distance(double4 p0, double4 p1)  { return length(p1-p0); }
+_CLC_OVERLOAD _CLC_INLINE float  distance(float __p0,   float __p1)    { return fabs(__p1-__p0);}
+_CLC_OVERLOAD _CLC_INLINE float  distance(float2 __p0,  float2 __p1)   { return length(__p1-__p0); }
+_CLC_OVERLOAD _CLC_INLINE float  distance(float3 __p0,  float3 __p1)   { return length(__p1-__p0); }
+_CLC_OVERLOAD _CLC_INLINE float  distance(float4 __p0,  float4 __p1)   { return length(__p1-__p0); }
+_CLC_OVERLOAD _CLC_INLINE double distance(double __p0,  double __p1)   { return fabs(__p1-__p0);}
+_CLC_OVERLOAD _CLC_INLINE double distance(double2 __p0, double2 __p1)  { return length(__p1-__p0); }
+_CLC_OVERLOAD _CLC_INLINE double distance(double3 __p0, double3 __p1)  { return length(__p1-__p0); }
+_CLC_OVERLOAD _CLC_INLINE double distance(double4 __p0, double4 __p1)  { return length(__p1-__p0); }
 
-_CLC_OVERLOAD _CLC_INLINE float  fast_distance(float p0,   float p1)    { return fabs(p1-p0);}
-_CLC_OVERLOAD _CLC_INLINE float  fast_distance(float2 p0,  float2 p1)   { return fast_length(p1-p0); }
-_CLC_OVERLOAD _CLC_INLINE float  fast_distance(float3 p0,  float3 p1)   { return fast_length(p1-p0); }
-_CLC_OVERLOAD _CLC_INLINE float  fast_distance(float4 p0,  float4 p1)   { return fast_length(p1-p0); }
-_CLC_OVERLOAD _CLC_INLINE double fast_distance(double p0,  double p1)   { return fabs(p1-p0);}
-_CLC_OVERLOAD _CLC_INLINE double fast_distance(double2 p0, double2 p1)  { return fast_length(p1-p0); }
-_CLC_OVERLOAD _CLC_INLINE double fast_distance(double3 p0, double3 p1)  { return fast_length(p1-p0); }
-_CLC_OVERLOAD _CLC_INLINE double fast_distance(double4 p0, double4 p1)  { return fast_length(p1-p0); }
+_CLC_OVERLOAD _CLC_INLINE float  fast_distance(float __p0,   float __p1)    { return fabs(__p1-__p0);}
+_CLC_OVERLOAD _CLC_INLINE float  fast_distance(float2 __p0,  float2 __p1)   { return fast_length(__p1-__p0); }
+_CLC_OVERLOAD _CLC_INLINE float  fast_distance(float3 __p0,  float3 __p1)   { return fast_length(__p1-__p0); }
+_CLC_OVERLOAD _CLC_INLINE float  fast_distance(float4 __p0,  float4 __p1)   { return fast_length(__p1-__p0); }
+_CLC_OVERLOAD _CLC_INLINE double fast_distance(double __p0,  double __p1)   { return fabs(__p1-__p0);}
+_CLC_OVERLOAD _CLC_INLINE double fast_distance(double2 __p0, double2 __p1)  { return fast_length(__p1-__p0); }
+_CLC_OVERLOAD _CLC_INLINE double fast_distance(double3 __p0, double3 __p1)  { return fast_length(__p1-__p0); }
+_CLC_OVERLOAD _CLC_INLINE double fast_distance(double4 __p0, double4 __p1)  { return fast_length(__p1-__p0); }
 
-_CLC_OVERLOAD _CLC_INLINE float  normalize(float p)        
-{return p > 0.0f ? 1.0f : p < 0.0f ? -1.0f : 0.0f;}
+_CLC_OVERLOAD _CLC_INLINE float  normalize(float __p)        
+{return __p > 0.0f ? 1.0f : __p < 0.0f ? -1.0f : 0.0f;}
 
-_CLC_OVERLOAD _CLC_INLINE double normalize(double p)       
-{return p > 0.0 ? 1.0 : p < 0.0 ? -1.0 : 0.0;}
+_CLC_OVERLOAD _CLC_INLINE double normalize(double __p)       
+{return __p > 0.0 ? 1.0 : __p < 0.0 ? -1.0 : 0.0;}
 
-_CLC_OVERLOAD _CLC_INLINE float  fast_normalize(float p)   
-{return p > 0.0f ? 1.0f : p < 0.0f ? -1.0f : 0.0f;}
+_CLC_OVERLOAD _CLC_INLINE float  fast_normalize(float __p)   
+{return __p > 0.0f ? 1.0f : __p < 0.0f ? -1.0f : 0.0f;}
 
-_CLC_OVERLOAD _CLC_INLINE double fast_normalize(double p)  
-{return p > 0.0 ? 1.0 : p < 0.0 ? -1.0 : 0.0;}
+_CLC_OVERLOAD _CLC_INLINE double fast_normalize(double __p)  
+{return __p > 0.0 ? 1.0 : __p < 0.0 ? -1.0 : 0.0;}
 
-_CLC_OVERLOAD _CLC_INLINE float2  normalize(float2 p)        { return p / length(p); }
-_CLC_OVERLOAD _CLC_INLINE float3  normalize(float3 p)        { return p / length(p); }
-_CLC_OVERLOAD _CLC_INLINE float4  normalize(float4 p)        { return p / length(p); }
-_CLC_OVERLOAD _CLC_INLINE double2 normalize(double2 p)       { return p / length(p); }
-_CLC_OVERLOAD _CLC_INLINE double3 normalize(double3 p)       { return p / length(p); }
-_CLC_OVERLOAD _CLC_INLINE double4 normalize(double4 p)       { return p / length(p); }
+_CLC_OVERLOAD _CLC_INLINE float2  normalize(float2 __p)        { return __p / length(__p); }
+_CLC_OVERLOAD _CLC_INLINE float3  normalize(float3 __p)        { return __p / length(__p); }
+_CLC_OVERLOAD _CLC_INLINE float4  normalize(float4 __p)        { return __p / length(__p); }
+_CLC_OVERLOAD _CLC_INLINE double2 normalize(double2 __p)       { return __p / length(__p); }
+_CLC_OVERLOAD _CLC_INLINE double3 normalize(double3 __p)       { return __p / length(__p); }
+_CLC_OVERLOAD _CLC_INLINE double4 normalize(double4 __p)       { return __p / length(__p); }
 
-_CLC_OVERLOAD _CLC_INLINE float2  fast_normalize(float2 p)   { return p / fast_length(p); }
-_CLC_OVERLOAD _CLC_INLINE float3  fast_normalize(float3 p)   { return p / fast_length(p); }
-_CLC_OVERLOAD _CLC_INLINE float4  fast_normalize(float4 p)   { return p / fast_length(p); }
-_CLC_OVERLOAD _CLC_INLINE double2 fast_normalize(double2 p)  { return p / fast_length(p); }
-_CLC_OVERLOAD _CLC_INLINE double3 fast_normalize(double3 p)  { return p / fast_length(p); }
-_CLC_OVERLOAD _CLC_INLINE double4 fast_normalize(double4 p)  { return p / fast_length(p); }
+_CLC_OVERLOAD _CLC_INLINE float2  fast_normalize(float2 __p)   { return __p / fast_length(__p); }
+_CLC_OVERLOAD _CLC_INLINE float3  fast_normalize(float3 __p)   { return __p / fast_length(__p); }
+_CLC_OVERLOAD _CLC_INLINE float4  fast_normalize(float4 __p)   { return __p / fast_length(__p); }
+_CLC_OVERLOAD _CLC_INLINE double2 fast_normalize(double2 __p)  { return __p / fast_length(__p); }
+_CLC_OVERLOAD _CLC_INLINE double3 fast_normalize(double3 __p)  { return __p / fast_length(__p); }
+_CLC_OVERLOAD _CLC_INLINE double4 fast_normalize(double4 __p)  { return __p / fast_length(__p); }
 
 /*-----------------------------------------------------------------------------
 * Atomics
 *----------------------------------------------------------------------------*/
-_CLC_OVERLOAD _CLC_DECL int  atomic_add(volatile global int*  p, int  val);
-_CLC_OVERLOAD _CLC_DECL uint atomic_add(volatile global uint* p, uint val); 
-_CLC_OVERLOAD _CLC_DECL int  atomic_add(volatile local  int*  p, int  val); 
-_CLC_OVERLOAD _CLC_DECL uint atomic_add(volatile local  uint* p, uint val); 
+_CLC_OVERLOAD _CLC_DECL int  atomic_add(volatile __global int*  __p, int  __val);
+_CLC_OVERLOAD _CLC_DECL uint atomic_add(volatile __global uint* __p, uint __val); 
+_CLC_OVERLOAD _CLC_DECL int  atomic_add(volatile __local  int*  __p, int  __val); 
+_CLC_OVERLOAD _CLC_DECL uint atomic_add(volatile __local  uint* __p, uint __val); 
 
-_CLC_OVERLOAD _CLC_DECL int  atomic_sub(volatile global int*  p, int  val); 
-_CLC_OVERLOAD _CLC_DECL uint atomic_sub(volatile global uint* p, uint val); 
-_CLC_OVERLOAD _CLC_DECL int  atomic_sub(volatile local  int*  p, int  val); 
-_CLC_OVERLOAD _CLC_DECL uint atomic_sub(volatile local  uint* p, uint val); 
+_CLC_OVERLOAD _CLC_DECL int  atomic_sub(volatile __global int*  __p, int  __val); 
+_CLC_OVERLOAD _CLC_DECL uint atomic_sub(volatile __global uint* __p, uint __val); 
+_CLC_OVERLOAD _CLC_DECL int  atomic_sub(volatile __local  int*  __p, int  __val); 
+_CLC_OVERLOAD _CLC_DECL uint atomic_sub(volatile __local  uint* __p, uint __val); 
 
-_CLC_OVERLOAD _CLC_DECL int  atomic_xchg(volatile global int*  p, int  val); 
-_CLC_OVERLOAD _CLC_DECL uint atomic_xchg(volatile global uint* p, uint val); 
-_CLC_OVERLOAD _CLC_DECL float atomic_xchg(volatile global float* p, float val); 
-_CLC_OVERLOAD _CLC_DECL int  atomic_xchg(volatile local  int*  p, int  val); 
-_CLC_OVERLOAD _CLC_DECL uint atomic_xchg(volatile local  uint* p, uint val); 
-_CLC_OVERLOAD _CLC_DECL float atomic_xchg(volatile local  float* p, float val); 
+_CLC_OVERLOAD _CLC_DECL int  atomic_xchg(volatile __global int*  __p, int  __val); 
+_CLC_OVERLOAD _CLC_DECL uint atomic_xchg(volatile __global uint* __p, uint __val); 
+_CLC_OVERLOAD _CLC_DECL float atomic_xchg(volatile __global float* __p, float __val); 
+_CLC_OVERLOAD _CLC_DECL int  atomic_xchg(volatile __local  int*  __p, int  __val); 
+_CLC_OVERLOAD _CLC_DECL uint atomic_xchg(volatile __local  uint* __p, uint __val); 
+_CLC_OVERLOAD _CLC_DECL float atomic_xchg(volatile __local  float* __p, float __val); 
 
-_CLC_OVERLOAD _CLC_DECL int  atomic_inc(volatile global int*  p); 
-_CLC_OVERLOAD _CLC_DECL uint atomic_inc(volatile global uint* p); 
-_CLC_OVERLOAD _CLC_DECL int  atomic_inc(volatile local  int*  p); 
-_CLC_OVERLOAD _CLC_DECL uint atomic_inc(volatile local  uint* p); 
+_CLC_OVERLOAD _CLC_DECL int  atomic_inc(volatile __global int*  __p); 
+_CLC_OVERLOAD _CLC_DECL uint atomic_inc(volatile __global uint* __p); 
+_CLC_OVERLOAD _CLC_DECL int  atomic_inc(volatile __local  int*  __p); 
+_CLC_OVERLOAD _CLC_DECL uint atomic_inc(volatile __local  uint* __p); 
 
-_CLC_OVERLOAD _CLC_DECL int  atomic_dec(volatile global int*  p); 
-_CLC_OVERLOAD _CLC_DECL uint atomic_dec(volatile global uint* p); 
-_CLC_OVERLOAD _CLC_DECL int  atomic_dec(volatile local  int*  p); 
-_CLC_OVERLOAD _CLC_DECL uint atomic_dec(volatile local  uint* p); 
+_CLC_OVERLOAD _CLC_DECL int  atomic_dec(volatile __global int*  __p); 
+_CLC_OVERLOAD _CLC_DECL uint atomic_dec(volatile __global uint* __p); 
+_CLC_OVERLOAD _CLC_DECL int  atomic_dec(volatile __local  int*  __p); 
+_CLC_OVERLOAD _CLC_DECL uint atomic_dec(volatile __local  uint* __p); 
 
-_CLC_OVERLOAD _CLC_DECL int  atomic_cmpxchg(volatile global int*  p, int  cmp, int  val); 
-_CLC_OVERLOAD _CLC_DECL uint atomic_cmpxchg(volatile global uint* p, uint cmp, uint val); 
-_CLC_OVERLOAD _CLC_DECL int  atomic_cmpxchg(volatile local  int*  p, int  cmp, int  val); 
-_CLC_OVERLOAD _CLC_DECL uint atomic_cmpxchg(volatile local  uint* p, uint cmp, uint val); 
+_CLC_OVERLOAD _CLC_DECL int  atomic_cmpxchg(volatile __global int*  __p, int  __cmp, int  __val); 
+_CLC_OVERLOAD _CLC_DECL uint atomic_cmpxchg(volatile __global uint* __p, uint __cmp, uint __val); 
+_CLC_OVERLOAD _CLC_DECL int  atomic_cmpxchg(volatile __local  int*  __p, int  __cmp, int  __val); 
+_CLC_OVERLOAD _CLC_DECL uint atomic_cmpxchg(volatile __local  uint* __p, uint __cmp, uint __val); 
 
-_CLC_OVERLOAD _CLC_DECL int  atomic_min(volatile global int*  p, int  val); 
-_CLC_OVERLOAD _CLC_DECL uint atomic_min(volatile global uint* p, uint val); 
-_CLC_OVERLOAD _CLC_DECL int  atomic_min(volatile local  int*  p, int  val); 
-_CLC_OVERLOAD _CLC_DECL uint atomic_min(volatile local  uint* p, uint val); 
+_CLC_OVERLOAD _CLC_DECL int  atomic_min(volatile __global int*  __p, int  __val); 
+_CLC_OVERLOAD _CLC_DECL uint atomic_min(volatile __global uint* __p, uint __val); 
+_CLC_OVERLOAD _CLC_DECL int  atomic_min(volatile __local  int*  __p, int  __val); 
+_CLC_OVERLOAD _CLC_DECL uint atomic_min(volatile __local  uint* __p, uint __val); 
 
-_CLC_OVERLOAD _CLC_DECL int  atomic_max(volatile global int*  p, int  val); 
-_CLC_OVERLOAD _CLC_DECL uint atomic_max(volatile global uint* p, uint val); 
-_CLC_OVERLOAD _CLC_DECL int  atomic_max(volatile local  int*  p, int  val); 
-_CLC_OVERLOAD _CLC_DECL uint atomic_max(volatile local  uint* p, uint val); 
+_CLC_OVERLOAD _CLC_DECL int  atomic_max(volatile __global int*  __p, int  __val); 
+_CLC_OVERLOAD _CLC_DECL uint atomic_max(volatile __global uint* __p, uint __val); 
+_CLC_OVERLOAD _CLC_DECL int  atomic_max(volatile __local  int*  __p, int  __val); 
+_CLC_OVERLOAD _CLC_DECL uint atomic_max(volatile __local  uint* __p, uint __val); 
 
-_CLC_OVERLOAD _CLC_DECL int  atomic_and(volatile global int*  p, int  val); 
-_CLC_OVERLOAD _CLC_DECL uint atomic_and(volatile global uint* p, uint val); 
-_CLC_OVERLOAD _CLC_DECL int  atomic_and(volatile local  int*  p, int  val); 
-_CLC_OVERLOAD _CLC_DECL uint atomic_and(volatile local  uint* p, uint val); 
+_CLC_OVERLOAD _CLC_DECL int  atomic_and(volatile __global int*  __p, int  __val); 
+_CLC_OVERLOAD _CLC_DECL uint atomic_and(volatile __global uint* __p, uint __val); 
+_CLC_OVERLOAD _CLC_DECL int  atomic_and(volatile __local  int*  __p, int  __val); 
+_CLC_OVERLOAD _CLC_DECL uint atomic_and(volatile __local  uint* __p, uint __val); 
 
-_CLC_OVERLOAD _CLC_DECL int  atomic_or(volatile global int*  p, int  val); 
-_CLC_OVERLOAD _CLC_DECL uint atomic_or(volatile global uint* p, uint val); 
-_CLC_OVERLOAD _CLC_DECL int  atomic_or(volatile local  int*  p, int  val); 
-_CLC_OVERLOAD _CLC_DECL uint atomic_or(volatile local  uint* p, uint val); 
+_CLC_OVERLOAD _CLC_DECL int  atomic_or(volatile __global int*  __p, int  __val); 
+_CLC_OVERLOAD _CLC_DECL uint atomic_or(volatile __global uint* __p, uint __val); 
+_CLC_OVERLOAD _CLC_DECL int  atomic_or(volatile __local  int*  __p, int  __val); 
+_CLC_OVERLOAD _CLC_DECL uint atomic_or(volatile __local  uint* __p, uint __val); 
 
-_CLC_OVERLOAD _CLC_DECL int  atomic_xor(volatile global int*  p, int  val); 
-_CLC_OVERLOAD _CLC_DECL uint atomic_xor(volatile global uint* p, uint val); 
-_CLC_OVERLOAD _CLC_DECL int  atomic_xor(volatile local  int*  p, int  val); 
-_CLC_OVERLOAD _CLC_DECL uint atomic_xor(volatile local  uint* p, uint val); 
+_CLC_OVERLOAD _CLC_DECL int  atomic_xor(volatile __global int*  __p, int  __val); 
+_CLC_OVERLOAD _CLC_DECL uint atomic_xor(volatile __global uint* __p, uint __val); 
+_CLC_OVERLOAD _CLC_DECL int  atomic_xor(volatile __local  int*  __p, int  __val); 
+_CLC_OVERLOAD _CLC_DECL uint atomic_xor(volatile __local  uint* __p, uint __val); 
 
 #define atom_add atomic_add
 #define atom_sub atomic_sub
@@ -1847,65 +1847,65 @@ _CLC_OVERLOAD _CLC_DECL uint atomic_xor(volatile local  uint* p, uint val);
 #define atom_or atomic_or
 #define atom_xor atomic_xor
 
-#define TEMPLATE2(res_elemt, val_vnum, mask_elemt) \
-_CLC_OVERLOAD _CLC_DEF res_elemt##2 shuffle(res_elemt##val_vnum val, mask_elemt##2 mask);\
-_CLC_OVERLOAD _CLC_DEF res_elemt##2 shuffle2(res_elemt##val_vnum val1, res_elemt##val_vnum val2, mask_elemt##2 mask); 
+#define _TEMPLATE2(__res_elemt, __val_vnum, __mask_elemt) \
+_CLC_OVERLOAD _CLC_DEF __res_elemt##2 shuffle(__res_elemt##__val_vnum __val, __mask_elemt##2 __mask);\
+_CLC_OVERLOAD _CLC_DEF __res_elemt##2 shuffle2(__res_elemt##__val_vnum __val1, __res_elemt##__val_vnum __val2, __mask_elemt##2 __mask); 
 
 
-#define TEMPLATE4(res_elemt, val_vnum, mask_elemt) \
-_CLC_OVERLOAD _CLC_DEF res_elemt##4 shuffle(res_elemt##val_vnum val, mask_elemt##4 mask); \
-_CLC_OVERLOAD _CLC_DEF res_elemt##4 shuffle2(res_elemt##val_vnum val1, res_elemt##val_vnum val2, mask_elemt##4 mask); 
+#define _TEMPLATE4(__res_elemt, __val_vnum, __mask_elemt) \
+_CLC_OVERLOAD _CLC_DEF __res_elemt##4 shuffle(__res_elemt##__val_vnum __val, __mask_elemt##4 __mask); \
+_CLC_OVERLOAD _CLC_DEF __res_elemt##4 shuffle2(__res_elemt##__val_vnum __val1, __res_elemt##__val_vnum __val2, __mask_elemt##4 __mask); 
 
 
-#define TEMPLATE8(res_elemt, val_vnum, mask_elemt) \
-_CLC_OVERLOAD _CLC_DEF res_elemt##8 shuffle(res_elemt##val_vnum val, mask_elemt##8 mask); \
-_CLC_OVERLOAD _CLC_DEF res_elemt##8 shuffle2(res_elemt##val_vnum val1, res_elemt##val_vnum val2, mask_elemt##8 mask); 
+#define _TEMPLATE8(__res_elemt, __val_vnum, __mask_elemt) \
+_CLC_OVERLOAD _CLC_DEF __res_elemt##8 shuffle(__res_elemt##__val_vnum __val, __mask_elemt##8 __mask); \
+_CLC_OVERLOAD _CLC_DEF __res_elemt##8 shuffle2(__res_elemt##__val_vnum __val1, __res_elemt##__val_vnum __val2, __mask_elemt##8 __mask); 
 
 
-#define TEMPLATE16(res_elemt, val_vnum, mask_elemt) \
-_CLC_OVERLOAD _CLC_DEF res_elemt##16 shuffle(res_elemt##val_vnum val, mask_elemt##16 mask); \
-_CLC_OVERLOAD _CLC_DEF res_elemt##16 shuffle2(res_elemt##val_vnum val1, res_elemt##val_vnum val2, mask_elemt##16 mask); 
+#define _TEMPLATE16(__res_elemt, __val_vnum, __mask_elemt) \
+_CLC_OVERLOAD _CLC_DEF __res_elemt##16 shuffle(__res_elemt##__val_vnum __val, __mask_elemt##16 __mask); \
+_CLC_OVERLOAD _CLC_DEF __res_elemt##16 shuffle2(__res_elemt##__val_vnum __val1, __res_elemt##__val_vnum __val2, __mask_elemt##16 __mask); 
 
-#define CROSS_SIZE(type1, type2) \
-TEMPLATE2(type1, 2, type2) \
-TEMPLATE2(type1, 4, type2) \
-TEMPLATE2(type1, 8, type2) \
-TEMPLATE2(type1, 16, type2) \
-TEMPLATE4(type1, 2, type2) \
-TEMPLATE4(type1, 4, type2) \
-TEMPLATE4(type1, 8, type2) \
-TEMPLATE4(type1, 16, type2) \
-TEMPLATE8(type1, 2, type2) \
-TEMPLATE8(type1, 4, type2) \
-TEMPLATE8(type1, 8, type2) \
-TEMPLATE8(type1, 16, type2) \
-TEMPLATE16(type1, 2, type2) \
-TEMPLATE16(type1, 4, type2) \
-TEMPLATE16(type1, 8, type2) \
-TEMPLATE16(type1, 16, type2) \
+#define _CROSS_SIZE(__type1, __type2) \
+_TEMPLATE2(__type1, 2, __type2) \
+_TEMPLATE2(__type1, 4, __type2) \
+_TEMPLATE2(__type1, 8, __type2) \
+_TEMPLATE2(__type1, 16, __type2) \
+_TEMPLATE4(__type1, 2, __type2) \
+_TEMPLATE4(__type1, 4, __type2) \
+_TEMPLATE4(__type1, 8, __type2) \
+_TEMPLATE4(__type1, 16, __type2) \
+_TEMPLATE8(__type1, 2, __type2) \
+_TEMPLATE8(__type1, 4, __type2) \
+_TEMPLATE8(__type1, 8, __type2) \
+_TEMPLATE8(__type1, 16, __type2) \
+_TEMPLATE16(__type1, 2, __type2) \
+_TEMPLATE16(__type1, 4, __type2) \
+_TEMPLATE16(__type1, 8, __type2) \
+_TEMPLATE16(__type1, 16, __type2) \
 
-#define CROSS_MASKTYPE(type) \
-CROSS_SIZE(type, uchar) \
-CROSS_SIZE(type, ushort) \
-CROSS_SIZE(type, uint) \
-CROSS_SIZE(type, ulong) \
+#define _CROSS_MASKTYPE(__type) \
+_CROSS_SIZE(__type, uchar) \
+_CROSS_SIZE(__type, ushort) \
+_CROSS_SIZE(__type, uint) \
+_CROSS_SIZE(__type, ulong) \
 
-CROSS_MASKTYPE(char)
-CROSS_MASKTYPE(uchar)
-CROSS_MASKTYPE(short)
-CROSS_MASKTYPE(ushort)
-CROSS_MASKTYPE(int)
-CROSS_MASKTYPE(uint)
-CROSS_MASKTYPE(long)
-CROSS_MASKTYPE(ulong)
-CROSS_MASKTYPE(float)
-CROSS_MASKTYPE(double)
+_CROSS_MASKTYPE(char)
+_CROSS_MASKTYPE(uchar)
+_CROSS_MASKTYPE(short)
+_CROSS_MASKTYPE(ushort)
+_CROSS_MASKTYPE(int)
+_CROSS_MASKTYPE(uint)
+_CROSS_MASKTYPE(long)
+_CROSS_MASKTYPE(ulong)
+_CROSS_MASKTYPE(float)
+_CROSS_MASKTYPE(double)
 
-#undef TEMPLATE2
-#undef TEMPLATE4
-#undef TEMPLATE8
-#undef TEMPLATE16
-#undef CROSS_SIZE
-#undef CROSS_MASKTYPE
+#undef _TEMPLATE2
+#undef _TEMPLATE4
+#undef _TEMPLATE8
+#undef _TEMPLATE16
+#undef _CROSS_SIZE
+#undef _CROSS_MASKTYPE
 
 #endif //_CLC_H_
