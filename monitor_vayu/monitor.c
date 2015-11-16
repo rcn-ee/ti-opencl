@@ -472,6 +472,7 @@ void initialize_memory(void)
 
     /***  BIOS is configuring the default cache sizes, see Platform.xdc ***/
 
+    enableCache (0x40, 0x40); // enable write through for OCMC
     enableCache (0x80, 0xFF);
     disableCache(nc_virt >> 24, (nc_virt+nc_size-1) >> 24);
 

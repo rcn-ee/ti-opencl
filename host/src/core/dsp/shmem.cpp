@@ -333,17 +333,14 @@ void shmem_cmem::cmem_init(DSPDevicePtr64 *addr1, uint64_t *size1,
                            DSPDevicePtr64 *addr3, uint64_t *size3)
 {
 #if defined(DEVICE_AM57)
-    const char *cmem_command = "For available CMEM DDR block size: ~512MB:\n"
-        "modprobe cmemk "
-        "phys_start=0xa0000000 phys_end=0xc0000000 pools=1x536870912 "
-        "allowOverlap=1";
+    const char *cmem_command = "modprobe cmemk";
     const char *cmem_command2 = "";
 #define CMEM_MIN_BLOCKS (1)
 #else
-    const char *cmem_command = "For available CMEM DDR block size: ~1.5GB:\n"
-        "modprobe cmemk_1-5_GB";
-    const char *cmem_command2 = "For available CMEM DDR block size: ~6.5GB:\n"
-        "modprobe cmemk_6-5_GB";
+    const char *cmem_command = "For default system CMEM DDR block size:\n"
+        "modprobe cmemk";
+    const char *cmem_command2 = "For available CMEM DDR block size: ~1.5GB or ~6.5GB:\n"
+        "modprobe cmemk_1-5_GB  or  modprobe cmemk_6-5_GB";
 #define CMEM_MIN_BLOCKS (2)
 #endif
 
