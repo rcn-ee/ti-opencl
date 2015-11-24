@@ -32,6 +32,11 @@ else
     X86_LLVM_DIR?=/cgnas/llvm-3.6.0-20151113-x86_64
 endif
 
+# OMP
+
+KEYSTONE_OMP_DIR?=/cgnas/openmp_dsp_2_02_00_01_ks_alpha
+AM57_OMP_DIR?=/cgnas/openmp_dsp_2_02_00_01_am57xx_alpha
+
 # K2X MCSDK
 
 DEFAULT_MCSDK?=/cgnas/mcsdk_3_01_04_07-20151002
