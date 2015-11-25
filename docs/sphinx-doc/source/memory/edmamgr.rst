@@ -9,7 +9,7 @@ for prototypes for these additional EDMA OpenCL C built-ins.  Also refer to
 :ref:`edmamgr-example` for example usage.
 
 The standard OpenCL C built-in functions async_work_group_copy and
-async_strided_work_group_copy will also utilize the on-chip DMA and can be used
+async_work_group_strided_copy will also utilize the on-chip DMA and can be used
 freely in combination with the EdmaMgr functions.  The EdmaMgr functions are
 provided for additional capability over the standard OpenCL C built-in
 functions.
