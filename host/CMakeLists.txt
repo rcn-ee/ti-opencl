@@ -35,7 +35,7 @@ set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/modules)
 # debian/changelog!!!
 SET(OCL_SPEC_MAJOR_VERSION 1)
 SET(OCL_SPEC_MINOR_VERSION 1)
-SET(RELEASE_VERSION 7)
+SET(RELEASE_VERSION 8)
 # use 2-digits to specify patch version as there is no need to convert
 # to library versioning
 SET(PATCH_VERSION   00)
