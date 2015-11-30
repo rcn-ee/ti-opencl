@@ -15,7 +15,7 @@
 #include "monitor.h"
 #include "edma.h"
 
-#define ADDR_IS_EDMA3_COHERENT(addr) ((addr) < (void*)0x80000000)
+#define ADDR_IS_EDMA3_COHERENT(addr) (((unsigned int) (addr) >> 20) == 0x008)
 
 extern cregister volatile unsigned int DNUM;
 

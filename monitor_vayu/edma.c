@@ -14,7 +14,7 @@
 #include <stdint.h>
 #include "edma.h"
 
-#define ADDR_IS_EDMA3_COHERENT(addr) ((addr) < (void*)0x80000000)
+#define ADDR_IS_EDMA3_COHERENT(addr) (((unsigned int) (addr) >> 20) == 0x008)
 
 /*-----------------------------------------------------------------------------
 * On AM57x, each DSP core has an identical copy of configuration parameters
