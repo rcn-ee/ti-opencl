@@ -21,10 +21,10 @@ ifeq ($(TI_OCL_CGT_INSTALL),)
   $(error Monitor requires TI_OCL_CGT_INSTALL to point to C6000 Codegen tools)
 endif
 
-AM57_PDK_DIR   ?= $(DEFAULT_DEV_INSTALL_DIR)/pdk_am57xx_1_0_0
-IPC_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/ipc_3_40_01_08
+AM57_PDK_DIR   ?= $(DEFAULT_DEV_INSTALL_DIR)/pdk_am57xx_1_0_1
+IPC_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/ipc_3_41_00_03_eng
 XDC_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/xdctools_3_31_02_38_core
-BIOS_DIR       ?= $(DEFAULT_DEV_INSTALL_DIR)/bios_6_42_02_29
+BIOS_DIR       ?= $(DEFAULT_DEV_INSTALL_DIR)/bios_6_42_03_35
 OMP_DIR        ?= $(AM57_OMP_DIR)
 FC_DIR         ?= $(DEFAULT_DEV_INSTALL_DIR)/framework_components_3_40_01_04
 EDMA3LLD_DIR   ?= $(DEFAULT_DEV_INSTALL_DIR)/edma3_lld_02_12_01_22
@@ -118,12 +118,12 @@ dsp1 : $(PROJECT)/linker.cmd dsp1.out dsp1.syms
 dsp0.out: custom_rsc_table_vayu_dsp0.obj $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD) $(LIBS)
 	@echo Linking $@
 	@echo $(LINK_CMD)
-	$(CC) -z --priority -w -x -m$@.map --define=DDR3_FCSECTION=DDR3_FC0 $^ -I$(TI_OCL_CGT_INSTALL)/lib -llibc.a -o $@
+	$(CC) -z --priority -w -x -m$@.map --define=DDR3_FCSECTION=DDR3_FC $^ -I$(TI_OCL_CGT_INSTALL)/lib -llibc.a -o $@
 
 dsp1.out: custom_rsc_table_vayu_dsp1.obj $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD) $(LIBS)
 	@echo Linking $@
 	@echo $(LINK_CMD)
-	$(CC) -z --priority -w -x -m$@.map --define=DDR3_FCSECTION=DDR3_FC1 $^ -I$(TI_OCL_CGT_INSTALL)/lib -llibc.a -o $@
+	$(CC) -z --priority -w -x -m$@.map --define=DDR3_FCSECTION=DDR3_FC $^ -I$(TI_OCL_CGT_INSTALL)/lib -llibc.a -o $@
 
 %.syms: %.out
 	$(call create_dsp_syms, $^, $@)
