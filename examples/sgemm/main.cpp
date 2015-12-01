@@ -33,6 +33,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <math.h>
 #include <signal.h>
 #include <ocl_util.h>
 #include "kernel.dsp_h"
@@ -54,34 +55,34 @@ void MatmulHost_ATLAS(enum CBLAS_ORDER mem_order,
 void MatmulHost_loopnest(enum CBLAS_ORDER mem_order,
                 const float* A, const float *B, float *C, int M, int N, int K,
                 float alpha, float beta);
-void CheckForErrors(const float *Mat, const float *Golden, int M, int N, int K,
+int  CheckForErrors(const float *Mat, const float *Golden, int M, int N, int K,
                     enum CBLAS_ORDER mem_order);
 
 /* ======================================================================== */
 /*  Global Variables                                                        */
 /* ======================================================================== */
-int M                               = 4096;
-int N                               = 4096;
-int K                               = 4096;
 float alpha                         = 1.0f;
 float beta                          = 0.0f;
 enum CBLAS_ORDER order              = CblasColMajor;
-bool check                          = false;
+bool check                          = true;
 bool random_in                      = false;
+bool calc_check                     = false;
 
+int M                               = 0;
+int N                               = 0;
+int K                               = 0;
 int L2_BUF_SIZE                     = 0;
 int MSMC_BUF_SIZE                   = 0;
 int NUMAPANELS                      = 0;
 int NUMBPANELS                      = 0;
 int NUMCOMPUNITS                    = 0;
-bool use_host_ATLAS                 = true;
 
 /* ======================================================================== */
 /*  Function Headers                                                        */
 /* ======================================================================== */
 void PrintUsageAndExit();
 void HandleOptions(int argc, char* argv[]);
-bool SetSgemmParams(std::string& platform_name);
+bool SetSgemmParams(Device& device);
 
 /* ======================================================================== */
 /*  MAIN                                                                    */
@@ -94,30 +95,12 @@ int main(int argc, char* argv[])
    signal(SIGABRT, exit);
    signal(SIGTERM, exit);
 
+   int errs = 0;
+
     /* ---------------------------------------------------------------- */
     /*  Handle command line options to get M,N,K                        */
     /* ---------------------------------------------------------------- */
     HandleOptions(argc,argv);
-
-    int VALRANGE = 37;
-    if (random_in) 
-    {
-        srand(time(NULL));
-        alpha = (float) (rand() % VALRANGE + 1);
-        beta  = (float) (rand() % VALRANGE + 1);
-        printf("C[%d,%d] = alpha * A[%d,%d] * B[%d,%d] + beta * C[%d,%d], %s\n",
-               M,N,M,K,K,N, M,N,
-               (order == CblasRowMajor ? "use row-major storage"
-                                       : "use col-major storage"));
-        printf("alpha=%f, beta=%f\n\n", alpha, beta);
-    }
-    else
-        printf("C[%d,%d] = A[%d,%d] * B[%d,%d], %s\n\n", M,N,M,K,K,N,
-               (order == CblasRowMajor ? "use row-major storage"
-                                       : "use col-major storage"));
-
-    double dsp_elapsed = 0;
-    double total_GFLOP = 2.0*M*N*K*1.0e-9;
 
     try 
     {
@@ -128,12 +111,25 @@ int main(int argc, char* argv[])
        /*---------------------------------------------------------------------
        * Determine platform, set sgemm blocking/tiling parameters
        *--------------------------------------------------------------------*/
-       std::vector<Platform> platforms;
-       Platform::get(&platforms);
-       std::string platform_name;
-       platforms[0].getInfo(CL_PLATFORM_NAME, &platform_name);
-       devices[0].getInfo(CL_DEVICE_MAX_COMPUTE_UNITS, &NUMCOMPUNITS);
-       if (! SetSgemmParams(platform_name) || NUMCOMPUNITS == 0)  return -1;
+       SetSgemmParams(devices[0]);
+       if (NUMCOMPUNITS == 0)  return -1;
+
+       int VALRANGE = 17;
+       if (random_in) 
+       {
+           srand(time(NULL));
+           alpha = (float) (rand() % VALRANGE + 1);
+           beta  = (float) (rand() % VALRANGE + 1);
+       }
+
+       printf("C[%d,%d] = alpha * A[%d,%d] * B[%d,%d] + beta * C[%d,%d], %s\n",
+              M,N,M,K,K,N, M,N,
+              (order == CblasRowMajor ? "use row-major storage"
+                                      : "use col-major storage"));
+       printf("alpha=%f, beta=%f\n\n", alpha, beta);
+
+       double dsp_elapsed = 0;
+       double total_GFLOP = 2.0*M*N*K*1.0e-9;
 
        /*---------------------------------------------------------------------
        * Compile the Kernel Source for the devices
@@ -167,12 +163,15 @@ int main(int argc, char* argv[])
                                               M*N*sizeof(float));
        float *gold;
 
+       cout << "Generating Input Data ..." << flush;
        for (int i = 0; i < M*K; ++i)
-           A[i] = random_in ? (float)(rand() % VALRANGE + 1) : i & 7; 
+           A[i] = random_in ? (float)(rand() % VALRANGE + 1) : 1 + (i & 7); 
        for (int i = 0; i < K*N; ++i)
-           B[i] = random_in ? (float)(rand() % VALRANGE + 1) : i & 7; 
+           B[i] = random_in ? (float)(rand() % VALRANGE + 1) : 1 + (i & 11); 
        for (int i = 0; i < M*N; ++i)
-           C[i] = random_in ? (float)(rand() % VALRANGE + 1) : 0;
+           C[i] = random_in ? (float)(rand() % VALRANGE + 1) : 1 + (i & 5);
+       cout << "Complete" << endl;
+
        if (check)
        {
            if ((gold = (float*) malloc(M*N*sizeof(float))) == NULL)
@@ -248,30 +247,18 @@ int main(int argc, char* argv[])
                                            K*N*sizeof(float));
            clock_gettime(CLOCK_MONOTONIC, &t0);
 
-           bool atlas_called = false;
-           if (use_host_ATLAS)
-           {
-#ifdef ATLAS
-               MatmulHost_ATLAS(order, A, B, gold, M, N, K, alpha, beta);
-               atlas_called = true;
-#else
-               MatmulHost_loopnest(order, A, B, gold, M, N, K, alpha, beta);
-#endif
-           } else {
-               MatmulHost_loopnest(order, A, B, gold, M, N, K, alpha, beta);
-           }
+           MatmulHost_ATLAS(order, A, B, gold, M, N, K, alpha, beta);
 
            clock_gettime(CLOCK_MONOTONIC, &t1);
            dsp_elapsed = clock_diff (&t0, &t1);
 
            double gflops = total_GFLOP/dsp_elapsed;
-           printf("Host CPUs: %.3f Gflops (%.6f s) with %s\n\n",
-                  gflops, dsp_elapsed,
-                  (atlas_called ? "ATLAS libray" : "3-level loop nest"));
+           printf("   1 CPU : %.3f Gflops (%.6f s) with ATLAS library\n",
+                  gflops, dsp_elapsed);
            Q.enqueueUnmapMemObject(bufA, A);
            Q.enqueueUnmapMemObject(bufB, B);
 	   PrintMatrix(gold,M,N,order); 
-	   CheckForErrors(C, gold, M, N, K, order);
+	   errs = CheckForErrors(C, gold, M, N, K, order);
        }
 
        PrintMatrix(C,M,N,order); 
@@ -283,13 +270,12 @@ int main(int argc, char* argv[])
        exit(-1);
    }
 
-   return 0;
+   return errs;
 }
 
 /******************************************************************************
 * Supporting Functions
 ******************************************************************************/
-
 void PrintUsageAndExit()
 {
     cout << "Matrix C[M,N] = A[M,K] * B [K,N]" << endl
@@ -299,8 +285,7 @@ void PrintUsageAndExit()
          << "-M arg : Number of rows for array C and A" << endl
          << "-K arg : Number of cols for array A, rows for array B" << endl
          << "-N arg : Number of cols for array C and B" << endl
-         << "-c     : Check results against host computation" << endl
-         << "-l     : Host use 3-level loop nest to compute" << endl
+         << "-d     : Do not check results against host computation" << endl
          << "-r     : Generate random inputs" << endl
          << "-or    : Use Row-Major storage (default is Col-Major)" << endl
          << "-h     : Show help message" 
@@ -314,7 +299,7 @@ void HandleOptions(int argc, char* argv[])
 
     if (argc == 1) return;
     
-    while ((c = getopt (argc, argv, "o:M:K:N:hclr")) != -1)
+    while ((c = getopt (argc, argv, "o:M:K:N:hdrx")) != -1)
         switch(c)
         {
             case 'o': order = (*optarg == 'r') ? CblasRowMajor
@@ -323,9 +308,9 @@ void HandleOptions(int argc, char* argv[])
             case 'K': K = abs(atoi(optarg)); break;
             case 'N': N = abs(atoi(optarg)); break;
             case 'h': PrintUsageAndExit();   break;
-            case 'c': check = true;          break;
-            case 'l': use_host_ATLAS = false;break;
+            case 'd': check = false;         break;
             case 'r': random_in = true;      break;
+            case 'x': calc_check = true;     break;
             default:  PrintUsageAndExit();
         }
 }
@@ -352,7 +337,7 @@ void PrintMatrix(float *mat, int rows, int cols, enum CBLAS_ORDER mem_order)
 }
 
 #define EPISILON 0.00001
-void CheckForErrors(const float *Mat, const float *Golden, int M, int N, int K,
+int CheckForErrors(const float *Mat, const float *Golden, int M, int N, int K,
                     enum CBLAS_ORDER mem_order)
 {
     int       num_errors = 0, i, j;
@@ -374,14 +359,11 @@ void CheckForErrors(const float *Mat, const float *Golden, int M, int N, int K,
         }
 
     if (num_errors > 0)
-         cout << "FAIL with " << num_errors << " errors!\n";
+         cout << "FAIL with " << num_errors << " errors!" << endl;
     else cout << "PASS!" << endl;
+    return num_errors;
 }
 
-/*-----------------------------------------------------------------------------
-* If ATLAS sgemm is available, use it for the correctness test as it is faster
-*----------------------------------------------------------------------------*/
-#ifdef ATLAS
 void MatmulHost_ATLAS(enum CBLAS_ORDER mem_order,
                 const float*A, const float *B, float *C, int M, int N, int K,
                 float alpha, float beta)
@@ -406,76 +388,51 @@ void MatmulHost_ATLAS(enum CBLAS_ORDER mem_order,
     }
     
 }
+
+static ulong roundDownPower2(ulong value)
+{ return (value == 0) ? 0 :  1 << ilogb(value); }
+
+/*-----------------------------------------------------------------------------
+* Check platform name, set sgemm blocking/tiling parameters accordingly
+*----------------------------------------------------------------------------*/
+bool SetSgemmParams(Device& device)
+{
+   int APanelSz        = 8  << 10;
+   int BPanelSz        = 16 << 10;
+   cl_ulong global_mem = 0;
+   cl_ulong l2_mem     = 0;
+   cl_ulong msmc_mem   = 0;
+
+   device.getInfo(CL_DEVICE_MAX_COMPUTE_UNITS, &NUMCOMPUNITS);
+   device.getInfo(CL_DEVICE_GLOBAL_MEM_SIZE,   &global_mem);
+   device.getInfo(CL_DEVICE_LOCAL_MEM_SIZE,    &l2_mem);
+
+#ifdef CL_DEVICE_MSMC_MEM_SIZE_TI
+   device.getInfo(CL_DEVICE_MSMC_MEM_SIZE_TI,  &msmc_mem);
 #endif
 
+   global_mem    = roundDownPower2(global_mem);
+   L2_BUF_SIZE   = roundDownPower2(l2_mem);
+   MSMC_BUF_SIZE = roundDownPower2(msmc_mem);
 
-void MatmulHost_loopnest(enum CBLAS_ORDER mem_order,
-                const float*A, const float *B, float *C, int M, int N, int K,
-                float alpha, float beta)
-{
-    if (mem_order == CblasRowMajor)
-    {
-        // Compute gold in Row Major
-        #pragma omp parallel for collapse(2) firstprivate(M,N,K) shared(A,B,C)
-        for (int i = 0; i < M; ++i) // M rows
-            for (int j = 0; j < N; ++j) // N columns
-            {
-                float sum = beta * C[i*N + j];
-                for (int k = 0; k < K; ++k)
-                {
-                    sum +=   alpha
-                           * A[i*K + k]  // Row Major
-                           * B[k*N + j]; // Row Major
-                }
-                C[i*N + j] = sum; // Store gold in Row Major
-            }
-    } else {
-        // Compute gold in Column Major
-        #pragma omp parallel for collapse(2) firstprivate(M,N,K) shared(A,B,C)
-        for (int j = 0; j < N; ++j) // N columns
-            for (int i = 0; i < M; ++i) // M rows
-            {
-                float sum = beta * C[j*M + i];
-                for (int k = 0; k < K; ++k)
-                {
-                    sum +=   alpha
-                           * A[i + k*M]  // Column Major
-                           * B[k + j*K]; // Column Major
-                }
-                C[j*M + i] = sum; // Store gold in Column Major
-            }
-    }
+   /*----------------------------------------------------------------------
+   * How big of a square matrix can we use.  Need 3 BTW
+   *---------------------------------------------------------------------*/
+   if (!M && !N && !K)
+       M = N = K = roundDownPower2(sqrt(global_mem / 3 / sizeof(float)));
+
+   NUMAPANELS    = L2_BUF_SIZE / 2 / APanelSz;
+   NUMBPANELS    = L2_BUF_SIZE / 4 / BPanelSz;
+   MSMC_BUF_SIZE = NUMCOMPUNITS * APanelSz * NUMAPANELS;
+
+   if (calc_check)
+   {
+       cout << "M,N,K         = " << M << ", " 
+            << N << ", "
+            << K << endl;
+       cout << "MSMC_BUF_SIZE = " << MSMC_BUF_SIZE << endl;
+       cout << "L2_BUF_SIZE   = " << L2_BUF_SIZE << endl;
+       cout << "NUMAPANELS    = " << NUMAPANELS << endl;
+       cout << "NUMBPANELS    = " << NUMBPANELS << endl;
+   }
 }
-
-
-/* Check platform name, set sgemm blocking/tiling parameters accordingly
-*/
-bool SetSgemmParams(std::string& platform_name)
-{
-    // TODO: query the device about available L2 and MSMC, compute A/B Panels
-    if (platform_name == "TI KeyStone II")
-    {
-        L2_BUF_SIZE    = (512 << 10);  // 512KB L2 SRAM for scratch
-        MSMC_BUF_SIZE  = (2 << 20);    // 2MB MSMC for scratch, 256K each core
-        NUMAPANELS     = 32;
-        NUMBPANELS     = 8;
-#ifndef ATLAS
-        use_host_ATLAS = false;
-#endif
-        return true;
-    }
-    else if (platform_name == "TI AM57x")
-    {
-        L2_BUF_SIZE    = (128 << 10);  // 128KB L2 SRAM for scratch
-        MSMC_BUF_SIZE  = 0;
-        NUMAPANELS     = 8;
-        NUMBPANELS     = 2;
-        use_host_ATLAS = false;
-        return true;
-    }
-
-    printf("Unsupported platform: %s, for this sgemm example, exiting\n",
-           platform_name.c_str());
-    return false;
-}
-
