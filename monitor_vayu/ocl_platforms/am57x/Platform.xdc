@@ -38,23 +38,19 @@ config ti.platforms.generic.Platform.Instance CPU =
       * DDR Related regions
       *----------------------------------------------------------------------*/
       [ "DDR3",         { name: "DDR3", 
-                          base: 0xFE800000, 
-			  len:  0x00400000,
+                          base: 0xFEC00000,
+			  len:  0x003E0000,
                           space: "code/data", 
 			  access: "RWX", } ],
 
-      /* Each DSP core uses its own framework components data structure */
-      [ "DDR3_FC0",     { name: "DDR3_FC0",
-                          base: 0xFEC00000,
+      /* Each DSP core uses its own framework components data structure
+         via remoteproc memory allocation for carveout */
+      [ "DDR3_FC",     { name: "DDR3_FC",
+                          base: 0xFEFE0000,
 			  len:  0x00020000,
                           space: "code/data",
 			  access: "RWX", } ],
 
-      [ "DDR3_FC1",     { name: "DDR3_FC1",
-                          base: 0xFEC20000,
-			  len:  0x00020000,
-                          space: "code/data",
-			  access: "RWX", } ],
 
       /* Non-cached DDR */
       [ "DDR3_NC",   { name: "DDR3_NC",
