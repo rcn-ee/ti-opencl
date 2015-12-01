@@ -423,7 +423,10 @@ bool SetSgemmParams(Device& device)
 
    NUMAPANELS    = L2_BUF_SIZE / 2 / APanelSz;
    NUMBPANELS    = L2_BUF_SIZE / 4 / BPanelSz;
-   MSMC_BUF_SIZE = NUMCOMPUNITS * APanelSz * NUMAPANELS;
+
+   if ((NUMCOMPUNITS * APanelSz * NUMAPANELS) > MSMC_BUF_SIZE)
+        MSMC_BUF_SIZE = 0;
+   else MSMC_BUF_SIZE = NUMCOMPUNITS * APanelSz * NUMAPANELS;
 
    if (calc_check)
    {
