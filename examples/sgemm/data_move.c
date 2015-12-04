@@ -113,9 +113,9 @@ void dataMoveB(float * restrict dst, float * restrict src, int k)
 }
 
 // moving data from A to format needed for kernel
-// from MSMC to L2
+// from MSMC to L2, or from DDR directly to L2
 void dataMoveA(float * restrict dst, float * restrict src, int m, int k,
-               int MPARTITION)
+               int ld_src)
 {
     int kCnt, mCnt, mLeft;
     int srcAddr, dstAddr;
@@ -128,7 +128,7 @@ void dataMoveA(float * restrict dst, float * restrict src, int m, int k,
         for(mCnt=0;mCnt<(m>>2);mCnt++)
         {
             float f0, f1, f2, f3;
-            srcAddr = (kCnt*MPARTITION/*m*/)+(mCnt<<2);
+            srcAddr = (kCnt*ld_src/*m*/)+(mCnt<<2);
             dstAddr = (mCnt*(KPARTITION/*k*/<<2))+(kCnt<<2);
             // load CORE_PROCESS_ROWS floats sequentially
             f0 = src[srcAddr];
@@ -143,47 +143,7 @@ void dataMoveA(float * restrict dst, float * restrict src, int m, int k,
             dst[dstAddr+3] = f3;
         }
         // leftover in m dimension of A
-        srcAddr = kCnt*MPARTITION/*m*/+((m>>2)<<2);
-        dstAddr = ((m>>2)*(KPARTITION/*k*/<<2))+(kCnt<<2);
-        for(mCnt=0;mCnt<mLeft;mCnt++)
-        {
-            dst[dstAddr+mCnt] = src[srcAddr+mCnt];
-        }
-    }
-}
-
-// moving data from A to format needed for kernel
-// non MSMC version, directly from A (M * N) to L2 (MPartition * KPartition)
-void dataMoveA_DDR2L2(float * restrict dst, float * restrict src, int m, int k,
-                      int lda)
-{
-    int kCnt, mCnt, mLeft;
-    int srcAddr, dstAddr;
-
-    mLeft=m-((m>>2)<<2);
-
-    _nassert((unsigned int) src%8 == 0);
-    _nassert((unsigned int) dst%8 == 0);
-    for(kCnt=0;kCnt<k;kCnt++){
-        for(mCnt=0;mCnt<(m>>2);mCnt++)
-        {
-            float f0, f1, f2, f3;
-            srcAddr = (kCnt*lda/*m*/)+(mCnt<<2);
-            dstAddr = (mCnt*(KPARTITION/*k*/<<2))+(kCnt<<2);
-            // load CORE_PROCESS_ROWS floats sequentially
-            f0 = src[srcAddr];
-            f1 = src[srcAddr+1];
-            f2 = src[srcAddr+2];
-            f3 = src[srcAddr+3];
-
-            // push CORE_PROCESS_ROWS floats to desired loc
-            dst[dstAddr] = f0;
-            dst[dstAddr+1] = f1;
-            dst[dstAddr+2] = f2;
-            dst[dstAddr+3] = f3;
-        }
-        // leftover in m dimension of A
-        srcAddr = kCnt*lda/*m*/+((m>>2)<<2);
+        srcAddr = kCnt*ld_src/*m*/+((m>>2)<<2);
         dstAddr = ((m>>2)*(KPARTITION/*k*/<<2))+(kCnt<<2);
         for(mCnt=0;mCnt<mLeft;mCnt++)
         {

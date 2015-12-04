@@ -207,7 +207,7 @@ void sgemm(
             }
             else
             {
-                dataMoveA_DDR2L2(ptrASeg2, a+mXferIndex, mCnt, kCnt, lda);
+                dataMoveA(ptrASeg2, a+mXferIndex, mCnt, kCnt, lda);
             }
 
             mXferIndex += mCnt;
