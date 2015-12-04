@@ -13,9 +13,19 @@ typedef struct
     cl::Kernel        *K_cblas_dgemm;
 } ocl_t;
 
-extern ocl_t ocl;
+typedef struct
+{
+    int L2_BUF_SIZE;
+    int MSMC_BUF_SIZE;
+    int NUMAPANELS;
+    int NUMBPANELS;
+    int NUMCOMPUNITS;
+} dgemm_params_t;
 
-extern "C" void DLL_PUBLIC ocl_init();
+extern ocl_t ocl;
+extern dgemm_params_t dparams;
+
+extern "C" void DLL_PUBLIC ocl_init(bool);
 extern "C" void DLL_PUBLIC ocl_free();
 
 #endif // _OCL_H_ 

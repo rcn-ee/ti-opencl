@@ -1,7 +1,7 @@
 EXE        = dgemm
 CPP        = g++
 CPPFLAGS   = -O3 
-BOTHCBLAS  = -Llibcblas_atlas_arm -lptcblas -latlas -Llibcblas_dgemm_dsp -lcblas_dgemm_dsp -lOpenCL -locl_util -lpthread 
+BOTHCBLAS  = -Llibcblas_atlas_arm -lcblas -latlas -Llibcblas_dgemm_dsp -lcblas_dgemm_dsp -lOpenCL -locl_util -lpthread
 
 include ../make.inc
 

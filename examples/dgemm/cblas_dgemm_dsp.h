@@ -2,7 +2,7 @@
 #define CBLAS_DGEMM_DSP_H
 
 extern "C"
-void ocl_init();
+void ocl_init(bool);
 
 extern "C"
 void ocl_free();

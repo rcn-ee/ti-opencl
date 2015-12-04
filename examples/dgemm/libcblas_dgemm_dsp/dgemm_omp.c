@@ -7,6 +7,7 @@ extern void dgemm(int transa, int transb,
 		  double* restrict a, int lda,
                   double* restrict b, int ldb,
                   double* restrict c, int ldc,
+                  int NUMAPANELS, int NUMBPANELS,
                   double* restrict pL1, double* restrict pL2, 
                   double* restrict MSMC_buf, int tid);
 
@@ -18,6 +19,7 @@ void cblas_dgemm_omp(int Order, int TransA, int TransB,
                      double *A, int lda, 
                      double *B, int ldb,
                      double beta, double *C, int ldc,
+                     int NUMAPANELS, int NUMBPANELS,
                      double *MSMC_buf, double *L2_buf, 
                      int msmc_size)
 {
@@ -30,6 +32,7 @@ void cblas_dgemm_omp(int Order, int TransA, int TransB,
         int offset    = mLocal * id;
 
         double* L1_buf = (double*) 0x00F00000;
+        if (msmc_size == 0)  MSMC_buf = NULL;
 
         if (id < mLeft) 
         {
@@ -44,6 +47,7 @@ void cblas_dgemm_omp(int Order, int TransA, int TransB,
                   A + (TransA == CblasNoTrans ? offset : offset * lda), lda,
                   B, ldb,
                   C + offset, ldc, 
+                  NUMAPANELS, NUMBPANELS,
                   L1_buf, L2_buf, MSMC_buf, id);
         __cache_l1d_all();
     }
