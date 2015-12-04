@@ -143,7 +143,8 @@ int main(int argc, char* argv[])
     * context creation, so that the first dsp cblas_dgemm call timing is not 
     * skewed by this setup cost.
     *------------------------------------------------------------------------*/
-    ocl_init(calc_check);
+    int NUMCOMPUNITS;
+    ocl_init(calc_check, &NUMCOMPUNITS);
 
     /*-------------------------------------------------------------------------
     * Time DSP dgemm
@@ -151,7 +152,8 @@ int main(int argc, char* argv[])
     tick();
     dsp_cblas_dgemm(order,transA,transB,M,N,K,alpha,A,lda,B,ldb,beta,C,ldc);
     secs = tock();
-    printf("DSP %.3f Gflops (%.6fs)\n", total_GFLOP/secs, secs);
+    printf("%4d DSPs: %.3f Gflops (%.6fs)\n",
+           NUMCOMPUNITS, total_GFLOP/secs, secs);
     fflush(stdout);
 
     /*-------------------------------------------------------------------------
@@ -160,7 +162,8 @@ int main(int argc, char* argv[])
     tick();
     cblas_dgemm(order,transA,transB,M,N,K,alpha,A,lda,B,ldb,beta,Ccpu,ldc);
     secs = tock();
-    printf("CPU %.3f Gflops (%.6fs)\n", total_GFLOP/secs, secs);
+    printf("   1 CPU : %.3f Gflops (%.6fs) with ATLAS library\n",
+           total_GFLOP/secs, secs);
     fflush(stdout);
 
     /*-------------------------------------------------------------------------

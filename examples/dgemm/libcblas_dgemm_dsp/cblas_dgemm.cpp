@@ -87,7 +87,7 @@ void dsp_cblas_dgemm(CBLAS_ORDER order, CBLAS_TRANSPOSE transA,
     /*-------------------------------------------------------------------------
     * Ensure the OpenCL context is active
     *------------------------------------------------------------------------*/
-    if (ocl.context == 0) ocl_init(false);
+    if (ocl.context == 0) ocl_init(false, NULL);
     Context &ctx = *(ocl.context);
     Kernel *kernel = ocl.K_cblas_dgemm;
 

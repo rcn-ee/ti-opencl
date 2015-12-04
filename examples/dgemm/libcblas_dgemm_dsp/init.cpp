@@ -17,7 +17,7 @@ dgemm_params_t dparams = {0, 0, 0, 0, 0};
 static bool SetDgemmParams(Device& device, bool calc_check);
 
 extern "C" DLL_PUBLIC
-void ocl_init(bool calc_check)
+void ocl_init(bool calc_check, int *NUMCOMPUNITS)
 {
    try 
    {
@@ -25,6 +25,7 @@ void ocl_init(bool calc_check)
 
      std::vector<Device> devices = ocl.context->getInfo<CL_CONTEXT_DEVICES>();
      SetDgemmParams(devices[0], calc_check);
+     if (NUMCOMPUNITS != NULL)  *NUMCOMPUNITS = dparams.NUMCOMPUNITS;
 
      Program::Binaries binary(1, make_pair(kernel_dsp_bin,sizeof(kernel_dsp_bin)));
      ocl.program = new Program(*(ocl.context), devices, binary);

@@ -25,7 +25,7 @@ typedef struct
 extern ocl_t ocl;
 extern dgemm_params_t dparams;
 
-extern "C" void DLL_PUBLIC ocl_init(bool);
+extern "C" void DLL_PUBLIC ocl_init(bool, int *);
 extern "C" void DLL_PUBLIC ocl_free();
 
 #endif // _OCL_H_ 
