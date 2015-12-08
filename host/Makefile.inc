@@ -46,10 +46,10 @@ else
     MCSDK_LINUX_DEVKIT_ROOT?=/
 endif
 
-# AM57 Processor SDK (2.0.1.3)
+# AM57 Processor SDK (2.0.1.x)
 
-DEFAULT_PSDK_RTOS?=/cgnas/ti-processor-sdk-rtos-am57xx-evm-02.00.01.03-20151123
-DEFAULT_PSDK_LINUX?=/cgnas/ti-processor-sdk-linux-am57xx-evm-02.00.01.03-20151123
+DEFAULT_PSDK_RTOS?=/cgnas/ti-processor-sdk-rtos-am57xx-evm-02.00.01.04-20151206
+DEFAULT_PSDK_LINUX?=/cgnas/ti-processor-sdk-linux-am57xx-evm-02.00.01.04-20151206
 PSDK_LINUX_DEVKIT_ROOT?=$(DEFAULT_PSDK_LINUX)/linux-devkit/sysroots/cortexa15hf-vfp-neon-linux-gnueabi
 
 # DSPC SDKs
