@@ -329,8 +329,10 @@ MapImageEvent::MapImageEvent(CommandQueue *parent,
     }
 
     // Check for out-of-bounds
-    if ((p_origin[0] + p_region[0]) > image->row_pitch() ||
-        (p_origin[1] + p_region[1]) * image->row_pitch() > image->slice_pitch() ||
+    // cross-row and cross-slice transfers on Image should be allowed,
+    // as seen by OpenCV use cases, and as SPEC does not prohibit such cases
+    if ((p_origin[0] + p_region[0]) > image->size() ||
+        (p_origin[1] + p_region[1]) * image->row_pitch() > image->size() ||
         (p_origin[2] + p_region[2]) * image->slice_pitch() > image->size())
     {
         *errcode_ret = CL_INVALID_VALUE;
@@ -1131,16 +1133,18 @@ CopyBufferRectEvent::CopyBufferRectEvent(CommandQueue *parent,
     }
 
     // Check for out-of-bounds
-    if ((p_src_origin[0] + p_region[0]) > p_src_row_pitch ||
-        (p_src_origin[1] + p_region[1]) * p_src_row_pitch > p_src_slice_pitch ||
+    // cross-row and cross-slice transfers on BufferRect should be allowed,
+    // as seen by OpenCV use cases, and as SPEC does not prohibit such cases
+    if ((p_src_origin[0] + p_region[0]) > source->size() ||
+        (p_src_origin[1] + p_region[1]) * p_src_row_pitch > source->size() ||
         (p_src_origin[2] + p_region[2]) * p_src_slice_pitch > source->size())
     {
         *errcode_ret = CL_INVALID_VALUE;
         return;
     }
 
-    if ((p_dst_origin[0] + p_region[0]) > p_dst_row_pitch ||
-        (p_dst_origin[1] + p_region[1]) * p_dst_row_pitch > p_dst_slice_pitch ||
+    if ((p_dst_origin[0] + p_region[0]) > destination->size() ||
+        (p_dst_origin[1] + p_region[1]) * p_dst_row_pitch > destination->size() ||
         (p_dst_origin[2] + p_region[2]) * p_dst_slice_pitch > destination->size())
     {
         *errcode_ret = CL_INVALID_VALUE;
@@ -1228,8 +1232,10 @@ ReadWriteBufferRectEvent::ReadWriteBufferRectEvent(CommandQueue *parent,
     }
 
     // Check for out-of-bounds
-    if ((p_src_origin[0] + p_region[0]) > p_src_row_pitch ||
-        (p_src_origin[1] + p_region[1]) * p_src_row_pitch > p_src_slice_pitch ||
+    // cross-row and cross-slice transfers on BufferRect should be allowed,
+    // as seen by OpenCV use cases, and as SPEC does not prohibit such cases
+    if ((p_src_origin[0] + p_region[0]) > buffer->size() ||
+        (p_src_origin[1] + p_region[1]) * p_src_row_pitch > buffer->size() ||
         (p_src_origin[2] + p_region[2]) * p_src_slice_pitch > buffer->size())
     {
         *errcode_ret = CL_INVALID_VALUE;
