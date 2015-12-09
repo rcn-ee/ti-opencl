@@ -290,7 +290,7 @@ cl_int Kernel::setArg(cl_uint index, size_t size, const void *value)
     /*-------------------------------------------------------------------------
     * Check that size corresponds to the arg type
     *------------------------------------------------------------------------*/
-    size_t arg_size = arg.valueSize() * arg.vecDim();
+    size_t arg_size = arg.vecValueSize();
 
     /*-------------------------------------------------------------------------
     * Special case for samplers (pointers in C++, uint32 in OpenCL).
@@ -560,7 +560,7 @@ Kernel::Arg::~Arg()
 
 void Kernel::Arg::alloc()
 {
-    if (!p_data) p_data = std::malloc(p_vec_dim * valueSize());
+    if (!p_data) p_data = std::malloc(vecValueSize());
 }
 
 void Kernel::Arg::loadData(const void *data)
@@ -607,6 +607,11 @@ size_t Kernel::Arg::valueSize() const
     }
 
     return 0;
+}
+
+size_t Kernel::Arg::vecValueSize() const
+{
+  return valueSize() * (p_vec_dim == 3 ? 4 : p_vec_dim);
 }
 
 unsigned short    Kernel::Arg::vecDim()    const { return p_vec_dim; }

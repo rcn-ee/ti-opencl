@@ -472,8 +472,7 @@ cl_int DSPKernelEvent::callArgs(unsigned max_args_size)
         int args_in_reg_index = -1;
 
         const Kernel::Arg & arg  = p_kernel->kernel()->arg(i);
-        size_t              size = arg.valueSize() * arg.vecDim();
-
+        size_t              size = arg.vecValueSize();
 
         if (size == 0)
             QERR("Kernel argument has size of 0", CL_INVALID_ARG_SIZE);
