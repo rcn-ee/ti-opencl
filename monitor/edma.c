@@ -22,7 +22,7 @@ extern cregister volatile unsigned int DNUM;
 /*-----------------------------------------------------------------------------
 * If the edmamgr resource map changes, we may need to revisit these macros
 *----------------------------------------------------------------------------*/
-#define EDMA_MGR_MAX_NUM_CHANNELS    (32)
+#define EDMA_MGR_MAX_NUM_CHANNELS    (16)
 #define STARTUP_NUM_OF_EDMA_CHANNELS (4)
 
 #define MEMCPY_THRESHOLD             (0x800) 

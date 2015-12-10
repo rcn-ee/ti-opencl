@@ -5,22 +5,22 @@ include ../host/Makefile.inc
 OPENCL_SRC_DIR ?= ../host
 
 # If not specified, pick a default location for TI dependent packages
-DEFAULT_DEV_INSTALL_DIR ?= $(DEFAULT_MCSDK)
-LINUX_DEVKIT_ROOT ?= $(MCSDK_LINUX_DEVKIT_ROOT)
+DEFAULT_DEV_INSTALL_DIR ?= $(DEFAULT_PSDK_RTOS_K2X)
+LINUX_DEVKIT_ROOT ?= $(PSDK_LINUX_DEVKIT_ROOT_K2X)
 
 ifeq ($(TI_OCL_CGT_INSTALL),)
   $(error Monitor requires TI_OCL_CGT_INSTALL to point to C6000 Codegen tools)
 endif
 
 SDK_DIR        ?= $(DEFAULT_DLSDK)
-FC_DIR         ?= $(DEFAULT_DEV_INSTALL_DIR)/framework_components_3_40_00_02
+FC_DIR         ?= $(DEFAULT_DEV_INSTALL_DIR)/framework_components_3_40_01_04
 XDAIS_DIR      ?= $(DEFAULT_DEV_INSTALL_DIR)/xdais_7_24_00_04
-MPM_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/mpm_2_00_01_10
-BIOS_DIR       ?= $(DEFAULT_DEV_INSTALL_DIR)/bios_6_41_04_54
+MPM_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/multiprocmgr_2_00_01_12
+BIOS_DIR       ?= $(DEFAULT_DEV_INSTALL_DIR)/bios_6_45_00_13
 OMP_DIR        ?= $(KEYSTONE_OMP_DIR)
-IPC_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/ipc_3_36_02_13
-EDMA3LLD_DIR   ?= $(DEFAULT_DEV_INSTALL_DIR)/edma3_lld_02_11_13_17
-C6636_PDK_DIR  ?= $(DEFAULT_DEV_INSTALL_DIR)/pdk_keystone2_3_01_04_07
+IPC_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/ipc_3_41_00_06_eng
+EDMA3LLD_DIR   ?= $(DEFAULT_DEV_INSTALL_DIR)/edma3_lld_02_12_01_22
+C6636_PDK_DIR  ?= $(DEFAULT_DEV_INSTALL_DIR)/pdk_k2hk_4_0_0
 XDC_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/xdctools_3_31_02_38_core
 ULM_DIR        ?= $(LINUX_DEVKIT_ROOT)/usr/share/ti/ulm
 GDB_SERVER_DIR ?= $(LINUX_DEVKIT_ROOT)/usr/share/ti/gdbc6x

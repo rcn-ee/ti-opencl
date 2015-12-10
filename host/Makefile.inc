@@ -37,6 +37,25 @@ endif
 KEYSTONE_OMP_DIR?=/cgnas/openmp_dsp_2_02_00_01_ks_alpha
 AM57_OMP_DIR?=/cgnas/openmp_dsp_2_02_00_01_am57xx_alpha
 
+# K2X PSDK
+ifeq ($(BUILD_K2H),1)
+    DEFAULT_PSDK_RTOS_K2X?=/cgnas/ti-processor-sdk-rtos-k2hk-evm-02.00.01.04-20151205
+    DEFAULT_PSDK_LINUX_K2X?=/cgnas/ti-processor-sdk-linux-k2hk-evm-02.00.01.04-20151203
+else ifeq ($(BUILD_K2L),1)
+    DEFAULT_PSDK_RTOS_K2X?=/cgnas/ti-processor-sdk-rtos-k2hk-evm-02.00.01.04-20151205
+    DEFAULT_PSDK_LINUX_K2X?=/cgnas/ti-processor-sdk-linux-k2hk-evm-02.00.01.04-20151203
+else ifeq ($(BUILD_K2E),1)
+    DEFAULT_PSDK_RTOS_K2X?=/cgnas/ti-processor-sdk-rtos-k2hk-evm-02.00.01.04-20151205
+    DEFAULT_PSDK_LINUX_K2X?=/cgnas/ti-processor-sdk-linux-k2hk-evm-02.00.01.04-20151203
+else
+endif
+
+ifeq (,$(findstring arm, $(UNAME_M)))
+    PSDK_LINUX_DEVKIT_ROOT_K2X?=$(DEFAULT_PSDK_LINUX_K2X)/linux-devkit/sysroots/cortexa15hf-vfp-neon-linux-gnueabi
+else
+    PSDK_LINUX_DEVKIT_ROOT_K2X?=/
+endif
+
 # K2X MCSDK
 
 DEFAULT_MCSDK?=/cgnas/mcsdk_3_01_04_07-20151002
