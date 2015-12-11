@@ -291,8 +291,10 @@ BIOS_TASK(listen_host_task)
        switch (Msg.command)
        {
           case TASK: 
-                      if (is_inorder_q || is_debugmode) process_task_local(&Msg);
-                      else                              process_task_distributed(&Msg);
+                      if (is_inorder_q || is_debugmode || n_cores == 1)
+                          process_task_local(&Msg);
+                      else
+                          process_task_distributed(&Msg);
                       break;
 
           case NDRKERNEL: 
