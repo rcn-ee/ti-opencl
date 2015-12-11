@@ -296,8 +296,10 @@ BIOS_TASK(listen_host_task)
                       break;
 
           case NDRKERNEL: 
-                      if (is_debugmode) process_kernel_local(&Msg);
-                      else              process_kernel_distributed(&Msg);
+                      if (is_debugmode || n_cores == 1)
+                          process_kernel_local(&Msg);
+                      else
+                          process_kernel_distributed(&Msg);
                       break;
 
           case CACHEINV: 
