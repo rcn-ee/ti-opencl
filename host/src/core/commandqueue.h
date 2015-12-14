@@ -463,7 +463,7 @@ class Event : public _cl_event, public Object
          * \brief Helper function for setStatus()
          * return number of dependent events
          */
-        int setStatusHelper(Status status);
+        int setStatusHelper(Status status, std::list<CallbackData> &callbacks);
 
     private:
         pthread_cond_t p_state_change_cond;
