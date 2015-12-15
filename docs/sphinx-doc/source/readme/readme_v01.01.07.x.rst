@@ -1,5 +1,18 @@
+*************************
 OpenCL v01.01.07.x Readme
-=========================
+*************************
+
+Platforms supported
+===================
+
+* `AM572 EVM`_
+* `66AK2H EVM`_
+* `66AK2L EVM`_
+* `66AK2E EVM`_
+
+
+Release Notes
+=============
 
 * Added the following extentions OpenCL C builtin functions. ::
 
@@ -49,3 +62,21 @@ OpenCL v01.01.07.x Readme
   unload.  However,  the contents of that memory is not guaranteed to persist
   between kernels calls.  Additionally, any initialization data for those object
   will be ignored
+
+
+Compiler Versions
+=================
+This release requires the following compiler versions:
+
+========           ========
+Compiler           Version
+========           ========
+ARM GCC            4.9.3 (arm-linux-gnueabi)
+C6000              8.1.x
+========           ========
+
+
+.. _AM572 EVM:          http://www.ti.com/tool/tmdxevm5728
+.. _66AK2H EVM:         http://www.ti.com/tool/EVMK2h
+.. _66AK2L EVM:         http://www.ti.com/tool/XEVMK2LX
+.. _66AK2E EVM:         http://www.ti.com/tool/XEVMK2EX
