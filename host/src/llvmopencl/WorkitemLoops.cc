@@ -104,10 +104,7 @@ WorkitemLoops::runOnFunction(Function &F)
       pocl::WorkitemHandlerChooser::POCL_WIH_LOOPS)
     return false;
 
-  int wgsizes[3];
-  if (getReqdWGSize(F, wgsizes))
-    if (wgsizes[0] == 1 && wgsizes[1] == 1 && wgsizes[2] == 1)
-      return false;
+  if (isReqdWGSize111(F))  return false;
 
   DTP = &getAnalysis<DominatorTreeWrapperPass>();
   DT = &DTP->getDomTree();

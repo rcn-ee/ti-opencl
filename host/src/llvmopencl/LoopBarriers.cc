@@ -33,6 +33,7 @@
 #include "LoopBarriers.h"
 #include "Barrier.h"
 #include "Workgroup.h"
+#include "../core/util.h"
 
 //#define DEBUG_LOOP_BARRIERS
 
@@ -59,6 +60,8 @@ LoopBarriers::runOnLoop(Loop *L, LPPassManager &LPM)
 {
   if (!Workgroup::isKernelToProcess(*L->getHeader()->getParent()))
     return false;
+
+  if (isReqdWGSize111(*L->getHeader()->getParent()))  return false;
 
   DT = &getAnalysis<DominatorTreeWrapperPass>().getDomTree();
 

@@ -24,6 +24,7 @@
 #include "Workgroup.h"
 #include "WorkitemHandlerChooser.h"
 #include "WorkitemLoops.h"
+#include "../core/util.h"
 
 #include "config.h"
 
@@ -54,6 +55,8 @@ PHIsToAllocas::runOnFunction(Function &F)
 {
   if (!Workgroup::isKernelToProcess(F))
     return false;
+
+  if (isReqdWGSize111(F))  return false;
 
   /* Skip PHIsToAllocas when we are not creating the work item loops,
      as it leads to worse code without benefits for the full replication method.
