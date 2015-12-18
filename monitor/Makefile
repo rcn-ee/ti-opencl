@@ -17,27 +17,24 @@ FC_DIR         ?= $(DEFAULT_DEV_INSTALL_DIR)/framework_components_3_40_01_04
 XDAIS_DIR      ?= $(DEFAULT_DEV_INSTALL_DIR)/xdais_7_24_00_04
 MPM_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/multiprocmgr_2_00_01_12
 OMP_DIR        ?= $(KEYSTONE_OMP_DIR)
+IPC_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/ipc_3_41_00_06_eng
 EDMA3LLD_DIR   ?= $(DEFAULT_DEV_INSTALL_DIR)/edma3_lld_02_12_01_22
 XDC_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/xdctools_3_31_02_38_core
 ULM_DIR        ?= $(LINUX_DEVKIT_ROOT)/usr/share/ti/ulm
 GDB_SERVER_DIR ?= $(LINUX_DEVKIT_ROOT)/usr/share/ti/gdbc6x
 
 ifeq ($(BUILD_TARGET),ARM_K2H)
-    BIOS_DIR       ?= $(DEFAULT_DEV_INSTALL_DIR)/bios_6_45_00_19
+    BIOS_DIR       ?= $(DEFAULT_DEV_INSTALL_DIR)/bios_6_45_00_13
     C6636_PDK_DIR  ?= $(DEFAULT_DEV_INSTALL_DIR)/pdk_k2hk_4_0_0
-    IPC_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/ipc_3_41_00_08
 else ifeq ($(BUILD_TARGET),ARM_K2L)
     BIOS_DIR       ?= $(DEFAULT_DEV_INSTALL_DIR)/bios_6_45_00_17
     C6636_PDK_DIR  ?= $(DEFAULT_DEV_INSTALL_DIR)/pdk_k2l_4_0_0
-    IPC_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/ipc_3_41_00_06_eng
 else ifeq ($(BUILD_TARGET),ARM_K2E)
     BIOS_DIR       ?= $(DEFAULT_DEV_INSTALL_DIR)/bios_6_45_00_17
     C6636_PDK_DIR  ?= $(DEFAULT_DEV_INSTALL_DIR)/pdk_k2e_4_0_0
-    IPC_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/ipc_3_41_00_06_eng
 else
-    BIOS_DIR       ?= $(DEFAULT_DEV_INSTALL_DIR)/bios_6_45_00_19
+    BIOS_DIR       ?= $(DEFAULT_DEV_INSTALL_DIR)/bios_6_45_00_13
     C6636_PDK_DIR  ?= $(DEFAULT_DEV_INSTALL_DIR)/pdk_k2hk_4_0_0
-    IPC_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/ipc_3_41_00_08
 endif
 
 export XDC = $(XDC_DIR)
@@ -118,7 +115,7 @@ ifeq ($(BUILD_TARGET),DSPC868x)
 else ifeq ($(BUILD_TARGET),ARM_K2H)
     PLATFORM = evmk2h
     XDCPATH  = $(XDCPATH_K2X)
-    INCLUDES += -DDEVICE_K2K -DTI_66AK2X -DEDMACFG_K2H -DK2_PG1_MSMC_STALL_WA \
+    INCLUDES += -DDEVICE_K2K -DTI_66AK2X -DK2_PG1_MSMC_STALL_WA \
                 -i $(MPM_DIR)/include -i$(ULM_DIR) -DULM_ENABLED \
                 -i $(GDB_SERVER_DIR)/include -DGDB_ENABLED
     LIBS = $(LIBS_K2X)
@@ -126,7 +123,7 @@ else ifeq ($(BUILD_TARGET),ARM_K2H)
 else ifeq ($(BUILD_TARGET),ARM_K2L)
     PLATFORM = evmk2l
     XDCPATH  = $(XDCPATH_K2X)
-    INCLUDES += -DDEVICE_K2K -DTI_66AK2X -DEDMACFG_K2L -DK2_PG1_MSMC_STALL_WA \
+    INCLUDES += -DDEVICE_K2K -DTI_66AK2X -DK2_PG1_MSMC_STALL_WA \
                 -i $(MPM_DIR)/include -i$(ULM_DIR) -DULM_ENABLED \
                 -i $(GDB_SERVER_DIR)/include -DGDB_ENABLED
     LIBS = $(LIBS_K2X)
@@ -134,7 +131,7 @@ else ifeq ($(BUILD_TARGET),ARM_K2L)
 else ifeq ($(BUILD_TARGET),ARM_K2E)
     PLATFORM = evmk2e
     XDCPATH  = $(XDCPATH_K2X)
-    INCLUDES += -DDEVICE_K2K -DTI_66AK2X -DEDMACFG_K2E -DK2_PG1_MSMC_STALL_WA \
+    INCLUDES += -DDEVICE_K2K -DTI_66AK2X -DK2_PG1_MSMC_STALL_WA \
                 -i $(MPM_DIR)/include -i$(ULM_DIR) -DULM_ENABLED \
                 -i $(GDB_SERVER_DIR)/include -DGDB_ENABLED
     LIBS = $(LIBS_K2X)

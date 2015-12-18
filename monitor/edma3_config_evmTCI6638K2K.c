@@ -1,10 +1,5 @@
 /*
- * edma3_tci6636k2h_cfg.c
- *
- * EDMA3 Resource Manager Adaptation Configuration File (SoC Specific).
- *
- * Copyright (C) 2012-2013 Texas Instruments Incorporated - http://www.ti.com/
- *
+ * (C) Copyright 2013, Texas Instruments Incorporated.
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions
@@ -33,8 +28,7 @@
  *  THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  *  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
-*/
+ */
 
 #include <xdc/std.h>
 #include <ti/sdo/edma3/rm/edma3_rm.h>
@@ -42,11 +36,268 @@
 
 #define EDMA_MGR_NUM_EDMA_INSTANCES 5
 
-/*****************************************************************************
-* Type of these EdmaMgr config data structures are from EdmaMgr
-* Contents of these EdmaMgr data structures are from edma3_lld_02_12_01_22/
-*                 packages/ti/sdo/edma3/rm/src/configs/edma3_tci6636k2h_cfg.c
-*****************************************************************************/
+/* Definition of EDMA3_InstanceInitConfig structure from                    */
+/* <ti/sdo/fc/edma3/edma3_config.h>. It is attached here and put under      */
+/* #if 0 for reference                                                      */
+
+/* EDMA3_InstanceInitConfig is init-time Region Specific Configuration      */
+/* structure for EDMA3 to provide region specific Information. It is used   */
+/* to specify which EDMA3 resources are owned and reserved by the EDMA3     */
+/* instance.                                                                */
+
+#if 0
+typedef struct
+{
+    unsigned int        ownPaRAMSets[EDMA3_MAX_PARAM_DWRDS];
+                            /**< PaRAM Sets owned by the EDMA3 RM Instance. */
+    unsigned int        ownDmaChannels[EDMA3_MAX_DMA_CHAN_DWRDS];
+                            /**< DMA Channels owned by the EDMA3 RM Instance. */
+    unsigned int        ownQdmaChannels[EDMA3_MAX_QDMA_CHAN_DWRDS];
+                            /**< QDMA Channels owned by the EDMA3 RM Instance.*/
+    unsigned int        ownTccs[EDMA3_MAX_TCC_DWRDS];
+                            /**< TCCs owned by the EDMA3 RM Instance. */
+    /**
+     * @brief       Reserved PaRAM Sets
+     */
+    unsigned int        resvdPaRAMSets[EDMA3_MAX_PARAM_DWRDS];
+    /**
+     * @brief       Reserved DMA channels
+     */
+    unsigned int        resvdDmaChannels[EDMA3_MAX_DMA_CHAN_DWRDS];
+    /**
+     * @brief       Reserved QDMA channels
+     */
+    unsigned int        resvdQdmaChannels[EDMA3_MAX_QDMA_CHAN_DWRDS];
+    /**
+     * @brief       Reserved TCCs
+     */
+    unsigned int        resvdTccs[EDMA3_MAX_TCC_DWRDS];
+} EDMA3_InstanceInitConfig;
+#endif
+
+/* In the arrays below, each bit of a 32-bit word corresponds to a single   */
+/* PaRAMSet/EDMAChannel/QDMAChannel/TCC owned by the corresponding region,  */
+/* i.e., can be used for general purpose EDMA tranfers, or reserved for     */
+/* EDMA transfers by hardware peripherals (cannot be used for general       */
+/* purpose EDMA tranfers)                                                   */
+
+#define DMA_CHANNEL_TO_EVENT_MAPPING_0          (0x00000000u)
+#define DMA_CHANNEL_TO_EVENT_MAPPING_1          (0x00000000u)
+
+/* EDMA3_InstanceInitConfig sample0 with region neither owning nor          */
+/* reserving any EDMA resources                                             */
+#define regionSample0                                         \
+{                                                             \
+    /* Resources owned by Region */                           \
+    /* ownPaRAMSets */                                        \
+    {0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,      \
+     0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,      \
+     0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,      \
+     0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u},     \
+                                                              \
+    /* ownDmaChannels */                                      \
+    {0x00000000u, 0x00000000u},                               \
+                                                              \
+    /* ownQdmaChannels */                                     \
+    {0x00000000u},                                            \
+                                                              \
+    /* ownTccs */                                             \
+    {0x00000000u, 0x00000000u},                               \
+                                                              \
+    /* Resources reserved by Region */                        \
+    /* resvdPaRAMSets */                                      \
+    {0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,      \
+     0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,      \
+     0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,      \
+     0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u},     \
+                                                              \
+    /* resvdDmaChannels */                                    \
+    {DMA_CHANNEL_TO_EVENT_MAPPING_0, DMA_CHANNEL_TO_EVENT_MAPPING_1}, \
+                                                              \
+    /* resvdQdmaChannels */                                   \
+    {0x00000000u},                                            \
+                                                              \
+    /* resvdTccs */                                           \
+    {DMA_CHANNEL_TO_EVENT_MAPPING_0, DMA_CHANNEL_TO_EVENT_MAPPING_1} \
+}
+
+/* EDMA3_InstanceInitConfig sample1 with region owning PaRAM sets 64-105,   */
+/* and EDMA channel 0-7, but not reserving any EDMA resources               */
+/* Note that the first N PaRAM sets (N=number of EDMA channels available    */
+/* on an EDMA instance) are reserved in EDMA3 LLD ).                        */
+#define regionSample1                                         \
+{                                                             \
+    /* Resources owned by Region */                           \
+    /* ownPaRAMSets */                                        \
+    {0x00000000u, 0x00000000u, 0xFFFFFFFFu, 0xFFFFFFFFu,      \
+     0xFFFFFFFFu, 0x00000000u, 0x00000000u, 0x00000000u,      \
+     0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,      \
+     0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u},     \
+                                                              \
+    /* ownDmaChannels */                                      \
+    {0x0000FFFFu, 0x00000000u},                               \
+                                                              \
+    /* ownQdmaChannels */                                     \
+    {0x00000000u},                                            \
+                                                              \
+    /* ownTccs */                                             \
+    {0x0000FFFFu, 0x00000000u},                               \
+                                                              \
+    /* Resources reserved by Region */                        \
+    /* resvdPaRAMSets */                                      \
+    {0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,      \
+     0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,      \
+     0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,      \
+     0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u},     \
+                                                              \
+    /* resvdDmaChannels */                                    \
+    {DMA_CHANNEL_TO_EVENT_MAPPING_0, DMA_CHANNEL_TO_EVENT_MAPPING_1}, \
+                                                              \
+    /* resvdQdmaChannels */                                   \
+    {0x00000000u},                                            \
+                                                              \
+    /* resvdTccs */                                           \
+    {DMA_CHANNEL_TO_EVENT_MAPPING_0, DMA_CHANNEL_TO_EVENT_MAPPING_1} \
+}
+
+
+/* EDMA3_InstanceInitConfig sample2 with region owning PaRAM sets 106-147,  */
+/* and EDMA channel 8-15, but not reserving any EDMA resources               */
+#define regionSample2                                         \
+{                                                             \
+    /* Resources owned by Region */                           \
+    /* ownPaRAMSets */                                        \
+    {0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,      \
+     0x00000000u, 0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu,      \
+     0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,      \
+     0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u},     \
+                                                              \
+    /* ownDmaChannels */                                      \
+    {0xFFFF0000u, 0x00000000u},                               \
+                                                              \
+    /* ownQdmaChannels */                                     \
+    {0x00000000u},                                            \
+                                                              \
+    /* ownTccs */                                             \
+    {0xFFFF0000u, 0x00000000u},                               \
+                                                              \
+    /* Resources reserved by Region */                        \
+    /* resvdPaRAMSets */                                      \
+    {0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,      \
+     0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,      \
+     0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,      \
+     0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u},     \
+                                                              \
+    /* resvdDmaChannels */                                    \
+    {DMA_CHANNEL_TO_EVENT_MAPPING_0, DMA_CHANNEL_TO_EVENT_MAPPING_1}, \
+                                                              \
+    /* resvdQdmaChannels */                                   \
+    {0x00000000u},                                            \
+                                                              \
+    /* resvdTccs */                                           \
+    {DMA_CHANNEL_TO_EVENT_MAPPING_0, DMA_CHANNEL_TO_EVENT_MAPPING_1} \
+}
+
+/* EDMA3_InstanceInitConfig sample3 with region owning PaRAM sets 148-189,  */
+/* and EDMA channel 16-23, but not reserving any EDMA resources             */
+#define regionSample3                                         \
+{                                                             \
+    /* Resources owned by Region */                           \
+    /* ownPaRAMSets */                                        \
+    {0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,      \
+     0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,      \
+     0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu, 0x00000000u,      \
+     0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u},     \
+                                                              \
+    /* ownDmaChannels */                                      \
+    {0x00000000u, 0x0000FFFFu},                               \
+                                                              \
+    /* ownQdmaChannels */                                     \
+    {0x00000000u},                                            \
+                                                              \
+    /* ownTccs */                                             \
+    {0x00000000u, 0x0000FFFFu},                               \
+                                                              \
+    /* Resources reserved by Region */                        \
+    /* resvdPaRAMSets */                                      \
+    {0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,      \
+     0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,      \
+     0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,      \
+     0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u},     \
+                                                              \
+    /* resvdDmaChannels */                                    \
+    {DMA_CHANNEL_TO_EVENT_MAPPING_0, DMA_CHANNEL_TO_EVENT_MAPPING_1}, \
+                                                              \
+    /* resvdQdmaChannels */                                   \
+    {0x00000000u},                                            \
+                                                              \
+    /* resvdTccs */                                           \
+    {DMA_CHANNEL_TO_EVENT_MAPPING_0, DMA_CHANNEL_TO_EVENT_MAPPING_1} \
+}
+
+/* EDMA3_InstanceInitConfig sample4 with region owning PaRAM sets 190-231,  */
+/* and EDMA channel 24-31, but not reserving any EDMA resources             */
+#define regionSample4                                         \
+{                                                             \
+    /* Resources owned by Region */                           \
+    /* ownPaRAMSets */                                        \
+    {0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,      \
+     0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,      \
+     0x00000000u, 0x00000000u, 0x00000000u, 0xFFFFFFFFu,      \
+     0xFFFFFFFFu, 0xFFFFFFFFu, 0x00000000u, 0x00000000u},     \
+                                                              \
+    /* ownDmaChannels */                                      \
+    {0x00000000u, 0xFFFF0000u},                               \
+                                                              \
+    /* ownQdmaChannels */                                     \
+    {0x00000000u},                                            \
+                                                              \
+    /* ownTccs */                                             \
+    {0x00000000u, 0xFFFF0000u},                               \
+                                                              \
+    /* Resources reserved by Region */                        \
+    /* resvdPaRAMSets */                                      \
+    {0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,      \
+     0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,      \
+     0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,      \
+     0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u},     \
+                                                              \
+    /* resvdDmaChannels */                                    \
+    {DMA_CHANNEL_TO_EVENT_MAPPING_0, DMA_CHANNEL_TO_EVENT_MAPPING_1}, \
+                                                              \
+    /* resvdQdmaChannels */                                   \
+    {0x00000000u},                                            \
+                                                              \
+    /* resvdTccs */                                           \
+    {DMA_CHANNEL_TO_EVENT_MAPPING_0, DMA_CHANNEL_TO_EVENT_MAPPING_1} \
+}
+
+
+EDMA3_InstanceInitConfig edmaMgrInstanceInitConfig[EDMA_MGR_NUM_EDMA_INSTANCES][EDMA3_MAX_REGIONS] =
+{
+ /* EDMA3 INSTANCE# 0 */
+ { regionSample0,  regionSample0,  regionSample0,  regionSample0,
+   regionSample0,  regionSample0,  regionSample0,  regionSample0
+ },
+ /* EDMA3 INSTANCE# 1 */
+ { regionSample1,  regionSample2,  regionSample0,  regionSample0,
+   regionSample0,  regionSample0,  regionSample0,  regionSample0
+ },
+ /* EDMA3 INSTANCE# 2 */
+ { regionSample0,  regionSample0,  regionSample1,  regionSample2,
+   regionSample0,  regionSample0,  regionSample0,  regionSample0
+ },
+ /* EDMA3 INSTANCE# 3 */
+ { regionSample0,  regionSample0,  regionSample0,  regionSample0,
+   regionSample1,  regionSample2,  regionSample0,  regionSample0
+ },
+ /* EDMA3 INSTANCE# 4 */
+ { regionSample0,  regionSample0,  regionSample0,  regionSample0,
+   regionSample0,  regionSample0,  regionSample1,  regionSample2
+ }
+};
+
+int32_t edmaMgrRegion2Instance[EDMA3_MAX_REGIONS] = {1,1,2,2,3,3,4,4};
 
 /* Driver Object Initialization Configuration */
 EDMA3_GblConfigParams edmaMgrGblConfigParams [EDMA_MGR_NUM_EDMA_INSTANCES] =
@@ -153,13 +404,8 @@ EDMA3_GblConfigParams edmaMgrGblConfigParams [EDMA_MGR_NUM_EDMA_INSTANCES] =
 		 * DBS values. It is defined in Bytes.
 		 */
 		{
-#ifdef EDMACFG_K2H
 		256u,
 		256u,
-#else
-		128u,
-		128u,
-#endif
 		0u,
 		0u,
 		0u,
@@ -623,7 +869,7 @@ EDMA3_GblConfigParams edmaMgrGblConfigParams [EDMA_MGR_NUM_EDMA_INSTANCES] =
 		 * \brief Channel mapping existence
 		 * A value of 0 (No channel mapping) implies that there is fixed association
 		 * for a channel number to a parameter entry number or, in other words,
-		 * PaRAM entry n corresponds to channel n.
+		 * PaRAM entry n corresponds to channel n.a
 		 */
 		1u,
 
@@ -886,13 +1132,8 @@ EDMA3_GblConfigParams edmaMgrGblConfigParams [EDMA_MGR_NUM_EDMA_INSTANCES] =
 		 * DBS values. It is defined in Bytes.
 		 */
 		{
-#ifdef EDMACFG_K2H
 		256u,
 		256u,
-#else
-		128u,
-		128u,
-#endif
 		0u,
 		0u,
 		0u,
@@ -972,1912 +1213,8 @@ EDMA3_GblConfigParams edmaMgrGblConfigParams [EDMA_MGR_NUM_EDMA_INSTANCES] =
 		},
 	};
 
-EDMA3_InstanceInitConfig edmaMgrInstanceInitConfig [EDMA_MGR_NUM_EDMA_INSTANCES][EDMA3_MAX_REGIONS] =
-	{
-		/* EDMA3 INSTANCE# 0 */
-		{
-			/* Resources owned/reserved by region 0 */
-			{
-				/* ownPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0x00000000u, 0x00000000u, 0xFFFFFFFFu, 0x00FFFFFFu,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u},
 
-				/* ownDmaChannels */
-				/* 31     0     63    32 */
-				{0x000000FFu, 0x00000000u},
 
-				/* ownQdmaChannels */
-				/* 31     0 */
-				{0x00000001u},
-
-				/* ownTccs */
-				/* 31     0     63    32 */
-				{0x000000FFu, 0x00000000u},
-
-				/* resvdPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0xFFFFFFFFu, 0xFFFFFFFFu, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,},
-
-				/* resvdDmaChannels */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-
-				/* resvdQdmaChannels */
-				/* 31     0 */
-				{0x00000000u},
-
-				/* resvdTccs */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-			},
-
-	        /* Resources owned/reserved by region 1 */
-			{
-				/* ownPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0x00000000u, 0x00000000u, 0x00000000u, 0xFF000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0xFFFFFFFFu, 0x0000FFFFu, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u},
-
-				/* ownDmaChannels */
-				/* 31     0     63    32 */
-				{0x0000FF00u, 0x00000000u},
-
-				/* ownQdmaChannels */
-				/* 31     0 */
-				{0x00000002u},
-
-				/* ownTccs */
-				/* 31     0     63    32 */
-				{0x0000FF00u, 0x00000000u},
-
-				/* resvdPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0xFFFFFFFFu, 0xFFFFFFFFu, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,},
-
-				/* resvdDmaChannels */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-
-				/* resvdQdmaChannels */
-				/* 31     0 */
-				{0x00000000u},
-
-				/* resvdTccs */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-			},
-
-	        /* Resources owned/reserved by region 2 */
-			{
-				/* ownPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0xFFFF0000u, 0xFFFFFFFFu, 0x000000FFu,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u},
-
-				/* ownDmaChannels */
-				/* 31     0     63    32 */
-				{0x00FF0000u, 0x0000000u},
-
-				/* ownQdmaChannels */
-				/* 31     0 */
-				{0x00000004u},
-
-				/* ownTccs */
-				/* 31     0     63    32 */
-				{0x00FF0000u, 0x00000000u},
-
-				/* resvdPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0xFFFFFFFFu, 0xFFFFFFFFu, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,},
-
-				/* resvdDmaChannels */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-
-				/* resvdQdmaChannels */
-				/* 31     0 */
-				{0x00000000u},
-
-				/* resvdTccs */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-			},
-
-	        /* Resources owned/reserved by region 3 */
-			{
-				/* ownPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0xFFFFFF00u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0xFFFFFFFFu, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u},
-
-				/* ownDmaChannels */
-				/* 31     0     63    32 */
-				{0xFF000000u, 0x00000000u},
-
-				/* ownQdmaChannels */
-				/* 31     0 */
-				{0x00000008u},
-
-				/* ownTccs */
-				/* 31     0     63    32 */
-				{0xFF000000u, 0x00000000u},
-
-				/* resvdPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0xFFFFFFFFu, 0xFFFFFFFFu, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,},
-
-				/* resvdDmaChannels */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-
-				/* resvdQdmaChannels */
-				/* 31     0 */
-				{0x00000000u},
-
-				/* resvdTccs */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-			},
-
-	        /* Resources owned/reserved by region 4 */
-			{
-				/* ownPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0xFFFFFFFFu, 0x00FFFFFFu, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u},
-
-				/* ownDmaChannels */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x000000FFu},
-
-				/* ownQdmaChannels */
-				/* 31     0 */
-				{0x00000010u},
-
-				/* ownTccs */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x000000FFu},
-
-				/* resvdPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0xFFFFFFFFu, 0xFFFFFFFFu, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,},
-
-				/* resvdDmaChannels */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-
-				/* resvdQdmaChannels */
-				/* 31     0 */
-				{0x00000000u},
-
-				/* resvdTccs */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-			},
-
-	        /* Resources owned/reserved by region 5 */
-			{
-				/* ownPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0xFF000000u, 0xFFFFFFFFu,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x0000FFFFu, 0x00000000u, 0x00000000u, 0x00000000u},
-
-				/* ownDmaChannels */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x0000FF00u},
-
-				/* ownQdmaChannels */
-				/* 31     0 */
-				{0x00000020u},
-
-				/* ownTccs */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x0000FF00u},
-
-				/* resvdPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0xFFFFFFFFu, 0xFFFFFFFFu, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,},
-
-				/* resvdDmaChannels */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-
-				/* resvdQdmaChannels */
-				/* 31     0 */
-				{0x00000000u},
-
-				/* resvdTccs */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-			},
-
-	        /* Resources owned/reserved by region 6 */
-			{
-				/* ownPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0xFFFF0000u, 0xFFFFFFFFu, 0x000000FFu, 0x00000000u},
-
-				/* ownDmaChannels */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00FF0000u},
-
-				/* ownQdmaChannels */
-				/* 31     0 */
-				{0x00000040u},
-
-				/* ownTccs */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00FF0000u},
-
-				/* resvdPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0xFFFFFFFFu, 0xFFFFFFFFu, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,},
-
-				/* resvdDmaChannels */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-
-				/* resvdQdmaChannels */
-				/* 31     0 */
-				{0x00000000u},
-
-				/* resvdTccs */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-			},
-
-	        /* Resources owned/reserved by region 7 */
-			{
-				/* ownPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0xFFFFFF00u, 0xFFFFFFFFu},
-
-				/* ownDmaChannels */
-				/* 31     0     63    32 */
-				{0x00000000u, 0xFF000000u},
-
-				/* ownQdmaChannels */
-				/* 31     0 */
-				{0x00000080u},
-
-				/* ownTccs */
-				/* 31     0     63    32 */
-				{0x00000000u, 0xFF000000u},
-
-				/* resvdPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0xFFFFFFFFu, 0xFFFFFFFFu, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,},
-
-				/* resvdDmaChannels */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-
-				/* resvdQdmaChannels */
-				/* 31     0 */
-				{0x00000000u},
-
-				/* resvdTccs */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-			},
-		},
-
-		/* EDMA3 INSTANCE# 1 */
-		{
-			/* Resources owned/reserved by region 0 */
-			{
-				/* ownPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0x00000000u, 0x00000000u, 0xFFFFFFFFu, 0x00FFFFFFu,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u},
-
-				/* ownDmaChannels */
-				/* 31     0     63    32 */
-				{0x000000FFu, 0x00000000u},
-
-				/* ownQdmaChannels */
-				/* 31     0 */
-				{0x00000001u},
-
-				/* ownTccs */
-				/* 31     0     63    32 */
-				{0x000000FFu, 0x00000000u},
-
-				/* resvdPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0xFFFFFFFFu, 0xFFFFFFFFu, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,},
-
-				/* resvdDmaChannels */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-
-				/* resvdQdmaChannels */
-				/* 31     0 */
-				{0x00000000u},
-
-				/* resvdTccs */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-			},
-
-	        /* Resources owned/reserved by region 1 */
-			{
-				/* ownPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0x00000000u, 0x00000000u, 0x00000000u, 0xFF000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0xFFFFFFFFu, 0x0000FFFFu, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u},
-
-				/* ownDmaChannels */
-				/* 31     0     63    32 */
-				{0x0000FF00u, 0x00000000u},
-
-				/* ownQdmaChannels */
-				/* 31     0 */
-				{0x00000002u},
-
-				/* ownTccs */
-				/* 31     0     63    32 */
-				{0x0000FF00u, 0x00000000u},
-
-				/* resvdPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0xFFFFFFFFu, 0xFFFFFFFFu, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,},
-
-				/* resvdDmaChannels */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-
-				/* resvdQdmaChannels */
-				/* 31     0 */
-				{0x00000000u},
-
-				/* resvdTccs */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-			},
-
-	        /* Resources owned/reserved by region 2 */
-			{
-				/* ownPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0xFFFF0000u, 0xFFFFFFFFu, 0x000000FFu,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u},
-
-				/* ownDmaChannels */
-				/* 31     0     63    32 */
-				{0x00FF0000u, 0x0000000u},
-
-				/* ownQdmaChannels */
-				/* 31     0 */
-				{0x00000004u},
-
-				/* ownTccs */
-				/* 31     0     63    32 */
-				{0x00FF0000u, 0x00000000u},
-
-				/* resvdPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0xFFFFFFFFu, 0xFFFFFFFFu, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,},
-
-				/* resvdDmaChannels */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-
-				/* resvdQdmaChannels */
-				/* 31     0 */
-				{0x00000000u},
-
-				/* resvdTccs */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-			},
-
-	        /* Resources owned/reserved by region 3 */
-			{
-				/* ownPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0xFFFFFF00u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0xFFFFFFFFu, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u},
-
-				/* ownDmaChannels */
-				/* 31     0     63    32 */
-				{0xFF000000u, 0x00000000u},
-
-				/* ownQdmaChannels */
-				/* 31     0 */
-				{0x00000008u},
-
-				/* ownTccs */
-				/* 31     0     63    32 */
-				{0xFF000000u, 0x00000000u},
-
-				/* resvdPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0xFFFFFFFFu, 0xFFFFFFFFu, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,},
-
-				/* resvdDmaChannels */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-
-				/* resvdQdmaChannels */
-				/* 31     0 */
-				{0x00000000u},
-
-				/* resvdTccs */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-			},
-
-	        /* Resources owned/reserved by region 4 */
-			{
-				/* ownPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0xFFFFFFFFu, 0x00FFFFFFu, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u},
-
-				/* ownDmaChannels */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x000000FFu},
-
-				/* ownQdmaChannels */
-				/* 31     0 */
-				{0x00000010u},
-
-				/* ownTccs */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x000000FFu},
-
-				/* resvdPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0xFFFFFFFFu, 0xFFFFFFFFu, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,},
-
-				/* resvdDmaChannels */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-
-				/* resvdQdmaChannels */
-				/* 31     0 */
-				{0x00000000u},
-
-				/* resvdTccs */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-			},
-
-	        /* Resources owned/reserved by region 5 */
-			{
-				/* ownPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0xFF000000u, 0xFFFFFFFFu,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x0000FFFFu, 0x00000000u, 0x00000000u, 0x00000000u},
-
-				/* ownDmaChannels */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x0000FF00u},
-
-				/* ownQdmaChannels */
-				/* 31     0 */
-				{0x00000020u},
-
-				/* ownTccs */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x0000FF00u},
-
-				/* resvdPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0xFFFFFFFFu, 0xFFFFFFFFu, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,},
-
-				/* resvdDmaChannels */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-
-				/* resvdQdmaChannels */
-				/* 31     0 */
-				{0x00000000u},
-
-				/* resvdTccs */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-			},
-
-	        /* Resources owned/reserved by region 6 */
-			{
-				/* ownPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0xFFFF0000u, 0xFFFFFFFFu, 0x000000FFu, 0x00000000u},
-
-				/* ownDmaChannels */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00FF0000u},
-
-				/* ownQdmaChannels */
-				/* 31     0 */
-				{0x00000040u},
-
-				/* ownTccs */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00FF0000u},
-
-				/* resvdPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0xFFFFFFFFu, 0xFFFFFFFFu, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,},
-
-				/* resvdDmaChannels */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-
-				/* resvdQdmaChannels */
-				/* 31     0 */
-				{0x00000000u},
-
-				/* resvdTccs */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-			},
-
-	        /* Resources owned/reserved by region 7 */
-			{
-				/* ownPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0xFFFFFF00u, 0xFFFFFFFFu},
-
-				/* ownDmaChannels */
-				/* 31     0     63    32 */
-				{0x00000000u, 0xFF000000u},
-
-				/* ownQdmaChannels */
-				/* 31     0 */
-				{0x00000080u},
-
-				/* ownTccs */
-				/* 31     0     63    32 */
-				{0x00000000u, 0xFF000000u},
-
-				/* resvdPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0xFFFFFFFFu, 0xFFFFFFFFu, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,},
-
-				/* resvdDmaChannels */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-
-				/* resvdQdmaChannels */
-				/* 31     0 */
-				{0x00000000u},
-
-				/* resvdTccs */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-			},
-		},
-
-		/* EDMA3 INSTANCE# 2 */
-		{
-			/* Resources owned/reserved by region 0 */
-			{
-				/* ownPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0x00000000u, 0x00000000u, 0xFFFFFFFFu, 0x00FFFFFFu,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u},
-
-				/* ownDmaChannels */
-				/* 31     0     63    32 */
-				{0x000000FFu, 0x00000000u},
-
-				/* ownQdmaChannels */
-				/* 31     0 */
-				{0x00000001u},
-
-				/* ownTccs */
-				/* 31     0     63    32 */
-				{0x000000FFu, 0x00000000u},
-
-				/* resvdPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0xFFFFFFFFu, 0xFFFFFFFFu, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,},
-
-				/* resvdDmaChannels */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-
-				/* resvdQdmaChannels */
-				/* 31     0 */
-				{0x00000000u},
-
-				/* resvdTccs */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-			},
-
-	        /* Resources owned/reserved by region 1 */
-			{
-				/* ownPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0x00000000u, 0x00000000u, 0x00000000u, 0xFF000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0xFFFFFFFFu, 0x0000FFFFu, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u},
-
-				/* ownDmaChannels */
-				/* 31     0     63    32 */
-				{0x0000FF00u, 0x00000000u},
-
-				/* ownQdmaChannels */
-				/* 31     0 */
-				{0x00000002u},
-
-				/* ownTccs */
-				/* 31     0     63    32 */
-				{0x0000FF00u, 0x00000000u},
-
-				/* resvdPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0xFFFFFFFFu, 0xFFFFFFFFu, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,},
-
-				/* resvdDmaChannels */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-
-				/* resvdQdmaChannels */
-				/* 31     0 */
-				{0x00000000u},
-
-				/* resvdTccs */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-			},
-
-	        /* Resources owned/reserved by region 2 */
-			{
-				/* ownPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0xFFFF0000u, 0xFFFFFFFFu, 0x000000FFu,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u},
-
-				/* ownDmaChannels */
-				/* 31     0     63    32 */
-				{0x00FF0000u, 0x0000000u},
-
-				/* ownQdmaChannels */
-				/* 31     0 */
-				{0x00000004u},
-
-				/* ownTccs */
-				/* 31     0     63    32 */
-				{0x00FF0000u, 0x00000000u},
-
-				/* resvdPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0xFFFFFFFFu, 0xFFFFFFFFu, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,},
-
-				/* resvdDmaChannels */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-
-				/* resvdQdmaChannels */
-				/* 31     0 */
-				{0x00000000u},
-
-				/* resvdTccs */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-			},
-
-	        /* Resources owned/reserved by region 3 */
-			{
-				/* ownPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0xFFFFFF00u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0xFFFFFFFFu, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u},
-
-				/* ownDmaChannels */
-				/* 31     0     63    32 */
-				{0xFF000000u, 0x00000000u},
-
-				/* ownQdmaChannels */
-				/* 31     0 */
-				{0x00000008u},
-
-				/* ownTccs */
-				/* 31     0     63    32 */
-				{0xFF000000u, 0x00000000u},
-
-				/* resvdPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0xFFFFFFFFu, 0xFFFFFFFFu, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,},
-
-				/* resvdDmaChannels */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-
-				/* resvdQdmaChannels */
-				/* 31     0 */
-				{0x00000000u},
-
-				/* resvdTccs */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-			},
-
-	        /* Resources owned/reserved by region 4 */
-			{
-				/* ownPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0xFFFFFFFFu, 0x00FFFFFFu, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u},
-
-				/* ownDmaChannels */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x000000FFu},
-
-				/* ownQdmaChannels */
-				/* 31     0 */
-				{0x00000010u},
-
-				/* ownTccs */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x000000FFu},
-
-				/* resvdPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0xFFFFFFFFu, 0xFFFFFFFFu, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,},
-
-				/* resvdDmaChannels */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-
-				/* resvdQdmaChannels */
-				/* 31     0 */
-				{0x00000000u},
-
-				/* resvdTccs */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-			},
-
-	        /* Resources owned/reserved by region 5 */
-			{
-				/* ownPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0xFF000000u, 0xFFFFFFFFu,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x0000FFFFu, 0x00000000u, 0x00000000u, 0x00000000u},
-
-				/* ownDmaChannels */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x0000FF00u},
-
-				/* ownQdmaChannels */
-				/* 31     0 */
-				{0x00000020u},
-
-				/* ownTccs */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x0000FF00u},
-
-				/* resvdPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0xFFFFFFFFu, 0xFFFFFFFFu, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,},
-
-				/* resvdDmaChannels */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-
-				/* resvdQdmaChannels */
-				/* 31     0 */
-				{0x00000000u},
-
-				/* resvdTccs */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-			},
-
-	        /* Resources owned/reserved by region 6 */
-			{
-				/* ownPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0xFFFF0000u, 0xFFFFFFFFu, 0x000000FFu, 0x00000000u},
-
-				/* ownDmaChannels */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00FF0000u},
-
-				/* ownQdmaChannels */
-				/* 31     0 */
-				{0x00000040u},
-
-				/* ownTccs */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00FF0000u},
-
-				/* resvdPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0xFFFFFFFFu, 0xFFFFFFFFu, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,},
-
-				/* resvdDmaChannels */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-
-				/* resvdQdmaChannels */
-				/* 31     0 */
-				{0x00000000u},
-
-				/* resvdTccs */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-			},
-
-	        /* Resources owned/reserved by region 7 */
-			{
-				/* ownPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0xFFFFFF00u, 0xFFFFFFFFu},
-
-				/* ownDmaChannels */
-				/* 31     0     63    32 */
-				{0x00000000u, 0xFF000000u},
-
-				/* ownQdmaChannels */
-				/* 31     0 */
-				{0x00000080u},
-
-				/* ownTccs */
-				/* 31     0     63    32 */
-				{0x00000000u, 0xFF000000u},
-
-				/* resvdPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0xFFFFFFFFu, 0xFFFFFFFFu, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,},
-
-				/* resvdDmaChannels */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-
-				/* resvdQdmaChannels */
-				/* 31     0 */
-				{0x00000000u},
-
-				/* resvdTccs */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-			},
-		},
-
-		/* EDMA3 INSTANCE# 3 */
-		{
-			/* Resources owned/reserved by region 0 */
-			{
-				/* ownPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0x00000000u, 0x00000000u, 0xFFFFFFFFu, 0x00FFFFFFu,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u},
-
-				/* ownDmaChannels */
-				/* 31     0     63    32 */
-				{0x000000FFu, 0x00000000u},
-
-				/* ownQdmaChannels */
-				/* 31     0 */
-				{0x00000001u},
-
-				/* ownTccs */
-				/* 31     0     63    32 */
-				{0x000000FFu, 0x00000000u},
-
-				/* resvdPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0xFFFFFFFFu, 0xFFFFFFFFu, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,},
-
-				/* resvdDmaChannels */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-
-				/* resvdQdmaChannels */
-				/* 31     0 */
-				{0x00000000u},
-
-				/* resvdTccs */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-			},
-
-	        /* Resources owned/reserved by region 1 */
-			{
-				/* ownPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0x00000000u, 0x00000000u, 0x00000000u, 0xFF000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0xFFFFFFFFu, 0x0000FFFFu, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u},
-
-				/* ownDmaChannels */
-				/* 31     0     63    32 */
-				{0x0000FF00u, 0x00000000u},
-
-				/* ownQdmaChannels */
-				/* 31     0 */
-				{0x00000002u},
-
-				/* ownTccs */
-				/* 31     0     63    32 */
-				{0x0000FF00u, 0x00000000u},
-
-				/* resvdPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0xFFFFFFFFu, 0xFFFFFFFFu, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,},
-
-				/* resvdDmaChannels */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-
-				/* resvdQdmaChannels */
-				/* 31     0 */
-				{0x00000000u},
-
-				/* resvdTccs */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-			},
-
-	        /* Resources owned/reserved by region 2 */
-			{
-				/* ownPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0xFFFF0000u, 0xFFFFFFFFu, 0x000000FFu,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u},
-
-				/* ownDmaChannels */
-				/* 31     0     63    32 */
-				{0x00FF0000u, 0x0000000u},
-
-				/* ownQdmaChannels */
-				/* 31     0 */
-				{0x00000004u},
-
-				/* ownTccs */
-				/* 31     0     63    32 */
-				{0x00FF0000u, 0x00000000u},
-
-				/* resvdPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0xFFFFFFFFu, 0xFFFFFFFFu, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,},
-
-				/* resvdDmaChannels */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-
-				/* resvdQdmaChannels */
-				/* 31     0 */
-				{0x00000000u},
-
-				/* resvdTccs */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-			},
-
-	        /* Resources owned/reserved by region 3 */
-			{
-				/* ownPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0xFFFFFF00u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0xFFFFFFFFu, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u},
-
-				/* ownDmaChannels */
-				/* 31     0     63    32 */
-				{0xFF000000u, 0x00000000u},
-
-				/* ownQdmaChannels */
-				/* 31     0 */
-				{0x00000008u},
-
-				/* ownTccs */
-				/* 31     0     63    32 */
-				{0xFF000000u, 0x00000000u},
-
-				/* resvdPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0xFFFFFFFFu, 0xFFFFFFFFu, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,},
-
-				/* resvdDmaChannels */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-
-				/* resvdQdmaChannels */
-				/* 31     0 */
-				{0x00000000u},
-
-				/* resvdTccs */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-			},
-
-	        /* Resources owned/reserved by region 4 */
-			{
-				/* ownPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0xFFFFFFFFu, 0x00FFFFFFu, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u},
-
-				/* ownDmaChannels */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x000000FFu},
-
-				/* ownQdmaChannels */
-				/* 31     0 */
-				{0x00000010u},
-
-				/* ownTccs */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x000000FFu},
-
-				/* resvdPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0xFFFFFFFFu, 0xFFFFFFFFu, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,},
-
-				/* resvdDmaChannels */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-
-				/* resvdQdmaChannels */
-				/* 31     0 */
-				{0x00000000u},
-
-				/* resvdTccs */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-			},
-
-	        /* Resources owned/reserved by region 5 */
-			{
-				/* ownPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0xFF000000u, 0xFFFFFFFFu,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x0000FFFFu, 0x00000000u, 0x00000000u, 0x00000000u},
-
-				/* ownDmaChannels */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x0000FF00u},
-
-				/* ownQdmaChannels */
-				/* 31     0 */
-				{0x00000020u},
-
-				/* ownTccs */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x0000FF00u},
-
-				/* resvdPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0xFFFFFFFFu, 0xFFFFFFFFu, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,},
-
-				/* resvdDmaChannels */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-
-				/* resvdQdmaChannels */
-				/* 31     0 */
-				{0x00000000u},
-
-				/* resvdTccs */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-			},
-
-	        /* Resources owned/reserved by region 6 */
-			{
-				/* ownPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0xFFFF0000u, 0xFFFFFFFFu, 0x000000FFu, 0x00000000u},
-
-				/* ownDmaChannels */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00FF0000u},
-
-				/* ownQdmaChannels */
-				/* 31     0 */
-				{0x00000040u},
-
-				/* ownTccs */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00FF0000u},
-
-				/* resvdPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0xFFFFFFFFu, 0xFFFFFFFFu, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,},
-
-				/* resvdDmaChannels */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-
-				/* resvdQdmaChannels */
-				/* 31     0 */
-				{0x00000000u},
-
-				/* resvdTccs */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-			},
-
-	        /* Resources owned/reserved by region 7 */
-			{
-				/* ownPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0xFFFFFF00u, 0xFFFFFFFFu},
-
-				/* ownDmaChannels */
-				/* 31     0     63    32 */
-				{0x00000000u, 0xFF000000u},
-
-				/* ownQdmaChannels */
-				/* 31     0 */
-				{0x00000080u},
-
-				/* ownTccs */
-				/* 31     0     63    32 */
-				{0x00000000u, 0xFF000000u},
-
-				/* resvdPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0xFFFFFFFFu, 0xFFFFFFFFu, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,},
-
-				/* resvdDmaChannels */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-
-				/* resvdQdmaChannels */
-				/* 31     0 */
-				{0x00000000u},
-
-				/* resvdTccs */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-			},
-		},
-
-		/* EDMA3 INSTANCE# 4 */
-		{
-			/* Resources owned/reserved by region 0 */
-			{
-				/* ownPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0x00000000u, 0x00000000u, 0xFFFFFFFFu, 0x00FFFFFFu,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u},
-
-				/* ownDmaChannels */
-				/* 31     0     63    32 */
-				{0x000000FFu, 0x00000000u},
-
-				/* ownQdmaChannels */
-				/* 31     0 */
-				{0x00000001u},
-
-				/* ownTccs */
-				/* 31     0     63    32 */
-				{0x000000FFu, 0x00000000u},
-
-				/* resvdPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0xFFFFFFFFu, 0xFFFFFFFFu, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,},
-
-				/* resvdDmaChannels */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-
-				/* resvdQdmaChannels */
-				/* 31     0 */
-				{0x00000000u},
-
-				/* resvdTccs */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-			},
-
-	        /* Resources owned/reserved by region 1 */
-			{
-				/* ownPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0x00000000u, 0x00000000u, 0x00000000u, 0xFF000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0xFFFFFFFFu, 0x0000FFFFu, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u},
-
-				/* ownDmaChannels */
-				/* 31     0     63    32 */
-				{0x0000FF00u, 0x00000000u},
-
-				/* ownQdmaChannels */
-				/* 31     0 */
-				{0x00000002u},
-
-				/* ownTccs */
-				/* 31     0     63    32 */
-				{0x0000FF00u, 0x00000000u},
-
-				/* resvdPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0xFFFFFFFFu, 0xFFFFFFFFu, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,},
-
-				/* resvdDmaChannels */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-
-				/* resvdQdmaChannels */
-				/* 31     0 */
-				{0x00000000u},
-
-				/* resvdTccs */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-			},
-
-	        /* Resources owned/reserved by region 2 */
-			{
-				/* ownPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0xFFFF0000u, 0xFFFFFFFFu, 0x000000FFu,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u},
-
-				/* ownDmaChannels */
-				/* 31     0     63    32 */
-				{0x00FF0000u, 0x0000000u},
-
-				/* ownQdmaChannels */
-				/* 31     0 */
-				{0x00000004u},
-
-				/* ownTccs */
-				/* 31     0     63    32 */
-				{0x00FF0000u, 0x00000000u},
-
-				/* resvdPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0xFFFFFFFFu, 0xFFFFFFFFu, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,},
-
-				/* resvdDmaChannels */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-
-				/* resvdQdmaChannels */
-				/* 31     0 */
-				{0x00000000u},
-
-				/* resvdTccs */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-			},
-
-	        /* Resources owned/reserved by region 3 */
-			{
-				/* ownPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0xFFFFFF00u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0xFFFFFFFFu, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u},
-
-				/* ownDmaChannels */
-				/* 31     0     63    32 */
-				{0xFF000000u, 0x00000000u},
-
-				/* ownQdmaChannels */
-				/* 31     0 */
-				{0x00000008u},
-
-				/* ownTccs */
-				/* 31     0     63    32 */
-				{0xFF000000u, 0x00000000u},
-
-				/* resvdPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0xFFFFFFFFu, 0xFFFFFFFFu, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,},
-
-				/* resvdDmaChannels */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-
-				/* resvdQdmaChannels */
-				/* 31     0 */
-				{0x00000000u},
-
-				/* resvdTccs */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-			},
-
-	        /* Resources owned/reserved by region 4 */
-			{
-				/* ownPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0xFFFFFFFFu, 0x00FFFFFFu, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u},
-
-				/* ownDmaChannels */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x000000FFu},
-
-				/* ownQdmaChannels */
-				/* 31     0 */
-				{0x00000010u},
-
-				/* ownTccs */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x000000FFu},
-
-				/* resvdPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0xFFFFFFFFu, 0xFFFFFFFFu, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,},
-
-				/* resvdDmaChannels */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-
-				/* resvdQdmaChannels */
-				/* 31     0 */
-				{0x00000000u},
-
-				/* resvdTccs */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-			},
-
-	        /* Resources owned/reserved by region 5 */
-			{
-				/* ownPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0xFF000000u, 0xFFFFFFFFu,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x0000FFFFu, 0x00000000u, 0x00000000u, 0x00000000u},
-
-				/* ownDmaChannels */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x0000FF00u},
-
-				/* ownQdmaChannels */
-				/* 31     0 */
-				{0x00000020u},
-
-				/* ownTccs */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x0000FF00u},
-
-				/* resvdPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0xFFFFFFFFu, 0xFFFFFFFFu, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,},
-
-				/* resvdDmaChannels */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-
-				/* resvdQdmaChannels */
-				/* 31     0 */
-				{0x00000000u},
-
-				/* resvdTccs */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-			},
-
-	        /* Resources owned/reserved by region 6 */
-			{
-				/* ownPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0xFFFF0000u, 0xFFFFFFFFu, 0x000000FFu, 0x00000000u},
-
-				/* ownDmaChannels */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00FF0000u},
-
-				/* ownQdmaChannels */
-				/* 31     0 */
-				{0x00000040u},
-
-				/* ownTccs */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00FF0000u},
-
-				/* resvdPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0xFFFFFFFFu, 0xFFFFFFFFu, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,},
-
-				/* resvdDmaChannels */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-
-				/* resvdQdmaChannels */
-				/* 31     0 */
-				{0x00000000u},
-
-				/* resvdTccs */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-			},
-
-	        /* Resources owned/reserved by region 7 */
-			{
-				/* ownPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0xFFFFFF00u, 0xFFFFFFFFu},
-
-				/* ownDmaChannels */
-				/* 31     0     63    32 */
-				{0x00000000u, 0xFF000000u},
-
-				/* ownQdmaChannels */
-				/* 31     0 */
-				{0x00000080u},
-
-				/* ownTccs */
-				/* 31     0     63    32 */
-				{0x00000000u, 0xFF000000u},
-
-				/* resvdPaRAMSets */
-				/* 31     0     63    32     95    64     127   96 */
-				{0xFFFFFFFFu, 0xFFFFFFFFu, 0x00000000u, 0x00000000u,
-				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
-				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,},
-
-				/* resvdDmaChannels */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-
-				/* resvdQdmaChannels */
-				/* 31     0 */
-				{0x00000000u},
-
-				/* resvdTccs */
-				/* 31     0     63    32 */
-				{0x00000000u, 0x00000000u},
-			},
-		},
-	};
-
-/*****************************************************************************
-* Used by EdmaMgr to determine which instance and which region in the config
-* file to be used by a specific DSP core.  We pass core index (DNUM) as the
-* region index during EdmaMgr_init.  For example, DSP core 0 will be
-* using instance 1 and region 0 in the config file, while DSP core 4 will be
-* using instance 3 and region 4 in the config file.
-*****************************************************************************/
-int32_t  edmaMgrRegion2Instance[EDMA3_MAX_REGIONS] = {1,1,2,2,3,3,4,4};
-int32_t *ti_sdo_fc_edmamgr_region2Instance = &edmaMgrRegion2Instance[0];
+int32_t   *ti_sdo_fc_edmamgr_region2Instance = &edmaMgrRegion2Instance[0];
 EDMA3_GblConfigParams    *ti_sdo_fc_edmamgr_edma3GblConfigParams = &edmaMgrGblConfigParams[0];
 EDMA3_InstanceInitConfig *ti_sdo_fc_edmamgr_edma3RegionConfig    = &edmaMgrInstanceInitConfig[0][0];
