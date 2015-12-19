@@ -280,7 +280,7 @@ EDMA3_InstanceInitConfig edmaMgrInstanceInitConfig[EDMA_MGR_NUM_EDMA_INSTANCES][
    regionSample0,  regionSample0,  regionSample0,  regionSample0
  },
  /* EDMA3 INSTANCE# 1 */
- { regionSample1,  regionSample2,  regionSample0,  regionSample0,
+ { regionSample3,  regionSample4,  regionSample0,  regionSample0,
    regionSample0,  regionSample0,  regionSample0,  regionSample0
  },
  /* EDMA3 INSTANCE# 2 */
