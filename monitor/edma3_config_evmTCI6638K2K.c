@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2013-2014, Texas Instruments Incorporated.
+ * (C) Copyright 2013, Texas Instruments Incorporated.
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions
@@ -121,27 +121,27 @@ typedef struct
     {DMA_CHANNEL_TO_EVENT_MAPPING_0, DMA_CHANNEL_TO_EVENT_MAPPING_1} \
 }
 
-/*-----------------------------------------------------------------------------
-* Note that the first N PaRAM sets (N=number of EDMA channels available 
-* on an EDMA instance) are reserved in EDMA3 LLD ).
-*----------------------------------------------------------------------------*/
+/* EDMA3_InstanceInitConfig sample1 with region owning PaRAM sets 64-105,   */
+/* and EDMA channel 0-7, but not reserving any EDMA resources               */
+/* Note that the first N PaRAM sets (N=number of EDMA channels available    */
+/* on an EDMA instance) are reserved in EDMA3 LLD ).                        */
 #define regionSample1                                         \
 {                                                             \
     /* Resources owned by Region */                           \
     /* ownPaRAMSets */                                        \
-    {0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,      \
-     0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu,      \
+    {0x00000000u, 0x00000000u, 0xFFFFFFFFu, 0xFFFFFFFFu,      \
+     0xFFFFFFFFu, 0x00000000u, 0x00000000u, 0x00000000u,      \
      0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,      \
      0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u},     \
                                                               \
     /* ownDmaChannels */                                      \
-    {0xFFFFFFFFu, 0x00000000u},                               \
+    {0x0000FFFFu, 0x00000000u},                               \
                                                               \
     /* ownQdmaChannels */                                     \
     {0x00000000u},                                            \
                                                               \
     /* ownTccs */                                             \
-    {0xFFFFFFFFu, 0x00000000u},                               \
+    {0x0000FFFFu, 0x00000000u},                               \
                                                               \
     /* Resources reserved by Region */                        \
     /* resvdPaRAMSets */                                      \
@@ -161,23 +161,25 @@ typedef struct
 }
 
 
+/* EDMA3_InstanceInitConfig sample2 with region owning PaRAM sets 106-147,  */
+/* and EDMA channel 8-15, but not reserving any EDMA resources               */
 #define regionSample2                                         \
 {                                                             \
     /* Resources owned by Region */                           \
     /* ownPaRAMSets */                                        \
     {0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,      \
+     0x00000000u, 0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu,      \
      0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,      \
-     0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu,      \
      0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u},     \
                                                               \
     /* ownDmaChannels */                                      \
-    {0x00000000u, 0xFFFFFFFFu},                               \
+    {0xFFFF0000u, 0x00000000u},                               \
                                                               \
     /* ownQdmaChannels */                                     \
     {0x00000000u},                                            \
                                                               \
     /* ownTccs */                                             \
-    {0x00000000u, 0xFFFFFFFFu},                               \
+    {0xFFFF0000u, 0x00000000u},                               \
                                                               \
     /* Resources reserved by Region */                        \
     /* resvdPaRAMSets */                                      \
@@ -195,6 +197,81 @@ typedef struct
     /* resvdTccs */                                           \
     {DMA_CHANNEL_TO_EVENT_MAPPING_0, DMA_CHANNEL_TO_EVENT_MAPPING_1} \
 }
+
+/* EDMA3_InstanceInitConfig sample3 with region owning PaRAM sets 148-189,  */
+/* and EDMA channel 16-23, but not reserving any EDMA resources             */
+#define regionSample3                                         \
+{                                                             \
+    /* Resources owned by Region */                           \
+    /* ownPaRAMSets */                                        \
+    {0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,      \
+     0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,      \
+     0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu, 0x00000000u,      \
+     0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u},     \
+                                                              \
+    /* ownDmaChannels */                                      \
+    {0x00000000u, 0x0000FFFFu},                               \
+                                                              \
+    /* ownQdmaChannels */                                     \
+    {0x00000000u},                                            \
+                                                              \
+    /* ownTccs */                                             \
+    {0x00000000u, 0x0000FFFFu},                               \
+                                                              \
+    /* Resources reserved by Region */                        \
+    /* resvdPaRAMSets */                                      \
+    {0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,      \
+     0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,      \
+     0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,      \
+     0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u},     \
+                                                              \
+    /* resvdDmaChannels */                                    \
+    {DMA_CHANNEL_TO_EVENT_MAPPING_0, DMA_CHANNEL_TO_EVENT_MAPPING_1}, \
+                                                              \
+    /* resvdQdmaChannels */                                   \
+    {0x00000000u},                                            \
+                                                              \
+    /* resvdTccs */                                           \
+    {DMA_CHANNEL_TO_EVENT_MAPPING_0, DMA_CHANNEL_TO_EVENT_MAPPING_1} \
+}
+
+/* EDMA3_InstanceInitConfig sample4 with region owning PaRAM sets 190-231,  */
+/* and EDMA channel 24-31, but not reserving any EDMA resources             */
+#define regionSample4                                         \
+{                                                             \
+    /* Resources owned by Region */                           \
+    /* ownPaRAMSets */                                        \
+    {0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,      \
+     0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,      \
+     0x00000000u, 0x00000000u, 0x00000000u, 0xFFFFFFFFu,      \
+     0xFFFFFFFFu, 0xFFFFFFFFu, 0x00000000u, 0x00000000u},     \
+                                                              \
+    /* ownDmaChannels */                                      \
+    {0x00000000u, 0xFFFF0000u},                               \
+                                                              \
+    /* ownQdmaChannels */                                     \
+    {0x00000000u},                                            \
+                                                              \
+    /* ownTccs */                                             \
+    {0x00000000u, 0xFFFF0000u},                               \
+                                                              \
+    /* Resources reserved by Region */                        \
+    /* resvdPaRAMSets */                                      \
+    {0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,      \
+     0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,      \
+     0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,      \
+     0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u},     \
+                                                              \
+    /* resvdDmaChannels */                                    \
+    {DMA_CHANNEL_TO_EVENT_MAPPING_0, DMA_CHANNEL_TO_EVENT_MAPPING_1}, \
+                                                              \
+    /* resvdQdmaChannels */                                   \
+    {0x00000000u},                                            \
+                                                              \
+    /* resvdTccs */                                           \
+    {DMA_CHANNEL_TO_EVENT_MAPPING_0, DMA_CHANNEL_TO_EVENT_MAPPING_1} \
+}
+
 
 EDMA3_InstanceInitConfig edmaMgrInstanceInitConfig[EDMA_MGR_NUM_EDMA_INSTANCES][EDMA3_MAX_REGIONS] =
 {
@@ -203,7 +280,7 @@ EDMA3_InstanceInitConfig edmaMgrInstanceInitConfig[EDMA_MGR_NUM_EDMA_INSTANCES][
    regionSample0,  regionSample0,  regionSample0,  regionSample0
  },
  /* EDMA3 INSTANCE# 1 */
- { regionSample1,  regionSample2,  regionSample0,  regionSample0,
+ { regionSample3,  regionSample4,  regionSample0,  regionSample0,
    regionSample0,  regionSample0,  regionSample0,  regionSample0
  },
  /* EDMA3 INSTANCE# 2 */

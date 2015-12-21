@@ -21,7 +21,7 @@ memory system and would contain standard items like:
 The CMEM contiguous memory is controlled by a Linux kernel module that
 guarantees contiguous virtual addresses within a range are mapped to
 contiguous physical addresses within the range. This is required for
-buffer communication between the A15 and C66 cores, because the C66 cores
+buffer communication between the A15 and C66x cores, because the C66x cores
 do not access memory through a shared MMU with the A15 CPUs and thus require
 that buffers be allocated in contiguous physical memory. The CMEM memory
 areas will be managed by OpenCL for allocation to OpenCL buffers and OpenCL C
@@ -76,21 +76,20 @@ and program space.
     The m800 K2H system ships with 8GB of DDR3. The K2H EVM ships with
     2GB of DDR3 and can be upgraded to 8GB by replacing the DIMM
 
-.. only:: am57
+AM57
+=====================================================
+The 2GB of attached DDR3 memory is accessible to the AM57 device through a
+32-bit bus. The 2GB of DDR3 is populated in the 32-bit address space at
+locations 8000:0000 through FFFF:FFFF. The default partition is ~1.84GB
+for Linux system memory and 160MB of CMEM. ::
 
-    AM57
-    =====================================================
-    The 2GB of attached DDR3 memory is accessible to the AM57 device through a
-    32-bit bus. The 2GB of DDR3 is populated in the 32-bit address space at
-    locations 8000:0000 through FFFF:FFFF. The default partition is 1.875GB
-    for Linux system memory and 128MB of CMEM. ::
+    80000000-9fffffff : System RAM
+      80008000-808330b3 : Kernel code
+      80888000-8091e34b : Kernel data
+    a0000000-a9ffffff : CMEM
+    aa000000-ffdfffff : System RAM
+    fff00000-ffffefff : System RAM
 
-        80000000-9fffffff : System RAM
-          80008000-808330b3 : Kernel code
-          80888000-8091e34b : Kernel data
-        a0000000-a7ffffff : CMEM
-        a8000000-ffdfffff : System RAM
-        fff00000-ffffefff : System RAM
+The holes in System RAM ranges (e.g. FFE0:0000 to FFEF:FFFF, 1MB and FFFF:F000
+to FFFF:FFFF, 4KB) are reserved memory ranges.
 
-    The holes in System RAM ranges (e.g. FFE0:0000 to FFEF:FFFF, 1MB and FFFF:F000
-    to FFFF:FFFF, 4KB) are reserved memory ranges.

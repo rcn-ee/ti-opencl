@@ -57,7 +57,7 @@ class TIOpenclWorkGroupAggregation : public FunctionPass
     llvm::MDNode          *di_function;
     unsigned int           di_scope_line_num;
     unsigned int           di_end_scope_line;
-    std::vector<Value*>    loop_mdnodes;
+    std::vector<Metadata*>    loop_mdnodes;
     std::list<Instruction*> loop_mem_instrs;
 
   private:
@@ -77,6 +77,7 @@ class TIOpenclWorkGroupAggregation : public FunctionPass
     void                collect_mem_for_metadata(Function &F);
     void                add_loop_mem_metadata(Function &F);
     bool                implicit_long_conv_use_bif(Function &F);
+    bool                add_kernel_local_size_attr(Function &F);
 };
 
 Pass *createTIOpenclWorkGroupAggregationPass(bool is_pocl_mode = false);

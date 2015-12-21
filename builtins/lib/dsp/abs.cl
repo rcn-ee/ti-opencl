@@ -27,7 +27,7 @@
  *****************************************************************************/
 #include "dsp.h"
 
-UNARY_VEC_DEF(char,  uchar,  abs, abs)
-UNARY_VEC_DEF(short, ushort, abs, abs)
-UNARY_VEC_DEF(int,   uint,   abs, abs)
-UNARY_VEC_DEF(long,  ulong,  abs, abs)
+_UNARY_VEC_DEF(char,  uchar,  abs, abs)
+_UNARY_VEC_DEF(short, ushort, abs, abs)
+_UNARY_VEC_DEF(int,   uint,   abs, abs)
+_UNARY_VEC_DEF(long,  ulong,  abs, abs)

@@ -32,7 +32,7 @@
 
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Module.h>
-#include <llvm/DebugInfo.h>
+#include <llvm/IR/DebugInfo.h>
 
 #ifndef _UTIL_H
 #define _UTIL_H
@@ -47,6 +47,7 @@ const char* ocl_error_str(int ocl_error_num);
 // OpenCL/LLVM utils
 bool          isKernelFunction(llvm::Function &F);
 bool          getReqdWGSize(llvm::Function &F, int wgsizes[3]);
+bool          isReqdWGSize111(llvm::Function &F);
 bool          containsBarrierCall(llvm::Module &M);
 bool          canLocalsFitInReg(llvm::BasicBlock *bb);
 bool          canLocalsFitInReg(llvm::Function &F);

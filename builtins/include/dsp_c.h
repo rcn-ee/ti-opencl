@@ -44,45 +44,50 @@ extern "C"
 /*-----------------------------------------------------------------------------
 * The extended TI built-in function set
 *----------------------------------------------------------------------------*/
-void     __touch           (const __global char *p, uint32_t size);
+void     __touch           (const __global char *__p, uint32_t __size);
 uint32_t __core_num        (void);
 uint32_t __clock           (void);
 uint64_t __clock64         (void);
-void     __cycle_delay     (uint64_t cyclesToDelay);
+void     __cycle_delay     (uint64_t __cyclesToDelay);
 void     __mfence          (void);
 
 void*    __scratch_l1d_start(void);
 uint32_t __scratch_l1d_size (void);
 
-void     __cache_l1d_none  (void);
-void     __cache_l1d_all   (void);
-void     __cache_l1d_4k    (void);
-void     __cache_l1d_8k    (void);
-void     __cache_l1d_16k   (void);
+void*    __scratch_l2_start (void);
+uint32_t __scratch_l2_size  (void);
+
+int      __cache_l1d_none  (void);
+int      __cache_l1d_all   (void);
+int      __cache_l1d_4k    (void);
+int      __cache_l1d_8k    (void);
+int      __cache_l1d_16k   (void);
 void     __cache_l1d_flush (void);
 
-void     __cache_l2_none   (void);
-void     __cache_l2_128k   (void);
-void     __cache_l2_256k   (void);
-void     __cache_l2_512k   (void);
+int      __cache_l2_none   (void);
+int      __cache_l2_32k    (void);
+int      __cache_l2_64k    (void);
+int      __cache_l2_128k   (void);
+int      __cache_l2_256k   (void);
+int      __cache_l2_512k   (void);
 void     __cache_l2_flush  (void);
 
-void     __heap_init_ddr  (__global void *ptr, size_t size);
-void*    __malloc_ddr     (size_t size);
-void*    __calloc_ddr     (size_t num, size_t size);
-void*    __realloc_ddr    (void *ptr,  size_t size);
-void     __free_ddr       (void *ptr);
-void*    __memalign_ddr   (size_t alignment, size_t size);
+void     __heap_init_ddr  (__global void *__ptr, size_t __size);
+void*    __malloc_ddr     (size_t __size);
+void*    __calloc_ddr     (size_t __num, size_t __size);
+void*    __realloc_ddr    (void *__ptr,  size_t __size);
+void     __free_ddr       (void *__ptr);
+void*    __memalign_ddr   (size_t __alignment, size_t __size);
 
-void     __heap_init_msmc (__global void *ptr, size_t size);
-void*    __malloc_msmc    (size_t size);
-void*    __calloc_msmc    (size_t num, size_t size);
-void*    __realloc_msmc   (void *ptr, size_t size);
-void     __free_msmc      (void *ptr);
-void*    __memalign_msmc  (size_t alignment, size_t size);
+void     __heap_init_msmc (__global void *__ptr, size_t __size);
+void*    __malloc_msmc    (size_t __size);
+void*    __calloc_msmc    (size_t __num, size_t __size);
+void*    __realloc_msmc   (void *__ptr, size_t __size);
+void     __free_msmc      (void *__ptr);
+void*    __memalign_msmc  (size_t __alignment, size_t __size);
 
-void     __heap_init_l2   (__local void *ptr, size_t size);
-void*    __malloc_l2      (size_t size);
+void     __heap_init_l2   (__local void *__ptr, size_t __size);
+void*    __malloc_l2      (size_t __size);
 
 #ifndef __OPENCL_VERSION__
 #undef __global

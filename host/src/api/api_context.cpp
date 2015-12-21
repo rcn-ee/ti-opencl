@@ -37,6 +37,8 @@
 #include <core/platform.h>
 #include <stdlib.h>
 
+using namespace Coal;
+
 // Context APIs
 
 cl_context
@@ -62,7 +64,7 @@ clCreateContext(const cl_context_properties  *properties,
     }
 
     *errcode_ret = CL_SUCCESS;
-    Coal::Context *ctx = new Coal::Context(properties, num_devices, devices,
+    Context *ctx = new Context(properties, num_devices, devices,
                                            pfn_notify, user_data, errcode_ret);
 
     if (*errcode_ret != CL_SUCCESS)
@@ -72,7 +74,7 @@ clCreateContext(const cl_context_properties  *properties,
         return 0;
     }
 
-    return (_cl_context *)ctx;
+    return desc(ctx);
 }
 
 cl_context
@@ -109,8 +111,10 @@ clCreateContextFromType(const cl_context_properties   *properties,
 }
 
 cl_int
-clRetainContext(cl_context context)
+clRetainContext(cl_context d_context)
 {
+    auto context = pobj(d_context);
+
     if (!context->isA(Coal::Object::T_Context))
         return CL_INVALID_CONTEXT;
 
@@ -120,8 +124,10 @@ clRetainContext(cl_context context)
 }
 
 cl_int
-clReleaseContext(cl_context context)
+clReleaseContext(cl_context d_context)
 {
+    auto context = pobj(d_context);
+
     if (!context->isA(Coal::Object::T_Context))
         return CL_INVALID_CONTEXT;
 
@@ -132,12 +138,14 @@ clReleaseContext(cl_context context)
 }
 
 cl_int
-clGetContextInfo(cl_context         context,
+clGetContextInfo(cl_context         d_context,
                  cl_context_info    param_name,
                  size_t             param_value_size,
                  void *             param_value,
                  size_t *           param_value_size_ret)
 {
+    auto context = pobj(d_context);
+
     if (!context->isA(Coal::Object::T_Context))
         return CL_INVALID_CONTEXT;
 

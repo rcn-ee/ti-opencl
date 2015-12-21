@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2013-2014, Texas Instruments Incorporated - http://www.ti.com/
+ * Copyright (c) 2013-2015, Texas Instruments Incorporated - http://www.ti.com/
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -25,42 +25,40 @@
  *   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  *   THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
-#include "u_lockable.h"
-#ifndef _CORE_SCHEDULER_H
-#define _CORE_SCHEDULER_H
+#ifndef _TIOCL_PRIVATIZATION_ALIAS_ANALYSIS_H
+#define _TIOCL_PRIVATIZATION_ALIAS_ANALYSIS_H
 
-class CoreScheduler : public Lockable
-{
+#include <llvm/Analysis/Passes.h>
+#include <llvm/Analysis/AliasAnalysis.h>
+#include <llvm/Pass.h>
+
+using namespace llvm;
+
+namespace tiocl {
+  class TIOpenCLPrivatizationAliasAnalysis : public ImmutablePass,
+                                             public AliasAnalysis {
   public:
-    /*-------------------------------------------------------------------------
-    * Currently limited to a max of 8 cores
-    *------------------------------------------------------------------------*/
-    CoreScheduler(unsigned int num_cores = 8) : p_num_cores(num_cores), p_avail(0xff) {}
+    static char ID;
 
-    void free(int core) 
-    { 
-        Lock lock(this);
-        p_avail |= (1 << core);
-        CV.notify_one();
+    TIOpenCLPrivatizationAliasAnalysis() : ImmutablePass(ID) {}
+
+    void initializePass() override { InitializeAliasAnalysis(this); }
+
+    void getAnalysisUsage(AnalysisUsage &AU) const override {
+      AU.setPreservesAll();
+      AliasAnalysis::getAnalysisUsage(AU);
     }
 
-    int allocate()
-    {
-        Lock lock(this);
-
-        /*---------------------------------------------------------------------
-        * Wait in a loop in case the condvar is falsely signalled
-        *--------------------------------------------------------------------*/
-        while (!p_avail) CV.wait(lock.raw());
-
-        for (int i=0, mask = 1; i < p_num_cores; ++i, mask <<= 1)
-            if (p_avail & mask) { p_avail &= ~mask; return i; }
+    void *getAdjustedAnalysisPointer(const void *ID) override {
+      if (ID == &AliasAnalysis::ID)
+        return (AliasAnalysis*)this;
+      return this;
     }
 
   private:
-     unsigned int  p_num_cores;
-     unsigned char p_avail;
-     CondVar       CV;
-};
+    AliasResult alias(const Location &LocA, const Location &LocB) override;
+    const Value* findBasedOnMemory(const Value* val);
+  };
+}
 
-#endif //_CORE_SCHEDULER_H
+#endif

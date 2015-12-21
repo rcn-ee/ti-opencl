@@ -27,15 +27,8 @@
 #include <iostream>
 
 #include "config.h"
-#ifdef LLVM_3_1
-#include "llvm/Support/IRBuilder.h"
-#elif defined LLVM_3_2
-#include "llvm/IRBuilder.h"
-#include "llvm/InlineAsm.h"
-#else
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/InlineAsm.h"
-#endif
 
 //#define DEBUG_PR_CREATION
 
@@ -279,7 +272,7 @@ Kernel::addLocalSizeInitCode(size_t LocalSizeX, size_t LocalSizeY, size_t LocalS
   llvm::Module* M = getParent();
 
   int size_t_width = 32;
-  if (M->getPointerSize() == llvm::Module::Pointer64)
+  if (M->getDataLayout()->getPointerSize(0) == 8)
     size_t_width = 64;
 
   FunctionType *ft = FunctionType::get

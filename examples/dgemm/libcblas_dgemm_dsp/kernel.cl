@@ -8,6 +8,7 @@ kernel ONE_WI_PER_WG void K_cblas_dgemm_ocl(int Order, int TransA, int TransB,
                           global double *A, int lda, 
                           global double *B, int ldb,
                           double beta,global double *C, int ldc,
+                          int NUMAPANELS, int NUMBPANELS,
                           global double *MSMC_buf, local double *L2_buf, 
                           int msmc_size) 
 {
@@ -18,6 +19,7 @@ kernel ONE_WI_PER_WG void K_cblas_dgemm_ocl(int Order, int TransA, int TransB,
     int offset    = mLocal * id;
 
     double* L1_buf = (double*) 0x00F00000;
+    if (msmc_size == 0)  MSMC_buf = (global double*) 0;
 
     if (id < mLeft) 
     {
@@ -32,6 +34,7 @@ kernel ONE_WI_PER_WG void K_cblas_dgemm_ocl(int Order, int TransA, int TransB,
               A + (TransA == CblasNoTrans ? offset : offset * lda), lda,
               B, ldb,
               C + offset, ldc, 
+              NUMAPANELS, NUMBPANELS,
 	      L1_buf, L2_buf, MSMC_buf, id);
     __cache_l1d_all();
 }
@@ -41,10 +44,12 @@ kernel ONE_WI_PER_WG void K_cblas_dgemm_omp(int Order, int TransA, int TransB,
                           global double *A, int lda, 
                           global double *B, int ldb,
                           double beta,global double *C, int ldc,
+                          int NUMAPANELS, int NUMBPANELS,
                           global double *MSMC_buf, local double *L2_buf, 
                           int msmc_size)
 {
     
     cblas_dgemm_omp(Order, TransA, TransB, M, N, K, alpha, A, lda, B, ldb,
-                    beta, C, ldc, MSMC_buf, L2_buf, msmc_size);
+                    beta, C, ldc, NUMAPANELS, NUMBPANELS,
+                    MSMC_buf, L2_buf, msmc_size);
 }

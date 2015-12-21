@@ -7,4 +7,5 @@ Debug
 
    debug_printf
    debug_gdb
+   debug_ccs
    debug_dsptop

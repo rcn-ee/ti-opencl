@@ -31,6 +31,7 @@
 * initialization of L2 data
 *----------------------------------------------------------------------------*/
 --rom_model
+--heap_size=0x00800000
 
 --retain="../builtins/dsp.lib<*>(*)"
 --retain="../libm/libm.lib<*>(*)"
@@ -121,6 +122,10 @@ nocache_phys_start   = start(DDR3_NC);
 nocache_virt_start   = start(DDR3_NC);
 nocache_size         = size(DDR3_NC);
 
+nocache2_phys_start   = start(DDR3_NC2);
+nocache2_virt_start   = start(DDR3_NC2);
+nocache2_size         = size(DDR3_NC2);
+
 --export ocl_l1d_mem_start
 --export ocl_l1d_mem_size
 --export ocl_local_mem_start
@@ -153,7 +158,7 @@ SECTIONS
                 "edmamgr.ae66"      (.far)
                 "fcsettings.ae66"   (.far)
                 "rman.ae66"         (.far)
-    } > DDR3_FCSECTION
+    } > DDR3_FC
     .fclocalfarsyms :
     {
                 "nullres.ae66"      (.fardata)

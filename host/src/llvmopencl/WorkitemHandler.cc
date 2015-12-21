@@ -27,19 +27,11 @@
 #include <sstream>
 #include <iostream>
 
-#if (defined LLVM_3_1 or defined LLVM_3_2)
-#include "llvm/Metadata.h"
-#include "llvm/Constants.h"
-#include "llvm/Module.h"
-#include "llvm/Instructions.h"
-#include "llvm/ValueSymbolTable.h"
-#else
 #include "llvm/IR/Metadata.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/ValueSymbolTable.h"
-#endif
 #include "llvm/Support/CommandLine.h"
 #include "WorkitemHandler.h"
 #include "Kernel.h"
@@ -79,18 +71,27 @@ WorkitemHandler::Initialize(Kernel *K)
   if (size_info) {
     for (unsigned i = 0, e = size_info->getNumOperands(); i != e; ++i) {
       llvm::MDNode *KernelSizeInfo = size_info->getOperand(i);
-      if (KernelSizeInfo->getOperand(0) == K) {
-        LocalSizeX = (llvm::cast<ConstantInt>(KernelSizeInfo->getOperand(1)))->getLimitedValue();
-        LocalSizeY = (llvm::cast<ConstantInt>(KernelSizeInfo->getOperand(2)))->getLimitedValue();
-        LocalSizeZ = (llvm::cast<ConstantInt>(KernelSizeInfo->getOperand(3)))->getLimitedValue();
+      if (dyn_cast<ValueAsMetadata>(
+               KernelSizeInfo->getOperand(0).get())->getValue() == K) 
+      {
+        LocalSizeX = (llvm::cast<ConstantInt>(
+             llvm::dyn_cast<ConstantAsMetadata>(
+               KernelSizeInfo->getOperand(1))->getValue()))->getLimitedValue();
+        LocalSizeY = (llvm::cast<ConstantInt>(
+             llvm::dyn_cast<ConstantAsMetadata>(
+               KernelSizeInfo->getOperand(2))->getValue()))->getLimitedValue();
+        LocalSizeZ = (llvm::cast<ConstantInt>(
+             llvm::dyn_cast<ConstantAsMetadata>(
+               KernelSizeInfo->getOperand(3))->getValue()))->getLimitedValue();
       }
     }
   }
 
   llvm::Type *localIdType; 
-  if (M->getPointerSize() == llvm::Module::Pointer64)
+  size_t_width = 0;
+  if (M->getDataLayout()->getPointerSize(0) == 8)
     size_t_width = 64;
-  else if (M->getPointerSize() == llvm::Module::Pointer32)
+  else if (M->getDataLayout()->getPointerSize(0) == 4)
     size_t_width = 32;
   else
     assert (false && "Only 32 and 64 bit size_t widths supported.");
@@ -121,7 +122,8 @@ WorkitemHandler::Initialize(Kernel *K)
 
 bool
 WorkitemHandler::dominatesUse
-(llvm::DominatorTree *DT, Instruction &I, unsigned i) {
+(llvm::DominatorTreeWrapperPass *DTP, Instruction &I, unsigned i) {
+   DominatorTree *DT = &DTP->getDomTree();
   Instruction *Op = cast<Instruction>(I.getOperand(i));
   BasicBlock *OpBlock = Op->getParent();
   PHINode *PN = dyn_cast<PHINode>(&I);
@@ -179,7 +181,7 @@ WorkitemHandler::dominatesUse
    the costly dominance analysis.
 */
 bool
-WorkitemHandler::fixUndominatedVariableUses(llvm::DominatorTree *DT, 
+WorkitemHandler::fixUndominatedVariableUses(llvm::DominatorTreeWrapperPass *DT,
                                             llvm::Function &F) 
 {
   bool changed = false;

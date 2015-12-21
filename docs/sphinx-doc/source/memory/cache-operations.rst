@@ -12,7 +12,7 @@ application performance.  The TI OpenCL implementation provides additional
 OpenCL C built-in functions that allow DSP data cache reconfiguration and explicit
 coherency operation. 
 
-For cacheable memory regions residing in DDR and MSMC memory, the data path
+For cache-able memory regions residing in DDR and MSMC memory, the data path
 to/from the DSP cores will go through an L1D cache and an L2 cache. The default
 sizes of these caches are documented in :doc:`device-memory`.
 
@@ -105,14 +105,18 @@ using local scratch buffers.
     Sets the L2 memory to 256K bytes cache and the remainder of SRAM as scratchpad.
     Only available if total L2 space is >= 512KB.
 
+.. Note:: The function __cache_l2_256k is not available on the AM57 platform.
+
 .. c:function:: void     __cache_l2_512k   (void)
 
     Sets the L2 memory to 512K bytes cache and the remainder of SRAM as scratchpad.
     Only available is total L2 space is >= 1MB.
+    
+.. Note:: The function __cache_l2_512k is not available on the AM57 platform.
 
 .. c:function:: void     __cache_l2_flush  (void)
 
-    User controlled, explicit L2 cache flush operation.  This will writeback
+    User controlled, explicit L2 cache flush operation.  This will write-back
     any dirty lines in the L1D cache and L2 cache and will mark all lines in
     both cache levels as invalid.
 

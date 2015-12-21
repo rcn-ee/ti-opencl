@@ -57,14 +57,15 @@
 #include <llvm/Transforms/IPO.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
-#include <llvm/Linker.h>
+#include <llvm/Linker/Linker.h>
 #include <llvm/PassManager.h>
 #include <llvm/IR/Metadata.h>
 #include <llvm/IR/Function.h>
 #include <llvm/Analysis/Passes.h>
 #include <llvm/Transforms/IPO.h>
 #include <llvm/IR/Instructions.h>
-#include <llvm/Support/InstIterator.h>
+#include <llvm/IR/InstIterator.h>
+#include <llvm/IR/DiagnosticPrinter.h>
 #include <llvm/Transforms/Scalar.h>
 #include <SimplifyShuffleBIFCall.h>
 
@@ -79,6 +80,7 @@
 //source_cache * source_cache::pInstance = 0;
 
 using namespace Coal;
+using namespace llvm;
 
 Program::Program(Context *ctx)
 : Object(Object::T_Program, ctx), p_type(Invalid), p_state(Empty)
@@ -184,7 +186,7 @@ std::vector<llvm::Function *> Program::kernelFunctions(DeviceDependent &dep)
         /*---------------------------------------------------------------------
         * Each node has only one operand : a llvm::Function
         *--------------------------------------------------------------------*/
-        llvm::Value *value = node->getOperand(0);
+        llvm::Value *value = dyn_cast<llvm::ValueAsMetadata>(node->getOperand(0))->getValue();
 
         /*---------------------------------------------------------------------
         * Bug somewhere, don't crash
@@ -347,15 +349,18 @@ cl_int Program::loadBinaries(const unsigned char **data, const size_t *lengths,
         const llvm::StringRef s_data(bitcode);
         const llvm::StringRef s_name("<binary>");
 
-        llvm::MemoryBuffer *buffer = llvm::MemoryBuffer::getMemBuffer(
+        std::unique_ptr<llvm::MemoryBuffer> buffer = llvm::MemoryBuffer::getMemBuffer(
                                                         s_data, s_name, false);
 
         if (!buffer)
             return CL_OUT_OF_HOST_MEMORY;
 
         // Make a module of it
-        dep.linked_module = ParseBitcodeFile(buffer, *p_llvmcontext);
-
+        ErrorOr<Module *> ModuleOrErr = parseBitcodeFile(buffer->getMemBufferRef(), 
+                                             *p_llvmcontext);
+        if (ModuleOrErr) {
+           dep.linked_module = ModuleOrErr.get();
+        }
         if (!dep.linked_module)
         {
             if (binary_status) binary_status[i] = CL_INVALID_VALUE;
@@ -526,12 +531,16 @@ cl_int Program::build(const char *options,
                                                 NULL);
                 const llvm::StringRef s_data(bitcode);
                 const llvm::StringRef s_name("<binary>");
-                llvm::MemoryBuffer *buffer = llvm::MemoryBuffer::getMemBuffer(
+                std::unique_ptr<llvm::MemoryBuffer> buffer = llvm::MemoryBuffer::getMemBuffer(
                                                         s_data, s_name, false);
                 if (!buffer) return CL_OUT_OF_HOST_MEMORY;
                 
                 // Make a module of it
-                dep.linked_module = ParseBitcodeFile(buffer, *p_llvmcontext);
+                ErrorOr<Module *> ModuleOrErr = parseBitcodeFile(buffer->getMemBufferRef(), 
+                                                     *p_llvmcontext);
+                if (ModuleOrErr) {
+                   dep.linked_module = ModuleOrErr.get();
+                }
                 if (!dep.linked_module)
                     return CL_BUILD_PROGRAM_FAILURE;
             }
@@ -541,12 +550,12 @@ cl_int Program::build(const char *options,
                 const llvm::StringRef s_data(p_source);
                 const llvm::StringRef s_name("<source>");
 
-                llvm::MemoryBuffer *buffer = llvm::MemoryBuffer::getMemBuffer(
+                std::unique_ptr<llvm::MemoryBuffer> buffer = llvm::MemoryBuffer::getMemBuffer(
                                                                s_data, s_name);
 
                 // Compile
                 if (! dep.compiler->compile(options ? options : std::string(),
-                                            buffer, p_llvmcontext) )
+                                            buffer.get(), p_llvmcontext) )
                 {
                     if (pfn_notify)
                         pfn_notify((cl_program)this, user_data);
@@ -571,19 +580,37 @@ cl_int Program::build(const char *options,
             const llvm::StringRef s_name("stdlib.bc");
             std::string errMsg;
 
-            llvm::MemoryBuffer *buffer = llvm::MemoryBuffer::getMemBuffer(
+            std::unique_ptr<llvm::MemoryBuffer> buffer = llvm::MemoryBuffer::getMemBuffer(
                                                         s_data, s_name, false);
 
             if (!buffer)
                 return CL_OUT_OF_HOST_MEMORY;
 
-            llvm::Module *stdlib = ParseBitcodeFile(buffer, *p_llvmcontext,
-                                                    &errMsg);
+            ErrorOr<Module *> ModuleOrErr = parseBitcodeFile(buffer->getMemBufferRef(), 
+                                             *p_llvmcontext);
+            Module *stdlib = NULL;
+            if (ModuleOrErr) {
+               stdlib = ModuleOrErr.get();
+            }
+            else {
+               std::error_code EC = ModuleOrErr.getError();
+               errMsg = EC.message();
+            }
 
             // Link
-            if (!stdlib ||
-                llvm::Linker::LinkModules(dep.linked_module, stdlib,
-                                          llvm::Linker::DestroySource, &errMsg))
+            LLVMBool Result = false;
+            if (stdlib)
+            {
+               std::string Message;
+               raw_string_ostream Stream(Message);
+               DiagnosticPrinterRawOStream DP(Stream);
+               LLVMBool Result = llvm::Linker::LinkModules(dep.linked_module,
+                                  stdlib,
+                                  [&](const DiagnosticInfo &DI) {DI.print(DP); });
+               if (Result)
+                  errMsg += strdup(Message.c_str());
+            }
+            if (!stdlib || Result)
             {
                 dep.compiler->appendLog("link error: ");
                 dep.compiler->appendLog(errMsg);
@@ -643,7 +670,7 @@ cl_int Program::build(const char *options,
         // Now that the LLVM module is built, build the device-specific
         // representation
         if (!dep.program->build(dep.linked_module, &dep.unlinked_binary,
-                                dep.native_binary_filename))
+                 dep.native_binary_filename))
         {
             if (pfn_notify)
                 pfn_notify((cl_program)this, user_data);
@@ -679,7 +706,7 @@ cl_int Program::info(cl_program_info param_name,
     void *value = 0;
     size_t value_length = 0;
     llvm::SmallVector<size_t, 4> binary_sizes;
-    llvm::SmallVector<DeviceInterface *, 4> devices;
+    llvm::SmallVector<cl_device_id, 4> devices;
 
     union {
         cl_uint cl_uint_var;
@@ -693,37 +720,37 @@ cl_int Program::info(cl_program_info param_name,
             break;
 
         case CL_PROGRAM_NUM_DEVICES:
-	    // Use devices associated with any built kernels, otherwise use 
+            // Use devices associated with any built kernels, otherwise use
             // the devices associated with the program context
-	    if (p_device_dependent.size() != 0)
-	       { SIMPLE_ASSIGN(cl_uint, p_device_dependent.size()); }
-	    else
-	       return ((Context *)parent())->info(CL_CONTEXT_NUM_DEVICES, 
-			   param_value_size, param_value, param_value_size_ret);
-	    break;
+            if (p_device_dependent.size() != 0)
+               { SIMPLE_ASSIGN(cl_uint, p_device_dependent.size()); }
+            else
+               return ((Context *)parent())->info(CL_CONTEXT_NUM_DEVICES,
+                           param_value_size, param_value, param_value_size_ret);
+            break;
 
         case CL_PROGRAM_DEVICES:
-	    // Use devices associated with any built kernels, otherwise use 
+            // Use devices associated with any built kernels, otherwise use
             // the devices associated with the program context
-	    if (p_device_dependent.size() != 0)
-	    {
-	       for (size_t i=0; i<p_device_dependent.size(); ++i)
-	       {
-		  const DeviceDependent &dep = p_device_dependent[i];
-		 
-		  devices.push_back(dep.device);
-	       }
+            if (p_device_dependent.size() != 0)
+            {
+               for (size_t i=0; i<p_device_dependent.size(); ++i)
+               {
+                  const DeviceDependent &dep = p_device_dependent[i];
 
-	       value = devices.data();
-	       value_length = devices.size() * sizeof(DeviceInterface *);
-	   }
-	   else
-	      return ((Context *)parent())->info(CL_CONTEXT_DEVICES,  
-			   param_value_size, param_value, param_value_size_ret);
-	   break;
+                  devices.push_back(desc(dep.device));
+               }
+
+               value = devices.data();
+               value_length = devices.size() * sizeof(cl_device_id);
+           }
+           else
+              return ((Context *)parent())->info(CL_CONTEXT_DEVICES,
+                           param_value_size, param_value, param_value_size_ret);
+           break;
 
         case CL_PROGRAM_CONTEXT:
-            SIMPLE_ASSIGN(cl_context, parent());
+	        SIMPLE_ASSIGN(cl_context, desc((Context *)parent()));
             break;
 
         case CL_PROGRAM_SOURCE:

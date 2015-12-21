@@ -28,7 +28,7 @@
 #include "SimplifyShuffleBIFCall.h"
 #include <list>
 #include <llvm/IR/IntrinsicInst.h>
-#include <llvm/Support/InstIterator.h>
+#include <llvm/IR/InstIterator.h>
 #include <llvm/Transforms/Utils/BasicBlockUtils.h>
 
 

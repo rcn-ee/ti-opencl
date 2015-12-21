@@ -27,11 +27,11 @@
  *****************************************************************************/
 #include "dsp.h"
 
-TERNARY_VEC_DEF(char, char,  mad_sat, mad_sat)
-TERNARY_VEC_DEF(uchar, uchar, mad_sat, mad_sat)
-TERNARY_VEC_DEF(short, short, mad_sat, mad_sat)
-TERNARY_VEC_DEF(ushort, ushort,mad_sat, mad_sat)
-TERNARY_VEC_DEF(int, int,   mad_sat, mad_sat)
-TERNARY_VEC_DEF(uint, uint,  mad_sat, mad_sat)
-TERNARY_VEC_DEF(long, long,  mad_sat, mad_sat)
-TERNARY_VEC_DEF(ulong, ulong, mad_sat, mad_sat)
+_TERNARY_VEC_DEF(char, char,  mad_sat, mad_sat)
+_TERNARY_VEC_DEF(uchar, uchar, mad_sat, mad_sat)
+_TERNARY_VEC_DEF(short, short, mad_sat, mad_sat)
+_TERNARY_VEC_DEF(ushort, ushort,mad_sat, mad_sat)
+_TERNARY_VEC_DEF(int, int,   mad_sat, mad_sat)
+_TERNARY_VEC_DEF(uint, uint,  mad_sat, mad_sat)
+_TERNARY_VEC_DEF(long, long,  mad_sat, mad_sat)
+_TERNARY_VEC_DEF(ulong, ulong, mad_sat, mad_sat)

@@ -27,13 +27,9 @@
 #include "Workgroup.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include "llvm/Transforms/Utils/Cloning.h"
-#if (defined LLVM_3_1 or defined LLVM_3_2)
-#include "llvm/InstrTypes.h"
-#include "llvm/Instructions.h"
-#else
 #include "llvm/IR/InstrTypes.h"
 #include "llvm/IR/Instructions.h"
-#endif
+#include "../core/util.h"
 
 #include <iostream>
 #include <algorithm>
@@ -56,8 +52,8 @@ char BarrierTailReplication::ID = 0;
 void
 BarrierTailReplication::getAnalysisUsage(AnalysisUsage &AU) const
 {
-  AU.addRequired<DominatorTree>();
-  AU.addPreserved<DominatorTree>();
+  AU.addRequired<DominatorTreeWrapperPass>();
+  AU.addPreserved<DominatorTreeWrapperPass>();
   AU.addRequired<LoopInfo>();
   AU.addPreserved<LoopInfo>();
 }
@@ -67,17 +63,20 @@ BarrierTailReplication::runOnFunction(Function &F)
 {
   if (!Workgroup::isKernelToProcess(F))
     return false;
+
+  if (isReqdWGSize111(F))  return false;
   
 #ifdef DEBUG_BARRIER_REPL
   std::cerr << "### BTR on " << F.getName().str() << std::endl;
 #endif
 
-  DT = &getAnalysis<DominatorTree>();
+  DTP = &getAnalysis<DominatorTreeWrapperPass>();
+  DT = &DTP->getDomTree();
   LI = &getAnalysis<LoopInfo>();
 
   bool changed = ProcessFunction(F);
 
-  DT->verifyAnalysis();
+  DT->verifyDomTree();
   LI->verifyAnalysis();
 
   /* The created tails might contain PHI nodes with operands 
@@ -203,12 +202,8 @@ BarrierTailReplication::ReplicateJoinedSubgraphs(BasicBlock *dominator,
       {
         // We have modified the function. Possibly created new loops.
         // Update analysis passes.
-        DT->runOnFunction(*f);
-        #ifdef LLVM_3_1
-        LI->getBase().Calculate(DT->getBase());
-        #else
+        DTP->runOnFunction(*f);
         LI->runOnFunction(*f);
-        #endif
       }
   }
   processed_bbs.insert(subgraph_entry);

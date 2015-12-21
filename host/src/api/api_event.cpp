@@ -37,6 +37,8 @@
 #include <core/context.h>
 #include <stdio.h>
 
+using namespace Coal;
+
 // Event Object APIs
 cl_int
 clWaitForEvents(cl_uint             num_events,
@@ -45,30 +47,33 @@ clWaitForEvents(cl_uint             num_events,
     if (!num_events || !event_list)
         return CL_INVALID_VALUE;
 
-    // Check if the events in the list have the same context
-    cl_context global_ctx = 0;
+    // Check the events in the list to ensure thay have same context
+    Context * global_ctx = NULL;
 
     for (cl_uint i=0; i<num_events; ++i)
     {
-        if (!event_list[i]->isA(Coal::Object::T_Event))
+        auto event = pobj(event_list[i]);
+        if (!event->isA(Coal::Object::T_Event))
             return CL_INVALID_EVENT;
 
-        if (event_list[i]->status() < 0)
+        if (event->status() < 0)
             return CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST;
 
-        cl_context evt_ctx;
-        if (event_list[i]->type() == Coal::Event::User)
-            evt_ctx = (cl_context)((Coal::UserEvent *)event_list[i])->context();
-        else
-            evt_ctx = (cl_context)event_list[i]->parent()->parent();
+        Context * evt_ctx;
+        if (event->type() == Coal::Event::User) {
+	    evt_ctx = ((Coal::UserEvent *)event)->context();
+        }
+        else {
+            evt_ctx = (Context *)(event->parent()->parent());
+        }
 
 #if 0 // YUAN: no need to wait for queue to be flushed
-        cl_command_queue evt_queue = (cl_command_queue)event_list[i]->parent();
+	Coal::CommandQueue * evt_queue = (Coal::CommandQueue *)event->parent();
         // Flush the queue
         evt_queue->flush();
 #endif
 
-        if (global_ctx == 0)
+        if (global_ctx == NULL)
             global_ctx = evt_ctx;
         else if (global_ctx != evt_ctx)
             return CL_INVALID_CONTEXT;
@@ -77,10 +82,11 @@ clWaitForEvents(cl_uint             num_events,
     // Wait for the events
     for (cl_uint i=0; i<num_events; ++i)
     {
-        event_list[i]->waitForStatus(Coal::Event::Complete);
+        auto event = pobj(event_list[i]);
+        event->waitForStatus(Coal::Event::Complete);
         // Per OpenCL spec, we need to return this error if any event
         // in the event_wait_list fails
-        if (event_list[i]->status() < 0)
+        if (event->status() < 0)
             return CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST;
     }
 
@@ -88,12 +94,14 @@ clWaitForEvents(cl_uint             num_events,
 }
 
 cl_int
-clGetEventInfo(cl_event         event,
+clGetEventInfo(cl_event         d_event,
                cl_event_info    param_name,
                size_t           param_value_size,
                void *           param_value,
                size_t *         param_value_size_ret)
 {
+    auto event = pobj(d_event);
+
     if (!event->isA(Coal::Object::T_Event))
         return CL_INVALID_EVENT;
 
@@ -102,13 +110,15 @@ clGetEventInfo(cl_event         event,
 }
 
 cl_int
-clSetEventCallback(cl_event     event,
+clSetEventCallback(cl_event     d_event,
                    cl_int       command_exec_callback_type,
                    void         (CL_CALLBACK *pfn_event_notify)(cl_event event,
                                                                 cl_int exec_status,
                                                                 void *user_data),
                    void *user_data)
 {
+    auto event = pobj(d_event);
+
     if (!event->isA(Coal::Object::T_Event))
         return CL_INVALID_EVENT;
 
@@ -121,8 +131,10 @@ clSetEventCallback(cl_event     event,
 }
 
 cl_int
-clRetainEvent(cl_event event)
+clRetainEvent(cl_event d_event)
 {
+    auto event = pobj(d_event);
+
     if (!event->isA(Coal::Object::T_Event))
         return CL_INVALID_EVENT;
 
@@ -132,8 +144,10 @@ clRetainEvent(cl_event event)
 }
 
 cl_int
-clReleaseEvent(cl_event event)
+clReleaseEvent(cl_event d_event)
 {
+    auto event = pobj(d_event);
+
     if (!event->isA(Coal::Object::T_Event))
         return CL_INVALID_EVENT;
 
@@ -147,10 +161,11 @@ clReleaseEvent(cl_event event)
 }
 
 cl_event
-clCreateUserEvent(cl_context    context,
+clCreateUserEvent(cl_context    d_context,
                   cl_int *      errcode_ret)
 {
     cl_int dummy_errcode;
+    auto context = pobj(d_context);
 
     if (!errcode_ret)
         errcode_ret = &dummy_errcode;
@@ -163,9 +178,7 @@ clCreateUserEvent(cl_context    context,
 
     *errcode_ret = CL_SUCCESS;
 
-    Coal::UserEvent *command = new Coal::UserEvent(
-        (Coal::Context *)context, errcode_ret
-    );
+    Coal::UserEvent *command = new Coal::UserEvent(context, errcode_ret);
 
     if (*errcode_ret != CL_SUCCESS)
     {
@@ -173,14 +186,14 @@ clCreateUserEvent(cl_context    context,
         return 0;
     }
 
-    return (cl_event)command;
+    return desc(command);
 }
 
 cl_int
-clSetUserEventStatus(cl_event   event,
+clSetUserEventStatus(cl_event   d_event,
                      cl_int     execution_status)
 {
-    Coal::Event *command = (Coal::Event *)event;
+    auto command = pobj(d_event);
 
     if (!command->isA(Coal::Object::T_Event) ||
         command->type() != Coal::Event::User)

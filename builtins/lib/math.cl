@@ -28,16 +28,16 @@
 #include "clc.h"
 
 #define UNARY(function) \
-UNARY_VEC_DEF(float,  float,  function, function) \
-UNARY_VEC_DEF(double, double, function, function) \
+_UNARY_VEC_DEF(float,  float,  function, function) \
+_UNARY_VEC_DEF(double, double, function, function) \
 
 #define BINARY(function) \
-BINARY_VEC_DEF(float,  float,  function, function) \
-BINARY_VEC_DEF(double, double, function, function) \
+_BINARY_VEC_DEF(float,  float,  function, function) \
+_BINARY_VEC_DEF(double, double, function, function) \
 
 #define TERNARY(function) \
-TERNARY_VEC_DEF(float,  float,  function, function) \
-TERNARY_VEC_DEF(double, double, function, function) \
+_TERNARY_VEC_DEF(float,  float,  function, function) \
+_TERNARY_VEC_DEF(double, double, function, function) \
 
 /*-------------------------------------------------------------------------
 * Prototypes for the math builtins 
@@ -74,11 +74,11 @@ BINARY(fmin)
 BINARY(fmod)
 BINARY(hypot)
 
-UNARY_VEC_DEF(float,  int, ilogb, ilogbf)
-UNARY_VEC_DEF(double, int, ilogb, ilogbd)
+_UNARY_VEC_DEF(float,  int, ilogb, ilogbf)
+_UNARY_VEC_DEF(double, int, ilogb, ilogbd)
 
-BINARY_VEC_DEF_ALT(float,  float,  int, ldexp, ldexpf)
-BINARY_VEC_DEF_ALT(double, double, int, ldexp, ldexpd)
+_BINARY_VEC_DEF_ALT(float,  float,  int, ldexp, ldexpf)
+_BINARY_VEC_DEF_ALT(double, double, int, ldexp, ldexpd)
 
 UNARY(lgamma)
 UNARY(log)
@@ -90,21 +90,21 @@ TERNARY(mad)
 BINARY(maxmag)
 BINARY(minmag)
 
-UNARY_VEC_DEF(uint,  float,  nan, nan)
-UNARY_VEC_DEF(ulong, double, nan, nan)
+_UNARY_VEC_DEF(uint,  float,  nan, nan)
+_UNARY_VEC_DEF(ulong, double, nan, nan)
 
 BINARY(nextafter)
 BINARY(pow)
 
-BINARY_VEC_DEF_ALT(float,  float,  int, pown, pownf)
-BINARY_VEC_DEF_ALT(double, double, int, pown, pownd)
+_BINARY_VEC_DEF_ALT(float,  float,  int, pown, pownf)
+_BINARY_VEC_DEF_ALT(double, double, int, pown, pownd)
 
 BINARY(powr)
 BINARY(remainder)
 UNARY(rint)
 
-BINARY_VEC_DEF_ALT(float,  float,  int, rootn, rootnf)
-BINARY_VEC_DEF_ALT(double, double, int, rootn, rootnd)
+_BINARY_VEC_DEF_ALT(float,  float,  int, rootn, rootnf)
+_BINARY_VEC_DEF_ALT(double, double, int, rootn, rootnd)
 
 UNARY(round)
 UNARY(rsqrt)

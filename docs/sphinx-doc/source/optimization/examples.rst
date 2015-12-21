@@ -45,7 +45,7 @@ Step 2:
 
 Step 3: Use double buffering to overlap data movement with computation
 
-Psuedo-code for a double-buffered version of the OpenCL C kernel:
+Pseudo-code for a double-buffered version of the OpenCL C kernel:
 
 .. literalinclude:: code/dao.c
    :language: c

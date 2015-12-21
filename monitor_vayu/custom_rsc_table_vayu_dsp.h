@@ -55,6 +55,34 @@
 #define L2_DRA7XX_BASE_GLOBAL   (0x40800000 + (DSP_CORE_ID * 0x800000))
 #define L2_DRA7XX_SIZE          0x00048000
 
+// Valid OCMC memory regions, physical addresses:
+// OCMC1: [0x40300000 , 0x40380000)
+// OCMC2: [0x40400000 , 0x40500000)
+// OCMC3: [0x40500000 , 0x40600000)
+// Mapping only these regions as identical virtual and physical addresses
+// could trigger MMU faults caused by prefetching into neighboring reserved
+// memory regions.  Workaround is to map all possible neighboring prefetch
+// regions as virtual addresses back to valid OCMC regions.  Assuming
+// all OCMCs can be accessed, these are all possible prefetch regions:
+// backwards: [0x40200000 , 0x40300000)  map to [0x40400000 , 0x40500000)
+// forward:   [0x40380000 , 0x40400000)  map to [0x40300000 , 0x40380000)
+// forward:   [0x40600000 , 0x40800000)  map to [0x40400000 , 0x40600000)
+#define OCMC_RAM1_DRA7XX_VBASE           0x40300000
+#define OCMC_RAM1_DRA7XX_PBASE           0x40300000
+#define OCMC_RAM1_DRA7XX_SIZE            0x00080000
+#define OCMC_RAM23_DRA7XX_VBASE          0x40400000
+#define OCMC_RAM23_DRA7XX_PBASE          0x40400000
+#define OCMC_RAM23_DRA7XX_SIZE           0x00200000
+#define OCMC_RAM_DRA7XX_VBASE_PREFETCH1  0x40200000
+#define OCMC_RAM_DRA7XX_PBASE_PREFETCH1  0x40400000
+#define OCMC_RAM_DRA7XX_SIZE_PREFETCH1   0x00100000
+#define OCMC_RAM_DRA7XX_VBASE_PREFETCH2  0x40380000
+#define OCMC_RAM_DRA7XX_PBASE_PREFETCH2  0x40300000
+#define OCMC_RAM_DRA7XX_SIZE_PREFETCH2   0x00080000
+#define OCMC_RAM_DRA7XX_VBASE_PREFETCH3  0x40600000
+#define OCMC_RAM_DRA7XX_PBASE_PREFETCH3  0x40400000
+#define OCMC_RAM_DRA7XX_SIZE_PREFETCH3   0x00200000
+
 /* L4_CFG & L4_WKUP */
 #define L4_PERIPHERAL_L4CFG     (L4_DRA7XX_BASE)
 #define DSP_PERIPHERAL_L4CFG    0x4A000000
@@ -87,9 +115,10 @@
 #define L3_TILER_MODE_3         0x78000000
 #define DSP_TILER_MODE_3        0x78000000
 
-// Static DDR range used by monitor (DDR3 region in Platform.xdc)
-#define DSP_MEM_DDR             0xFE800000
-#define DSP_MEM_DDR_SIZE        (SZ_1M * (8 + 1))
+// Static DDR range used by monitor 
+// DDR3, DDR3_FC and SR_0 regions in platforms/am57/Platform.xdc
+#define DSP_MEM_DDR             0xFEC00000
+#define DSP_MEM_DDR_SIZE        (SZ_1M * 5)
 
 // CMEM buffers mapped by MMU to PHYS_MEM_IOBUFS
 #define DSP_MEM_IOBUFS          0x80000000
@@ -130,7 +159,7 @@
 struct my_resource_table {
     struct resource_table base;
 
-    UInt32 offset[16];  /* Should match 'num' in actual definition */
+    UInt32 offset[21];  /* Should match 'num' in actual definition */
 
     /* rpmsg vdev entry */
     struct fw_rsc_vdev rpmsg_vdev;
@@ -180,6 +209,13 @@ struct my_resource_table {
     struct fw_rsc_devmem devmem11;
 
     struct fw_rsc_intmem intmem;
+
+    /* devmem entries for OCMC */
+    struct fw_rsc_devmem devmem_ocmc_ram1;
+    struct fw_rsc_devmem devmem_ocmc_ram23;
+    struct fw_rsc_devmem devmem_ocmc_prefetch1;
+    struct fw_rsc_devmem devmem_ocmc_prefetch2;
+    struct fw_rsc_devmem devmem_ocmc_prefetch3;
 };
 
 extern char ti_trace_SysMin_Module_State_0_outbuf__A;
@@ -192,7 +228,7 @@ extern char ti_trace_SysMin_Module_State_0_outbuf__A;
 
 struct my_resource_table ti_ipc_remoteproc_ResourceTable = {
     1,      /* we're the first version that implements this */
-    16,     /* number of entries in the table */
+    21,     /* number of entries in the table */
     0, 0,   /* reserved, must be zero */
     /* offsets to entries */
     {
@@ -212,6 +248,11 @@ struct my_resource_table ti_ipc_remoteproc_ResourceTable = {
         offsetof(struct my_resource_table, devmem10),
         offsetof(struct my_resource_table, devmem11),
         offsetof(struct my_resource_table, intmem),
+        offsetof(struct my_resource_table, devmem_ocmc_ram1),
+        offsetof(struct my_resource_table, devmem_ocmc_ram23),
+        offsetof(struct my_resource_table, devmem_ocmc_prefetch1),
+        offsetof(struct my_resource_table, devmem_ocmc_prefetch2),
+        offsetof(struct my_resource_table, devmem_ocmc_prefetch3),
     },
 
     /* rpmsg vdev entry */
@@ -310,6 +351,36 @@ struct my_resource_table ti_ipc_remoteproc_ResourceTable = {
         TYPE_INTMEM, 1,
         L2_DRA7XX_BASE_LOCAL, L2_DRA7XX_BASE_GLOBAL,
         L2_DRA7XX_SIZE, 0, "L2_DRA7XX_MEM",
+    },
+
+    {
+        TYPE_DEVMEM,
+        OCMC_RAM1_DRA7XX_VBASE, OCMC_RAM1_DRA7XX_PBASE,
+        OCMC_RAM1_DRA7XX_SIZE, 0, 0, "OCMC_RAM1_DRA7XX",
+    },
+
+    {
+        TYPE_DEVMEM,
+        OCMC_RAM23_DRA7XX_VBASE, OCMC_RAM23_DRA7XX_PBASE,
+        OCMC_RAM23_DRA7XX_SIZE, 0, 0, "OCMC_RAM23_DRA7XX",
+    },
+
+    {
+        TYPE_DEVMEM,
+        OCMC_RAM_DRA7XX_VBASE_PREFETCH1, OCMC_RAM_DRA7XX_PBASE_PREFETCH1,
+        OCMC_RAM_DRA7XX_SIZE_PREFETCH1, 0, 0, "OCMC_RAM_DRA7XX_PREFETCH1",
+    },
+
+    {
+        TYPE_DEVMEM,
+        OCMC_RAM_DRA7XX_VBASE_PREFETCH2, OCMC_RAM_DRA7XX_PBASE_PREFETCH2,
+        OCMC_RAM_DRA7XX_SIZE_PREFETCH2, 0, 0, "OCMC_RAM_DRA7XX_PREFETCH2",
+    },
+
+    {
+        TYPE_DEVMEM,
+        OCMC_RAM_DRA7XX_VBASE_PREFETCH3, OCMC_RAM_DRA7XX_PBASE_PREFETCH3,
+        OCMC_RAM_DRA7XX_SIZE_PREFETCH3, 0, 0, "OCMC_RAM_DRA7XX_PREFETCH3",
     },
 };
 

@@ -27,14 +27,9 @@
 #include "BarrierBlock.h"
 #include "llvm/ADT/SmallPtrSet.h"
 #include "config.h"
-#if (defined LLVM_3_1 or defined LLVM_3_2)
-#include "llvm/BasicBlock.h"
-#include "llvm/LLVMContext.h"
-#else
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/LLVMContext.h"
-#endif
-#include "llvm/Support/CFG.h"
+#include "llvm/IR/CFG.h"
 #include "llvm/Transforms/Utils/ValueMapper.h"
 #include "llvm/ADT/SmallVector.h"
 #include <vector>
@@ -84,7 +79,7 @@ class Kernel;
 
     void AddParallelLoopMetadata(llvm::MDNode *identifier);
 
-    bool HasBlock(llvm::BasicBlock *bb);
+    bool HasBlock(const llvm::BasicBlock *bb);
 
     void InjectRegionPrintF();
     void InjectVariablePrintouts();

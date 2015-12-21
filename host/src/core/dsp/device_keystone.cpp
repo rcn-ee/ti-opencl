@@ -31,9 +31,9 @@
 
 #include "mbox_impl_mpm.h"
 
-#if defined(DEVICE_K2H)
+#if defined(DEVICE_K2X)
 extern "C" {
-    extern int get_ocl_qmss_res(int *);
+    extern int get_ocl_qmss_res(Msg_t *msg);
 }
 #endif
 
@@ -43,7 +43,7 @@ extern "C" {
 DSPDevice::DSPDevice(unsigned char dsp_id)
     : DeviceInterface   (), 
       p_core_mail       (0), 
-      p_cores           (8), 
+      p_cores           (0),
       p_num_events      (0), 
       p_dsp_mhz         (1000), // 1.00 GHz
       p_worker_dispatch  (0), 
@@ -56,27 +56,27 @@ DSPDevice::DSPDevice(unsigned char dsp_id)
       p_device_ddr_heap1(),
       p_device_ddr_heap2(),
       p_device_ddr_heap3(),
-      p_device_l2_heap  (),
       p_dload_handle    (0),
       p_complete_pending(),
       p_mpax_default_res(NULL)
 { 
     Driver *driver = Driver::instance();
 
+    p_cores = driver->cores_per_dsp(dsp_id);
+
     driver->reset_and_load(dsp_id);
 
-    void *hdl = driver->create_image_handle();
+    void *hdl = driver->create_image_handle(dsp_id);
 
     p_addr_kernel_config = driver->get_symbol(hdl, "kernel_config_l2");
     p_addr_local_mem     = driver->get_symbol(hdl, "ocl_local_mem_start");
     p_size_local_mem     = driver->get_symbol(hdl, "ocl_local_mem_size");
 
-
     DSPDevicePtr64 global3 = 0;
     uint64_t       gsize3  = 0;
 #ifndef DSPC868X
     /*-------------------------------------------------------------------------
-    * On K2H, these 4 variables are determined by query of the CMEM system.
+    * On K2X, these 4 variables are determined by query of the CMEM system.
     *------------------------------------------------------------------------*/
     p_addr64_global_mem = 0;
     p_size64_global_mem = 0;
@@ -95,6 +95,7 @@ DSPDevice::DSPDevice(unsigned char dsp_id)
     p_size_msmc_mem      = driver->get_symbol(hdl, "ocl_msmc_mem_size");
 #endif
 
+
     driver->free_image_handle(hdl);
 
     DSPDevicePtr64 global1 = p_addr64_global_mem;
@@ -111,19 +112,27 @@ DSPDevice::DSPDevice(unsigned char dsp_id)
     *------------------------------------------------------------------------*/
     setup_mailbox();
 
-#if defined(DEVICE_K2H)
+#if defined(DEVICE_K2X)
+    /*-------------------------------------------------------------------------
+    * Send monitor configuration
+    *------------------------------------------------------------------------*/
+    Msg_t msg = {CONFIGURE_MONITOR};
+    msg.u.configure_monitor.n_cores = dspCores();
+
     // Keystone2: get QMSS resources from RM, mail to DSP monitor
-    Msg_t oclQmssMsg = {READY};
-    if (get_ocl_qmss_res(((int *)&oclQmssMsg) + 1) == 0)
+    if (get_ocl_qmss_res(&msg) == 0)
     {
         printf("Unable to allocate resource from RM server!\n");
         exit(-1);
     }
-    mail_to(oclQmssMsg);
+
+    mail_to(msg);
 #endif
 
+    /*-------------------------------------------------------------------------
+    * Query DSP frequency; monitor is in message loop task after this point.
+    *------------------------------------------------------------------------*/
     setup_dsp_mhz();
-
 }
 
 void DSPDevice::setup_mailbox(void)

@@ -333,17 +333,14 @@ void shmem_cmem::cmem_init(DSPDevicePtr64 *addr1, uint64_t *size1,
                            DSPDevicePtr64 *addr3, uint64_t *size3)
 {
 #if defined(DEVICE_AM57)
-    const char *cmem_command = "For available CMEM DDR block size: ~512MB:\n"
-        "modprobe cmemk "
-        "phys_start=0xa0000000 phys_end=0xc0000000 pools=1x536870912 "
-        "allowOverlap=1";
+    const char *cmem_command = "modprobe cmemk";
     const char *cmem_command2 = "";
 #define CMEM_MIN_BLOCKS (1)
 #else
-    const char *cmem_command = "For available CMEM DDR block size: ~1.5GB:\n"
-        "modprobe cmemk_1-5_GB";
-    const char *cmem_command2 = "For available CMEM DDR block size: ~6.5GB:\n"
-        "modprobe cmemk_6-5_GB";
+    const char *cmem_command = "For default system CMEM DDR block size:\n"
+        "modprobe cmemk";
+    const char *cmem_command2 = "For available CMEM DDR block size: ~1.5GB or ~6.5GB:\n"
+        "modprobe cmemk_1-5_GB  or  modprobe cmemk_6-5_GB";
 #define CMEM_MIN_BLOCKS (2)
 #endif
 
@@ -363,7 +360,8 @@ void shmem_cmem::cmem_init(DSPDevicePtr64 *addr1, uint64_t *size1,
     /*-------------------------------------------------------------------------
     * Debug to see in cmem init was correct
     * Valid CMEM configurations: last block for MPI (hyperlink/SRIO) buffers
-    *     DDR1(OCL), MSMC2(OCL), DDR3(MPI)
+    *     DDR1(OCL), MSMC2(OCL)
+    * or  DDR1(OCL), MSMC2(OCL), DDR3(MPI)
     * or  DDR1(OCL), MSMC2(OCL), DDR3(OCL), DDR4(MPI)
     *------------------------------------------------------------------------*/
     int num_Blocks = 0;
@@ -489,7 +487,8 @@ void shmem_cmem_persistent::configure(DSPDevicePtr64 dsp_addr, uint64_t size)
     p_size     = size;
     DSPDevicePtr64 cmem_addr = p_dsp_addr;
 #if defined (DEVICE_AM57)
-    if ( dsp_addr >= 0x80000000 ) cmem_addr = dsp_addr + 0x20000000;
+    if (dsp_addr >= 0x80000000) 
+        cmem_addr = dsp_addr + 0x20000000;
 #else
     if (p_dsp_addr >= 0xA0000000 && p_dsp_addr < 0xFFFFFFFF)
         cmem_addr = p_dsp_addr - 0xA0000000 + 0x820000000ULL;
@@ -513,7 +512,8 @@ shmem_cmem_persistent::~shmem_cmem_persistent()
     params.flags = CMEM_CACHED;
     DSPDevicePtr64 cmem_addr = p_dsp_addr;
 #if defined (DEVICE_AM57)
-    if (p_dsp_addr >= 0x80000000 ) cmem_addr = p_dsp_addr + 0x20000000;
+    if (p_dsp_addr >= 0x80000000 ) cmem_addr = p_dsp_addr + 0x20000000
+                                               - RESERVED_CMEM_SIZE;
 #else
     if (p_dsp_addr > 0xA0000000 && p_dsp_addr < 0xFFFFFFFF)
         cmem_addr = p_dsp_addr - 0xA0000000 + 0x820000000ULL;

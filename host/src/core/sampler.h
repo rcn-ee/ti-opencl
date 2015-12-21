@@ -35,6 +35,7 @@
 
 #include <CL/cl.h>
 #include "object.h"
+#include "icd.h"
 
 // WARNING: Keep in sync with stdlib.h
 
@@ -54,6 +55,12 @@
 
 namespace Coal
 {
+  class Sampler;
+}
+struct _cl_sampler: public Coal::descriptor<Coal::Sampler, _cl_sampler> {};
+
+namespace Coal
+{
 
 class Context;
 
@@ -64,7 +71,7 @@ class Context;
  * host OpenCL constants to constants that will be used by the kernels and
  * the image reading and writing built-in functions.
  */
-class Sampler : public Object
+class Sampler : public _cl_sampler, public Object
 {
     public:
         /**
@@ -108,8 +115,5 @@ class Sampler : public Object
 };
 
 }
-
-struct _cl_sampler : public Coal::Sampler
-{};
 
 #endif

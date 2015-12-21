@@ -10,27 +10,6 @@ SET(CROSS_COMPILE ON)
 SET(CMAKE_C_COMPILER   arm-linux-gnueabihf-gcc)
 SET(CMAKE_CXX_COMPILER arm-linux-gnueabihf-g++)
 
-# For external builds, paths to dependent libraries/packages are assumed to
-# be specified by environment variables.
-# For internal development builds setup a default path for dependent libs/pkgs
-if ("$ENV{DEFAULT_DEV_INSTALL_DIR}" STREQUAL "")
-   set(DEFAULT_DEV_INSTALL_DIR /opt/ti)
-else()
-   set(DEFAULT_DEV_INSTALL_DIR $ENV{DEFAULT_DEV_INSTALL_DIR})
-endif()
-
-# Point to the development kit file system where we should get ARM
-# libraries and headers
-if ("$ENV{LINUX_DEVKIT_ROOT}" STREQUAL "")
-   SET(LINUX_DEVKIT_ROOT
-${DEFAULT_DEV_INSTALL_DIR}/mcsdk_linux_3_01_04_07/linux-devkit/arago-2015.05/sysroots/cortexa15t2hf-vfp-neon-linux-gnueabi)
-   MESSAGE(STATUS "Environment variable LINUX_DEVKIT_ROOT not set. "
-                  "Assuming the linux devkit filesystem is installed "
-                  "at ${LINUX_DEVKIT_ROOT}")
-else()
-   SET(LINUX_DEVKIT_ROOT $ENV{LINUX_DEVKIT_ROOT})
-endif()
-
 MESSAGE(STATUS "Devkit installation at " ${LINUX_DEVKIT_ROOT})
 
 SET(CMAKE_FIND_ROOT_PATH  ${LINUX_DEVKIT_ROOT} ${LINUX_DEVKIT_ROOT}/usr/include)

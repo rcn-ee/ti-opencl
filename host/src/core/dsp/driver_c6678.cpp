@@ -79,6 +79,21 @@ const char *get_board(unsigned switch_device)
     }
 }
 
+std::string Driver::dsp_monitor(int dsp)
+{
+    std::string get_ocl_dsp();
+
+    char *installation = getenv("TI_OCL_INSTALL");
+    if (! installation)  ERR(1, "TI_OCL_INSTALL env variable not set");
+
+    return installation + get_ocl_dsp() + "/dsp.out";
+}
+
+int Driver::cores_per_dsp(int dsp)
+{
+    return 8;
+}
+
 
 /******************************************************************************
 * wait_for_ready
@@ -86,10 +101,12 @@ const char *get_board(unsigned switch_device)
 bool Driver::wait_for_ready(int chip)
 {
     int execution_wait_count = 0;
+    int n_cores = cores_per_dsp(chip);
+
     while (1)
     {
         int core;
-        for (core=0; core< TOTAL_NUM_CORES_PER_CHIP; core++)
+        for (core = 0; core < n_cores; core++)
         {
             uint32_t boot_entry_value;
             int ret = pciedrv_dsp_read(chip, 
@@ -100,7 +117,7 @@ bool Driver::wait_for_ready(int chip)
             if (boot_entry_value != 0) break;
         }
 
-        if (core == TOTAL_NUM_CORES_PER_CHIP) return true; 
+        if (core == n_cores) return true; 
         if (++execution_wait_count > 1000)    return false;
 
         usleep(1000);
@@ -138,16 +155,16 @@ void Driver::reset_and_load(int chip)
     init += board;
     init += ".out";
  
-    void *   image_handle;
-    uint32_t entry;
- 
-    ret = dnldmgr_get_image(init.c_str(), &image_handle, &entry);
+    void    *init_image_handle;
+    uint32_t init_entry;
+    ret = dnldmgr_get_image(
+        const_cast<char *>(init.c_str()), &init_image_handle, &init_entry);
     ERR(ret, "Get reset image failed");
  
-    ret = dnldmgr_reset_dsp(chip, 1, image_handle, entry, &bootcfg);
+    ret = dnldmgr_reset_dsp(chip, 1, init_image_handle, init_entry, &bootcfg);
     ERR (ret, "DSP out of reset failed");
  
-    dnldmgr_free_image(image_handle);
+    dnldmgr_free_image(init_image_handle);
 
     /*---------------------------------------------------------------------
     * wait for reset to complete
@@ -157,10 +174,10 @@ void Driver::reset_and_load(int chip)
     /*-------------------------------------------------------------------------
     * Load monitor on the devices
     *------------------------------------------------------------------------*/
-    std::string monitor(installation);
-    monitor += "/usr/share/ti/opencl/dsp.out";
-
-    ret = dnldmgr_get_image(monitor.c_str(), &image_handle, &entry);
+    void *image_handle;
+    uint32_t entry;
+    ret = dnldmgr_get_image(
+        const_cast<char *>(dsp_monitor(chip).c_str()), &image_handle, &entry);
     ERR(ret, "Get DSP image failed");
 
     ret = dnldmgr_load_image(chip, 0xFFFF, image_handle, entry, NULL);
@@ -169,18 +186,15 @@ void Driver::reset_and_load(int chip)
     dnldmgr_free_image(image_handle);
 }
 
-void* Driver::create_image_handle(void)
+void* Driver::create_image_handle(int chip)
 {
-    char *installation = getenv("TI_OCL_INSTALL");
-    if (! installation)  ERR(1, "TI_OCL_INSTALL env variable not set");
+    std::string monitor = dsp_monitor(chip);
 
-    std::string monitor(installation);
-    monitor += "/usr/share/ti/opencl/dsp.out";
-
-    void * image_handle;
+    void *image_handle;
     uint32_t entry;
 
-    int ret = dnldmgr_get_image(monitor.c_str(), &image_handle, &entry);
+    int ret = dnldmgr_get_image(
+        const_cast<char *>(monitor.c_str()), &image_handle, &entry);
     ERR(ret, "Get DSP image failed");
 
     return image_handle;
@@ -240,14 +254,24 @@ int32_t Driver::close()
 int32_t Driver::write(int32_t dsp_id, DSPDevicePtr64 addr, uint8_t *buf, 
                       uint32_t size)
 { 
-    int core;
+    int n_cores = cores_per_dsp(dsp_id);
+
     /*-------------------------------------------------------------------------
     * if the write is to L2, then write for each core
     *------------------------------------------------------------------------*/
     if ((addr >> 20) == 0x008)
-        for (core=0; core< TOTAL_NUM_CORES_PER_CHIP; core++)
+    {
+        for (int core = 0; core < n_cores; core++)
+        {
+#if !defined (DEVICE_AM57)
             write_core(dsp_id, ((0x10 + core) << 24) + addr, buf, size);
-    else write_core(dsp_id, addr, buf, size);
+#else
+            write_core(dsp_id, ((0x80 + core) << (3+20)) + addr, buf, size);
+#endif
+        }
+    }
+    else
+        write_core(dsp_id, addr, buf, size);
 }
 
 
@@ -332,7 +356,8 @@ int32_t Driver::read(int32_t dsp_id, DSPDevicePtr64 addr64, uint8_t *buf,
 DSPDevicePtr Driver::get_symbol(void* image_handle, const char *name)
 {
     DSPDevicePtr addr;
-    int ret = dnldmgr_get_symbol_address(image_handle, name, &addr);
+    int ret = dnldmgr_get_symbol_address(
+        image_handle, const_cast<char *>(name), &addr);
     if (ret) { printf("ERROR: Get symbol failed\n"); exit(-1); } 
 
     return addr;

@@ -32,15 +32,20 @@
 #include <llvm/IR/Module.h>
 #include <llvm/IR/BasicBlock.h>
 #include <llvm/IR/DataLayout.h>
+#include <llvm/IR/ValueSymbolTable.h>
+#include <llvm/IR/GlobalValue.h>
 #include <llvm/Support/raw_ostream.h>
-#include <llvm/Support/InstIterator.h>
+#include <llvm/IR/InstIterator.h>
 #include <llvm/IR/IntrinsicInst.h>
-#include "llvm/Support/CFG.h"
+#include "llvm/IR/CFG.h"
 #include "llvm/ADT/DepthFirstIterator.h"
 #include "llvm/ADT/GraphTraits.h"
+#include "llvm/ADT/StringExtras.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include "llvm/Transforms/Utils/UnifyFunctionExitNodes.h"
-#include "llvm/DebugInfo.h"
+#include "llvm/IR/DebugInfo.h"
+#include <llvm/IR/Dominators.h>
+#include <llvm/Analysis/LoopInfo.h>
 #include "../util.h"
 #include "boost/assign/std/set.hpp"
 #include <stdio.h>
@@ -114,6 +119,8 @@ bool TIOpenclWorkGroupAggregation::runOnFunction(Function &F)
     * Skip non-kernel functions
     *------------------------------------------------------------------------*/
     if (! isKernelFunction(F))  return changed;
+
+    add_kernel_local_size_attr(F);
 
     /*-------------------------------------------------------------------------
     * Obtain Debug Information (func scope line number) (when debug is on)
@@ -309,10 +316,16 @@ bool TIOpenclWorkGroupAggregation::rewrite_allocas(Function &F)
     Module *M = F.getParent();
     AllocaInst *alloca;
 
+    // Only rewrite allocas with variable array size
+    // Allocas with constant array size will be handled by the translator
     std::vector<AllocaInst *> allocas;
     for (inst_iterator I = inst_begin(&F), E = inst_end(&F); I != E; ++I)
         if ((alloca = dyn_cast<AllocaInst>(&*I)) != NULL)
+        {
+            Value *numElems = alloca->getArraySize();
+            if (llvm::dyn_cast<llvm::ConstantInt>(numElems)) continue;
             allocas.push_back(alloca);
+        }
     if (allocas.empty()) return false;
 
     DataLayout dataLayout(M);
@@ -351,9 +364,8 @@ bool TIOpenclWorkGroupAggregation::rewrite_allocas(Function &F)
 
         // get number of elements, element type size, compute total size
         Value *numElems = alloca->getArraySize();
-        if (llvm::dyn_cast<llvm::ConstantInt>(numElems)) continue;
-
         Type *elementType = alloca->getAllocatedType();
+
         // getTypeSizeInBits(), what about uchar3 type?
         uint64_t esBytes = dataLayout.getTypeStoreSize(elementType);
         Value *esize = ConstantInt::get(Int32, (uint32_t) esBytes); 
@@ -379,6 +391,8 @@ bool TIOpenclWorkGroupAggregation::rewrite_allocas(Function &F)
         // cast to alloca type
         Instruction * new_alloca = new IntToPtrInst(curr_alloca_addr,
                                                     alloca->getType());
+        if (MDNode *mdnode = alloca->getMetadata("ocl.restrict"))
+            new_alloca->setMetadata("ocl.restrict", mdnode);
 
         // replace AllocaInst with new _wg_alloca()
         ReplaceInstWithInst(alloca, new_alloca);
@@ -397,9 +411,7 @@ bool TIOpenclWorkGroupAggregation::rewrite_allocas(Function &F)
     }
 
     // put total orig_wi_size into attributes data in the function
-    char *s_wi_alloca_size = new char[32];  // we have to leak this
-    snprintf(s_wi_alloca_size, 32, "_wi_alloca_size=%d", wi_alloca_size);
-    F.addFnAttr(StringRef(s_wi_alloca_size));
+    F.addFnAttr("_wi_alloca_size", llvm::utostr(wi_alloca_size));
 
     return true;
 }
@@ -671,7 +683,7 @@ void TIOpenclWorkGroupAggregation::add_loop(Function &F, int dimIdx,
    *---------------------------------------------------------------------*/
    if (regLocals)
    {
-       MDNode *dummy = MDNode::getTemporary(ctx, ArrayRef<Value*>());
+       MDNode *dummy = MDNode::getTemporary(ctx, ArrayRef<Metadata*>());
        MDNode *loopmeta = MDNode::get(ctx, dummy);
        loopmeta->replaceOperandWith(0, loopmeta);
        MDNode::deleteTemporary(dummy);
@@ -747,9 +759,44 @@ bool TIOpenclWorkGroupAggregation::implicit_long_conv_use_bif(Function &F)
     return changed;
 }
 
+/*-----------------------------------------------------------------------------
+* Add an attribute on each kernel function that indicates the size in bytes
+* of all the local objects defined in the kernel.
+*----------------------------------------------------------------------------*/
+#define ROUNDUP(val, pow2)   (((val) + (pow2) - 1) & ~((pow2) - 1))
+bool TIOpenclWorkGroupAggregation::add_kernel_local_size_attr(Function &F)
+{
+    string fname(F.getName());
+    fname += ".";
+
+    uint32_t kernel_local_size = 0;
+    Module *M = F.getParent();
+
+    for (llvm::ValueSymbolTable::iterator gsym=M->getValueSymbolTable().begin();
+         gsym != M->getValueSymbolTable().end(); ++gsym)
+    {
+        string localname = gsym->getKeyData();
+        if (localname.size() > fname.size() &&
+            std::equal(fname.begin(), fname.begin() + fname.size(), localname.begin()))
+        {
+            llvm::GlobalValue *val = llvm::cast<llvm::GlobalValue>(gsym->getValue());
+            uint32_t align   = val->getAlignment();
+            llvm::Type* type = val->getType()->getElementType();
+            DataLayout DL(M);
+            uint32_t typesize = DL.getTypeAllocSize(type);
+
+            if (align > 1) kernel_local_size = ROUNDUP(kernel_local_size, align);
+            kernel_local_size += typesize;
+        }
+    }
+
+    F.addFnAttr("_kernel_local_size", llvm::utostr(kernel_local_size));
+
+
+    return false;
+}
+
 char TIOpenclWorkGroupAggregation::ID = 0;
 static RegisterPass<TIOpenclWorkGroupAggregation> 
                    X("wga", "Work Group Aggregation", false, false);
-
 }
-

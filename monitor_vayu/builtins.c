@@ -34,6 +34,7 @@
 #endif
 #include <ti/csl/csl_cacheAux.h>
 #include "util.h"
+#include "message.h"
 
 extern uint32_t ocl_l1d_mem_start;
 extern uint32_t ocl_l1d_mem_size;
@@ -88,47 +89,52 @@ PRIVATE(int32_t, _local_id_x)      EXPORT = 0;
 PRIVATE(int32_t, _local_id_y)      EXPORT = 0;
 PRIVATE(int32_t, _local_id_z)      EXPORT = 0;
 
-EXPORT void __cache_l1d_none()
+EXPORT int __cache_l1d_none()
 {
     CACHE_wbInvAllL1d(CACHE_NOWAIT);
     __mfence();
     CACHE_setL1DSize(CACHE_L1_0KCACHE);
     CACHE_getL1DSize();
     l1d_scratch_size = l1d_size;
+    return 1;
 }
 
-EXPORT void __cache_l1d_all()
+EXPORT int __cache_l1d_all()
 {
     CACHE_setL1DSize(CACHE_L1_32KCACHE);
     CACHE_getL1DSize();
     l1d_scratch_size = 0;
+    return 1;
 }
 
-EXPORT void __cache_l1d_4k()
+EXPORT int __cache_l1d_4k()
 {
     CACHE_wbInvAllL1d(CACHE_NOWAIT);
     __mfence();
     CACHE_setL1DSize(CACHE_L1_4KCACHE);
     CACHE_getL1DSize();
     l1d_scratch_size = l1d_size - (4 << 10);
+    return 1;
 }
 
-EXPORT void __cache_l1d_8k()
+EXPORT int __cache_l1d_8k()
 {
     CACHE_wbInvAllL1d(CACHE_NOWAIT);
     __mfence();
     CACHE_setL1DSize(CACHE_L1_8KCACHE);
     CACHE_getL1DSize();
     l1d_scratch_size = l1d_size - (8 << 10);
+    return 1;
 }
 
-EXPORT void __cache_l1d_16k()
+EXPORT int __cache_l1d_16k()
 {
     CACHE_wbInvAllL1d(CACHE_NOWAIT);
     __mfence();
     CACHE_setL1DSize(CACHE_L1_16KCACHE);
     CACHE_getL1DSize();
     l1d_scratch_size = l1d_size - (16 << 10);
+    return 1;
 }
 
 EXPORT void __cache_l1d_flush()
@@ -141,38 +147,73 @@ EXPORT void __cache_l1d_flush()
     _restore_interrupts(lvInt);
 }
 
+/*-----------------------------------------------------------------------------
+* for the l2 cache functions the __scratch_l2_size
+* value is in kernel_config_l2[17]
+*----------------------------------------------------------------------------*/
+EXPORT extern kernel_config_t kernel_config_l2;
 
-EXPORT void __cache_l2_none()
+EXPORT void*    __scratch_l2_start (void) { return (void*)kernel_config_l2.L2_scratch_start; }
+EXPORT uint32_t __scratch_l2_size  (void) { return kernel_config_l2.L2_scratch_size; }
+
+EXPORT int __cache_l2_none()
 {
+    int32_t scratch_delta = __cache_l2_size(); // - (0 << 10);
+    //uint32_t scratch_size  = kernel_config_l2.L2_scratch_size;
+    //if (-scratch_delta > scratch_size) return 0;
+    kernel_config_l2.L2_scratch_size += scratch_delta;
+
     CACHE_wbInvAllL2(CACHE_NOWAIT);
     __mfence();
     CACHE_setL2Size (CACHE_0KCACHE);
     CACHE_getL2Size ();
+    return 1;
 }
 
-EXPORT void __cache_l2_128k()
+EXPORT int __cache_l2_32k()
 {
+    int32_t scratch_delta = __cache_l2_size() - (32 << 10);
+    uint32_t scratch_size  = kernel_config_l2.L2_scratch_size;
+    if (-scratch_delta > scratch_size) return 0;
+    kernel_config_l2.L2_scratch_size += scratch_delta;
+
+    CACHE_wbInvAllL2(CACHE_NOWAIT);
+    __mfence();
+    CACHE_setL2Size (CACHE_32KCACHE);
+    CACHE_getL2Size ();
+    return 1;
+}
+
+EXPORT int __cache_l2_64k()
+{
+    int32_t scratch_delta = __cache_l2_size() - (64 << 10);
+    uint32_t scratch_size  = kernel_config_l2.L2_scratch_size;
+    if (-scratch_delta > scratch_size) return 0;
+    kernel_config_l2.L2_scratch_size += scratch_delta;
+
+    CACHE_wbInvAllL2(CACHE_NOWAIT);
+    __mfence();
+    CACHE_setL2Size (CACHE_64KCACHE);
+    CACHE_getL2Size ();
+    return 1;
+}
+
+EXPORT int __cache_l2_128k()
+{
+    int32_t scratch_delta = __cache_l2_size() - (128 << 10);
+    uint32_t scratch_size  = kernel_config_l2.L2_scratch_size;
+    if (-scratch_delta > scratch_size) return 0;
+    kernel_config_l2.L2_scratch_size += scratch_delta;
+
     CACHE_wbInvAllL2(CACHE_NOWAIT);
     __mfence();
     CACHE_setL2Size (CACHE_128KCACHE);
     CACHE_getL2Size ();
+    return 1;
 }
 
-EXPORT void __cache_l2_256k()
-{
-    CACHE_wbInvAllL2(CACHE_NOWAIT);
-    __mfence();
-    CACHE_setL2Size (CACHE_256KCACHE);
-    CACHE_getL2Size ();
-}
-
-EXPORT void __cache_l2_512k()
-{
-    CACHE_wbInvAllL2(CACHE_NOWAIT);
-    __mfence();
-    CACHE_setL2Size (CACHE_512KCACHE);
-    CACHE_getL2Size ();
-}
+EXPORT int __cache_l2_256k() { return 0; }
+EXPORT int __cache_l2_512k() { return 0; }
 
 EXPORT void __cache_l2_flush()
 {

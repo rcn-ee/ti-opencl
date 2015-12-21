@@ -27,7 +27,7 @@
  *****************************************************************************/
 #include <llvm/PassManager.h>
 #include <llvm/Analysis/Passes.h>
-#include <llvm/Analysis/Verifier.h>
+#include <llvm/IR/Verifier.h>
 #include <llvm/Transforms/Scalar.h>
 #include <llvm/Transforms/IPO.h>
 #include <llvm/Transforms/Utils/UnifyFunctionExitNodes.h>
@@ -76,7 +76,9 @@ const char *get_cgt_install()
  
        abort();
     }
-    else return DEFAULT_TI_CGT_INSTALL_PATH;
+    else 
+       install = const_cast<char*>(DEFAULT_TI_CGT_INSTALL_PATH);
+    return install;
 }
 
 /******************************************************************************
@@ -114,8 +116,9 @@ int run_cl6x(string filename, string *llvm_bitcode, string addl_files)
 
     command += "--disable:sploop ";
 
-    if (opt_debug) command += "-o0 -g ";
-    else           command += "-o3 --symdebug:none ";
+    if (opt_debug)        command += "-o0 -g ";
+    else if (opt_symbols) command += "-o3 ";
+    else                  command += "-o3 --symdebug:none ";
 
     const char *cgt_install = get_cgt_install();
 

@@ -37,7 +37,7 @@ endif()
 STRING(REGEX MATCH "^x86_64" IS_X86_64_HOST ${BUILD_PROCESSOR})
 if(IS_X86_64_HOST)
    # For Hawking just use the x86 version when running clang
-   if (HAWKING_BUILD OR AM57_BUILD)
+   if (K2X_BUILD OR AM57_BUILD)
      set(LLVM_HOST_PROCESSOR x86)
    else()
      set(LLVM_HOST_PROCESSOR x86_64)
@@ -45,30 +45,11 @@ if(IS_X86_64_HOST)
 endif()
 
 # Version of LLVM we are currently based off of
-set(LLVM_VERSION 33) 
+set(LLVM_VERSION 360) 
 
-
-# Set up llvm paths, using environment variables if defined
-if ("$ENV{ARM_LLVM_DIR}" STREQUAL "")
-   set(ARM_LLVM_DIR ${DEFAULT_DEV_INSTALL_DIR}/llvm${LLVM_VERSION}-install-arm)
-   MESSAGE(STATUS "Environment variable ARM_LLVM_DIR not set. "
-         "Assuming that the OpenCL ARM LLVM installation is at ${ARM_LLVM_DIR}")
-else()
-   set (ARM_LLVM_DIR $ENV{ARM_LLVM_DIR})
-endif()
-
-if (CROSS_COMPILE OR C6678_BUILD)
-if ("$ENV{X86_LLVM_DIR}" STREQUAL "")
-   set (X86_LLVM_DIR ${DEFAULT_DEV_INSTALL_DIR}/llvm${LLVM_VERSION}-install-${LLVM_HOST_PROCESSOR})
-   MESSAGE(STATUS "Environment variable X86_LLVM_DIR not set. "
-         "Assuming that the OpenCL x86 LLVM installation is at ${X86_LLVM_DIR}")
-else()
-   set (X86_LLVM_DIR $ENV{X86_LLVM_DIR})
-endif()
-endif()
 
 # Set llvm path to appropriate target llvm install
-if (HAWKING_BUILD OR AM57_BUILD)
+if (K2X_BUILD OR AM57_BUILD)
    set (LLVM_INSTALL_DIR ${ARM_LLVM_DIR})
 elseif(C6678_BUILD) 
    set (LLVM_INSTALL_DIR ${X86_LLVM_DIR})
@@ -142,11 +123,12 @@ MESSAGE(STATUS "LLVM LD flags: " ${LLVM_LDFLAGS})
 # Generate list of LLVM libraries to link against
 if (C6678_BUILD)
   set (LLVM_LIB_TARGET X86)
-elseif(HAWKING_BUILD OR AM57_BUILD)
+elseif(K2X_BUILD OR AM57_BUILD)
   set (LLVM_LIB_TARGET ARM)
 endif()
 
-exec_program(${LLVM_CONFIG_EXECUTABLE} ARGS --libs  ${LLVM_LIB_TARGET} asmparser native bitwriter tablegen mcjit debuginfo interpreter linker irreader instrumentation ipo mcdisassembler OUTPUT_VARIABLE LLVM_LIBS_CORE )
+exec_program(${LLVM_CONFIG_EXECUTABLE} ARGS --libs  OUTPUT_VARIABLE LLVM_LIBS_CORE )
+#exec_program(${LLVM_CONFIG_EXECUTABLE} ARGS --libs  ${LLVM_LIB_TARGET} asmparser native bitwriter tablegen mcjit debuginfo interpreter linker irreader instrumentation ipo mcdisassembler OUTPUT_VARIABLE LLVM_LIBS_CORE )
 MESSAGE(STATUS "LLVM core libs: " ${LLVM_LIBS_CORE})
 
 if(LLVM_INCLUDE_DIR)

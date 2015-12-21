@@ -33,7 +33,7 @@
 
 #include <llvm/PassManager.h>
 #include <llvm/Analysis/Passes.h>
-#include <llvm/Analysis/Verifier.h>
+#include <llvm/IR/Verifier.h>
 #include <llvm/Transforms/Scalar.h>
 #include <llvm/Transforms/IPO.h>
 #include <llvm/Transforms/Utils/UnifyFunctionExitNodes.h>
@@ -59,6 +59,7 @@
 #include <AllocasToEntry.h>
 #include <Workgroup.h>
 #include <TargetAddressSpaces.h>
+#include <PrivatizationAliasAnalysis.h>
 
 #include <string>
 #include <iostream>
@@ -99,7 +100,7 @@ using namespace Coal;
 DSPProgram::DSPProgram(DSPDevice *device, Program *program)
 : DeviceProgram(), p_device(device), p_program(program), p_program_handle(-1),
   p_loaded(false), p_keep_files(false), p_cache_kernels(false), p_debug(false),
-  p_info(false)
+  p_info(false), p_ocl_local_overlay_start(0)
 {
     char *keep = getenv("TI_OCL_KEEP_FILES");
     if (keep) p_keep_files = true;
@@ -159,12 +160,30 @@ bool DSPProgram::load()
         printf("\n");
     }
 
+    p_ocl_local_overlay_start = query_symbol("_ocl_local_overlay_start");
+
     /*-------------------------------------------------------------------------
     * Send the cache Inv command.  We do not wait here.  The wait will be 
     * handled by the standard wait loop in the worker thread.
     *------------------------------------------------------------------------*/
     p_device->mail_to(cacheMsg);
     return true;
+}
+
+DSPDevicePtr DSPProgram::mem_l2_section_extent(uint32_t& size) const
+{
+    /*-------------------------------------------------------------------------
+    * Program must be loaded to determine how much l2 space is required
+    *------------------------------------------------------------------------*/
+    if (!is_loaded()) const_cast<DSPProgram*>(this)->load();
+
+    uint32_t     L2size;
+    DSPDevicePtr L2start = p_device->get_L2_extent(L2size);
+
+    if (!p_ocl_local_overlay_start) size = 0;
+    else size = p_ocl_local_overlay_start - L2start;
+
+    return L2start;
 }
 
 DSPDevicePtr DSPProgram::program_load_addr() const
@@ -178,27 +197,6 @@ DSPDevicePtr DSPProgram::program_load_addr() const
 
     return load_addr;
 }
-
-/******************************************************************************
-* L2_ALLOCATED
-******************************************************************************/
-int DSPProgram::l2_allocated() const
-{
-    /*-------------------------------------------------------------------------
-    * Program must be loaded to determine how much l2 space is required
-    *------------------------------------------------------------------------*/
-    if (!is_loaded()) const_cast<DSPProgram*>(this)->load();
-
-    int allocated = 0;
-
-    for (int i = 0; i < p_segments_written.size(); ++i)
-        if (p_segments_written[i].ptr >= 0x00800000 && 
-            p_segments_written[i].ptr <  0x00900000)
-             allocated += p_segments_written[i].size;
-
-    return allocated;
-}
-
 
 bool DSPProgram::is_loaded() const
 {
@@ -231,7 +229,7 @@ void DSPProgram::createOptimizationPasses(llvm::PassManager *manager,
     if (hasBarrier)
     {
         manager->add(    llvm::createPromoteMemoryToRegisterPass());
-        manager->add(new llvm::DominatorTree());
+        manager->add(new llvm::DominatorTreeWrapperPass());
         manager->add(new pocl::WorkitemHandlerChooser());
         manager->add(new       BreakConstantGEPs());   // from pocl
         //       add(new       GenerateHeader());      // no need
@@ -256,6 +254,7 @@ void DSPProgram::createOptimizationPasses(llvm::PassManager *manager,
         manager->add(new pocl::AllocasToEntry());
         //       add(new pocl::Workgroup());           // no need
         manager->add(new pocl::TargetAddressSpaces());
+        manager->add(new tiocl::TIOpenCLPrivatizationAliasAnalysis());
     }
 
     if (optimize)
@@ -367,7 +366,6 @@ std::string get_ocl_dsp()
     abort();
 }
 
-
 /******************************************************************************
 * run_cl6x
 ******************************************************************************/
@@ -430,12 +428,7 @@ static int run_cl6x(char *filename, std::string *llvm_bitcode,
     *------------------------------------------------------------------------*/
     command += process_cl6x_options(options); 
 
-        //timespec t0, t1;
-        //clock_gettime(CLOCK_MONOTONIC, &t0);
     int x = system(command.c_str());
-        //clock_gettime(CLOCK_MONOTONIC, &t1);
-        //printf("cl6x time: %6.4f secs\n", 
-        //   (float)t1.tv_sec-t0.tv_sec+(t1.tv_nsec-t0.tv_nsec)/1e9);
 
     if (!debug && !info)
     {
@@ -444,6 +437,7 @@ static int run_cl6x(char *filename, std::string *llvm_bitcode,
         x = system(strip_command.c_str());
     }
 }
+
 
 /**
  * Extract llvm bitcode and native binary from MixedBinary
@@ -679,8 +673,10 @@ extern "C" {
 
 Coal::DSPDevice *getDspDevice();
 
-uint64_t __query_symbol(cl_program program, const char *sym_name)
+uint64_t __query_symbol(cl_program d_program, const char *sym_name)
 {
+    auto program = pobj(d_program);
+
     if (!program->isA(Coal::Object::T_Program))
         return 0;
 

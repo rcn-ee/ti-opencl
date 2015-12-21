@@ -131,10 +131,12 @@ bool Compiler::compile(const std::string &options,
     lang_opts.OpenCL = true;
     lang_opts.CPlusPlus = false;
     lang_opts.MathErrno = false;
+    lang_opts.ModulesSearchAll = false;
+    //lang_opts.FakeAddressSpaceMap = true;
 
     // Set target options
-    // For 6X, use the 'spir' target as it implements opencl specs
-    target_opts.Triple = "spir-unknown-unknown-unknown";
+    // For 6X, use the 'c6000' target as it implements opencl specs
+    target_opts.Triple = "c6000-unknown-unknown-unknown";
 
     // Currently, llp6x does not handle fused multiply and add
     // llvm intrinsics (llvm.fmuladd.*). Disable generating these
@@ -243,7 +245,7 @@ bool Compiler::compile(const std::string &options,
 
     // Set invocation options
     //invocation.setLangDefaults(lang_opts,clang::IK_OpenCL);
-    invocation.setLangDefaults(lang_opts,clang::IK_OpenCL, clang::LangStandard::lang_opencl12);
+    invocation.setLangDefaults(lang_opts,clang::IK_OpenCL, clang::LangStandard::lang_opencl20);
 
     // Create the diagnostics engine
     p_log_printer = new clang::TextDiagnosticPrinter(p_log_stream, &diag_opts);
@@ -259,7 +261,7 @@ bool Compiler::compile(const std::string &options,
     //prep_opts.addRemappedFile(filename.c_str(), source);
 
     // Compile
-    llvm::OwningPtr<clang::CodeGenAction> act(
+    std::unique_ptr<clang::CodeGenAction> act(
         new clang::EmitLLVMOnlyAction(&llvm::getGlobalContext())
     );
 
@@ -271,7 +273,7 @@ bool Compiler::compile(const std::string &options,
     }
 
     p_log_stream.flush();
-    p_module = act->takeModule();
+    p_module = act->takeModule().release();
 
     // uncomment to debug the llvm IR
     // p_module->dump();  

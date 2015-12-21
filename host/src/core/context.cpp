@@ -130,7 +130,7 @@ Context::Context(const cl_context_properties *properties,
 
     for (cl_uint i=0; i<num_devices; ++i)
     {
-        cl_device_id device = devices[i];
+        auto device = pobj(devices[i]);
 
         if (device == 0)
         {
@@ -156,7 +156,7 @@ Context::Context(const cl_context_properties *properties,
         }
 
         // Add the device to the list
-        p_devices[i] = (DeviceInterface *)device;
+        p_devices[i] = device;
     }
 }
 
@@ -176,6 +176,7 @@ cl_int Context::info(cl_context_info param_name,
 {
     void *value = 0;
     size_t value_length = 0;
+    cl_device_id *device_ids = NULL;
 
     union {
         cl_uint cl_uint_var;
@@ -192,7 +193,10 @@ cl_int Context::info(cl_context_info param_name,
             break;
 
         case CL_CONTEXT_DEVICES:
-            MEM_ASSIGN(p_num_devices * sizeof(DeviceInterface *), p_devices);
+            device_ids = 
+              (cl_device_id *)std::malloc(p_num_devices * sizeof(cl_device_id));
+            MEM_ASSIGN(p_num_devices * sizeof(cl_device_id), device_ids);
+            desc_list(device_ids, p_devices, p_num_devices);
             break;
 
         case CL_CONTEXT_PROPERTIES:
@@ -204,13 +208,18 @@ cl_int Context::info(cl_context_info param_name,
     }
 
     if (param_value && param_value_size < value_length)
+    {
+        if (device_ids) std::free(device_ids);
         return CL_INVALID_VALUE;
+    }
 
     if (param_value_size_ret)
         *param_value_size_ret = value_length;
 
     if (param_value && value_length /* CONTEXT_PROPERTIES can be of length 0 */)
         std::memcpy(param_value, value, value_length);
+
+    if (device_ids) std::free(device_ids);
 
     return CL_SUCCESS;
 }

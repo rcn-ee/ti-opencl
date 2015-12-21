@@ -64,6 +64,7 @@ double beta            = 0.0;
 CBLAS_ORDER     order  = CblasColMajor;
 CBLAS_TRANSPOSE transA = CblasNoTrans;
 CBLAS_TRANSPOSE transB = CblasNoTrans;
+bool   calc_check      = false;
 
 /*-----------------------------------------------------------------------------
 * Prototypes
@@ -142,7 +143,8 @@ int main(int argc, char* argv[])
     * context creation, so that the first dsp cblas_dgemm call timing is not 
     * skewed by this setup cost.
     *------------------------------------------------------------------------*/
-    ocl_init();
+    int NUMCOMPUNITS;
+    ocl_init(calc_check, &NUMCOMPUNITS);
 
     /*-------------------------------------------------------------------------
     * Time DSP dgemm
@@ -150,7 +152,8 @@ int main(int argc, char* argv[])
     tick();
     dsp_cblas_dgemm(order,transA,transB,M,N,K,alpha,A,lda,B,ldb,beta,C,ldc);
     secs = tock();
-    printf("DSP %.3f Gflops (%.6fs)\n", total_GFLOP/secs, secs);
+    printf("%4d DSPs: %.3f Gflops (%.6fs)\n",
+           NUMCOMPUNITS, total_GFLOP/secs, secs);
     fflush(stdout);
 
     /*-------------------------------------------------------------------------
@@ -159,7 +162,8 @@ int main(int argc, char* argv[])
     tick();
     cblas_dgemm(order,transA,transB,M,N,K,alpha,A,lda,B,ldb,beta,Ccpu,ldc);
     secs = tock();
-    printf("CPU %.3f Gflops (%.6fs)\n", total_GFLOP/secs, secs);
+    printf("   1 CPU : %.3f Gflops (%.6fs) with ATLAS library\n",
+           total_GFLOP/secs, secs);
     fflush(stdout);
 
     /*-------------------------------------------------------------------------
@@ -181,7 +185,7 @@ int main(int argc, char* argv[])
 int Check(const double *C1, const double *C2, int M, int N)
 {
     const int EPISILON = 0.00001;
-    const int NERRORS  = 0;
+    const int NERRORS  = 13;
     int       num_errors = 0, i;
 
     for (i=0; i<M*N; i++)
@@ -234,7 +238,7 @@ void HandleOptions(int argc, char* argv[])
 
     if (argc == 1) return;
 
-    while ((c = getopt (argc, argv, "o:M:K:N:hab")) != -1)
+    while ((c = getopt (argc, argv, "o:M:K:N:habx")) != -1)
         switch(c)
         {
             case 'o': *optarg == 'r' ? order = CblasRowMajor : CblasColMajor;
@@ -245,6 +249,7 @@ void HandleOptions(int argc, char* argv[])
             case 'h': PrintUsageAndExit();    break;
             case 'a': transA = CblasTrans;    break;
             case 'b': transB = CblasTrans;    break;
+            case 'x': calc_check = true;      break;
             default:  PrintUsageAndExit();
         }
 }

@@ -4,9 +4,9 @@ Compilation
 
 A discussion of OpenCL compilation could describe either; compiling the host
 OpenCL application, or compiling OpenCL C programs containing code that is
-en-queued to OpenCL devices.  OpenCL was designed to make both easy, however
-there are some options for compilation of OpenCL C programs.  We will briefly
-describe the host compilation process and will then enumerate and describe the
+en-queued to OpenCL devices.  OpenCL was designed to make both easy. However,
+there are some options for compilation of OpenCL C programs.  This chapter 
+describes the host compilation process and then enumerates and describes the
 OpenCL C program compilation process.
 
 Compile Host OpenCL Applications
@@ -55,12 +55,12 @@ these two options gives you four cases for OpenCL C program creation:
 Alternatively, we call cases 1 and 2, where the program is created from source,
 on-line compilation, because the compiler is called during the run time of your
 application.  We call cases 3 and 4, where the program is created from binary,
-offline compilation, because the compiler is called as part of the build of the
+off-line compilation, because the compiler is called as part of the build of the
 application and not during the run time of the application. Clearly on-line
 compilation will entail some run time delay as the compilation process
 completes, but it does provide for portability of the application, because the
 on-line compile is encapsulated in the OpenCL program build step and therefore
-the application can run on any OpenCL platform.  Conversely, offline
+the application can run on any OpenCL platform.  Conversely, off-line
 compilation will eliminate the run time delay of compilation and will also
 provide IP protection since the source for the OpenCL C programs will not need
 to be delivered as part of a running application.  When creating programs from
@@ -183,7 +183,7 @@ Line 3 defines a pointer to a char array.  The ocl_read_binary function will
 inspect the specified file to determine the number of bytes to allocate, it
 will allocate the bytes, and it will read the contents of the file into those
 bytes.  After a Program object is created using the binary data, the bytes
-allocated by ocl_read_binary  should be deleted.  This can be seen on line 10
+allocated by ocl_read_binary should be deleted.  This can be seen on line 10
 of the example code.  
 
 Line 6 creates a Program:Binaries object.  It requires a pair consisting of a
@@ -230,8 +230,8 @@ below.
 Create an OpenCL program from binary, with embedded binary
 -----------------------------------------------------------
 
-For this OpenCL program build scenario, offline compilation is again used, but
-an option is given to the offline compiler :command:`clocl` to instruct it to
+For this OpenCL program build scenario, off-line compilation is again used, but
+an option is given to the off-line compiler :command:`clocl` to instruct it to
 create a text based file that can be used as a header file rather than a binary
 out file.  The text file is simply the binary data in an initialized char
 array. Invoking clocl like this: :command:`clocl -t kernel.cl` will compile
@@ -271,12 +271,12 @@ devices specified in the build API call.  These compiles will entail some delay
 and in some cases can result in significant delay.  The TI OpenCL
 implementation does provide a mechanism where the result of an on-line compile
 can be cached on the system and the time delay for compilation is paid once for
-a the first invocation of a compile but subsequent invocations are short
+the first invocation of a compile but subsequent invocations are short
 circuited and the cached result is used instead.  This behavior is controlled
 through the environment variable :envvar:`TI_OCL_CACHE_KERNELS`. 
 
 
-The TI offline OpenCL C compiler: clocl
+The TI off-line OpenCL C compiler: clocl
 =======================================================
 
 Executing :command:`clocl -h` will print the help screen.  Clocl
@@ -294,31 +294,33 @@ those options.
     options.
 
     The clocl behavior options are:
-       =============== =========================================
-       -h, --help      Print this help screen
-       -v, --verbose   Print verbose messages
-       -k, --keep      Do not delete temp compilation files
-       -g, --debug     Generate debug symbols
-       -t, --txt       Generate object in header form
-       -l, --lib       Do not link. Stop after compilation
-       -a              Allow kernel buffer arguments to overlap
-       --version       Print OpenCL product
-       =============== =========================================
+
+    =============== =========================================
+    -h, --help      Print this help screen
+    -v, --verbose   Print verbose messages
+    -k, --keep      Do not delete temp compilation files
+    -g, --debug     Generate debug symbols
+    -t, --txt       Generate object in header form
+    -l, --lib       Do not link. Stop after compilation
+    -a              Allow kernel buffer arguments to overlap
+    --version       Print OpenCL product
+    =============== =========================================
 
     The OpenCL 1.1 build options. Refer to 1.1 spec for desc:
-       ===============================  ========================================================
-       -D<name>                         Create a preprocessor symbol <name>
-       -D<name>=<val>                   Assign <val> to preprocessor symbol <name>
-       -I<dir>                          Add <dir> to the list of paths to search for headers
-       -w                               Inhibit all warning messages
-       -Werror                          Make all warnings into errors
-       -cl-single-precision-constant    Treat double FP constant as single FP constant
-       -cl-denorms-are-zero             Enable flush to zero FP behavior
-       -cl-opt-disable                  Disables all optimizations
-       -cl-mad-enable                   Allow a * b + c to be replaced by a mad
-       -cl-no-signed-zeros              Allow opts for FP math that ignore sign of zero
-       -cl-unsafe-math-optimizations    Allow opts for FP math that may violate standards
-       -cl-finite-math-only             Allow opts for FP math that assumes operands are finite
-       -cl-fast-relaxed-math            Choose fast FP operations over compliant FP operations
-       -cl-std=<val>                    Determine the OpenCL C language version to use 
-       ===============================  ========================================================
+
+    ===============================  ========================================================
+    -D<name>                         Create a preprocessor symbol <name>
+    -D<name>=<val>                   Assign <val> to preprocessor symbol <name>
+    -I<dir>                          Add <dir> to the list of paths to search for headers
+    -w                               Inhibit all warning messages
+    -Werror                          Make all warnings into errors
+    -cl-single-precision-constant    Treat double FP constant as single FP constant
+    -cl-denorms-are-zero             Enable flush to zero FP behavior
+    -cl-opt-disable                  Disables all optimizations
+    -cl-mad-enable                   Allow a * b + c to be replaced by a mad
+    -cl-no-signed-zeros              Allow opts for FP math that ignore sign of zero
+    -cl-unsafe-math-optimizations    Allow opts for FP math that may violate standards
+    -cl-finite-math-only             Allow opts for FP math that assumes operands are finite
+    -cl-fast-relaxed-math            Choose fast FP operations over compliant FP operations
+    -cl-std=<val>                    Determine the OpenCL C language version to use 
+    ===============================  ========================================================

@@ -24,16 +24,10 @@
 #include <cstdio>
 
 #include "config.h"
-#if (defined LLVM_3_1 or defined LLVM_3_2)
-#include "llvm/Instructions.h"
-#include "llvm/Function.h"
-#include "llvm/Module.h"
-#else
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/Module.h"
-#endif
-
+#include "llvm/IR/Constants.h"
 #include "llvm/Support/Casting.h"
 
 #define BARRIER_FUNCTION_NAME "barrier"
@@ -99,6 +93,10 @@ namespace pocl {
       return (llvm::isa<Instruction>(U) &&
               classof(llvm::cast<llvm::Instruction>(U)));
     }
+    static bool classof(const Value *V) {
+      return (llvm::isa<User>(V) &&
+              classof(llvm::cast<llvm::User>(V)));
+    }
 
 
     static bool hasOnlyBarrier(const llvm::BasicBlock *bb) 
@@ -133,7 +131,7 @@ namespace pocl {
            i != e; ++i)
         {
           if (llvm::isa<Barrier>(i) &&
-              llvm::cast<llvm::CallInst>(i)->getCalledFunction()->getName()
+              llvm::dyn_cast<llvm::CallInst>(i)->getCalledFunction()->getName()
                                                    == BARRIER_FUNCTION_NAME)
             return true;
         }

@@ -35,10 +35,18 @@
 #define __MEMOBJECT_H__
 
 #include "object.h"
+#include "icd.h"
 #include "dsp/u_concurrent_stack.h"
 #include <list>
 
 #include <CL/cl.h>
+
+namespace Coal
+{
+  class MemObject;
+}
+struct _cl_mem: public Coal::descriptor<Coal::MemObject, _cl_mem> {};
+
 
 namespace Coal
 {
@@ -51,7 +59,7 @@ class BufferEvent;
 /**
  * \brief Base class for all the memory objects
  */
-class MemObject : public Object
+class MemObject : public _cl_mem, public Object
 {
     public:
         /**
@@ -300,8 +308,5 @@ class Image3D : public Image2D
 };
 
 }
-
-struct _cl_mem : public Coal::MemObject
-{};
 
 #endif

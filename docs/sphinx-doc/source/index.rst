@@ -7,8 +7,7 @@ TI OpenCL v01.01.xx
 TI |OpenCL (TM)| Runtime Documentation Contents:
 
 .. toctree::
-   :maxdepth: 2
-   :numbered:
+   :maxdepth: 3
 
    intro
    reference
@@ -20,7 +19,9 @@ TI |OpenCL (TM)| Runtime Documentation Contents:
    optimization/index
    examples/index
    debug/index
+   profiling
    faq/index
+   readme/index
    disclaimer
 
 .. image:: images/platform_red.png

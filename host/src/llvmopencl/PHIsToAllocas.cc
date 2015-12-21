@@ -24,19 +24,12 @@
 #include "Workgroup.h"
 #include "WorkitemHandlerChooser.h"
 #include "WorkitemLoops.h"
+#include "../core/util.h"
 
 #include "config.h"
 
-#ifdef LLVM_3_1
-#include "llvm/Support/IRBuilder.h"
-#include "llvm/Support/TypeBuilder.h"
-#elif defined LLVM_3_2
-#include "llvm/IRBuilder.h"
-#include "llvm/TypeBuilder.h"
-#else
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/TypeBuilder.h"
-#endif
 
 namespace {
   static
@@ -62,6 +55,8 @@ PHIsToAllocas::runOnFunction(Function &F)
 {
   if (!Workgroup::isKernelToProcess(F))
     return false;
+
+  if (isReqdWGSize111(F))  return false;
 
   /* Skip PHIsToAllocas when we are not creating the work item loops,
      as it leads to worse code without benefits for the full replication method.

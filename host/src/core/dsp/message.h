@@ -30,8 +30,11 @@
 
 #include <stdint.h>
 
-typedef enum { READY, EXIT, TASK, NDRKERNEL, WORKGROUP, CACHEINV, 
-               FREQUENCY, SUCCESS, ERROR, PRINT, BROADCAST } command_codes;
+typedef enum
+{
+    READY, EXIT, TASK, NDRKERNEL, WORKGROUP, CACHEINV,
+    FREQUENCY, SUCCESS, ERROR, PRINT, BROADCAST, CONFIGURE_MONITOR
+} command_codes;
 
 #define MAX_NDR_DIMENSIONS   3
 #define MAX_IN_REG_ARGUMENTS 10
@@ -63,6 +66,8 @@ typedef struct
     uint32_t WG_id;
     uint32_t WG_alloca_start;
     uint32_t WG_alloca_size;
+    uint32_t L2_scratch_start;
+    uint32_t L2_scratch_size;
 } kernel_config_t;
 
 typedef struct 
@@ -88,6 +93,15 @@ typedef struct
     uint32_t        args_on_stack_size;
 } kernel_msg_t;
 
+typedef struct
+{
+    int n_cores;
+
+    int ocl_qmss_hw_queue_base_idx;
+    int ocl_qmss_first_desc_idx_in_linking_ram;
+    int ocl_qmss_first_memory_region_idx;
+} configure_monitor_t;
+
 typedef struct 
 {
     command_codes command;
@@ -100,6 +114,7 @@ typedef struct
             kernel_msg_t    kernel;
             flush_msg_t     flush;
         } k;
+        configure_monitor_t configure_monitor;
         char message[sizeof(kernel_config_t) + sizeof(kernel_msg_t) + sizeof(flush_msg_t)];
     } u;
 } Msg_t;

@@ -35,6 +35,7 @@
 #define __COMMANDQUEUE_H__
 
 #include "object.h"
+#include "icd.h"
 
 #include <CL/cl.h>
 #include <pthread.h>
@@ -42,6 +43,14 @@
 #include <map>
 #include <list>
 #include <vector>
+
+namespace Coal
+{
+  class CommandQueue;
+  class Event;
+}
+struct _cl_command_queue: public Coal::descriptor<Coal::CommandQueue, _cl_command_queue> {};
+struct _cl_event : public Coal::descriptor<Coal::Event, _cl_event> {};
 
 namespace Coal
 {
@@ -57,7 +66,7 @@ class Event;
  *
  * More details are given on the \ref events page.
  */
-class CommandQueue : public Object
+class CommandQueue : public _cl_command_queue, public Object
 {
     public:
         CommandQueue(Context *ctx,
@@ -228,7 +237,7 @@ class CommandQueue : public Object
  * They only contain static and immutable data that is then used by the devices
  * to actually implement the event.
  */
-class Event : public Object
+class Event : public _cl_event, public Object
 {
     public:
         /**
@@ -314,7 +323,7 @@ class Event : public Object
         Event(CommandQueue *parent,
               Status status,
               cl_uint num_events_in_wait_list,
-              const Event **event_wait_list,
+              const cl_event * event_wait_list,
               cl_int *errcode_ret);
 
         void freeDeviceData();      /*!< \brief Call \c Coal::DeviceInterface::freeEventDeviceData() */
@@ -454,7 +463,7 @@ class Event : public Object
          * \brief Helper function for setStatus()
          * return number of dependent events
          */
-        int setStatusHelper(Status status);
+        int setStatusHelper(Status status, std::list<CallbackData> &callbacks);
 
     private:
         pthread_cond_t p_state_change_cond;
@@ -464,7 +473,7 @@ class Event : public Object
         void *p_device_data;
         std::multimap<Status, CallbackData> p_callbacks;
 
-        cl_uint p_timing[Max];
+        cl_ulong p_timing[Max];
 
         // p_wait_events: I should wait after these events complete
         // p_dependent_events: when I complete, I should notify these events
@@ -473,11 +482,5 @@ class Event : public Object
 };
 
 }
-
-struct _cl_command_queue : public Coal::CommandQueue
-{};
-
-struct _cl_event : public Coal::Event
-{};
 
 #endif

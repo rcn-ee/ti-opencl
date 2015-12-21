@@ -1,4 +1,4 @@
-#ifdef TI_66AK2H
+#ifdef TI_66AK2X
 
 #include <xdc/std.h>
 #include <string.h>
@@ -15,14 +15,14 @@
 #include "monitor.h"
 #include "edma.h"
 
-#define ADDR_IS_EDMA3_COHERENT(addr) ((addr) < (void*)0x80000000)
+#define ADDR_IS_EDMA3_COHERENT(addr) (((unsigned int) (addr) >> 20) == 0x008)
 
 extern cregister volatile unsigned int DNUM;
 
 /*-----------------------------------------------------------------------------
 * If the edmamgr resource map changes, we may need to revisit these macros
 *----------------------------------------------------------------------------*/
-#define EDMA_MGR_MAX_NUM_CHANNELS    (32)
+#define EDMA_MGR_MAX_NUM_CHANNELS    (16)
 #define STARTUP_NUM_OF_EDMA_CHANNELS (4)
 
 #define MEMCPY_THRESHOLD             (0x800) 
@@ -31,7 +31,7 @@ extern cregister volatile unsigned int DNUM;
 #define EDMA_PITCH_LIMIT            (32767)
 
 
-DDR_2D  (copy_event, edma_channel_pool, NUM_CORES, EDMA_MGR_MAX_NUM_CHANNELS);
+DDR_2D  (copy_event, edma_channel_pool, MAX_NUM_CORES, EDMA_MGR_MAX_NUM_CHANNELS);
 PRIVATE (copy_event *, available_edma_channel) = NULL;
 DDR     (copy_event,   memcpy_event) = { EV_MEMCPY, NULL };
 
@@ -276,4 +276,4 @@ void free_edma_channel_pool()
 	 EdmaMgr_free(edma_channel_pool[DNUM][i].channel);
 }
 
-#endif   // #ifdef TI_66AK2H
+#endif   // #ifdef TI_66AK2X

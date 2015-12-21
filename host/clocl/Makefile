@@ -1,8 +1,4 @@
-# If not specified, pick a default location for dependent llvm libraries
-LLVM_VERSION = 33
-DEFAULT_DEV_INSTALL_DIR ?= /opt/ti
-ARM_LLVM_DIR ?= $(DEFAULT_DEV_INSTALL_DIR)/llvm$(LLVM_VERSION)-install-arm
-X86_LLVM_DIR ?= $(DEFAULT_DEV_INSTALL_DIR)/llvm$(LLVM_VERSION)-install-x86
+include ../Makefile.inc
 
 CLANG_LIBS 	= -lclangFrontendTool
 CLANG_LIBS 	+= -lclangFrontend
@@ -32,7 +28,7 @@ ifneq (,$(findstring 86, $(UNAME_M)))
         TARGET := x86
         LLVM_DIR = $(X86_LLVM_DIR)
         LLVM_CONFIG_NAME = llvm-config
-	LLVM_LDFLAGS = -m32
+	LLVM_LDFLAGS = -ltinfo
    else ifeq ($(findstring arm-linux, $(CXX)), arm-linux) 
         TARGET := arm
    endif
@@ -47,11 +43,12 @@ LLVM_CONFIG_PREFIX = $(LLVM_DIR)/bin/
 LLVM_CONFIG_EXE ?= $(LLVM_CONFIG_PREFIX)$(LLVM_CONFIG_NAME)
 LLVM_CXXFLAGS = `$(LLVM_CONFIG_EXE) --cxxflags`
 
-
-# Cannot use llvm-config --ldflags because it includes -lz which is not 
-# available on arago
-LLVM_LDFLAGS += -L `$(LLVM_CONFIG_EXE) --libdir` -lpthread -lrt -ldl -lm
-LLVM_LIBS = `$(LLVM_CONFIG_EXE) --libs $(TARGET) asmparser bitwriter tablegen mcjit debuginfo interpreter irreader jit linker instrumentation ipo mcdisassembler`
+ifneq ($(MAKECMDGOALS), clean)
+# -lz is not available on arago
+LLVM_LDFLAGS += $(subst -lz,,$(shell $(LLVM_CONFIG_EXE) --ldflags))
+LLVM_LDFLAGS += -lpthread -lrt -ldl -lm
+LLVM_LIBS = `$(LLVM_CONFIG_EXE) --libs`
+endif
 
 UTILDIR         = ../src/core
 WGADIR          = ../src/core/dsp
@@ -65,14 +62,14 @@ OBJS        = AllocasToEntry.o BarrierBlock.o BarrierTailReplication.o \
               VariableUniformityAnalysis.o WIVectorize.o Workgroup.o \
               WorkItemAliasAnalysis.o WorkitemHandler.o \
               WorkitemHandlerChooser.o WorkitemLoops.o WorkitemReplication.o\
-              SimplifyShuffleBIFCall.o \
+              SimplifyShuffleBIFCall.o PrivatizationAliasAnalysis.o \
               main.o compiler.o wga.o program.o file_manip.o options.o \
               util.o
 
 OBJS := $(patsubst %.o, $(TARGET)/%.o, $(OBJS))
 
 CXXFLAGS := $(LLVM_CXXFLAGS) -I$(UTILDIR) -I$(WGADIR) -I$(POCLDIR) \
-            -DLLVM_3_3 $(HOST_USR_INCLUDE) -O3 -fexceptions -std=c++0x \
+            $(HOST_USR_INCLUDE) -O3 -fexceptions -std=c++0x \
             -D_PRODUCT_VERSION=$(_PRODUCT_VERSION) $(CXXFLAGS) 
 
 LIBS      = $(CLANG_LIBS)  $(LLVM_LIBS)

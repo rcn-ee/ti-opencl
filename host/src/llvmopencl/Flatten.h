@@ -29,11 +29,7 @@
 #include "llvm/Support/CommandLine.h"
 #include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/Pass.h"
-#if (defined LLVM_3_1 or defined LLVM_3_2)
-#include "llvm/Module.h"
-#else
 #include "llvm/IR/Module.h"
-#endif
 
 using namespace llvm;
 

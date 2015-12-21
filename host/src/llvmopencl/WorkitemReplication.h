@@ -25,7 +25,7 @@
 #define _POCL_WORKITEM_REPLICATION_H
 
 #include "llvm/ADT/Twine.h"
-#include "llvm/Analysis/Dominators.h"
+#include "llvm/IR/Dominators.h"
 #include "llvm/Analysis/LoopInfo.h"
 #include "llvm/Transforms/Utils/ValueMapper.h"
 #include <map>
@@ -49,6 +49,7 @@ namespace pocl {
   private:
 
     llvm::DominatorTree *DT;
+    llvm::DominatorTreeWrapperPass *DTP;
     llvm::LoopInfo *LI;
 
     typedef std::set<llvm::BasicBlock *> BasicBlockSet;

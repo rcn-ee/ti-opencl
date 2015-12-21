@@ -1,20 +1,274 @@
 ********************************************
-C66 standard C compiler intrinsic functions
+C66x standard C compiler intrinsic functions
 ********************************************
 
-The OpenCL C compiler for the C66 DSP supports the C66x standard C
+The OpenCL C compiler for the C66x DSP supports the C66x standard C
 compiler set of intrinsic functions, with the exception of those
-intrinsics that accept or result in a 40 bit value or a long long type. 
+intrinsics that accept or result in a 40 bit value.
+
 Please refer to the subsection 7.5.5. Using Intrinsics to Access Assembly
-Language Statements in the `C6000 Compiler User's Guide`_ for a list of these
-intrinsic functions.
+Language Statements in the `C6000 Compiler User's Guide`_ for a description 
+of these intrinsic functions.
 
 .. Important:: 
+   The prototypes for the intrinsics may be different in OpenCL C code than 
+   the prototypes in standard C code.  The  `C6000 Compiler User's Guide`_ documents 
+   the standard C code prototype.  The OpenCL C prototypes are listed below.  
 
-    In OpenCL C code the long type is 64 bits wide, and a long long type does
-    not exist. 
-    
-    In standard C66 C code the long type is 32 bits wide and the long long type
-    is 64 bits wide.
+   The majority of the changes involve the long long type in standard C code and the 
+   long type in OpenCL C code.  The long long type in standard C code is a 64 bit type
+   whereas the OpenCL C code equivalent is the long type.
+
+.. code-block:: cpp
+
+    int           _abs            (int x);
+    int           _abs2           (int x);
+    int           _add2           (int x, int y);
+    int           _add4           (int x, int y);
+    long          _addsub         (int x, int y);
+    long          _addsub2        (int x, int y);
+    ushort &      _amem2          (void *p);
+    const ushort &_amem2_const    (const void *p);
+    uint &        _amem4          (void *p);
+    const uint &  _amem4_const    (const void *p);
+    long &        _amem8          (void *p);
+    const long &  _amem8_const    (const void *p);
+    double &      _amemd8         (void *p);
+    const double &_amemd8_const   (const void *p);
+    int           _avg2           (int x, int y);
+    int           _avgu4          (int x, int y);
+    int           _bitc4          (int x);
+    int           _bitr           (int x);
+    int4          _ccmatmpy       (short4 x, short8 y);
+    short4        _ccmatmpyr1     (short4 x, short8 y);
+    long          _ccmpy32r1      (long x, long y);
+    int           _clr            (int x, int y, int z);
+    int           _clrr           (int x, int y);
+    int4          _cmatmpy        (short4 x, short8 y);
+    short4        _cmatmpyr1      (short4 x, short8 y);
+    int           _cmpeq2         (int x, int y);
+    int           _cmpeq4         (int x, int y);
+    int           _cmpgt2         (int x, int y);
+    int           _cmpgtu4        (int x, int y);
+    long          _cmpy           (int x, int y);
+    long          _cmpy32r1       (long x, long y);
+    int           _cmpyr          (int x, int y);
+    int           _cmpyr1         (int x, int y);
+    float4        _cmpysp         (float2 x, float2 y);
+    int           _crot270        (int x);
+    int           _crot90         (int x);
+    long          _dadd           (long x, long y);
+    long          _dadd2          (long x, long y);
+    long          _dadd_c         (int x, long y);
+    float2        _daddsp         (float2 x, float2 y);
+    long          _dapys2         (long x, long y);
+    long          _davg2          (long x, long y);
+    long          _davgnr2        (long x, long y);
+    long          _davgnru4       (long x, long y);
+    long          _davgu4         (long x, long y);
+    int4          _dccmpy         (short4 x, short4 y);
+    long          _dccmpyr1       (long x, long y);
+    uint          _dcmpeq2        (long x, long y);
+    uint          _dcmpeq4        (long x, long y);
+    uint          _dcmpgt2        (long x, long y);
+    uint          _dcmpgtu4       (long x, long y);
+    int4          _dcmpy          (short4 x, short4 y);
+    long          _dcmpyr1        (long x, long y);
+    long          _dcrot270       (long x);
+    long          _dcrot90        (long x);
+    long          _ddotp4         (int x, int y);
+    int2          _ddotp4h        (short8 x, short8 y);
+    long          _ddotph2        (long x, int y);
+    int           _ddotph2r       (long x, int y);
+    long          _ddotpl2        (long x, int y);
+    int           _ddotpl2r       (long x, int y);
+    int2          _ddotpsu4h      (short8 x, ushort8 y);
+    int           _deal           (int x);
+    float2        _dinthsp        (short2 x);
+    float2        _dinthspu       (ushort2 x);
+    float2        _dintsp         (int2 x);
+    float2        _dintspu        (uint2 x);
+    long          _dmax2          (long x, long y);
+    long          _dmaxu4         (long x, long y);
+    long          _dmin2          (long x, long y);
+    long          _dminu4         (long x, long y);
+    int4          _dmpy2          (short4 x, short4 y);
+    float2        _dmpysp         (float2 x, float2 y);
+    short8        _dmpysu4        (char8 x, uchar8 y);
+    uint4         _dmpyu2         (ushort4 x, ushort4 y);
+    ushort8       _dmpyu4         (uchar8 x, uchar8 y);
+    long          _dmv            (int x, int y);
+    long          _dmvd           (int x, int y);
+    int           _dotp2          (int x, int y);
+    int           _dotp4h         (long x, long y);
+    long          _dotp4hll       (long x, long y);
+    int           _dotpn2         (int x, int y);
+    int           _dotpnrsu2      (int x, int y);
+    int           _dotprsu2       (int x, int y);
+    int           _dotpsu4        (int x, int y);
+    int           _dotpsu4h       (long x, long y);
+    long          _dotpsu4hll     (long x, long y);
+    int           _dotpu4         (int x, int y);
+    long          _dpack2         (int x, int y);
+    long          _dpackh2        (long x, long y);
+    long          _dpackh4        (long x, long y);
+    long          _dpackhl2       (long x, long y);
+    long          _dpackl2        (long x, long y);
+    long          _dpackl4        (long x, long y);
+    long          _dpacklh2       (long x, long y);
+    long          _dpacklh4       (uint x, uint y);
+    long          _dpackx2        (int x, int y);
+    int           _dpint          (double x);
+    long          _dsadd          (long x, long y);
+    long          _dsadd2         (long x, long y);
+    long          _dshl           (long x, uint y);
+    long          _dshl2          (long x, uint y);
+    long          _dshr           (long x, uint y);
+    long          _dshr2          (long x, uint y);
+    long          _dshru          (long x, uint y);
+    long          _dshru2         (long x, uint y);
+    int4          _dsmpy2         (short4 x, short4 y);
+    long          _dspacku4       (long x, long y);
+    int2          _dspint         (float2 x);
+    short2        _dspinth        (float2 x);
+    long          _dssub          (long x, long y);
+    long          _dssub2         (long x, long y);
+    long          _dsub           (long x, long y);
+    long          _dsub2          (long x, long y);
+    float2        _dsubsp         (float2 x, float2 y);
+    long          _dxpnd2         (uint x);
+    long          _dxpnd4         (uint x);
+    int           _ext            (int x, int y, int z);
+    int           _extr           (int x, int y);
+    int           _extu           (int x, int y, int z);
+    int           _extur          (int x, int y);
+    double        _fabs           (double x);
+    float         _fabsf          (float x);
+    uint          _ftoi           (float x);
+    uint          _gmpy           (uint x, uint y);
+    int           _gmpy4          (int x, int y);
+    uint          _hi             (double x);
+    int           _hill           (long x);
+    double        _itod           (uint x, uint y);
+    float         _itof           (uint x);
+    long          _itoll          (int x, int y);
+    long          _labs           (long x);
+    int           _land           (int x, int y);
+    int           _landn          (int x, int y);
+    long          _ldotp2         (int x, int y);
+    int           _lmbd           (int x, int y);
+    int           _lnorm          (long x);
+    uint          _lo             (double x);
+    int           _loll           (long x);
+    int           _lor            (int x, int y);
+    long          _lsadd          (long x, int y);
+    long          _lssub          (long x, int y);
+    int           _max2           (int x, int y);
+    int           _maxu4          (int x, int y);
+    ushort &      _mem2           (void *p);
+    const ushort &_mem2_const     (const void *p);
+    uint &        _mem4           (void *p);
+    const uint &  _mem4_const     (const void *p);
+    long &        _mem8           (void *p);
+    const long &  _mem8_const     (const void *p);
+    double &      _memd8          (void *p);
+    const double &_memd8_const    (const void *p);
+    int           _min2           (int x, int y);
+    int           _minu4          (int x, int y);
+    int           _mpy            (int x, int y);
+    long          _mpy2ir         (int x, int y);
+    long          _mpy2ll         (int x, int y);
+    int           _mpy32          (int x, int y);
+    long          _mpy32ll        (int x, int y);
+    long          _mpy32su        (int x, int y);
+    long          _mpy32u         (int x, int y);
+    long          _mpy32us        (int x, int y);
+    int           _mpyh           (int x, int y);
+    long          _mpyhill        (int x, int y);
+    int           _mpyhir         (int x, int y);
+    int           _mpyhl          (int x, int y);
+    int           _mpyhlu         (int x, int y);
+    int           _mpyhslu        (int x, int y);
+    int           _mpyhsu         (int x, int y);
+    int           _mpyhu          (int x, int y);
+    int           _mpyhuls        (int x, int y);
+    int           _mpyhus         (int x, int y);
+    long          _mpyidll        (int x, int y);
+    int           _mpylh          (int x, int y);
+    int           _mpylhu         (int x, int y);
+    long          _mpylill        (int x, int y);
+    int           _mpylir         (int x, int y);
+    int           _mpylshu        (int x, int y);
+    int           _mpyluhs        (int x, int y);
+    double        _mpysp2dp       (float x, float y);
+    double        _mpyspdp        (float x, double y);
+    int           _mpysu          (int x, int y);
+    long          _mpysu4ll       (int x, int y);
+    int           _mpyu           (int x, int y);
+    long          _mpyu2          (uint x, uint y);
+    long          _mpyu4ll        (int x, int y);
+    int           _mpyus          (int x, int y);
+    int           _mvd            (int x);
+    int           _norm           (int x);
+    int           _pack2          (int x, int y);
+    int           _packh2         (int x, int y);
+    int           _packh4         (int x, int y);
+    int           _packhl2        (int x, int y);
+    int           _packl4         (int x, int y);
+    int           _packlh2        (int x, int y);
+    int4          _qmpy32         (int4 x, int4 y);
+    float4        _qmpysp         (float4 x, float4 y);
+    int4          _qsmpy32r1      (int4 x, int4 y);
+    double        _rcpdp          (double x);
+    float         _rcpsp          (float x);
+    int           _rotl           (int x, int y);
+    int           _rpack2         (int x, int y);
+    double        _rsqrdp         (double x);
+    float         _rsqrsp         (float x);
+    int           _sadd           (int x, int y);
+    int           _sadd2          (int x, int y);
+    long          _saddsub        (int x, int y);
+    long          _saddsub2       (int x, int y);
+    int           _saddu4         (int x, int y);
+    int           _saddus2        (int x, int y);
+    int           _sat            (long x);
+    int           _set            (int x, int y, int z);
+    int           _setr           (int x, int y);
+    int           _shfl           (int x);
+    long          _shfl3          (int x, int y);
+    uint          _shl2           (uint x, uint y);
+    int           _shlmb          (int x, int y);
+    int           _shr2           (int x, int y);
+    int           _shrmb          (int x, int y);
+    int           _shru2          (int x, int y);
+    int           _smpy           (int x, int y);
+    long          _smpy2ll        (int x, int y);
+    int           _smpy32         (int x, int y);
+    int           _smpyh          (int x, int y);
+    int           _smpyhl         (int x, int y);
+    int           _smpylh         (int x, int y);
+    int           _spack2         (int x, int y);
+    int           _spacku4        (int x, int y);
+    int           _spint          (float x);
+    int           _sshl           (int x, int y);
+    int           _sshvl          (int x, int y);
+    int           _sshvr          (int x, int y);
+    int           _ssub           (int x, int y);
+    int           _ssub2          (int x, int y);
+    int           _sub2           (int x, int y);
+    int           _sub4           (int x, int y);
+    int           _subabs4        (int x, int y);
+    int           _subc           (int x, int y);
+    int           _swap4          (int x);
+    long          _unpkbu4        (uint x);
+    long          _unpkh2         (uint x);
+    long          _unpkhu2        (uint x);
+    int           _unpkhu4        (int x);
+    int           _unpklu4        (int x);
+    long          _xorll_c        (int x, long y);
+    int           _xormpy         (int x, int y);
+    int           _xpnd2          (int x);
+    int           _xpnd4          (int x);
+
 
 .. _C6000 Compiler User's Guide: http://www.ti.com/lit/ug/spru187u/spru187u.pdf

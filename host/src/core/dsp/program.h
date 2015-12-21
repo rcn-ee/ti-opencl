@@ -66,20 +66,19 @@ class DSPProgram : public DeviceProgram
         const char* outfile_name() const;
         void createOptimizationPasses(llvm::PassManager *manager,
                                       bool optimize, bool hasBarrier=false);
-        bool build(llvm::Module *module, std::string *binary_str,
+        bool build(llvm::Module *module, std::string *binary_str, 
                    char *binary_filename=NULL);
         bool ExtractMixedBinary(std::string *binary_str,
                                 std::string *bitcode, std::string *native);
         void WriteNativeOut(std::string *native);
         void ReadEmbeddedBinary(std::string *binary_str);
 
+        DSPDevicePtr mem_l2_section_extent(uint32_t& size) const;
         DSPDevicePtr query_symbol(const char *symname);
         DSPDevicePtr data_page_ptr();
         bool load();
         bool is_loaded() const;
         DSPDevicePtr program_load_addr() const;
-
-        int l2_allocated() const;
 
     private:
         DSPDevice    *p_device;
@@ -93,6 +92,7 @@ class DSPProgram : public DeviceProgram
         bool          p_cache_kernels;
         bool          p_debug;
         bool          p_info;
+        DSPDevicePtr  p_ocl_local_overlay_start;
 };
 }
 #endif

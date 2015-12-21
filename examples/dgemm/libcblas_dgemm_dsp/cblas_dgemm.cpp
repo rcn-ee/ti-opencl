@@ -46,10 +46,6 @@ extern "C" {
 using namespace std;
 using namespace cl;
 
-#define L2_BUF_SIZE       (768 << 10)
-// #define MSMC_BUF_SIZE     0x480000 // 4.5 MB
-#define MSMC_BUF_SIZE     0x280000 // 2.5 MB
-
 #define USE_HOST_READ  (CL_MEM_USE_HOST_PTR|CL_MEM_READ_ONLY)
 #define USE_HOST_WRITE (CL_MEM_USE_HOST_PTR|CL_MEM_WRITE_ONLY)
 #define USE_HOST_RW    (CL_MEM_USE_HOST_PTR|CL_MEM_READ_WRITE)
@@ -91,7 +87,7 @@ void dsp_cblas_dgemm(CBLAS_ORDER order, CBLAS_TRANSPOSE transA,
     /*-------------------------------------------------------------------------
     * Ensure the OpenCL context is active
     *------------------------------------------------------------------------*/
-    if (ocl.context == 0) ocl_init();
+    if (ocl.context == 0) ocl_init(false, NULL);
     Context &ctx = *(ocl.context);
     Kernel *kernel = ocl.K_cblas_dgemm;
 
@@ -113,32 +109,43 @@ void dsp_cblas_dgemm(CBLAS_ORDER order, CBLAS_TRANSPOSE transA,
         Buffer bufA   (ctx, USE_HOST_READ, sizeA, (void*)A);
         Buffer bufB   (ctx, USE_HOST_READ, sizeB, (void*)B);
         Buffer bufC   (ctx, USE_HOST_RW,   sizeC, (void*)C);
-        Buffer bufMsmc(ctx, CL_MEM_USE_MSMC_TI|CL_MEM_READ_WRITE,
-                            MSMC_BUF_SIZE);
+        Buffer *bufMsmc = NULL;
+        if (dparams.MSMC_BUF_SIZE != 0)
+            bufMsmc = new Buffer(ctx, CL_MEM_USE_MSMC_TI|CL_MEM_READ_WRITE,
+                                 dparams.MSMC_BUF_SIZE);
+        else
+            bufMsmc = new Buffer(ctx, CL_MEM_READ_WRITE, 4); // dummy one
 
         /*----------------------------------------------------------------------
         * Device: Do A*B = C
         *---------------------------------------------------------------------*/
-        kernel->setArg(0, order); 
-        kernel->setArg(1, (int)transA); 
-        kernel->setArg(2, (int)transB); 
-        kernel->setArg(3, M); 
-        kernel->setArg(4, N); 
-        kernel->setArg(5, K); 
-        kernel->setArg(6, alpha); 
-        kernel->setArg(7, bufA); 
-        kernel->setArg(8, lda); 
-        kernel->setArg(9, bufB); 
-        kernel->setArg(10, ldb); 
-        kernel->setArg(11, beta); 
-        kernel->setArg(12, bufC); 
-        kernel->setArg(13, ldc); 
-        kernel->setArg(14, bufMsmc); 
-        kernel->setArg(15, __local(L2_BUF_SIZE)); 
-        kernel->setArg(16, MSMC_BUF_SIZE); 
+        kernel->setArg(0, order);
+        kernel->setArg(1, (int)transA);
+        kernel->setArg(2, (int)transB);
+        kernel->setArg(3, M);
+        kernel->setArg(4, N);
+        kernel->setArg(5, K);
+        kernel->setArg(6, alpha);
+        kernel->setArg(7, bufA);
+        kernel->setArg(8, lda);
+        kernel->setArg(9, bufB);
+        kernel->setArg(10, ldb);
+        kernel->setArg(11, beta);
+        kernel->setArg(12, bufC);
+        kernel->setArg(13, ldc);
+        kernel->setArg(14, dparams.NUMAPANELS);
+        kernel->setArg(15, dparams.NUMBPANELS);
+        kernel->setArg(16, *bufMsmc);
+        kernel->setArg(17, __local(dparams.L2_BUF_SIZE));
+        kernel->setArg(18, dparams.MSMC_BUF_SIZE);
+
+        std::string kfname;
+        kernel->getInfo(CL_KERNEL_FUNCTION_NAME, &kfname);
+        int numwgs = (kfname == "K_cblas_dgemm_omp") ? 1 : dparams.NUMCOMPUNITS;
 
         Event e;
-        ocl.queueInOrder->enqueueNDRangeKernel(*kernel, NullRange,NDRange(1),
+        ocl.queueInOrder->enqueueNDRangeKernel(*kernel, NullRange,
+                                               NDRange(numwgs),
                                                NDRange(1), NULL, &e);
         e.wait();
     }

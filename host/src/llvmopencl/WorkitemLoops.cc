@@ -32,38 +32,22 @@
 #include "llvm/ADT/Statistic.h"
 #include "llvm/Analysis/LoopInfo.h"
 #include "llvm/Support/CommandLine.h"
-#ifdef LLVM_3_1
-#include "llvm/Support/IRBuilder.h"
-#include "llvm/Support/TypeBuilder.h"
-#include "llvm/Target/TargetData.h"
-#include "llvm/Instructions.h"
-#include "llvm/Module.h"
-#include "llvm/ValueSymbolTable.h"
-#elif defined LLVM_3_2
-#include "llvm/IRBuilder.h"
-#include "llvm/TypeBuilder.h"
-#include "llvm/DataLayout.h"
-#include "llvm/Instructions.h"
-#include "llvm/Module.h"
-#include "llvm/ValueSymbolTable.h"
-#else
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/TypeBuilder.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/ValueSymbolTable.h"
-#endif
 #include "llvm/Analysis/PostDominators.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
-
-#include <llvm/Support/InstIterator.h>
+#include <llvm/IR/InstIterator.h>
 #include "WorkitemHandlerChooser.h"
 
 #include <iostream>
 #include <map>
 #include <sstream>
 #include <vector>
+#include <list>
 
 //#define DUMP_CFGS
 
@@ -90,7 +74,7 @@ char WorkitemLoops::ID = 0;
 void
 WorkitemLoops::getAnalysisUsage(AnalysisUsage &AU) const
 {
-  AU.addRequired<DominatorTree>();
+  AU.addRequired<DominatorTreeWrapperPass>();
   AU.addRequired<PostDominatorTree>();
   AU.addRequired<LoopInfo>();
 // TODO - Removed due to compilation error
@@ -120,12 +104,10 @@ WorkitemLoops::runOnFunction(Function &F)
       pocl::WorkitemHandlerChooser::POCL_WIH_LOOPS)
     return false;
 
-  int wgsizes[3];
-  if (getReqdWGSize(F, wgsizes))
-    if (wgsizes[0] == 1 && wgsizes[1] == 1 && wgsizes[2] == 1)
-      return false;
+  if (isReqdWGSize111(F))  return false;
 
-  DT = &getAnalysis<DominatorTree>();
+  DTP = &getAnalysis<DominatorTreeWrapperPass>();
+  DT = &DTP->getDomTree();
   LI = &getAnalysis<LoopInfo>();
   PDT = &getAnalysis<PostDominatorTree>();
   VUA = &getAnalysis<VariableUniformityAnalysis>();
@@ -151,7 +133,7 @@ WorkitemLoops::runOnFunction(Function &F)
   F.viewCFG();
 #endif
 
-  changed |= fixUndominatedVariableUses(DT, F);
+  changed |= fixUndominatedVariableUses(DTP, F);
 
   // YUAN TODO: Causing significant opt6x time increase, need to investigate
   // changed |= removeBarrierCalls(&F);
@@ -251,7 +233,7 @@ WorkitemLoops::CreateLoopAround
     BasicBlock::Create(C, "pregion_for_end", F, oldExit);
 #endif
 
-  DT->runOnFunction(*F);
+  DTP->runOnFunction(*F);
 
   /*---------------------------------------------------------------------------
    * Init Block
@@ -403,7 +385,7 @@ WorkitemLoops::CreateLoopAround
 
     /* This creation of the identifier metadata is copied from
        LLVM's MDBuilder::createAnonymousTBAARoot(). */
-    MDNode *Dummy = MDNode::getTemporary(C, ArrayRef<Value*>());
+    MDNode *Dummy = MDNode::getTemporary(C, ArrayRef<Metadata*>());
     MDNode *Root = MDNode::get(C, Dummy);
     // At this point we have
     //   !0 = metadata !{}            <- dummy
@@ -414,11 +396,7 @@ WorkitemLoops::CreateLoopAround
     // We now have
     //   !1 = metadata !{metadata !1} <- self-referential root
 
-#ifdef LLVM_3_3
-    loopBranch->setMetadata("llvm.loop.parallel", Root);
-#else
     loopBranch->setMetadata("llvm.loop", Root);
-#endif
     region.AddParallelLoopMetadata(Root);
   }
 
@@ -903,7 +881,7 @@ WorkitemLoops::FixMultiRegionVariables(ParallelRegion *region)
                ui != ue; ++ui) 
             {
               Instruction *user;
-              if ((user = dyn_cast<Instruction> (*ui)) == NULL) continue;
+              if ((user = dyn_cast<Instruction> (ui->getUser())) == NULL) continue;
               // If the instruction is used outside this region inside another
               // region (not in a regionless BB like the B-loop construct BBs),
               // need to context save it.
@@ -936,7 +914,7 @@ WorkitemLoops::FixMultiRegionVariables(ParallelRegion *region)
                                    ue = (*I)->use_end(); ui != ue; ++ui)
     {
       Instruction *user;
-      if ((user = dyn_cast<Instruction> (*ui)) == NULL) continue;
+      if ((user = dyn_cast<Instruction> (ui->getUser())) == NULL) continue;
       if (instructionsInRegion.find(user) == instructionsInRegion.end() &&
           RegionOfBlock(user->getParent()) != NULL)
         user_list.push_back(user);
@@ -1118,6 +1096,28 @@ WorkitemLoops::GetContextArray(llvm::Instruction *instruction)
   llvm::Instruction *alloca =
     builder.CreateAlloca(elementType, wgsize, varName);
 
+  llvm::Module *M = instruction->getParent()->getParent()->getParent();
+  llvm::NamedMDNode *named = M->getOrInsertNamedMetadata("ocl.restrict");
+  if (named->getNumOperands() == 0)
+  {
+    /* This creation of the identifier metadata is copied from
+       LLVM's MDBuilder::createAnonymousTBAARoot(). */
+    LLVMContext &C = instruction->getContext();
+    MDNode *Dummy = MDNode::getTemporary(C, ArrayRef<Metadata*>());
+    MDNode *Root = MDNode::get(C, Dummy);
+    // At this point we have
+    //   !0 = metadata !{}            <- dummy
+    //   !1 = metadata !{metadata !0} <- root
+    // Replace the dummy operand with the root node itself and delete the dummy
+    Root->replaceOperandWith(0, Root);
+    MDNode::deleteTemporary(Dummy);
+    // We now have
+    //   !1 = metadata !{metadata !1} <- self-referential root
+    named->addOperand(Root);
+  }
+  llvm::MDNode *mdnode = named->getOperand(0);
+  alloca->setMetadata("ocl.restrict", mdnode);
+
   contextArrays[varName] = alloca;
   return alloca;
 }
@@ -1162,12 +1162,10 @@ WorkitemLoops::AddContextSaveRestore
 
   /* Find out the uses to fix first as fixing them invalidates
      the iterator. */
-  for (Instruction::use_iterator ui = instruction->use_begin(),
-         ue = instruction->use_end();
-       ui != ue; ++ui) 
+  for (User *U : instruction->users() )
     {
       Instruction *user;
-      if ((user = dyn_cast<Instruction> (*ui)) == NULL) continue;
+      if ((user = dyn_cast<Instruction> (U)) == NULL) continue;
       if (user == theStore) continue;
       uses.push_back(user);
     }
@@ -1440,10 +1438,9 @@ WorkitemLoops::localizeGetLocalId(Function *F)
     ParallelRegion *region = RegionOfBlock(call->getParent());
     std::list<Instruction *> replist;
 
-    for (Value::use_iterator UI = call->use_begin(),
-                             UE = call->use_end(); UI != UE; ++UI)
+    for (User *U : call->users())
     {
-      if (Instruction *inst = dyn_cast<Instruction>(*UI))
+      if (Instruction *inst = dyn_cast<Instruction>(U))
       {
         if (   inst->getParent() == B
             || RegionOfBlock(inst->getParent()) == region) continue;
@@ -1582,10 +1579,9 @@ WorkitemLoops::findIntraRegionAllocas(llvm::Function *F)
       }
     }
 
-    std::set<BasicBlock *> userSet;
-    for (Value::use_iterator UI = alloca->use_begin(),
-                             UE = alloca->use_end(); UI != UE; ++UI)
-      if (Instruction *instr = dyn_cast<Instruction>(*UI))
+    std::set<const BasicBlock *> userSet;
+    for (const User *U : alloca->users())
+      if (const Instruction *instr = dyn_cast<Instruction>(U))
         userSet.insert(instr->getParent());
 
     bool is_intra = true;
@@ -1597,10 +1593,10 @@ WorkitemLoops::findIntraRegionAllocas(llvm::Function *F)
       bool onein  = false;
       bool oneout = false;
       ParallelRegion *region = (*RI);
-      for (std::set<BasicBlock *>::iterator BI = userSet.begin(),
+      for (std::set<const BasicBlock *>::iterator BI = userSet.begin(),
                                             BE = userSet.end(); BI != BE; ++BI)
       {
-        BasicBlock *B = *BI;
+        const BasicBlock *B = *BI;
         if (region->HasBlock(B)) { onein  = true; if (oneout) break; }
         else                     { oneout = true; if (onein)  break; }
       }

@@ -27,7 +27,7 @@ managed memory to OpenCL managed memory.  These extensions were provided to allo
 the top level algorithmic code to originate data allocation in OpenCL managed memory, 
 thus eliminated the need for data copy and improving performance.
 
-Without these new APIs the host application and lowel level function might look like::
+Without these new APIs the host application and lower level function might look like::
 
     main()
     {
@@ -106,12 +106,26 @@ OpenCL subbuffers created from OpenCL buffers defined with CL_MEM_USE_HOST_PTR
 and a supplied pointer originating from __malloc_ddr, will also benefit from the 
 underlying subbuffer memory residing in :ref:`CMEM<CMEM>`.
 
+.. Caution::
+    OpenCL buffers can also be created with CL_MEM_USE_HOST_PTR and a supplied
+    pointer in the middle of a __malloc_ddr/__malloc_msmc allocated region.
+    However, when doing so, extra caution should be taken not to create
+    overlapping buffers, as it is undefined behavior when they are accessed
+    by the same kernel and at least one of them is write access.
+    If such undefined scenario is absolutely intended, user needs to pass
+    "-a" option to the kernel compiler, telling the compiler that kernel
+    arguments could alias each other.  "-a" should be specified in the
+    clBuildProgram API call for online compilation and on the clocl command
+    line for offline compilation.
+    Even so, it is still user's responsibility to ensure correct parallel
+    execution semantics, for example, when there are multiple workgroups.
+
 .. Important::
 
     Since the ARM CPU is a 32 bit architecture, Linux will only support 4GB
     of virtual memory at any given time, therefore the amount of memory available to
     __malloc_ddr or __malloc_msmc will be limited in size to a limit below 4GB.
-    This is in contrast to definining an OpenCL buffer in the host application that
+    This is in contrast to defining an OpenCL buffer in the host application that
     is only limited by the maximum block available in any CMEM heap.  These can
     exceed 4GB in length.  This can occur because the allocation of the buffer does
     not imply a map into the virtual memory space.  That would occur independently

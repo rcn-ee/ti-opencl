@@ -28,7 +28,7 @@
  *****************************************************************************/
 #include "clc.h"
 
-#define EXPAND_SIZES(type) \
+#define _EXPAND_SIZES(type) \
     IMPLEMENTATION(_VEC_TYPE(type,2))  \
     IMPLEMENTATION(_VEC_TYPE(type,3))  \
     IMPLEMENTATION(_VEC_TYPE(type,4))  \
@@ -37,8 +37,20 @@
 
 #define IMPLEMENTATION(gentype) \
   _CLC_OVERLOAD _CLC_DEF gentype hadd(gentype x, gentype y) \
-    { return (x >> (gentype)1) + (y >> (gentype)1) + (x & y & (gentype)1); } \
-  _CLC_OVERLOAD _CLC_DEF gentype rhadd(gentype x, gentype y) \
-    { return (x >> (gentype)1) + (y >> (gentype)1) + ((x&(gentype)1)|(y&(gentype)1)); } \
+    { return (x >> (gentype)1) + (y >> (gentype)1) + (x & y & (gentype)1); } 
 
 _EXPAND_INTEGER_TYPES()
+
+#undef  IMPLEMENTATION
+#define IMPLEMENTATION(gentype) \
+  _CLC_OVERLOAD _CLC_DEF gentype rhadd(gentype x, gentype y) \
+    { return (x >> (gentype)1) + (y >> (gentype)1) + ((x&(gentype)1)|(y&(gentype)1)); } 
+
+_EXPAND_SIZES(char)
+// (uchar) handled inline in dsp.h
+// (short) handled inline in dsp.h
+_EXPAND_SIZES(ushort)
+_EXPAND_SIZES(int)
+_EXPAND_SIZES(uint)
+_EXPAND_SIZES(long)
+_EXPAND_SIZES(ulong)

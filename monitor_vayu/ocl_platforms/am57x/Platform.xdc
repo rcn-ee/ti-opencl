@@ -38,22 +38,33 @@ config ti.platforms.generic.Platform.Instance CPU =
       * DDR Related regions
       *----------------------------------------------------------------------*/
       [ "DDR3",         { name: "DDR3", 
-                          base: 0xFE800000, 
-			  len:  0x00400000,
+                          base: 0xFEC00000,
+			  len:  0x003E0000,
                           space: "code/data", 
 			  access: "RWX", } ],
 
-      /* Each DSP core uses its own framework components data structure */
-      [ "DDR3_FC0",     { name: "DDR3_FC0",
-                          base: 0xFEC00000,
-			  len:  0x00010000,
+      /* Each DSP core uses its own framework components data structure
+         via remoteproc memory allocation for carveout */
+      [ "DDR3_FC",     { name: "DDR3_FC",
+                          base: 0xFEFE0000,
+			  len:  0x00020000,
                           space: "code/data",
 			  access: "RWX", } ],
-      [ "DDR3_FC1",     { name: "DDR3_FC1",
-                          base: 0xFEC10000,
-			  len:  0x00010000,
+
+
+      /* Non-cached DDR */
+      [ "DDR3_NC",   { name: "DDR3_NC",
+                          base: 0x80000000,
+                          len:  0x01000000,
                           space: "code/data",
-			  access: "RWX", } ],
+                          access: "RWX", } ],
+
+      /* Non-cached DDR */
+      [ "DDR3_HEAP", { name: "DDR3_HEAP",
+                          base: 0x81000000,
+                          len:  0x01000000,
+                          space: "code/data",
+                          access: "RWX", } ],
 
       /* Non-cached DDR */
       [ "SR_0",         { name: "SR_0",
@@ -62,7 +73,7 @@ config ti.platforms.generic.Platform.Instance CPU =
                           space: "data",
                           access: "RWX", } ],
 
-      [ "DDR3_NC",   { name: "DDR3_NC",
+      [ "DDR3_NC2",   { name: "DDR3_NC2",
                           base: 0xFF100000,
                           len:  0x00F00000,
                           space: "code/data",

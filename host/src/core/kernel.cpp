@@ -36,6 +36,7 @@
 #include "program.h"
 #include "memobject.h"
 #include "sampler.h"
+#include "context.h"
 #include "deviceinterface.h"
 
 #include <string>
@@ -113,11 +114,11 @@ cl_int Kernel::addFunction(DeviceInterface *device, llvm::Function *function,
     p_name = function->getName().str();
 
     // Get wi_alloca_size, to be used for computing wg_alloca_size
-    std::string fattrs = function->getAttributes().getAsString(
-                                           llvm::AttributeSet::FunctionIndex);
-    std::size_t found = fattrs.find("_wi_alloca_size=");
-    if (found != std::string::npos)
-        wi_alloca_size = atoi(fattrs.data() + found + 16);
+    std::string WAS_str = function->getAttributes().getAttribute
+                         (llvm::AttributeSet::FunctionIndex, "_wi_alloca_size")
+                                             .getValueAsString();
+
+    if (!WAS_str.empty()) wi_alloca_size = std::stoi(WAS_str);
 
     /*-------------------------------------------------------------------------
     * Add a device dependent
@@ -261,6 +262,11 @@ llvm::Function *Kernel::function(DeviceInterface *device) const
 
 /******************************************************************************
 * cl_int Kernel::setArg
+*
+* Note: the argument void *value can either be a pointer to raw data, or a
+* derived type of MemObject, upcast to an ICD descriptor (see icd.h).
+* In this case, we must be careful to distinguish between the two and do the
+* downcast to a clover object if valule is a pointer to an ICD object.
 ******************************************************************************/
 cl_int Kernel::setArg(cl_uint index, size_t size, const void *value)
 {
@@ -284,7 +290,7 @@ cl_int Kernel::setArg(cl_uint index, size_t size, const void *value)
     /*-------------------------------------------------------------------------
     * Check that size corresponds to the arg type
     *------------------------------------------------------------------------*/
-    size_t arg_size = arg.valueSize() * arg.vecDim();
+    size_t arg_size = arg.vecValueSize();
 
     /*-------------------------------------------------------------------------
     * Special case for samplers (pointers in C++, uint32 in OpenCL).
@@ -304,22 +310,27 @@ cl_int Kernel::setArg(cl_uint index, size_t size, const void *value)
     if (size != arg_size) return CL_INVALID_ARG_SIZE;
 
     /*-------------------------------------------------------------------------
-    * Check for null values
+    * Downcast 'void *value' from a potential &cl_mem argument to a MemObject
+    * if arg type is one of Arg::Buffer, Arg::Image2D, or Arg::Image3D.
+    * Also, check for null values.
     *------------------------------------------------------------------------*/
-    cl_mem null_mem = 0;
+    MemObject *mem_value = NULL;
 
-    if (!value)
+    switch (arg.kind())
     {
-        switch (arg.kind())
-        {
-            /*-------------------------------------------------------------
-            * Special case buffers : value can be 0 (or point to 0)
-            *------------------------------------------------------------*/
-            case Arg::Buffer:
-            case Arg::Image2D:
-            case Arg::Image3D: value = &null_mem;
-            default:           return CL_INVALID_ARG_VALUE;
-        }
+        /*-------------------------------------------------------------
+        * Special case buffers : value can be 0 (or point to 0)
+        *------------------------------------------------------------*/
+        case Arg::Buffer:
+        case Arg::Image2D:
+        case Arg::Image3D:
+            if (value) {
+                mem_value = pobj(*(cl_mem *)value);
+            }
+            value = &mem_value;
+            break;
+        default:
+            if (!value) return CL_INVALID_ARG_VALUE;
     }
 
     /*-------------------------------------------------------------------------
@@ -396,11 +407,11 @@ cl_int Kernel::info(cl_kernel_info param_name,
             break;
 
         case CL_KERNEL_CONTEXT:
-            SIMPLE_ASSIGN(cl_context, parent()->parent());
+            SIMPLE_ASSIGN(cl_context, desc((Context *)(parent()->parent())));
             break;
 
         case CL_KERNEL_PROGRAM:
-            SIMPLE_ASSIGN(cl_program, parent());
+            SIMPLE_ASSIGN(cl_program, desc((Program *)parent()));
             break;
 
         default:
@@ -422,42 +433,53 @@ cl_int Kernel::info(cl_kernel_info param_name,
 boost::tuple<uint,uint,uint> Kernel::reqdWorkGroupSize(llvm::Module *module) const
 {
     llvm::NamedMDNode *kernels = module->getNamedMetadata("opencl.kernels");
+    llvm::MDNode *kernel = NULL;
 
     boost::tuple<uint,uint,uint> zeros(0,0,0);
 
     if (!kernels) return zeros;
+   
+    for (unsigned int i = 0, e = kernels->getNumOperands(); i != e; ++i){
+       llvm::MDNode *kernel_iter = kernels->getOperand(i);
 
-    for (unsigned int i=0; i<kernels->getNumOperands(); ++i)
+       /*---------------------------------------------------------------------
+       * Each node has only one operand : a llvm::Function
+       *--------------------------------------------------------------------*/
+       llvm::Function *f = 
+          llvm::cast<llvm::Function>(
+             llvm::dyn_cast<llvm::ValueAsMetadata>(
+                kernel_iter->getOperand(0))->getValue());
+    
+       if(f->getName().str() != p_name) continue;
+       kernel = kernel_iter;
+    }
+
+    unsigned e = kernel->getNumOperands();
+    for (unsigned int i=1; i != e; ++i)
     {
-        llvm::MDNode *node = kernels->getOperand(i);
+        llvm::MDNode *meta = llvm::cast<llvm::MDNode>(kernel->getOperand(i));
 
-        /*---------------------------------------------------------------------
-        * Each node has only one operand : a llvm::Function
-        *--------------------------------------------------------------------*/
-        llvm::Value *value = node->getOperand(0);
+        if (meta->getNumOperands() <= 1) return zeros;
 
-        /*---------------------------------------------------------------------
-        * Bug somewhere, don't crash
-        *--------------------------------------------------------------------*/
-        if (!llvm::isa<llvm::Function>(value)) continue;
-
-        llvm::Function *f = llvm::cast<llvm::Function>(value);
-        if(f->getName().str() != p_name) continue;
-
-        if (node->getNumOperands() <= 1) return zeros;
-
-        llvm::MDNode *meta = llvm::cast<llvm::MDNode>(node->getOperand(1));
-        if (meta->getNumOperands() == 4 &&
-            meta->getOperand(0)->getName().str() == std::string("reqd_work_group_size"))
+        std::string meta_name = llvm::cast<llvm::MDString>(
+              meta->getOperand(0))->getString().str();
+        if ((meta->getNumOperands() == 4) && 
+            (meta_name == "reqd_work_group_size"))
         {
-            uint x = llvm::cast<llvm::ConstantInt> (meta->getOperand(1))->getValue().getLimitedValue();
-            uint y = llvm::cast<llvm::ConstantInt> (meta->getOperand(2))->getValue().getLimitedValue();
-            uint z = llvm::cast<llvm::ConstantInt> (meta->getOperand(3))->getValue().getLimitedValue();
+	    uint x = (llvm::cast<llvm::ConstantInt>(
+               llvm::dyn_cast<llvm::ConstantAsMetadata>(
+                  meta->getOperand(1))->getValue()))->getLimitedValue();
+	    uint y = (llvm::cast<llvm::ConstantInt>(
+               llvm::dyn_cast<llvm::ConstantAsMetadata>(
+                  meta->getOperand(2))->getValue()))->getLimitedValue();
+	    uint z = (llvm::cast<llvm::ConstantInt>(
+               llvm::dyn_cast<llvm::ConstantAsMetadata>(
+                  meta->getOperand(3))->getValue()))->getLimitedValue();
 
             return boost::tuple<uint,uint,uint> (x,y,z);
         }
-        return zeros;
     }
+    return zeros;
 }
 
 
@@ -538,7 +560,7 @@ Kernel::Arg::~Arg()
 
 void Kernel::Arg::alloc()
 {
-    if (!p_data) p_data = std::malloc(p_vec_dim * valueSize());
+    if (!p_data) p_data = std::malloc(vecValueSize());
 }
 
 void Kernel::Arg::loadData(const void *data)
@@ -585,6 +607,11 @@ size_t Kernel::Arg::valueSize() const
     }
 
     return 0;
+}
+
+size_t Kernel::Arg::vecValueSize() const
+{
+  return valueSize() * (p_vec_dim == 3 ? 4 : p_vec_dim);
 }
 
 unsigned short    Kernel::Arg::vecDim()    const { return p_vec_dim; }

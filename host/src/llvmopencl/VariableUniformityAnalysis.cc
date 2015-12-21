@@ -25,21 +25,12 @@
 #include <sstream>
 #include <iostream>
 
-#ifdef LLVM_3_2
-#include "llvm/Metadata.h"
-#include "llvm/Constants.h"
-#include "llvm/Module.h"
-#include "llvm/Instructions.h"
-#include "llvm/ValueSymbolTable.h"
-#include "llvm/DataLayout.h"
-#else
 #include "llvm/IR/Metadata.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/ValueSymbolTable.h"
 #include "llvm/IR/DataLayout.h"
-#endif
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Analysis/PostDominators.h"
 
@@ -74,8 +65,8 @@ VariableUniformityAnalysis::getAnalysisUsage(llvm::AnalysisUsage &AU) const {
   AU.addRequired<LoopInfo>();
   AU.addPreserved<LoopInfo>();
   // required by LoopInfo:
-  AU.addRequired<DominatorTree>();
-  AU.addPreserved<DominatorTree>();
+  AU.addRequired<DominatorTreeWrapperPass>();
+  AU.addPreserved<DominatorTreeWrapperPass>();
 
 // TODO This was turned off because of compilation error
 #if 0
@@ -91,6 +82,7 @@ VariableUniformityAnalysis::getAnalysisUsage(llvm::AnalysisUsage &AU) const {
 
 bool
 VariableUniformityAnalysis::runOnFunction(Function &F) {
+  if (isReqdWGSize111(F))  return false;
 
   /* Do the actual analysis on-demand except for the basic block 
      divergence analysis. */
@@ -299,7 +291,7 @@ VariableUniformityAnalysis::isUniform(llvm::Function *f, llvm::Value* v) {
            ue = instruction->use_end();
          ui != ue; ++ui) {
       Instruction *user;
-      if ((user = dyn_cast<Instruction> (*ui)) == NULL) continue;
+      if ((user = dyn_cast<Instruction> (ui->getUser())) == NULL) continue;
       
       llvm::StoreInst *store = dyn_cast<llvm::StoreInst>(user);
       if (store) {

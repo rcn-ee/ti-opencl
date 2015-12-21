@@ -1,15 +1,8 @@
-OCL_BUILD_ROOT= $(shell pwd)
-OCL_MAJ_VER=1
-OCL_VER=$(OCL_MAJ_VER).1.6
-.SILENT:
-LLVM_VER=3.3
-
-# Needed by sub target makes
-export ARM_LLVM_DIR = /opt/ti-llvm-$(LLVM_VER)
+include host/Makefile.inc
 
 OCL_BUILD_DIR    = build
 OCL_SRC_DIR      = host
-OCL_MONITOR_DIR  = monitor
+OCL_MONITOR_DIR  = monitor/monitor_evmk2h
 OCL_BUILTINS_DIR = builtins
 OCL_LIBM_DIR     = libm
 OCL_EXAMPLES_DIR = examples
@@ -27,13 +20,6 @@ OCL_OMP_EXAMPLES = vecadd_openmp vecadd_openmp_t dgemm
 .PHONY: all clean opencl install clone
 
 
-# Default to K2H build. If BUILD_AM57 is set, build for AM57.
-ifeq ($(BUILD_AM57),1)
-CMAKE_DEFINES = -DBUILD_TARGET=ARM_AM57
-else
-CMAKE_DEFINES = -DBUILD_TARGET=ARM_K2H
-endif
-
 all: opencl
 
 
@@ -42,7 +28,7 @@ opencl: $(OCL_MONITOR_OUT) $(OCL_MONITOR_SYMS) $(OCL_MONITOR_SYMS_OBJ) $(OCL_BUI
 
 
 $(OCL_BUILD_DIR)/Makefile: $(filter-out $(wildcard $(OCL_BUILD_DIR)), $(OCL_BUILD_DIR)) 
-	cd $(OCL_BUILD_DIR); cmake $(CMAKE_DEFINES) ../host
+	cd $(OCL_BUILD_DIR); cmake -DARM_LLVM_DIR=$(ARM_LLVM_DIR) -DBUILD_TARGET=ARM_K2H ../host
 
 
 $(OCL_BUILD_DIR): 
@@ -67,7 +53,7 @@ install:
 	cp ${OCL_BUILD_DIR}/lib/libocl_util.a   ${DESTDIR}/usr/lib
 	cp ${OCL_BUILD_DIR}/lib/libOpenCL.so.${OCL_VER}	 ${DESTDIR}/usr/lib
 	cp -P ${OCL_BUILD_DIR}/lib/libOpenCL.so ${DESTDIR}/usr/lib
-	cp -P ${OCL_BUILD_DIR}/lib/libOpenCL.so.${OCL_MAJ_VER} ${DESTDIR}/usr/lib
+	cp -P ${OCL_BUILD_DIR}/lib/libOpenCL.so.${OCL_MAJOR_VER} ${DESTDIR}/usr/lib
 	cp ${OCL_MONITOR_OUT}    	        ${DESTDIR}/usr/share/ti/opencl
 	cp ${OCL_MONITOR_SYMS}   	        ${DESTDIR}/usr/share/ti/opencl
 	cp ${OCL_MONITOR_SYMS_OBJ}   	        ${DESTDIR}/usr/share/ti/opencl
