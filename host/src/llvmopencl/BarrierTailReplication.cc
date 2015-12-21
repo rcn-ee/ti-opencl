@@ -29,6 +29,7 @@
 #include "llvm/Transforms/Utils/Cloning.h"
 #include "llvm/IR/InstrTypes.h"
 #include "llvm/IR/Instructions.h"
+#include "../core/util.h"
 
 #include <iostream>
 #include <algorithm>
@@ -62,6 +63,8 @@ BarrierTailReplication::runOnFunction(Function &F)
 {
   if (!Workgroup::isKernelToProcess(F))
     return false;
+
+  if (isReqdWGSize111(F))  return false;
   
 #ifdef DEBUG_BARRIER_REPL
   std::cerr << "### BTR on " << F.getName().str() << std::endl;

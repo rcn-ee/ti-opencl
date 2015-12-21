@@ -17,9 +17,9 @@ endif
 # TI C6x CGT
 
 ifeq (,$(findstring arm, $(UNAME_M)))
-    TI_OCL_CGT_INSTALL?=/cgnas/ti-cgt-c6000-8.1.0B1-linux
+    TI_OCL_CGT_INSTALL?=/cgnas/ti-cgt-c6000-8.1.0-release-linux
 else
-    TI_OCL_CGT_INSTALL?=/cgnas/ti-cgt-c6000-8.1.0B1-armlinuxa8hf
+    TI_OCL_CGT_INSTALL?=/cgnas/ti-cgt-c6000-8.1.0-release-armlinuxa8hf
 endif
 
 # LLVM
@@ -37,6 +37,25 @@ endif
 KEYSTONE_OMP_DIR?=/cgnas/openmp_dsp_2_02_00_01_ks_alpha
 AM57_OMP_DIR?=/cgnas/openmp_dsp_2_02_00_01_am57xx_alpha
 
+# K2X PSDK
+ifeq ($(BUILD_K2H),1)
+    DEFAULT_PSDK_RTOS_K2X?=/cgnas/ti-processor-sdk-rtos-k2hk-evm-02.00.01.05-20151217
+    DEFAULT_PSDK_LINUX_K2X?=/cgnas/ti-processor-sdk-linux-k2hk-evm-02.00.01.05-20151217
+else ifeq ($(BUILD_K2L),1)
+    DEFAULT_PSDK_RTOS_K2X?=/cgnas/ti-processor-sdk-rtos-k2l-evm-02.00.01.05-20151217
+    DEFAULT_PSDK_LINUX_K2X?=/cgnas/ti-processor-sdk-linux-k2l-evm-02.00.01.05-20151217
+else ifeq ($(BUILD_K2E),1)
+    DEFAULT_PSDK_RTOS_K2X?=/cgnas/ti-processor-sdk-rtos-k2e-evm-02.00.01.05-20151217
+    DEFAULT_PSDK_LINUX_K2X?=/cgnas/ti-processor-sdk-linux-k2e-evm-02.00.01.05-20151217
+else
+endif
+
+ifeq (,$(findstring arm, $(UNAME_M)))
+    PSDK_LINUX_DEVKIT_ROOT_K2X?=$(DEFAULT_PSDK_LINUX_K2X)/linux-devkit/sysroots/cortexa15hf-vfp-neon-linux-gnueabi
+else
+    PSDK_LINUX_DEVKIT_ROOT_K2X?=/
+endif
+
 # K2X MCSDK
 
 DEFAULT_MCSDK?=/cgnas/mcsdk_3_01_04_07-20151002
@@ -46,10 +65,10 @@ else
     MCSDK_LINUX_DEVKIT_ROOT?=/
 endif
 
-# AM57 Processor SDK
+# AM57 Processor SDK (2.0.1.x)
 
-DEFAULT_PSDK_RTOS?=/cgnas/ti-processor-sdk-rtos-am57xx-evm-02.00.00.00-20151007-release
-DEFAULT_PSDK_LINUX?=/cgnas/ti-processor-sdk-linux-am57xx-evm-02.00.00.00-20151007-release
+DEFAULT_PSDK_RTOS?=/cgnas/ti-processor-sdk-rtos-am57xx-evm-02.00.01.04-20151206
+DEFAULT_PSDK_LINUX?=/cgnas/ti-processor-sdk-linux-am57xx-evm-02.00.01.04-20151206
 PSDK_LINUX_DEVKIT_ROOT?=$(DEFAULT_PSDK_LINUX)/linux-devkit/sysroots/cortexa15hf-vfp-neon-linux-gnueabi
 
 # DSPC SDKs

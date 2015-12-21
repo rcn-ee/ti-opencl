@@ -688,10 +688,9 @@ bool Event::isInstantaneous() const
 /******************************************************************************
 * void Event::setStatus
 ******************************************************************************/
-int Event::setStatusHelper(Status status)
+int Event::setStatusHelper(Status status, std::list<CallbackData> &callbacks)
 {
     int num_dependent_events;
-    std::list<CallbackData> callbacks;
 
     // TODO: If status < 0, terminate all the events depending on us.
     pthread_mutex_lock(&p_state_mutex);
@@ -710,24 +709,20 @@ int Event::setStatusHelper(Status status)
     pthread_cond_broadcast(&p_state_change_cond);
     pthread_mutex_unlock(&p_state_mutex);
 
-    // Call the callbacks, release event afterwards
-    for (std::list<CallbackData>::iterator C = callbacks.begin(),
-                                           E = callbacks.end(); C != E; ++C)
-        (*C).callback(desc(this), p_status, (*C).user_data);
-    if (!callbacks.empty())  clReleaseEvent(desc(this));
-
     return num_dependent_events;
 }
 
 void Event::setStatus(Status status)
 {
+    std::list<CallbackData> callbacks;
+
     if (type() == Event::User || (parent() && status == Complete))
     {
         CommandQueue *cq = (CommandQueue *) parent();
         if (cq != NULL)  clRetainCommandQueue(desc(cq));
         bool already_pushed = false;
 
-        int num_dependent_events = setStatusHelper(status);  
+        int num_dependent_events = setStatusHelper(status, callbacks);
         /*---------------------------------------------------------------------
         * From this point on, the event could be dereferenced to 0 and deleted!
         * Thus we cannot call flushQueues(). Need to save these queues.
@@ -759,7 +754,7 @@ void Event::setStatus(Status status)
     }
     else
     {
-        int num_dependent_events = setStatusHelper(status);
+        int num_dependent_events = setStatusHelper(status, callbacks);
 
         /*---------------------------------------------------------------------
         * If status is error (< 0), set dependent events status to
@@ -773,6 +768,14 @@ void Event::setStatus(Status status)
                 p_dependent_events[i]->setStatus(
                         (Status) CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST);
         }
+    }
+
+    // Call the callbacks, release event afterwards
+    if (!callbacks.empty())
+    {
+        for (CallbackData &cb : callbacks)
+            cb.callback(desc(this), status, cb.user_data);
+        clReleaseEvent(desc(this));
     }
 }
 

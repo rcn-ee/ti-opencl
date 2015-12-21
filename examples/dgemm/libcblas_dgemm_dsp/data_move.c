@@ -31,7 +31,8 @@
 #include <string.h>
 
 // moving B' from L2 to L1
-void dataMoveBT(double * restrict dst, double * restrict src, int k)
+void dataMoveBT(double * restrict dst, double * restrict src, int k,
+                int NPARTITION)
 {
   int kCnt;
   int srcAddr;
@@ -106,7 +107,8 @@ void dataMoveB(double * restrict dst, double * restrict src, int k)
 }
 
 // moving data from A to format needed for kernel
-void dataMoveA(double * restrict dst, double * restrict src, int m, int k)
+void dataMoveA(double * restrict dst, double * restrict src, int m, int k,
+               int ld_src)
 {
     int kCnt, mCnt;
     int srcAddr, dstAddr;
@@ -127,7 +129,7 @@ void dataMoveA(double * restrict dst, double * restrict src, int m, int k)
         for(mCnt=0;mCnt<((m>>2)+mLeft);mCnt++)
         {
             double f0, f1, f2, f3;
-            srcAddr = (kCnt*MPARTITION/*m*/)+(mCnt<<2);
+            srcAddr = (kCnt*ld_src/*m*/)+(mCnt<<2);
             dstAddr = (mCnt*(KPARTITION/*k*/<<2))+(kCnt<<2);
             // load CORE_PROCESS_ROWS doubles sequentially
             f0 = _amemd8_const(&src[srcAddr]);
@@ -143,7 +145,7 @@ void dataMoveA(double * restrict dst, double * restrict src, int m, int k)
         }
 #if 0
         // leftover in m dimension of A
-        srcAddr = kCnt*MPARTITION/*m*/+((m>>2)<<2);
+        srcAddr = kCnt*ld_src/*m*/+((m>>2)<<2);
         dstAddr = ((m>>2)*(KPARTITION/*k*/<<2))+(kCnt<<2);
         for(mCnt=0;mCnt<mLeft;mCnt++)
         {
@@ -154,7 +156,8 @@ void dataMoveA(double * restrict dst, double * restrict src, int m, int k)
 }
 
 // moving data from A' to format needed for kernel
-void dataMoveAT(double * restrict dst, double * restrict src, int m, int k)
+void dataMoveAT(double * restrict dst, double * restrict src, int m, int k,
+                int ld_src)
 {
   int mCnt, kCnt, mLeft;
   int srcAddr, dstAddr;
@@ -169,37 +172,37 @@ void dataMoveAT(double * restrict dst, double * restrict src, int m, int k)
 	{
 	  double f00, f01, f02, f03;
 	  double f10, f11, f12, f13;
-	  srcAddr = (mCnt<<2)*KPARTITION/*k*/+(kCnt<<1);
+	  srcAddr = (mCnt<<2)*ld_src/*k*/+(kCnt<<1);
 	  dstAddr = (mCnt*(KPARTITION/*k*/<<2))+(kCnt<<3);
 
 	  // load 2 x CORE_PROCESS_ROWS doubles
 	  f00 = src[srcAddr];
 	  f10 = src[srcAddr+1];
-	  f01 = src[srcAddr+KPARTITION/*k*/];
-	  f11 = src[srcAddr+KPARTITION/*k*/+1];
-	  f02 = src[srcAddr+2*KPARTITION/*k*/];
-	  f12 = src[srcAddr+2*KPARTITION/*k*/+1];
-	  f03 = src[srcAddr+3*KPARTITION/*k*/];
-	  f13 = src[srcAddr+3*KPARTITION/*k*/+1];
+	  f01 = src[srcAddr+ld_src/*k*/];
+	  f11 = src[srcAddr+ld_src/*k*/+1];
+	  f02 = src[srcAddr+2*ld_src/*k*/];
+	  f12 = src[srcAddr+2*ld_src/*k*/+1];
+	  f03 = src[srcAddr+3*ld_src/*k*/];
+	  f13 = src[srcAddr+3*ld_src/*k*/+1];
 
 	  // push 2 x CORE_PROCESS_ROWS doubles to desired loc
-      dst[dstAddr]   = f00;
-      dst[dstAddr+1] = f01;
-      dst[dstAddr+2] = f02;
-      dst[dstAddr+3] = f03;
-      dst[dstAddr+4] = f10;
-      dst[dstAddr+5] = f11;
-      dst[dstAddr+6] = f12;
-      dst[dstAddr+7] = f13;
+          dst[dstAddr]   = f00;
+          dst[dstAddr+1] = f01;
+          dst[dstAddr+2] = f02;
+          dst[dstAddr+3] = f03;
+          dst[dstAddr+4] = f10;
+          dst[dstAddr+5] = f11;
+          dst[dstAddr+6] = f12;
+          dst[dstAddr+7] = f13;
 	}
 #if 0
 	// leftover in m dimension of A
-  	srcAddr = ((m>>2)<<2)*KPARTITION/*k*/+(kCnt<<1);
+  	srcAddr = ((m>>2)<<2)*ld_src/*k*/+(kCnt<<1);
    	dstAddr = ((m>>2)*(KPARTITION_D/*k*/<<2))+(kCnt<<3);
     for(mCnt=0;mCnt<mLeft;mCnt++)
     {
-      dst[dstAddr+mCnt] = src[srcAddr+mCnt*KPARTITION/*k*/];
-      dst[dstAddr+mCnt+4] = src[srcAddr+mCnt*KPARTITION/*k*/+1];
+      dst[dstAddr+mCnt] = src[srcAddr+mCnt*ld_src/*k*/];
+      dst[dstAddr+mCnt+4] = src[srcAddr+mCnt*ld_src/*k*/+1];
     }
 #endif
   }
@@ -210,14 +213,14 @@ void dataMoveAT(double * restrict dst, double * restrict src, int m, int k)
 	for(mCnt=0;mCnt<(m>>2)+mLeft;mCnt++)
 	{
 	  double f00, f01, f02, f03;
-	  int srcAddr = (mCnt<<2)*KPARTITION/*k*/+kCnt;
+	  int srcAddr = (mCnt<<2)*ld_src/*k*/+kCnt;
 	  int dstAddr = (mCnt*(KPARTITION/*k*/<<2))+(kCnt<<2);
 
 	  // load 1 x CORE_PROCESS_ROWS doubles
 	  f00 = src[srcAddr];
-	  f01 = src[srcAddr+KPARTITION/*k*/];
-	  f02 = src[srcAddr+2*KPARTITION/*k*/];
-	  f03 = src[srcAddr+3*KPARTITION/*k*/];
+	  f01 = src[srcAddr+ld_src/*k*/];
+	  f02 = src[srcAddr+2*ld_src/*k*/];
+	  f03 = src[srcAddr+3*ld_src/*k*/];
 
 	  // push 2 x CORE_PROCESS_COLS doubles to desired loc
 	  dst[dstAddr]   = f00;
@@ -228,13 +231,14 @@ void dataMoveAT(double * restrict dst, double * restrict src, int m, int k)
 #if 0
 	// leftover in m dimension of A
 	// leftover in m dimension of A
-  	srcAddr = ((m>>2)<<2)*KPARTITION/*k*/+(kCnt);
+  	srcAddr = ((m>>2)<<2)*ld_src/*k*/+(kCnt);
    	dstAddr = ((m>>2)*(KPARTITION_D/*k*/<<2))+(kCnt<<2);
     for(mCnt=0;mCnt<mLeft;mCnt++)
     {
-      dst[dstAddr+mCnt] = src[srcAddr+mCnt*KPARTITION/*k*/];
-      dst[dstAddr+mCnt+4] = src[srcAddr+mCnt*KPARTITION/*k*/+1];
+      dst[dstAddr+mCnt] = src[srcAddr+mCnt*ld_src/*k*/];
+      dst[dstAddr+mCnt+4] = src[srcAddr+mCnt*ld_src/*k*/+1];
     }
 #endif
   }
 }
+

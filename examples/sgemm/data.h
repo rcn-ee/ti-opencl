@@ -47,7 +47,5 @@
 
 void dataMoveB(float * restrict dst, float * restrict src, int k);
 void dataMoveA(float * restrict dst, float * restrict src, int m, int k,
-               int MPARTITION);
-void dataMoveA_DDR2L2(float * restrict dst, float * restrict src, int m, int k,
-                      int lda);
+               int ld_src);
 #endif

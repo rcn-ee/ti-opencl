@@ -20,14 +20,14 @@ install(FILES make.inc Makefile DESTINATION ${OCL_OMP_EXAMPLES_PATH} ${OCL_FPERM
 # Initially set this list to the examples that will be installed regardless
 # of the target platform.  Use the target build specific blocks below to add to
 # this list
-SET(OCL_EXAMPLES_INSTALL_LIST edmamgr matmpy simple dsplib_fft mandelbrot mandelbrot_native offline offline_embed platforms ccode null ooo vecadd dspheap float_compute)
+SET(OCL_EXAMPLES_INSTALL_LIST edmamgr matmpy simple dsplib_fft mandelbrot mandelbrot_native offline offline_embed platforms ccode null ooo vecadd dspheap float_compute sgemm dgemm)
 SET(OCL_OMP_EXAMPLES_INSTALL_LIST vecadd_openmp vecadd_openmp_t)
 
 # Install hawking specific examples
 IF (K2X_BUILD)
   # Add any hawking-specific examples
-  LIST (APPEND OCL_EXAMPLES_INSTALL_LIST ooo_map vecadd_mpax sgemm)
-  LIST (APPEND OCL_OMP_EXAMPLES_INSTALL_LIST vecadd_mpax_openmp dgemm)
+  LIST (APPEND OCL_EXAMPLES_INSTALL_LIST ooo_map vecadd_mpax)
+  LIST (APPEND OCL_OMP_EXAMPLES_INSTALL_LIST vecadd_mpax_openmp)
 ENDIF(K2X_BUILD)
 
 # Install C6678 (dspc) specific examples

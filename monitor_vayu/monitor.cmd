@@ -158,7 +158,7 @@ SECTIONS
                 "edmamgr.ae66"      (.far)
                 "fcsettings.ae66"   (.far)
                 "rman.ae66"         (.far)
-    } > DDR3_FCSECTION
+    } > DDR3_FC
     .fclocalfarsyms :
     {
                 "nullres.ae66"      (.fardata)

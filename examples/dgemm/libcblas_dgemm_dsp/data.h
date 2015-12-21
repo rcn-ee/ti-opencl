@@ -40,14 +40,16 @@
 
 // number of panels of A to keep in MSMC SRAM
 // #define NUMAPANELS 32
-#define NUMAPANELS 16
+// #define NUMAPANELS 16
+// #define NUMAPANELS 4
 // number of panels of B to keep in L2 SRAM
-#define NUMBPANELS 8
+// #define NUMBPANELS 8
+// #define NUMBPANELS 4
 
 // partition in m dimension
-#define MPARTITION (NUMAPANELS*CORE_PROCESS_ROWS)
+// #define MPARTITION (NUMAPANELS*CORE_PROCESS_ROWS)
 // partition in n dimension
-#define NPARTITION (NUMBPANELS*CORE_PROCESS_COLS)
+// #define NPARTITION (NUMBPANELS*CORE_PROCESS_COLS)
 /**
  *  @brief Move and re-arrange B as needed by kernel for dgemm.
  *         src point to B. dst will have B arranged in 4 x k (column major)
@@ -66,9 +68,11 @@ void dataMoveB(double * restrict dst, double * restrict src, int k);
  *  @param[in]  dst             pointer to destination address
  *  @param[in]  src             pointer to source address
  *  @param[in]  k               number of columns to move
+ *  @param[in]  NPARTITION      blocks of columns to move
  *
  */
-void dataMoveBT(double * restrict dst, double * restrict src, int k);
+void dataMoveBT(double * restrict dst, double * restrict src, int k,
+                int NPARTITION);
 
 
 /**
@@ -80,9 +84,11 @@ void dataMoveBT(double * restrict dst, double * restrict src, int k);
  *  @param[in]  src             pointer to source address
  *  @param[in]  m               number of rows to move
  *  @param[in]  k               number of columns to move
+ *  @param[in]  ld_src          lead dimension size of src
  *
  */
-void dataMoveA(double * restrict dst, double * restrict src, int m, int k);
+void dataMoveA(double * restrict dst, double * restrict src, int m, int k,
+               int ld_src);
 
 /**
  *  @brief Move and re-arrange A' as needed by kernel for dgemm.
@@ -93,8 +99,10 @@ void dataMoveA(double * restrict dst, double * restrict src, int m, int k);
  *  @param[in]  src             pointer to source address
  *  @param[in]  m               number of rows to move
  *  @param[in]  k               number of columns to move
+ *  @param[in]  ld_src          lead dimension size of src
  *
  */
-void dataMoveAT(double * restrict dst, double * restrict src, int m, int k);
+void dataMoveAT(double * restrict dst, double * restrict src, int m, int k,
+                int ld_src);
 
 #endif

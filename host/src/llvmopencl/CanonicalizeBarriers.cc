@@ -26,6 +26,7 @@
 #include "BarrierBlock.h"
 #include "Barrier.h"
 #include "Workgroup.h"
+#include "../core/util.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include <iostream>
 
@@ -61,6 +62,8 @@ CanonicalizeBarriers::runOnFunction(Function &F)
 {
   if (!Workgroup::isKernelToProcess(F))
     return false;
+
+  if (isReqdWGSize111(F))  return false;
 
   BasicBlock *entry = &F.getEntryBlock();
   if (!isa<BarrierBlock>(entry)) {

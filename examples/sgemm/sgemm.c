@@ -38,6 +38,13 @@
 #include <stdlib.h>
 #include "dsp_c.h"
 
+/*-----------------------------------------------------------------------------
+* On KeyStone devices, MSMC is not cached in L2 and this macro could be 
+* #define DSP_wbInv_L2  __cache_l1d_flush.  However, the performance delta 
+* is negligible.  On Sitara (AM57) devices, the MSMC or (OCMC) is cached in 
+* L2 as well as L1D.
+*----------------------------------------------------------------------------*/
+#define DSP_wbInv_L2  __cache_l2_flush
 #define DSP_wbInv_L1D __cache_l1d_flush
 
 // sgemm interface
@@ -132,7 +139,6 @@ void sgemm(
     if (pMsmc)
     {
         // initiate first transfer of A to MSMC
-        DSP_wbInv_L1D();
 #if USE_EDMA
         EdmaMgr_copy2D2DSep(chan0,
                             a, /* src */
@@ -142,6 +148,7 @@ void sgemm(
                             lda*sizeof(float), /* src_pitch */
                             MPARTITION*sizeof(float) /* dst_pitch */
                             );
+        DSP_wbInv_L2();  // ptrASeg1
 #else
         for (i = 0; i < kCnt; i++)
             memcpy(ptrASeg1 + i * MPARTITION, a + i * lda, mCnt*sizeof(float));
@@ -149,7 +156,6 @@ void sgemm(
     }
 
     // initiate first transfer of B to L2
-    DSP_wbInv_L1D();
 #if USE_EDMA
     EdmaMgr_copy2D2DSep(chan1,
                         b, /* src */
@@ -159,6 +165,7 @@ void sgemm(
                         ldb*sizeof(float), /* src_pitch */
                         KPARTITION*sizeof(float) /* dst_pitch */
                         );
+    DSP_wbInv_L1D();  // ptrBSeg1
 #else
     for (i = 0; i < nCnt; i++)
         memcpy(ptrBSeg1 + i * KPARTITION, b + i * ldb, kCnt*sizeof(float));
@@ -200,13 +207,11 @@ void sgemm(
             }
             else
             {
-                dataMoveA_DDR2L2(ptrASeg2, a+mXferIndex, mCnt, kCnt, lda);
+                dataMoveA(ptrASeg2, a+mXferIndex, mCnt, kCnt, lda);
             }
 
             mXferIndex += mCnt;
             mXferIndex = (!flagLastM) ? mXferIndex: mXferIndex-m+kCnt*lda;
-
-            DSP_wbInv_L1D();
 
             if (pMsmc)
             {
@@ -223,6 +228,7 @@ void sgemm(
                                             lda*sizeof(float), /* src_pitch */
                                             MPARTITION*sizeof(float) /* dst_pitch */
                                             );
+                        DSP_wbInv_L2();  // ptrASeg1
 #else
                         kCntPrev = (flagLastM ? kCntNext : kCnt);
                         for (i = 0; i < kCntPrev; i++)
@@ -243,6 +249,7 @@ void sgemm(
                                             lda*sizeof(float), /* src_pitch */
                                             MPARTITION*sizeof(float) /* dst_pitch */
                                             );
+                        DSP_wbInv_L2();  // ptrASeg1
 #else
                         kCntPrev = kCntNext;
                         for (i = 0; i < kCntPrev; i++)
@@ -259,6 +266,7 @@ void sgemm(
                                          a+mXferIndex, /* src */
                                          ptrASeg1 /* dst */
                                          );
+                        DSP_wbInv_L2();  // ptrASeg1
 #else
                         for (i = 0; i < kCntPrev; i++)
                             memcpy(ptrASeg1 + i * MPARTITION,
@@ -291,7 +299,6 @@ void sgemm(
                     nXferIndex = (!flagLastN) ? nXferIndex: kIndex;
                     nXferIndex = ((!flagLastN) || (!flagLastM)) ? nXferIndex: (kIndex+kCnt);
                     ptrB = (indexBNext == 0) ? ptrBSeg1: ptrBSeg2;
-                    DSP_wbInv_L1D();
                     if (nIndex == 0)
                     {
 #if USE_EDMA
@@ -303,6 +310,7 @@ void sgemm(
                                             ldb*sizeof(float), /* src_pitch */
                                             KPARTITION*sizeof(float) /* dst_pitch */
                                             );
+                        DSP_wbInv_L1D();  // ptrB
 #else
                         for (i = 0; i < nCntNext; i++)
                             memcpy(ptrB + i * KPARTITION,
@@ -324,6 +332,7 @@ void sgemm(
                                             ldb*sizeof(float), /* src_pitch */
                                             KPARTITION*sizeof(float) /* dst_pitch */
                                             );
+                        DSP_wbInv_L1D();  // ptrB
 #else
                         for (i = 0; i < nCntNext; i++)
                             memcpy(ptrB + i * KPARTITION,
@@ -340,6 +349,7 @@ void sgemm(
                                          b+nXferIndex, /* src */
                                          ptrB /* dst */
                                          );
+                        DSP_wbInv_L1D();  // ptrB
 #else
                         for (i = 0; i < nCntPrev; i++)
                             memcpy(ptrB + i * KPARTITION,

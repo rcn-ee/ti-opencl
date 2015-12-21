@@ -21,6 +21,7 @@ TI |OpenCL (TM)| Runtime Documentation Contents:
    debug/index
    profiling
    faq/index
+   readme/index
    disclaimer
 
 .. image:: images/platform_red.png

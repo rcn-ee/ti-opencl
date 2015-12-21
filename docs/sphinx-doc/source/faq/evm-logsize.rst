@@ -1,6 +1,6 @@
-******************************************************************
+**********************************************************************
 How do I limit log file sizes on EVM's temporary file storage (tmpfs)?
-******************************************************************
+**********************************************************************
 
 On TI's EVMs that support OpenCL, log files are usually stored in the
 temporary file storage in the volatile memory, which are usually of limited

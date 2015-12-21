@@ -11,10 +11,10 @@ Khronos `OpenCL 1.1 specification`_. The Texas Instruments OpenCL implementation
 SoC           System                          Khronos Conformance            Installation Instructions
 ============= =============================== ============================== =========================
 AM572_         `AM572 EVM`_                   OpenCL v1.1 Conformant         `Processor SDK for AM57x`_
-66AK2H_       `66AK2H EVM`_                   OpenCL v1.1 Conformant         `MCSDK-HPC for EVM`_
-66AK2H_       `HP m800 Moonshot`_             OpenCL v1.1 Conformant         `MCSDK-HPC for m800`
-66AK2L_       `66AK2L EVM`_                   Not submitted for conformance  Available 1Q '16
-66AK2E_       `66AK2E EVM`_                   Not submitted for conformance  Available 1Q '16
+66AK2H_       `66AK2H EVM`_                   OpenCL v1.1 Conformant         `Processor SDK for K2H`_
+66AK2H_       `HP m800 Moonshot`_             OpenCL v1.1 Conformant         `MCSDK-HPC for m800`_
+66AK2L_       `66AK2L EVM`_                   Not submitted for conformance  `Processor SDK for K2L`_
+66AK2E_       `66AK2E EVM`_                   Not submitted for conformance  `Processor SDK for K2E`_
 TMS320C6678_  `Advantech DSPC8681`_           Not submitted for conformance  :doc:`dspc8681-getting-started`
 ============= =============================== ============================== =========================
 
@@ -50,3 +50,6 @@ System                Host                                      Compute Device
 .. _AM572:              http://www.ti.com/product/AM5728
 .. _AM572 EVM:          http://www.ti.com/tool/tmdxevm5728
 .. _Processor SDK for AM57x:          http://www.ti.com/tool/processor-sdk-am57x
+.. _Processor SDK for K2H:            http://www.ti.com/tool/processor-sdk-k2hk
+.. _Processor SDK for K2L:            http://www.ti.com/tool/processor-sdk-k2l
+.. _Processor SDK for K2E:            http://www.ti.com/tool/processor-sdk-k2e

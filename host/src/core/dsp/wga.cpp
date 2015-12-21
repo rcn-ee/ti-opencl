@@ -316,10 +316,16 @@ bool TIOpenclWorkGroupAggregation::rewrite_allocas(Function &F)
     Module *M = F.getParent();
     AllocaInst *alloca;
 
+    // Only rewrite allocas with variable array size
+    // Allocas with constant array size will be handled by the translator
     std::vector<AllocaInst *> allocas;
     for (inst_iterator I = inst_begin(&F), E = inst_end(&F); I != E; ++I)
         if ((alloca = dyn_cast<AllocaInst>(&*I)) != NULL)
+        {
+            Value *numElems = alloca->getArraySize();
+            if (llvm::dyn_cast<llvm::ConstantInt>(numElems)) continue;
             allocas.push_back(alloca);
+        }
     if (allocas.empty()) return false;
 
     DataLayout dataLayout(M);
@@ -358,9 +364,8 @@ bool TIOpenclWorkGroupAggregation::rewrite_allocas(Function &F)
 
         // get number of elements, element type size, compute total size
         Value *numElems = alloca->getArraySize();
-        if (llvm::dyn_cast<llvm::ConstantInt>(numElems)) continue;
-
         Type *elementType = alloca->getAllocatedType();
+
         // getTypeSizeInBits(), what about uchar3 type?
         uint64_t esBytes = dataLayout.getTypeStoreSize(elementType);
         Value *esize = ConstantInt::get(Int32, (uint32_t) esBytes); 

@@ -82,6 +82,7 @@ VariableUniformityAnalysis::getAnalysisUsage(llvm::AnalysisUsage &AU) const {
 
 bool
 VariableUniformityAnalysis::runOnFunction(Function &F) {
+  if (isReqdWGSize111(F))  return false;
 
   /* Do the actual analysis on-demand except for the basic block 
      divergence analysis. */
