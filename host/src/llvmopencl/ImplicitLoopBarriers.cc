@@ -1,7 +1,7 @@
 // LLVM function pass that adds implicit barriers to loops if it sees
 // beneficial.
 // 
-// Copyright (c) 2012-2014 Pekka Jääskeläinen / TUT
+// Copyright (c) 2012-2013 Pekka Jääskeläinen / TUT
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -48,21 +48,25 @@ namespace {
 
 char ImplicitLoopBarriers::ID = 0;
 
-void
-ImplicitLoopBarriers::getAnalysisUsage(AnalysisUsage &AU) const
-{
+void ImplicitLoopBarriers::getAnalysisUsage(AnalysisUsage &AU) const {
   AU.addRequired<DominatorTreeWrapperPass>();
   AU.addPreserved<DominatorTreeWrapperPass>();
   AU.addRequired<VariableUniformityAnalysis>();
   AU.addPreserved<VariableUniformityAnalysis>();
 }
 
-bool
-ImplicitLoopBarriers::runOnLoop(Loop *L, LPPassManager &LPM)
-{
+bool ImplicitLoopBarriers::runOnLoop(Loop *L, LPPassManager &LPM) {
   if (!Workgroup::isKernelToProcess(*L->getHeader()->getParent()))
     return false;
 
+  if (!Workgroup::hasWorkgroupBarriers(*L->getHeader()->getParent())) {
+#ifdef DEBUG_ILOOP_BARRIERS
+    std::cerr << "### ILB: The kernel has no barriers, let's not add implicit ones "
+              << "either to avoid WI context switch overheads"
+              << std::endl;
+#endif
+    return false;
+  }
   return ProcessLoop(L, LPM);
 }
 
@@ -73,9 +77,7 @@ ImplicitLoopBarriers::runOnLoop(Loop *L, LPPassManager &LPM)
  * Note: it's not safe to do this in case the loop is not executed
  * by all work items. Therefore this is not enabled by default.
  */
-bool
-ImplicitLoopBarriers::ProcessLoop(Loop *L, LPPassManager &LPM)
-{
+bool ImplicitLoopBarriers::ProcessLoop(Loop *L, LPPassManager &LPM) {
 
   bool isBLoop = false;
   for (Loop::block_iterator i = L->block_begin(), e = L->block_end();
@@ -109,8 +111,8 @@ ImplicitLoopBarriers::ProcessLoop(Loop *L, LPPassManager &LPM)
  * a) loop exit condition does not depend on the WI and 
  * b) all or none of the WIs always enter the loop
  */
-bool
-ImplicitLoopBarriers::AddInnerLoopBarrier(llvm::Loop *L, llvm::LPPassManager &LPM) {
+bool ImplicitLoopBarriers::AddInnerLoopBarrier(
+  llvm::Loop *L, llvm::LPPassManager &LPM) {
 
   /* Only add barriers to the innermost loops. */
 

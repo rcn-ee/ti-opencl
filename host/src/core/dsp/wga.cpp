@@ -28,6 +28,7 @@
 #include "wga.h"
 #include <iostream>
 #include <llvm/Pass.h>
+#include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/BasicBlock.h>
@@ -591,7 +592,7 @@ void TIOpenclWorkGroupAggregation::add_loop_mem_metadata(Function &F)
     for (std::list<Instruction*>::iterator I = loop_mem_instrs.begin(),
                                            E = loop_mem_instrs.end();
         I != E; ++I)
-        (*I)->setMetadata("llvm.mem.parallel_loop_access", mem_mdnode);
+        (*I)->setMetadata(LLVMContext::MD_mem_parallel_loop_access, mem_mdnode);
 }
 
 /**************************************************************************
@@ -679,7 +680,7 @@ void TIOpenclWorkGroupAggregation::add_loop(Function &F, int dimIdx,
    }
 
    /*----------------------------------------------------------------------
-   * Add llvm.loop.parallel, to add llvm.mem.loop_parallel_access metadata
+   * Add llvm.loop, to add MD_mem_parallel_loop_access metadata
    *---------------------------------------------------------------------*/
    if (regLocals)
    {
@@ -688,7 +689,7 @@ void TIOpenclWorkGroupAggregation::add_loop(Function &F, int dimIdx,
        loopmeta->replaceOperandWith(0, loopmeta);
        MDNode::deleteTemporary(dummy);
 
-       cbr2->setMetadata("llvm.loop.parallel", loopmeta);
+       cbr2->setMetadata("llvm.loop", loopmeta);
        loop_mdnodes.push_back(loopmeta);
 
        if (ld_upper_bnd)  loop_mem_instrs.push_back(ld_upper_bnd);  // okay for all dimensions?

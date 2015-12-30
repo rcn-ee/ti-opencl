@@ -37,6 +37,10 @@ namespace pocl {
     AllocasToEntry();
     virtual ~AllocasToEntry() {};
 
+    void getAnalysisUsage(llvm::AnalysisUsage &AU) const {
+        AU.setPreservesAll();
+    }
+
     virtual bool runOnFunction(llvm::Function &F);
   };
 }

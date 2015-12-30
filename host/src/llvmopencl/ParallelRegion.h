@@ -46,7 +46,7 @@ class Kernel;
   // It now exposes too much to the clients and leads to hard
   // to track errors when the API is changed.
   class ParallelRegion : public std::vector<llvm::BasicBlock *> {    
-  public:    
+  public:
     typedef llvm::SmallVector<ParallelRegion *, 8> ParallelRegionVector;
 
     ParallelRegion(int forcedRegionId=-1);
@@ -79,13 +79,13 @@ class Kernel;
 
     void AddParallelLoopMetadata(llvm::MDNode *identifier);
 
-    bool HasBlock(const llvm::BasicBlock *bb);
+    bool HasBlock(llvm::BasicBlock *bb);
 
     void InjectRegionPrintF();
     void InjectVariablePrintouts();
 
     void InjectPrintF
-        (llvm::Instruction *before, std::string formatStr, 
+        (llvm::Instruction *before, std::string formatStr,
          std::vector<llvm::Value*>& params);
 
     static ParallelRegion *

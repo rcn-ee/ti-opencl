@@ -1,7 +1,7 @@
 // Header for WorkitemReplication function pass.
 // 
 // Copyright (c) 2011 Universidad Rey Juan Carlos and
-//               2012 Pekka Jääskeläinen / TUT
+//               2012-2015 Pekka Jääskeläinen / TUT
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -24,8 +24,8 @@
 #ifndef _POCL_WORKITEM_REPLICATION_H
 #define _POCL_WORKITEM_REPLICATION_H
 
-#include "llvm/ADT/Twine.h"
 #include "llvm/IR/Dominators.h"
+#include "llvm/ADT/Twine.h"
 #include "llvm/Analysis/LoopInfo.h"
 #include "llvm/Transforms/Utils/ValueMapper.h"
 #include <map>

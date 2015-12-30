@@ -1,7 +1,7 @@
 // Implementation for VariableUniformityAnalysis function pass.
 // 
-// Copyright (c) 2013 Pekka Jääskeläinen / Tampere University of Technology
-// Copyright (c) 2013-2014, Texas Instruments Incorporated - http://www.ti.com/
+// Copyright (c) 2013-2014 Pekka Jääskeläinen / Tampere University of Technology
+// Copyright (c) 2013-2016, Texas Instruments Incorporated - http://www.ti.com/
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -67,22 +67,17 @@ VariableUniformityAnalysis::getAnalysisUsage(llvm::AnalysisUsage &AU) const {
   // required by LoopInfo:
   AU.addRequired<DominatorTreeWrapperPass>();
   AU.addPreserved<DominatorTreeWrapperPass>();
-
-// TODO This was turned off because of compilation error
-#if 0
-#ifdef LLVM_3_1
-  AU.addRequired<TargetData>();
-  AU.addPreserved<TargetData>();
-#else
-  AU.addRequired<DataLayout>();
-  AU.addPreserved<DataLayout>();
-#endif
-#endif
+  AU.addRequired<DataLayoutPass>();
+  AU.addPreserved<DataLayoutPass>();
 }
 
 bool
 VariableUniformityAnalysis::runOnFunction(Function &F) {
   if (isReqdWGSize111(F))  return false;
+
+#ifdef DEBUG_UNIFORMITY_ANALYSIS
+  std::cerr << "### refreshing VUA" << std::endl;
+#endif  
 
   /* Do the actual analysis on-demand except for the basic block 
      divergence analysis. */
@@ -155,9 +150,9 @@ VariableUniformityAnalysis::shouldBePrivatized
  *
  * The conditions to mark a BB 'uniform':
  *
- * a) the function entry
+ * a) the function entry, or
  * b) BBs that post-dominate at least one uniform BB (try the previously 
- *    found one)
+ *    found one), or
  * c) BBs that are branched to directly from a uniform BB using a uniform branch.
  *
  * Otherwise, assume divergent (might not be *proven* to be one!).
@@ -167,6 +162,12 @@ void
 VariableUniformityAnalysis::analyzeBBDivergence
 (llvm::Function *f, llvm::BasicBlock *bb, llvm::BasicBlock *previousUniformBB) {
 
+#ifdef DEBUG_UNIFORMITY_ANALYSIS
+  std::cerr << "### Analyzing BB divergence (bb=" << bb->getName().str() 
+            << ", prevUniform=" << previousUniformBB->getName().str() << ")" 
+            << std::endl;
+#endif
+ 
 
   llvm::BasicBlock *newPreviousUniformBB = previousUniformBB;
 
@@ -230,9 +231,11 @@ VariableUniformityAnalysis::isUniformityAnalyzed(llvm::Function *f, llvm::Value 
  * Simple uniformity analysis that recursively analyses all the
  * operands affecting the value.
  *
- * Known uniform Values:
+ * Known uniform Values that act as "leafs" in the recursive uniformity
+ * check logic:
  * a) kernel arguments
  * b) constants
+ * c) OpenCL C identifiers that are constant for all work-items in a work-group
  * 
  */
 bool 
@@ -273,8 +276,9 @@ VariableUniformityAnalysis::isUniform(llvm::Function *f, llvm::Value* v) {
 
        Currently the following case is white listed:
        a) are scalars, and
-       b) are accessed only with load and stores (e.g. address not taken), and
-       c) stored data is uniform
+       b) are accessed only with load and stores (e.g. address not taken) from
+          uniform basic blocks, and
+       c) the stored data is uniform
 
        Because alloca data can be modified in loops and thus be dependent on
        itself, we need a bit involved mechanism to handle it. First create 
@@ -290,16 +294,30 @@ VariableUniformityAnalysis::isUniform(llvm::Function *f, llvm::Value* v) {
     for (Instruction::use_iterator ui = instruction->use_begin(),
            ue = instruction->use_end();
          ui != ue; ++ui) {
-      Instruction *user;
-      if ((user = dyn_cast<Instruction> (ui->getUser())) == NULL) continue;
+      llvm::Instruction *user = cast<Instruction>(ui->getUser());
+      if (user == NULL) continue;
       
       llvm::StoreInst *store = dyn_cast<llvm::StoreInst>(user);
       if (store) {
-        if (!isUniform(f, store->getValueOperand())) {
+        // TI DISABLE: all allocas are moved to Entry block later, there is
+        //             no need to check if current block is uniform or not
+        if (!isUniform(f, store->getValueOperand()) /* TI DISABLE || 
+            !isUniform(f, store->getParent()) */ ) {
+          if (!isUniform(f, store->getParent())) {
+#ifdef DEBUG_UNIFORMITY_ANALYSIS
+            std::cerr << "### alloca was written in a non-uniform BB" << std::endl;
+            store->getParent()->dump();
+            /* TODO: This is a problematic chicken-egg situation because the 
+               BB uniformity check ends up analyzing allocas in phi-removed code:
+               the loop constructs refer to these allocas and at that point we
+               do not yet know if the BB itself is uniform. This leads to not
+               being able to detect loop iteration variables as uniform. */
+#endif          
+          }
           isUniformAlloca = false;
           break;
         }
-      } else if (dyn_cast<llvm::LoadInst>(user) != NULL) {
+      } else if (isa<llvm::LoadInst>(user) || isa<llvm::BitCastInst>(user)) {
       } else {
 #ifdef DEBUG_UNIFORMITY_ANALYSIS
         std::cerr << "### alloca has a suspicious user" << std::endl;
@@ -376,6 +394,17 @@ VariableUniformityAnalysis::isUniform(llvm::Function *f, llvm::Value* v) {
   if (instr == NULL) {
     setUniform(f, v, false);
     return false;
+  }
+
+  // Atomic operations might look like uniform if only considering the operands
+  // (access a global memory location of which ordering by default is not
+  // constrained), but their semantics have ordering: Each work-item should get
+  // their own value from that memory location. isAtomic() check was introduced
+  // only in LLVM 3.6 so we have to use a more general mayWriteToMemory check
+  // with earlier versions. 
+  if (instr->isAtomic()) {
+      setUniform(f, v, false);
+      return false;
   }
 
   // not computed previously, scan all operands of the instruction

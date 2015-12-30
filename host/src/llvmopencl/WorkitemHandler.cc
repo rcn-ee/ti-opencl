@@ -2,8 +2,8 @@
 // in a work group.
 // 
 // Copyright (c) 2011-2012 Carlos Sánchez de La Lama / URJC and
-//                         Pekka Jääskeläinen / TUT
-// Copyright (c) 2013-2014, Texas Instruments Incorporated - http://www.ti.com/
+//               2012-2015 Pekka Jääskeläinen / TUT
+// Copyright (c) 2013-2016, Texas Instruments Incorporated - http://www.ti.com/
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -35,6 +35,7 @@
 #include "llvm/Support/CommandLine.h"
 #include "WorkitemHandler.h"
 #include "Kernel.h"
+#include "DebugHelpers.h"
 
 //#define DEBUG_REFERENCE_FIXING
 
@@ -47,19 +48,17 @@ AddWIMetadata("add-wi-metadata", cl::init(false), cl::Hidden,
   cl::desc("Adds a work item identifier to each of the instruction in work items."));
 
 
-WorkitemHandler::WorkitemHandler(char& ID) : FunctionPass(ID)
-{
+WorkitemHandler::WorkitemHandler(char& ID) : FunctionPass(ID) {
 }
 
 bool
-WorkitemHandler::runOnFunction(Function &F)
-{
+WorkitemHandler::runOnFunction(Function &) {
   return false;
 }
 
 void
-WorkitemHandler::Initialize(Kernel *K)
-{
+WorkitemHandler::Initialize(Kernel *K) {
+
   llvm::Module *M = K->getParent();
   
   LocalSizeX = 3;
@@ -67,23 +66,25 @@ WorkitemHandler::Initialize(Kernel *K)
   LocalSizeZ = 1;
   
 // TODO: are we searching reqd_workgroup_size here? If so, we need to enforce it.
-  llvm::NamedMDNode *size_info = M->getNamedMetadata("opencl.kernel_wg_size_info");
+  llvm::NamedMDNode *size_info = 
+    M->getNamedMetadata("opencl.kernel_wg_size_info");
   if (size_info) {
     for (unsigned i = 0, e = size_info->getNumOperands(); i != e; ++i) {
       llvm::MDNode *KernelSizeInfo = size_info->getOperand(i);
       if (dyn_cast<ValueAsMetadata>(
-               KernelSizeInfo->getOperand(0).get())->getValue() == K) 
-      {
-        LocalSizeX = (llvm::cast<ConstantInt>(
-             llvm::dyn_cast<ConstantAsMetadata>(
-               KernelSizeInfo->getOperand(1))->getValue()))->getLimitedValue();
-        LocalSizeY = (llvm::cast<ConstantInt>(
-             llvm::dyn_cast<ConstantAsMetadata>(
-               KernelSizeInfo->getOperand(2))->getValue()))->getLimitedValue();
-        LocalSizeZ = (llvm::cast<ConstantInt>(
-             llvm::dyn_cast<ConstantAsMetadata>(
-               KernelSizeInfo->getOperand(3))->getValue()))->getLimitedValue();
-      }
+        KernelSizeInfo->getOperand(0).get())->getValue() != K) 
+        continue;
+
+      LocalSizeX = (llvm::cast<ConstantInt>(
+                     llvm::dyn_cast<ConstantAsMetadata>(
+                       KernelSizeInfo->getOperand(1))->getValue()))->getLimitedValue();
+      LocalSizeY = (llvm::cast<ConstantInt>(
+                     llvm::dyn_cast<ConstantAsMetadata>(
+                       KernelSizeInfo->getOperand(2))->getValue()))->getLimitedValue();
+      LocalSizeZ = (llvm::cast<ConstantInt>(
+                     llvm::dyn_cast<ConstantAsMetadata>(
+                       KernelSizeInfo->getOperand(3))->getValue()))->getLimitedValue();
+      break;
     }
   }
 
@@ -123,7 +124,7 @@ WorkitemHandler::Initialize(Kernel *K)
 bool
 WorkitemHandler::dominatesUse
 (llvm::DominatorTreeWrapperPass *DTP, Instruction &I, unsigned i) {
-   DominatorTree *DT = &DTP->getDomTree();
+  DominatorTree *DT = &DTP->getDomTree();
   Instruction *Op = cast<Instruction>(I.getOperand(i));
   BasicBlock *OpBlock = Op->getParent();
   PHINode *PN = dyn_cast<PHINode>(&I);
@@ -237,8 +238,7 @@ WorkitemHandler::fixUndominatedVariableUses(llvm::DominatorTreeWrapperPass *DT,
                 ++copy_i;
               } while (true);
 
-              if (alternative != NULL)
-                {
+              if (alternative != NULL) {
 #ifdef DEBUG_REFERENCE_FIXING
                   std::cout << "### found the alternative:" << std::endl;
                   alternative->dump();
@@ -246,7 +246,7 @@ WorkitemHandler::fixUndominatedVariableUses(llvm::DominatorTreeWrapperPass *DT,
                   changed |= true;
                 } else {
 #ifdef DEBUG_REFERENCE_FIXING
-                  std::cout << "### didn't fiund an alternative for" << std::endl;
+                  std::cout << "### didn't find an alternative for" << std::endl;
                   operand->dump();
                   std::cerr << "### BB:" << std::endl;
                   operand->getParent()->dump();
@@ -254,6 +254,7 @@ WorkitemHandler::fixUndominatedVariableUses(llvm::DominatorTreeWrapperPass *DT,
                   ins->getParent()->dump();
 #endif
                   std::cerr << "Could not find a dominating alternative variable." << std::endl;
+                  dumpCFG(F, "broken.dot");
                   abort();
               }
             }
@@ -270,8 +271,7 @@ WorkitemHandler::fixUndominatedVariableUses(llvm::DominatorTreeWrapperPass *DT,
  * of the replicated BB because it has only one entry.
  */
 void
-WorkitemHandler::movePhiNodes(llvm::BasicBlock* src, llvm::BasicBlock* dst) 
-{
+WorkitemHandler::movePhiNodes(llvm::BasicBlock* src, llvm::BasicBlock* dst) {
   while (PHINode *PN = dyn_cast<PHINode>(src->begin())) 
     PN->moveBefore(dst->getFirstNonPHI());
 }

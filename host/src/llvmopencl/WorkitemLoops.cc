@@ -1,8 +1,8 @@
 // LLVM function pass to create loops that run all the work items 
 // in a work group while respecting barrier synchronization points.
 // 
-// Copyright (c) 2012-2014 Pekka Jääskeläinen / Tampere University of Technology
-// Copyright (c) 2013-2014, Texas Instruments Incorporated - http://www.ti.com/
+// Copyright (c) 2012-2013 Pekka Jääskeläinen / Tampere University of Technology
+// Copyright (c) 2013-2016, Texas Instruments Incorporated - http://www.ti.com/
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -77,14 +77,7 @@ WorkitemLoops::getAnalysisUsage(AnalysisUsage &AU) const
   AU.addRequired<DominatorTreeWrapperPass>();
   AU.addRequired<PostDominatorTree>();
   AU.addRequired<LoopInfo>();
-// TODO - Removed due to compilation error
-#if 0
-#ifdef LLVM_3_1
-  AU.addRequired<TargetData>();
-#else
-  AU.addRequired<DataLayout>();
-#endif
-#endif
+  AU.addRequired<DominatorTreeWrapperPass>();
 
   AU.addRequired<VariableUniformityAnalysis>();
   AU.addPreserved<VariableUniformityAnalysis>();
@@ -523,8 +516,7 @@ WorkitemLoops::ProcessFunction(Function &F)
   di_function = getDebugInfo(F, function_scope_line);
   FindKernelDim(F);
 
-  original_parallel_regions =
-    K->getParallelRegions(LI);
+  original_parallel_regions = K->getParallelRegions(LI);
 
 #ifdef DUMP_CFGS
   F.dump();
@@ -880,8 +872,8 @@ WorkitemLoops::FixMultiRegionVariables(ParallelRegion *region)
                  ue = instruction->use_end();
                ui != ue; ++ui) 
             {
-              Instruction *user;
-              if ((user = dyn_cast<Instruction> (ui->getUser())) == NULL) continue;
+              llvm::Instruction *user = dyn_cast<Instruction>(ui->getUser());
+              if (user == NULL) continue;
               // If the instruction is used outside this region inside another
               // region (not in a regionless BB like the B-loop construct BBs),
               // need to context save it.
@@ -1596,7 +1588,7 @@ WorkitemLoops::findIntraRegionAllocas(llvm::Function *F)
       for (std::set<const BasicBlock *>::iterator BI = userSet.begin(),
                                             BE = userSet.end(); BI != BE; ++BI)
       {
-        const BasicBlock *B = *BI;
+        BasicBlock *B = const_cast<BasicBlock *>(*BI);
         if (region->HasBlock(B)) { onein  = true; if (oneout) break; }
         else                     { oneout = true; if (onein)  break; }
       }

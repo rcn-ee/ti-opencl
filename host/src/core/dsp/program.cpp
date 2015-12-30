@@ -202,6 +202,7 @@ void DSPProgram::createOptimizationPasses(llvm::PassManager *manager,
     {
         manager->add(    llvm::createPromoteMemoryToRegisterPass());
         manager->add(new llvm::DominatorTreeWrapperPass());
+        manager->add(new llvm::PostDominatorTree());
         manager->add(new pocl::WorkitemHandlerChooser());
         manager->add(new       BreakConstantGEPs());   // from pocl
         //       add(new       GenerateHeader());      // no need
@@ -210,10 +211,10 @@ void DSPProgram::createOptimizationPasses(llvm::PassManager *manager,
         manager->add(    llvm::createGlobalDCEPass());
         manager->add(    llvm::createCFGSimplificationPass());
         manager->add(    llvm::createLoopSimplifyPass());
+        manager->add(new pocl::VariableUniformityAnalysis());
         manager->add(new pocl::PHIsToAllocas());
         manager->add(    llvm::createRegionInfoPass());
         manager->add(new pocl::IsolateRegions());
-        manager->add(new pocl::VariableUniformityAnalysis()); // TODO
         manager->add(new pocl::ImplicitLoopBarriers());
         // manager->add(new pocl::ImplicitConditionalBarriers()); // pocl 0.9: clang -O2 crashes shoc spmv, disable for now
         manager->add(new pocl::LoopBarriers());

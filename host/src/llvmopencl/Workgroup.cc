@@ -2,7 +2,8 @@
 // and parallelized kernel for an OpenCL workgroup.
 // 
 // Copyright (c) 2011 Universidad Rey Juan Carlos
-// Copyright (c) 2013-2014, Texas Instruments Incorporated - http://www.ti.com/
+//               2012-2015 Pekka Jääskeläinen
+// Copyright (c) 2013-2016, Texas Instruments Incorporated - http://www.ti.com/
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -22,6 +23,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#include "Barrier.h"
 #include "Workgroup.h"
 
 #include "CanonicalizeBarriers.h"
@@ -59,7 +61,6 @@ static void createWorkgroup(Module &M, Function *F);
 static void createWorkgroupFast(Module &M, Function *F);
 
 // extern cl::opt<string> Header;
-// extern cl::list<int> LocalSize;
 
 /* The kernel to process in this kernel compiler launch. */
 cl::opt<string>
@@ -135,7 +136,7 @@ static RegisterPass<Workgroup> X("workgroup", "Workgroup creation pass");
 bool
 Workgroup::runOnModule(Module &M)
 {
-// FIXME 0 here is the address space - this breaks (?) if _local_size_x is not stored in AS0
+
   if (M.getDataLayout()->getPointerSize(0) == 8)
     {
       TypeBuilder<PoclContext, true>::setSizeTWidth(64);
@@ -196,7 +197,7 @@ createLauncher(Module &M, Function *F)
 
   Function *L = Function::Create(ft,
 				 Function::ExternalLinkage,
-				 "_" + funcName,
+				 "_pocl_launcher_" + funcName,
 				 &M);
 
   SmallVector<Value *, 8> arguments;
@@ -507,6 +508,8 @@ createWorkgroupFast(Module &M, Function *F)
     dyn_cast<Function>(M.getOrInsertFunction(funcName + "_workgroup_fast", ft));
   assert(workgroup != NULL);
 
+  workgroup->addFnAttr(Attribute::NoInline);
+
   builder.SetInsertPoint(BasicBlock::Create(M.getContext(), "", workgroup));
 
   Function::arg_iterator ai = workgroup->arg_begin();
@@ -534,10 +537,16 @@ createWorkgroupFast(Module &M, Function *F)
 
     /* If it's a pass by value pointer argument, we just pass the pointer
      * as is to the function, no need to load from it first. */
-    Value *value = builder.CreatePointerCast
-      (pointer, t->getPointerTo(POCL_ADDRESS_SPACE_GLOBAL));
+    Value *value;
+
+    if (!ii->hasByValAttr() || ((PointerType*)t)->getAddressSpace() == 1)
+      value = builder.CreatePointerCast
+        (pointer, t->getPointerTo(POCL_ADDRESS_SPACE_GLOBAL));
+    else
+      value = builder.CreatePointerCast(pointer, t->getPointerTo());
+
     if (!ii->hasByValAttr()) {
-        value = builder.CreateLoad(value);
+      value = builder.CreateLoad(value);
     }
     
     arguments.push_back(value);
@@ -572,12 +581,39 @@ Workgroup::isKernelToProcess(const Function &F)
   for (unsigned i = 0, e = kernels->getNumOperands(); i != e; ++i) {
     if (kernels->getOperand(i)->getOperand(0) == NULL)
       continue; // globaldce might have removed uncalled kernels
-    Function *k = cast<Function>(
-          dyn_cast<ValueAsMetadata>(
-            kernels->getOperand(i)->getOperand(0))->getValue());
+    Function *k = 
+      cast<Function>(
+        dyn_cast<ValueAsMetadata>(kernels->getOperand(i)->getOperand(0))
+          ->getValue());
     if (&F == k)
       return true;
   }
 
+  return false;
+}
+
+/**
+ * Returns true in case the given function is a kernel 
+ * with work-group barriers inside it.
+ */
+bool
+Workgroup::hasWorkgroupBarriers(const Function &F)
+{
+  for (llvm::Function::const_iterator i = F.begin(), e = F.end();
+       i != e; ++i) {
+    const llvm::BasicBlock* bb = i;
+    if (Barrier::hasBarrier(bb)) {
+
+      // Ignore the implicit entry and exit barriers.
+      if (Barrier::hasOnlyBarrier(bb) && bb == &F.getEntryBlock())
+        continue;
+
+      if (Barrier::hasOnlyBarrier(bb) && 
+          bb->getTerminator()->getNumSuccessors() == 0) 
+        continue;
+
+      return true;
+    }
+  }
   return false;
 }

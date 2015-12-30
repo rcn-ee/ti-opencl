@@ -1,7 +1,7 @@
 // LLVM module pass to get information from kernel functions.
 // 
 // Copyright (c) 2011 Universidad Rey Juan Carlos
-// Copyright (c) 2013-2014, Texas Instruments Incorporated - http://www.ti.com/
+// Copyright (c) 2013-2016, Texas Instruments Incorporated - http://www.ti.com/
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -139,17 +139,18 @@ GenerateHeader::ProcessReqdWGSize(Function *F,
   if (size_info) {
     for (unsigned i = 0, e = size_info->getNumOperands(); i != e; ++i) {
       llvm::MDNode *KernelSizeInfo = size_info->getOperand(i);
-      if (dyn_cast<ValueAsMetadata>(KernelSizeInfo->getOperand(0).get())->getValue() == F) {
-        LocalSizeX = (llvm::cast<ConstantInt>(
-             llvm::dyn_cast<ConstantAsMetadata>(
-               KernelSizeInfo->getOperand(1))->getValue()))->getLimitedValue();
-        LocalSizeY = (llvm::cast<ConstantInt>(
-             llvm::dyn_cast<ConstantAsMetadata>(
-               KernelSizeInfo->getOperand(2))->getValue()))->getLimitedValue();
-        LocalSizeZ = (llvm::cast<ConstantInt>(
-             llvm::dyn_cast<ConstantAsMetadata>(
-               KernelSizeInfo->getOperand(3))->getValue()))->getLimitedValue();
-      }
+      if (dyn_cast<ValueAsMetadata>(KernelSizeInfo->getOperand(0).get())->getValue() != F) 
+        continue;
+      LocalSizeX = (llvm::cast<ConstantInt>(
+                     llvm::dyn_cast<ConstantAsMetadata>(
+                       KernelSizeInfo->getOperand(1))->getValue()))->getLimitedValue();
+      LocalSizeY = (llvm::cast<ConstantInt>(
+                     llvm::dyn_cast<ConstantAsMetadata>(
+                       KernelSizeInfo->getOperand(2))->getValue()))->getLimitedValue();
+      LocalSizeZ = (llvm::cast<ConstantInt>(
+                     llvm::dyn_cast<ConstantAsMetadata>(
+                       KernelSizeInfo->getOperand(3))->getValue()))->getLimitedValue();
+      break;
     }
   }
 
@@ -165,30 +166,20 @@ GenerateHeader::ProcessPointers(Function *F,
                                 raw_fd_ostream &out)
 {
   int num_args = F->getFunctionType()->getNumParams();
-    
+
   out << "#define _" << F->getName() << "_NUM_ARGS " << num_args << '\n';
-      
-#if 0
-  bool is_pointer[num_args];
-  bool is_local[num_args];
-  bool is_image[num_args];
-  bool is_sampler[num_args];
-#else
-  std::vector<bool> is_pointer(num_args, false);
-  std::vector<bool> is_local(num_args, false);
-  std::vector<bool> is_image(num_args, false);
-  std::vector<bool> is_sampler(num_args, false);
-#endif
-  
+
+  bool *is_pointer = (bool*)calloc(num_args, sizeof(bool));
+  bool *is_local = (bool*)calloc(num_args, sizeof(bool));
+  bool *is_image = (bool*)calloc(num_args, sizeof(bool));
+  bool *is_sampler = (bool*)calloc(num_args, sizeof(bool));
+
   int i = 0;
   for (Function::const_arg_iterator ii = F->arg_begin(),
          ee = F->arg_end();
        ii != ee; ++ii) {
     Type *t = ii->getType();
-  
-    is_image[i] = false;
-    is_sampler[i] = false;
- 
+
     const PointerType *p = dyn_cast<PointerType>(t);
     if (p && !ii->hasByValAttr()) {
       is_pointer[i] = true;
@@ -202,27 +193,22 @@ GenerateHeader::ProcessPointers(Function *F,
       is_pointer[i] = false;
       is_local[i] = false;
     }
-    
+
     if (t->isPointerTy()) {
-      if (t->getPointerElementType()->isStructTy()) {
-        string name = t->getPointerElementType()->getStructName().str();
-        if (name == "opencl.image2d_t" || name == "opencl.image3d_t" || 
-            name == "opencl.image1d_t" || name == "struct.dev_image_t") {
-          is_image[i] = true;
-          is_pointer[i] = false;
-          is_local[i] = false;
-        }
-        if (name == "opencl.sampler_t_") {
-          is_sampler[i] = true;
-          is_pointer[i] = false;
-          is_local[i] = false;
-        }
+      if (is_image_type(*t)) {
+        is_image[i] = true;
+        is_pointer[i] = false;
+        is_local[i] = false;
+      } else if (is_sampler_type(*t)) {
+        is_sampler[i] = true;
+        is_pointer[i] = false;
+        is_local[i] = false;
       }
     }
-    
+
     ++i;
   }
-    
+
   out << "#define _" << F->getName() << "_ARG_IS_POINTER {";
   if (num_args != 0) {
     out << is_pointer[0];
@@ -254,6 +240,11 @@ GenerateHeader::ProcessPointers(Function *F,
       out << ", " << is_sampler[i];
   }
   out << "}\n";
+
+  free(is_pointer);
+  free(is_local);
+  free(is_image);
+  free(is_sampler);
 }
 
 

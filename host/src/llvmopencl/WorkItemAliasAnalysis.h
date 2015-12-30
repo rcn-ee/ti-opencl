@@ -1,6 +1,6 @@
 /*
     Copyright (c) 2012 Tampere University of Technology.
-    Copyright (c) 2013-2014, Texas Instruments Incorporated - http://www.ti.com/
+    Copyright (c) 2013-2016, Texas Instruments Incorporated - http://www.ti.com/
 
     Permission is hereby granted, free of charge, to any person obtaining a
     copy of this software and associated documentation files (the "Software"),
@@ -39,14 +39,16 @@
 
 using namespace llvm;
 
+typedef AliasAnalysis::AliasResult AliasResult;
+
 namespace pocl {
 /// WorkItemAliasAnalysis - This is a simple alias analysis
 /// implementation that uses pocl metadata to make sure memory accesses from
 /// different work items are not aliasing.
-class WorkItemAliasAnalysis : public llvm::ImmutablePass, public llvm::AliasAnalysis {
+class WorkItemAliasAnalysis : public llvm::FunctionPass, public llvm::AliasAnalysis {
 public:
     static char ID; 
-    WorkItemAliasAnalysis() : ImmutablePass(ID) {}
+    WorkItemAliasAnalysis() : FunctionPass(ID) {}
 
     /// getAdjustedAnalysisPointer - This method is used when a pass implements
     /// an analysis interface through multiple inheritance.  If needed, it
@@ -59,6 +61,10 @@ public:
     }
     virtual void initializePass() {
         InitializeAliasAnalysis(this);
+    }
+    virtual bool runOnFunction(llvm::Function &) {
+      InitializeAliasAnalysis(this);
+      return false;
     }
     
     private:

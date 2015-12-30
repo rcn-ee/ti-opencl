@@ -55,19 +55,19 @@ regenerate_kernel_metadata(llvm::Module &M, FunctionMapping &kernels)
             {
               Function *old_kernel = (*i).first;
               Function *new_kernel = (*i).second;
+              Function *func_from_md;
+              func_from_md = dyn_cast<Function>(
+                dyn_cast<ValueAsMetadata>(wgsizeMD->getOperand(0))->getValue());
               if (old_kernel == new_kernel || wgsizeMD->getNumOperands() == 0 ||
-                    dyn_cast<Function>(
-                      dyn_cast<ValueAsMetadata>(
-                         wgsizeMD->getOperand(0))->getValue()) != old_kernel) 
+                  func_from_md != old_kernel) 
                 continue;
               // found a wg size metadata that points to the old kernel, copy its
               // operands except the first one to a new MDNode
               SmallVector<Metadata*, 8> operands;
               operands.push_back(llvm::ValueAsMetadata::get(new_kernel));
-              for (unsigned opr = 1; opr < wgsizeMD->getNumOperands(); ++opr)
-                {
+              for (unsigned opr = 1; opr < wgsizeMD->getNumOperands(); ++opr) {
                   operands.push_back(wgsizeMD->getOperand(opr));
-                }
+              }
               MDNode *new_wg_md = MDNode::get(M.getContext(), operands);
               wg_sizes->addOperand(new_wg_md);
             } 
@@ -84,7 +84,7 @@ regenerate_kernel_metadata(llvm::Module &M, FunctionMapping &kernels)
          e = kernels.end();
        i != e; ++i) {
     MDNode *md = MDNode::get(M.getContext(), ArrayRef<Metadata *>(
-             llvm::ValueAsMetadata::get((*i).second)));
+      llvm::ValueAsMetadata::get((*i).second)));
     nmd->addOperand(md);
   }
 }

@@ -2,8 +2,8 @@
 // in a work group.
 // 
 // Copyright (c) 2011-2012 Carlos Sánchez de La Lama / URJC and
-//                         Pekka Jääskeläinen / TUT
-// Copyright (c) 2013-2014, Texas Instruments Incorporated - http://www.ti.com/
+//               2011-2015 Pekka Jääskeläinen / TUT
+// Copyright (c) 2013-2016, Texas Instruments Incorporated - http://www.ti.com/
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -40,6 +40,8 @@
 #include "llvm/IR/ValueSymbolTable.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include "WorkitemHandlerChooser.h"
+#include "DebugHelpers.h"
+#include "VariableUniformityAnalysis.h"
 
 #include <iostream>
 #include <map>
@@ -72,18 +74,9 @@ WorkitemReplication::getAnalysisUsage(AnalysisUsage &AU) const
 {
   AU.addRequired<DominatorTreeWrapperPass>();
   AU.addRequired<LoopInfo>();
-
-// TODO - removed due to compilation error 
-#if 0
-#ifdef LLVM_3_1
-  AU.addRequired<TargetData>();
-#elif defined LLVM_3_3
-  AU.addRequired<DataLayout>();
-#else
   AU.addRequired<DataLayoutPass>();
-#endif
-#endif
   AU.addRequired<pocl::WorkitemHandlerChooser>();
+  AU.addPreserved<pocl::VariableUniformityAnalysis>();
 }
 
 bool
@@ -133,10 +126,12 @@ WorkitemReplication::ProcessFunction(Function &F)
   ParallelRegion::ParallelRegionVector* original_parallel_regions =
     K->getParallelRegions(LI);
 
-  std::vector<SmallVector<ParallelRegion *, 8> > parallel_regions(
+  std::vector<ParallelRegion::ParallelRegionVector> parallel_regions(
       workitem_count);
 
   parallel_regions[0] = *original_parallel_regions;
+
+  //pocl::dumpCFG(F, F.getName().str() + ".before_repl.dot", original_parallel_regions);
 
   /* Enable to get region identification printouts */
 #if 0
@@ -169,7 +164,7 @@ WorkitemReplication::ProcessFunction(Function &F)
         for (Value::use_iterator i4 = i3->use_begin(), e4 = i3->use_end();
              i4 != e4; ++i4) {
           // Instructions can only be used by instructions.
-          Instruction *user = cast<Instruction> (i4->getUser());
+          llvm::Instruction *user = cast<Instruction>(i4->getUser());
           
           if (find (pr->begin(), pr->end(), user->getParent()) ==
               pr->end()) {
@@ -245,8 +240,10 @@ WorkitemReplication::ProcessFunction(Function &F)
     }
   }
     
-  // Try to merge all workitem first block of each region
-  // together (for PHI predecessor correctness).
+  // Push the PHI nodes from the entry BBs of the chained
+  // region copys to the entry BB of the first copy to retain
+  // their semantics for branches from outside the parallel
+  // region to the beginning of the region copy chain.
   for (int z = LocalSizeZ - 1; z >= 0; --z) {
     for (int y = LocalSizeY - 1; y >= 0; --y) {
       for (int x = LocalSizeX - 1; x >= 0; --x) {
@@ -256,21 +253,20 @@ WorkitemReplication::ProcessFunction(Function &F)
 
         if (index == 0)
           continue;
-          
+
         for (unsigned i = 0, e = parallel_regions[index].size(); i != e; ++i) {
+          ParallelRegion *firstCopy = parallel_regions[0][i];
           ParallelRegion *region = parallel_regions[index][i];
           BasicBlock *entry = region->entryBB();
-
-          assert (entry != NULL);
-          BasicBlock *pred = entry->getUniquePredecessor();
-          assert (pred != NULL && "No unique predecessor.");
 #ifdef DEBUG_BB_MERGING
-          std::cerr << "### pred before merge into predecessor " << std::endl;
-          pred->dump();
-          std::cerr << "### entry before merge into predecessor " << std::endl;
-          entry->dump();
+          std::cerr << "### first entry before hoisting the PHIs " << std::endl;
+          firstCopy->entryBB()->dump();
 #endif
-          movePhiNodes(entry, pred);
+          movePhiNodes(entry, firstCopy->entryBB());
+#ifdef DEBUG_BB_MERGING
+          std::cerr << "### first entry after hoisting the PHIs " << std::endl;
+          firstCopy->entryBB()->dump();
+#endif
         }
       }
     }
@@ -287,6 +283,8 @@ WorkitemReplication::ProcessFunction(Function &F)
   K->addLocalSizeInitCode(LocalSizeX, LocalSizeY, LocalSizeZ);
 
   delete [] reference_map;
+
+  //pocl::dumpCFG(F, F.getName().str() + ".after_repl.dot", original_parallel_regions);
 
 //  F.viewCFG();
 

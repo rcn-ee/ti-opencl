@@ -34,6 +34,9 @@
 
 #include <iostream>
 
+#include "VariableUniformityAnalysis.h"
+
+
 //#define DEBUG_COND_BARRIERS
 
 using namespace llvm;
@@ -54,7 +57,7 @@ ImplicitConditionalBarriers::getAnalysisUsage(AnalysisUsage &AU) const
   AU.addPreserved<PostDominatorTree>();
   AU.addRequired<DominatorTreeWrapperPass>();
   AU.addPreserved<DominatorTreeWrapperPass>();
-
+  AU.addPreserved<VariableUniformityAnalysis>();
 }
 
 /**
@@ -79,6 +82,9 @@ bool
 ImplicitConditionalBarriers::runOnFunction(Function &F) {
 {
   if (!Workgroup::isKernelToProcess(F))
+    return false;
+
+  if (!Workgroup::hasWorkgroupBarriers(F))
     return false;
   
   PDT = &getAnalysis<PostDominatorTree>();

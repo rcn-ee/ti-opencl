@@ -3,7 +3,7 @@
 // 
 // Copyright (c) 2011 Universidad Rey Juan Carlos and
 //               2012-2015 Pekka Jääskeläinen / TUT
-// Copyright (c) 2013-2014, Texas Instruments Incorporated - http://www.ti.com/
+// Copyright (c) 2013-2016, Texas Instruments Incorporated - http://www.ti.com/
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -36,6 +36,8 @@
 #include <sstream>
 #include <map>
 #include <algorithm>
+
+#include "DebugHelpers.h"
 
 using namespace std;
 using namespace llvm;
@@ -395,9 +397,14 @@ ParallelRegion::Verify()
           std::cerr << "suspicious block: " << (*i)->getName().str() << std::endl;
           std::cerr << "the entry is: " << entryBB()->getName().str() << std::endl;
 
-#if 0
-          (*i)->getParent()->viewCFG();
-#endif
+          ParallelRegion::ParallelRegionVector prvec;
+          prvec.push_back(this);
+          std::set<llvm::BasicBlock*> highlights;
+          highlights.insert(entryBB());
+          highlights.insert(*i);
+          pocl::dumpCFG(
+            *(*i)->getParent(), (*i)->getParent()->getName().str() + ".dot",
+            &prvec, &highlights);
           assert(0 && "Incoming edges to non-entry block!");
           return false;
         } else if (!Barrier::hasBarrier(*ii)) {
@@ -413,8 +420,17 @@ ParallelRegion::Verify()
     //   assert(0 && "Parallel regions must be single entry!");
     //   return false;
     // }
-
     if (exitBB()->getTerminator()->getNumSuccessors() != 1) {
+      ParallelRegion::ParallelRegionVector regions;
+      regions.push_back(this);
+
+      std::set<llvm::BasicBlock*> highlights;
+      highlights.insert((*i));
+      highlights.insert(exitBB());
+      exitBB()->dump();
+      dumpNames();
+      dumpCFG(*(*i)->getParent(), "broken.dot", &regions, &highlights);
+
       assert(0 && "Multiple outgoing edges from exit block!");
       return false;
     }
@@ -453,22 +469,17 @@ ParallelRegion::Verify()
  */
 void
 ParallelRegion::AddParallelLoopMetadata(llvm::MDNode *identifier) {
- 
   for (iterator i = begin(), e = end(); i != e; ++i) {
     BasicBlock* bb = *i;      
     for (BasicBlock::iterator ii = bb->begin(), ee = bb->end();
          ii != ee; ii++) {
       if (ii->mayReadOrWriteMemory()) {
-        std::vector<Metadata*> loopIds;
-        MDNode *oldIds = ii->getMetadata("llvm.mem.parallel_loop_access");
-        if (oldIds != NULL) {
-          for (unsigned i = 0; i < oldIds->getNumOperands(); ++i) {
-            loopIds.push_back(oldIds->getOperand(i));
-          }
+        MDNode *newMD = MDNode::get(bb->getContext(), identifier);
+        MDNode *oldMD = ii->getMetadata(LLVMContext::MD_mem_parallel_loop_access);
+        if (oldMD != NULL) {
+          newMD = llvm::MDNode::concatenate(oldMD, newMD);
         }
-        loopIds.push_back(identifier);
-        ii->setMetadata("llvm.mem.parallel_loop_access", 
-                        MDNode::get(bb->getContext(), loopIds));
+        ii->setMetadata(LLVMContext::MD_mem_parallel_loop_access, newMD);
       }
     }
   }
@@ -480,21 +491,21 @@ ParallelRegion::AddIDMetadata(
     std::size_t x, 
     std::size_t y, 
     std::size_t z) {
-  
     int counter = 1;
     Metadata *v1[] = {
         MDString::get(context, "WI_region"),      
         llvm::ConstantAsMetadata::get(
-        ConstantInt::get(Type::getInt32Ty(context), pRegionId))};      
+          ConstantInt::get(Type::getInt32Ty(context), pRegionId))
+    };
     MDNode* mdRegion = MDNode::get(context, v1);  
     Metadata *v2[] = {
         MDString::get(context, "WI_xyz"),      
         llvm::ConstantAsMetadata::get(
-        ConstantInt::get(Type::getInt32Ty(context), x)),
+          ConstantInt::get(Type::getInt32Ty(context), x)),
         llvm::ConstantAsMetadata::get(
-        ConstantInt::get(Type::getInt32Ty(context), y)),      
+          ConstantInt::get(Type::getInt32Ty(context), y)),      
         llvm::ConstantAsMetadata::get(
-        ConstantInt::get(Type::getInt32Ty(context), z))};      
+          ConstantInt::get(Type::getInt32Ty(context), z))};
     MDNode* mdXYZ = MDNode::get(context, v2);  
     Metadata *v[] = {
         MDString::get(context, "WI_data"),      
@@ -503,13 +514,13 @@ ParallelRegion::AddIDMetadata(
     MDNode* md = MDNode::get(context, v);              
     
     for (iterator i = begin(), e = end(); i != e; ++i) {
-      BasicBlock* bb = *i;      
+      BasicBlock* bb = *i;
       for (BasicBlock::iterator ii = bb->begin();
             ii != bb->end(); ii++) {
         Metadata *v3[] = {
             MDString::get(context, "WI_counter"),      
-              llvm::ConstantAsMetadata::get(
-                ConstantInt::get(Type::getInt32Ty(context), counter))};      
+            llvm::ConstantAsMetadata::get(
+              ConstantInt::get(Type::getInt32Ty(context), counter))};
         MDNode* mdCounter = MDNode::get(context, v3);  
         counter++;
         ii->setMetadata("wi", md);
@@ -564,7 +575,7 @@ ParallelRegion::AddBlockAfter(llvm::BasicBlock *block, llvm::BasicBlock *after)
 }
 
 bool 
-ParallelRegion::HasBlock(const llvm::BasicBlock *bb)
+ParallelRegion::HasBlock(llvm::BasicBlock *bb)
 {
     return find(begin(), end(), bb) != end();
 }
@@ -613,7 +624,7 @@ ParallelRegion::LocalIDXLoad()
 
 void
 ParallelRegion::InjectPrintF
-(llvm::Instruction *before, std::string formatStr, 
+(llvm::Instruction *before, std::string formatStr,
  std::vector<Value*>& params)
 {
   IRBuilder<> builder(before);
@@ -657,7 +668,7 @@ ParallelRegion::InjectPrintF
   const_ptr_8_indices.push_back(const_int64_9);
   const_ptr_8_indices.push_back(const_int64_9);
   assert (isa<Constant>(stringArg));
-  Constant* const_ptr_8 = 
+  Constant* const_ptr_8 =
     ConstantExpr::getGetElementPtr
     (cast<Constant>(stringArg), const_ptr_8_indices);
 

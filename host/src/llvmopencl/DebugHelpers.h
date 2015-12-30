@@ -34,13 +34,23 @@
 namespace pocl {
   // View CFG with visual aids to debug kernel compiler problems.
   void dumpCFG(llvm::Function& F, std::string fname="", 
-               ParallelRegion::ParallelRegionVector* regions=NULL);
+               ParallelRegion::ParallelRegionVector* regions=NULL,
+               std::set<llvm::BasicBlock*> *highlights=NULL);
 
   // Split large basic blocks to smaller one so dot doesn't crash when
   // calling viewCFG on it. This should be fixed in LLVM upstream.
   //
   // @return True in case the function was changed.
   bool chopBBs(llvm::Function& F, llvm::Pass &P);
-}
+};
+
+// Controls the debug output from Kernel.cc parallel region generation:
+//#define DEBUG_PR_CREATION
+
+// Controls the debug output from ImplicitConditionalBarriers.cc:
+//#define DEBUG_COND_BARRIERS
+
+// Controls the debug output from PHIsToAllocas.cc
+//#define DEBUG_PHIS_TO_ALLOCAS
 
 #endif

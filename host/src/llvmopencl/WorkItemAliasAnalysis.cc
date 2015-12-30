@@ -1,6 +1,6 @@
 /*
     Copyright (c) 2012 Tampere University of Technology.
-    Copyright (c) 2013-2014, Texas Instruments Incorporated - http://www.ti.com/
+    Copyright (c) 2013-2016, Texas Instruments Incorporated - http://www.ti.com/
 
     Permission is hereby granted, free of charge, to any person obtaining a
     copy of this software and associated documentation files (the "Software"),
@@ -38,12 +38,12 @@ RegisterPass<WorkItemAliasAnalysis>
 // Register it also to pass group
 RegisterAnalysisGroup<AliasAnalysis> Y(X);  
 
-ImmutablePass *createWorkItemAliasAnalysisPass() {
+FunctionPass *createWorkItemAliasAnalysisPass() {
     return new WorkItemAliasAnalysis();
 }
 
 extern "C" {                                
-    ImmutablePass*
+    FunctionPass*
     create_workitem_aa_plugin() {
         return new WorkItemAliasAnalysis();
     }
@@ -55,13 +55,14 @@ WorkItemAliasAnalysis::getAnalysisUsage(AnalysisUsage &AU) const {
     AliasAnalysis::getAnalysisUsage(AU);
 }
 
+
 /**
  * Test if memory locations are from different work items from same region.
  * Then they can not alias.
  */
-AliasAnalysis::AliasResult
+AliasResult
 WorkItemAliasAnalysis::alias(const Location &LocA,
-                                    const Location &LocB) {
+                             const Location &LocB) {
     // If either of the memory references is empty, it doesn't matter what the
     // pointer values are. This allows the code below to ignore this special
     // case.
@@ -87,11 +88,9 @@ WorkItemAliasAnalysis::alias(const Location &LocA,
             const MDNode* mdRegionA = dyn_cast<MDNode>(mdA->getOperand(1));
             const MDNode* mdRegionB = dyn_cast<MDNode>(mdB->getOperand(1)); 
             ConstantInt* C1 = dyn_cast<ConstantInt>(
-                  dyn_cast<ConstantAsMetadata>(
-                  mdRegionA->getOperand(1))->getValue());
+              dyn_cast<ConstantAsMetadata>(mdRegionA->getOperand(1))->getValue());
             ConstantInt* C2 = dyn_cast<ConstantInt>(
-                  dyn_cast<ConstantAsMetadata>(
-                  mdRegionB->getOperand(1))->getValue());
+              dyn_cast<ConstantAsMetadata>(mdRegionB->getOperand(1))->getValue());
             if (C1->getValue() == C2->getValue()) {
                 // Now we have both locations from same region. Check for different
                 // work items.

@@ -1,7 +1,7 @@
-// TargetAddressSpaces.cc - map the fixed "logical" address-space ids to
+// TargetAddressSpaces.cc - map the fixed "logical" address-space ids to,
 //                          the target-specific ones, if needed
 // 
-// Copyright (c) 2013 Pekka Jääskeläinen / TUT
+// Copyright (c) 2013-2015 Pekka Jääskeläinen / TUT
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -24,9 +24,13 @@
 #include "config.h"
 #include <iostream>
 #include <string>
+#include <set>
 
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Module.h>
+#include <llvm/IR/IntrinsicInst.h>
+
+#include <llvm/IR/IRBuilder.h>
 #include <llvm/Transforms/Utils/ValueMapper.h>
 #include <llvm/Transforms/Utils/Cloning.h>
 #include <llvm/Transforms/Utils/BasicBlockUtils.h>
@@ -81,22 +85,93 @@ UpdateAddressSpace(llvm::Value& val, std::map<unsigned, unsigned> &addrSpaceMap)
   return true;
 }
 
+/**
+ * After converting the pointer address spaces, there
+ * might be llvm.memcpy.* or llvm.memset.* calls to wrong
+ * intrinsics with wrong address spaces which this function
+ * fixes.
+ */
+static void
+FixMemIntrinsics(llvm::Function& F) {
+
+  // Collect the intrinsics first to avoid breaking the
+  // iterators.
+  std::vector<llvm::MemIntrinsic*> intrinsics;
+  for (llvm::Function::iterator bbi = F.begin(), bbe = F.end(); bbi != bbe;
+       ++bbi) {
+    llvm::BasicBlock* bb = bbi;
+    for (llvm::BasicBlock::iterator ii = bb->begin(), ie = bb->end();
+         ii != ie; ++ii) {
+      llvm::Instruction *instr = ii;
+      if (!isa<llvm::MemIntrinsic>(instr)) continue;
+      intrinsics.push_back(dyn_cast<llvm::MemIntrinsic>(instr));
+    }
+  }
+
+  for (llvm::MemIntrinsic* i : intrinsics) {
+
+    llvm::IRBuilder<> Builder(i);
+    // The pointer arguments to the intrinsics are already converted
+    // to the correct address spaces. All we need to do here is to
+    // "refresh" the intrinsics so it gets correct address spaces
+    // in the name (e.g. llvm.memcpy.p0i8.p0i8).
+    if (llvm::MemCpyInst* old = dyn_cast<llvm::MemCpyInst>(i)) {
+      Builder.CreateMemCpy(
+        old->getRawDest(), old->getRawSource(), old->getLength(),
+        old->getAlignment(), old->isVolatile());
+      old->eraseFromParent();
+    } else if (llvm::MemSetInst* old = dyn_cast<llvm::MemSetInst>(i)) {
+      Builder.CreateMemSet(
+        old->getRawDest(), old->getValue(), old->getLength(),
+        old->getAlignment(), old->isVolatile());
+      old->eraseFromParent();
+    } else if (llvm::MemMoveInst* old = dyn_cast<llvm::MemMoveInst>(i)) {
+      Builder.CreateMemMove(
+        old->getRawDest(), old->getRawSource(), old->getLength(),
+        old->getAlignment(), old->isVolatile());
+      old->eraseFromParent();
+    } else {
+        assert (false && "Unknown MemIntrinsic.");
+    }
+  }
+}
 
 bool
 TargetAddressSpaces::runOnModule(llvm::Module &M) {
 
   llvm::StringRef arch(M.getTargetTriple());
- 
+
   std::map<unsigned, unsigned> addrSpaceMap;
 
   if (arch.startswith("x86_64")) {
-    /* For x86_64 the default isel seems to work with the
-       fake address spaces. Skip the processing as it causes 
-       an overhead and is not fully implemented.
+    /* x86_64 supports flattening the address spaces at the backend, but
+       we still flatten them in pocl due to a couple of reasons.
+
+       At least LLVM 3.5 exposes an issue with pocl's printf or another LLVM pass:
+       After the code emission optimizations there appears a
+       PHI node where the two alternative pointer assignments have different
+       address spaces:
+       %format.addr.2347 =
+          phi i8 addrspace(3)* [ %incdec.ptr58, %if.end56 ],
+                               [ %format.addr.1, %while.body45.preheader ]
+
+       This leads to an LLVM crash when it tries to generate a no-op bitcast
+       while it won't be such due to the address space difference (I assume).
+       Workaround this by flattening the address spaces to 0 here also for
+       x86_64 until the real culprit is found.
+
+       Another reason is that LoopVectorizer of LLVM 3.7 crashes when it
+       tries to create a masked store intrinsics with the fake address space
+       ids, so we need to flatten them out before vectorizing.
     */
-    return false; 
+    addrSpaceMap[POCL_ADDRESS_SPACE_GLOBAL] =
+        addrSpaceMap[POCL_ADDRESS_SPACE_LOCAL] =
+        addrSpaceMap[POCL_ADDRESS_SPACE_CONSTANT] = 0;
+
   } else if (arch.startswith("arm")) {
-    return false;
+    addrSpaceMap[POCL_ADDRESS_SPACE_GLOBAL] =
+        addrSpaceMap[POCL_ADDRESS_SPACE_LOCAL] =
+        addrSpaceMap[POCL_ADDRESS_SPACE_CONSTANT] = 0;
   } else if (arch.startswith("tce")) {
     /* TCE requires the remapping. */
     addrSpaceMap[POCL_ADDRESS_SPACE_GLOBAL] = 3;
@@ -104,6 +179,14 @@ TargetAddressSpaces::runOnModule(llvm::Module &M) {
     /* LLVM 3.2 detects 'constant' as cuda_constant (5) in the fake
        address space map. Add it for compatibility. */
     addrSpaceMap[5] = addrSpaceMap[POCL_ADDRESS_SPACE_CONSTANT] = 5;     
+  } else if (arch.startswith("mips")) {
+    addrSpaceMap[POCL_ADDRESS_SPACE_GLOBAL] =
+        addrSpaceMap[POCL_ADDRESS_SPACE_LOCAL] =
+        addrSpaceMap[POCL_ADDRESS_SPACE_CONSTANT] = 0;
+  } else if (arch.startswith("amdgcn") || arch.startswith("hsail")) {
+    addrSpaceMap[POCL_ADDRESS_SPACE_GLOBAL] = 1;
+    addrSpaceMap[POCL_ADDRESS_SPACE_LOCAL] = 3;
+    addrSpaceMap[POCL_ADDRESS_SPACE_CONSTANT] = 2;
   } else {
     /* Assume the fake address space map works directly in case not
        overridden here.  */
@@ -111,13 +194,6 @@ TargetAddressSpaces::runOnModule(llvm::Module &M) {
   }
 
   bool changed = false;
-  /* Handle global variables. */
-  llvm::Module::global_iterator globalI = M.global_begin();
-  llvm::Module::global_iterator globalE = M.global_end();
-  for (; globalI != globalE; ++globalI) {
-    llvm::Value &global = *globalI;
-    changed |= UpdateAddressSpace(global, addrSpaceMap);
-  }
 
   FunctionMapping funcReplacements;
   std::vector<llvm::Function*> unhandledFuncs;
@@ -177,7 +253,22 @@ TargetAddressSpaces::runOnModule(llvm::Module &M) {
     } asvtm(addrSpaceMap);
 
     CloneFunctionInto(newFunc, &F, vv, true, ri, "", NULL, &asvtm);
+    FixMemIntrinsics(*newFunc);
     funcReplacements[&F] = newFunc;
+  }
+
+  /* Handle global variables. These should be fixed *after*
+     fixing the instruction referring to them.  If we fix
+     the address spaces before, there might be possible
+     illegal bitcasts casting the LLVM's global pointer to
+     another one, causing the CloneFunctionInto to crash when
+     it encounters such.
+   */
+  llvm::Module::global_iterator globalI = M.global_begin();
+  llvm::Module::global_iterator globalE = M.global_end();
+  for (; globalI != globalE; ++globalI) {
+    llvm::Value &global = *globalI;
+    changed |= UpdateAddressSpace(global, addrSpaceMap);
   }
   
   /* Replace all references to the old function to the new one.
@@ -213,6 +304,7 @@ TargetAddressSpaces::runOnModule(llvm::Module &M) {
         }
         
         if (!isa<CallInst>(instr)) continue;
+
         llvm::CallInst *call = dyn_cast<CallInst>(instr);
         llvm::Function *calledF = call->getCalledFunction();
         if (funcReplacements.find(calledF) == funcReplacements.end()) continue;
@@ -236,10 +328,8 @@ TargetAddressSpaces::runOnModule(llvm::Module &M) {
              ue = i->first->use_end(); ui != ue; ++ui) {
         User* user = (*ui).getUser();
         user->dump();
-                   
       }
-      
-      assert ("All users of the function were not fixed?" && 
+      assert ("All users of the function were not fixed?" &&
               i->first->getNumUses() == 0);
       break;
     }

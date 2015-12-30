@@ -58,9 +58,9 @@ inline bool
 is_image_type(const llvm::Type& t) 
 {
   if (t.isPointerTy() && t.getPointerElementType()->isStructTy()) {
-    std::string name = t.getPointerElementType()->getStructName().str();
-    if (name == "opencl.image2d_t" || name == "opencl.image3d_t" || 
-        name == "opencl.image1d_t" || name == "struct.dev_image_t") 
+    llvm::StringRef name = t.getPointerElementType()->getStructName().str();
+    if (name.startswith("opencl.image2d_t") || name.startswith("opencl.image3d_t") ||
+        name.startswith("opencl.image1d_t") || name.startswith("struct.dev_image_t")) 
       return true;
   }
   return false;
@@ -71,8 +71,8 @@ is_sampler_type(const llvm::Type& t)
 {
   if (t.isPointerTy() && t.getPointerElementType()->isStructTy()) 
     {
-      std::string name = t.getPointerElementType()->getStructName().str();
-      if (name == "opencl.sampler_t_") return true;     
+      llvm::StringRef name = t.getPointerElementType()->getStructName().str();
+      if (name.startswith("opencl.sampler_t_")) return true;     
     }
   return false;
 }
