@@ -58,14 +58,7 @@
 #define MIN(X, Y)  ((X) < (Y) ? (X) : (Y))
 #define MAN(X, Y)  ((X) > (Y) ? (X) : (Y))
 
-inline uint32_t __sync_fetch_and_add(int *kernelID, int i)
-{
-	uint32_t ret = *kernelID;
-	*kernelID += i;
-	return ret;
-}
-
-
+uint32_t __sync_fetch_and_add(int* p, int inc);
 #endif
 #include <sys/param.h>
 
@@ -826,9 +819,11 @@ cl_int DSPKernelEvent::allocate_temp_global(void)
         MemObject      *buffer       =  p_hostptr_tmpbufs[i].first;
         DSPDevicePtr64 *p_addr64     = &p_hostptr_tmpbufs[i].second.first;
         DSPVirtPtr     *p_arg_word   =  p_hostptr_tmpbufs[i].second.second;
-        
+#ifndef _SYS_BIOS
         *p_addr64 = p_device->malloc_global(buffer->size(), false);
-
+#else
+        *p_addr64 = (DSPDevicePtr64)((int64_t)((uint32_t)(buffer->host_ptr())));
+#endif
         if (!(*p_addr64))
         {
             QERR("Temporary memory for CL_MEM_USE_HOST_PTR buffer exceeds available global memory",
@@ -843,11 +838,16 @@ cl_int DSPKernelEvent::allocate_temp_global(void)
 
         if (! WRITE_ONLY_BUFFER(buffer))
         {
+#ifndef _SYS_BIOS
             void *mapped_tmpbuf = driver->map(p_device, *p_addr64,
                                               buffer->size(), false);
             memcpy(mapped_tmpbuf, buffer->host_ptr(), buffer->size());
+#else
+            void *mapped_tmpbuf = (void*)((uint32_t)*p_addr64);
+#endif
             p_flush_bufs.push_back(DSPMemRange(DSPPtrPair(
                                       *p_addr64, p_arg_word), buffer->size()));
+
             driver->unmap(p_device, mapped_tmpbuf, *p_addr64, buffer->size(),
                           true);
         }
@@ -1073,13 +1073,23 @@ void DSPKernelEvent::free_tmp_bufs()
 
         if (! READ_ONLY_BUFFER(buffer))
         {
+#ifndef _SYS_BIOS
             void *mapped_tmpbuf = driver->map(p_device, addr64, buffer->size(),
                                               true);
             memcpy(buffer->host_ptr(), mapped_tmpbuf, buffer->size());
+#else
+            void *mapped_tmpbuf = (void*)((uint32_t)addr64);
+#endif
             driver->unmap(p_device, mapped_tmpbuf, addr64, buffer->size(),
                           false);
+
+
+
+
         }
+#ifndef _SYS_BIOS
         p_device->free_global(addr64);
+#endif
     }
 
     /*-------------------------------------------------------------------------

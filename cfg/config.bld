@@ -89,7 +89,7 @@ Build.platformTable["ti.platforms.evmDRA7XX:dsp1"] = {
         }],
         [ "SR_0", SR_0 ]
     ],
-    codeMemory:  "DSP1_PROG",
+	codeMemory:  "DSP1_PROG",
     dataMemory:  "DSP1_PROG",
     stackMemory: "DSP1_PROG",
 	l1DMode: "32k",

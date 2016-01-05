@@ -46,6 +46,8 @@
 #include <stdio.h>
 #ifdef _SYS_BIOS
 #include <ti/sysbios/posix/pthread.h>
+#include <xdc/runtime/Memory.h>
+#include <ti/sysbios/heaps/HeapMem.h>
 #endif
 #include <pthread.h>
 
@@ -55,7 +57,10 @@
 #include <queue>
 
 using namespace Coal;
-
+#ifdef _SYS_BIOS
+uint32_t ARM_CCNT_Enable();
+uint32_t ARM_CCNT_Read();
+#endif
 #define ONLY_MAIN_THREAD_CAN_RELEASE_EVENT	0
 #define OOO_QUEUE_PUSH_EVENTS_THRESHOLD		64
 
@@ -82,7 +87,10 @@ CommandQueue::CommandQueue(Context *ctx,
         return;
     }
     p_device->init();
-
+#ifdef _SYS_BIOS
+   /*PMU Clock counter reset*/
+        ARM_CCNT_Enable();
+#endif
     *errcode_ret = checkProperties();
 }
 
@@ -855,7 +863,7 @@ void Event::updateTiming(Timing timing)
         pthread_mutex_unlock(&p_state_mutex);
         return;
     }
-
+#ifndef _SYS_BIOS
     struct timespec tp;
     cl_ulong rs;
 
@@ -864,7 +872,14 @@ void Event::updateTiming(Timing timing)
 
     rs = tp.tv_nsec / 1000;             // convert to microseconds
     rs += tp.tv_sec * 1000000;          // convert to microseconds
+#else
+    cl_ulong rs;
+    uint32_t count;
+    count = ARM_CCNT_Read();
+    /*convert to nano sec*/
+    rs = count*64;
 
+#endif
     p_timing[timing] = rs;
 
     pthread_mutex_unlock(&p_state_mutex);
@@ -1044,19 +1059,19 @@ cl_int Event::profilingInfo(cl_profiling_info param_name,
     switch (param_name)
     {
         case CL_PROFILING_COMMAND_QUEUED:
-            SIMPLE_ASSIGN(cl_ulong, 1000*p_timing[Queue]);
+            SIMPLE_ASSIGN(cl_ulong, p_timing[Queue]/1000);
             break;
 
         case CL_PROFILING_COMMAND_SUBMIT:
-            SIMPLE_ASSIGN(cl_ulong, 1000*p_timing[Submit]);
+            SIMPLE_ASSIGN(cl_ulong, p_timing[Submit]/1000);
             break;
 
         case CL_PROFILING_COMMAND_START:
-            SIMPLE_ASSIGN(cl_ulong, 1000*p_timing[Start]);
+            SIMPLE_ASSIGN(cl_ulong, p_timing[Start]/1000);
             break;
 
         case CL_PROFILING_COMMAND_END:
-            SIMPLE_ASSIGN(cl_ulong, 1000*p_timing[End]);
+            SIMPLE_ASSIGN(cl_ulong, p_timing[End]/1000);
             break;
 
         default:

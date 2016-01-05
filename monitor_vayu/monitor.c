@@ -50,6 +50,7 @@
 *----------------------------------------------------------------------------*/
 #include <ti/sysbios/BIOS.h>
 #include <ti/sysbios/knl/Task.h>
+#include <ti/sysbios/knl/clock.h>
 
 /*-----------------------------------------------------------------------------
 * C standard library
@@ -77,7 +78,12 @@
 #if defined(GDB_ENABLED)
 #include "GDB_server.h"
 #endif
-
+#ifdef _SYS_BIOS
+void _TSC_enable();
+UInt64 _TSC_read();
+float  time_kernel;
+float time_msg,time_workgroup;
+#endif
 
 typedef struct 
 {
@@ -146,13 +152,18 @@ PRIVATE_1D(char, sstack, SERVICE_STACK_SIZE);
 ******************************************************************************/
 int main(int argc, char* argv[])
 {    
-    /* register with xdc.runtime to get a diags mask */
+#ifdef _SYS_BIOS
+	 Int             status;
+#endif
+	/* register with xdc.runtime to get a diags mask */
     Registry_Result result = Registry_addModule(&Registry_CURDESC, MODULE_NAME);
     assert(result == Registry_SUCCESS);
 
     /* enable ENTRY/EXIT/INFO log events */
     Diags_setMask(MODULE_NAME"-EXF");
-
+#ifdef _SYS_BIOS	
+    status = Ipc_start();
+#endif	
     initialize_memory();
     initialize_edmamgr();
     initialize_gdbserver();
@@ -196,6 +207,7 @@ void ocl_main(UArg arg0, UArg arg1)
 
     /* printfs are enabled ony for the duration of an OpenCL kernel */
     enable_printf = false;
+    _TSC_enable();
 
     /* create the dsp queue */
     if (create_mqueue())
@@ -222,6 +234,10 @@ void ocl_main(UArg arg0, UArg arg1)
 void ocl_monitor()
 {
     Log_print0(Diags_ENTRY | Diags_INFO, "--> ocl_monitor:");
+    UInt64      start_time;
+    UInt64      end_time;
+
+
 
     while (true)
     {
@@ -232,6 +248,7 @@ void ocl_monitor()
         ocl_msgq_message_t *msgq_pkt;
         MessageQ_get(ocl_queues.dspQue, (MessageQ_Msg *)&msgq_pkt, 
                      MessageQ_FOREVER);
+        start_time = _TSC_read();
 
         /* Get the host queue id from the message & save it */
         MessageQ_QueueId  hostQueId = MessageQ_getReplyQueue(msgq_pkt);
@@ -280,6 +297,9 @@ void ocl_monitor()
         }
 
         enable_printf = false;
+        end_time = _TSC_read();
+
+        time_msg = ((float)(end_time-start_time))/600.0;
 
     } /* while (true) */
 }
@@ -352,6 +372,11 @@ static void process_kernel_command(ocl_msgq_message_t *msgq_pkt)
     uint32_t          WGid[3]   = {0,0,0};
     uint32_t          limits[3];
     uint32_t          offsets[3];
+    UInt64      start_time,start_time1;
+   	UInt64      end_time,end_time1;
+
+
+    start_time = _TSC_read();
 
     memcpy(limits,  msg->u.k.config.global_size,   sizeof(limits));
     memcpy(offsets, msg->u.k.config.global_offset, sizeof(offsets));
@@ -371,6 +396,7 @@ static void process_kernel_command(ocl_msgq_message_t *msgq_pkt)
     *--------------------------------------------------------*/
     do 
     {
+    	start_time1 = _TSC_read();
         msg->command = NDRKERNEL;
         kernel_config_t *cfg = &msg->u.k.config;
 
@@ -385,8 +411,15 @@ static void process_kernel_command(ocl_msgq_message_t *msgq_pkt)
                                                                    cfg->WG_id);
 
         done = incVec(cfg->num_dims, WGid, &cfg->local_size[0], limits);
+        end_time1 = _TSC_read();
+        time_workgroup = ((float)(end_time1-start_time1))/600.0;
 
     } while (!done);
+
+    end_time = _TSC_read();
+
+    time_kernel = ((float)(end_time-start_time))/600.0;
+
 }
 
 /******************************************************************************
@@ -452,18 +485,19 @@ static void process_exit_command(ocl_msgq_message_t *msg_pkt)
     cacheWbInvAllL2();
 }
 
-
 /******************************************************************************
 * initialize_memory
 ******************************************************************************/
 void initialize_memory(void)
 {
-    extern uint32_t nocache_virt_start;
-    extern uint32_t nocache_size;
 
+#ifdef _SYS_BIOS
+    uint32_t nc_virt = (uint32_t) 0x8E00000;
+    uint32_t nc_size = (uint32_t) 0x2000000;
+#else
     uint32_t nc_virt = (uint32_t) &nocache_virt_start;
     uint32_t nc_size = (uint32_t) &nocache_size;
-
+#endif	
     int32_t mask = _disable_interrupts();
 
     cacheWbInvAllL2();
@@ -603,11 +637,16 @@ static bool create_mqueue()
     MessageQ_Params     msgqParams;
     char                msgqName[MSGQ_NAME_LENGTH];
 
+#ifdef _SYS_BIOS
+    Error_Block   eb;
+    /* initialize module state */
+    Error_init(&eb);
+#endif
     /* Create DSP message queue (inbound messages from ARM) */
     MessageQ_Params_init(&msgqParams);
     snprintf(msgqName, MSGQ_NAME_LENGTH, Ocl_DspMsgQueName,
              MultiProc_getName(MultiProc_self()));
-    ocl_queues.dspQue = MessageQ_create(msgqName, &msgqParams);
+    ocl_queues.dspQue = MessageQ_create("OCL:DSP1:MsgQ", &msgqParams);
 
     if (ocl_queues.dspQue == NULL) 
     {
@@ -636,4 +675,9 @@ void ocl_set_multiproc_id()
     else    assert(0);
 }
 
-
+#ifdef _SYS_BIOS
+void mainDsp1TimerTick(UArg arg)
+{
+    Clock_tick();
+}
+#endif

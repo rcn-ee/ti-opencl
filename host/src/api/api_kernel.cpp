@@ -30,6 +30,7 @@
  * \brief Kernels
  */
 #ifdef _SYS_BIOS
+#include <sys/types.h>
 #include <xdc/std.h>
 #endif
 #include "CL/cl.h"

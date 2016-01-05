@@ -27,6 +27,7 @@
  *****************************************************************************/
 #ifdef _SYS_BIOS
 #include <ti/sysbios/posix/pthread.h>
+#include <xdc/std.h>
 #endif
 #include <stdio.h>
 #include <stdarg.h>

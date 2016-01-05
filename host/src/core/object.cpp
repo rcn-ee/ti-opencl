@@ -47,8 +47,15 @@ using namespace Coal;
 * order of construction.  Both singletons created with new and statics are 
 * both placed in the same dtor queue.
 *----------------------------------------------------------------------------*/
+#ifdef _SYS_BIOS
+static concurrent_set<Object *>& getKnownObjects()
+{
+    static concurrent_set<Object *> known_objects;
+    return known_objects;
+}
+#else
 static concurrent_set<Object *> known_objects;
-
+#endif
 
 Object::Object(Type type, Object *parent)
 : p_references(1), p_parent(parent), p_type(type), p_release_parent(true)
@@ -57,7 +64,11 @@ Object::Object(Type type, Object *parent)
         parent->reference();
 
     // Add object in the list of known objects
+#ifdef _SYS_BIOS
+    getKnownObjects().insert(this);
+#else
     known_objects.insert(this);
+#endif
 }
 
 Object::~Object()
@@ -66,7 +77,12 @@ Object::~Object()
         delete p_parent;
 
     // Remove object from the list of known objects
+
+#ifdef _SYS_BIOS
+    getKnownObjects().erase(this);
+#else
     known_objects.erase(this);
+#endif
     p_type = T_Invalid;
 }
 
@@ -106,5 +122,9 @@ bool Object::isA(Object::Type type) const
     // Check for null values
     if (this == 0) return false;
 
+#ifdef _SYS_BIOS
+    return getKnownObjects().memberp((Object *) this) && type == p_type;
+#else
     return known_objects.memberp((Object *) this) && type == p_type;
+#endif
 }

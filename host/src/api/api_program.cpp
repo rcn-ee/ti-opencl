@@ -33,7 +33,7 @@
 #include <core/program.h>
 #include <core/context.h>
 
-#include <c++/4.8.4/cstdlib>
+#include <cstdlib>
 
 // Program Object APIs
 cl_program

@@ -376,8 +376,8 @@ void shmem_cmem::cmem_init(DSPDevicePtr64 *addr1, uint64_t *size1,
 {
 
 #ifdef _SYS_BIOS
-	 *addr1 = (DSPDevicePtr64)0x8D000000;
-	 *size1 = (uint64_t) 0x1000000;
+	 *addr1 = (DSPDevicePtr64)0x80000000;
+	 *size1 = (uint64_t) 0x80000000;
 	 *addr2 = 0;
 	 *size2 = 0;
 	 *addr3 = 0;

@@ -66,8 +66,12 @@ class Platform
 
 struct _cl_platform_id : public Coal::Platform 
 {};
-
+#ifdef _SYS_BIOS
+typedef Loki::SingletonHolder<Coal::Platform, Loki::CreateUsingNew,
+                               Loki::DefaultLifetime,Loki::SingleThreaded> the_platform;
+#else
 typedef Loki::SingletonHolder<Coal::Platform, Loki::CreateUsingNew, 
                                Loki::DefaultLifetime, Loki::ClassLevelLockable> the_platform;
 
+#endif
 #endif

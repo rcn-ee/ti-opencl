@@ -33,7 +33,7 @@
 
 #ifndef __KERNEL_H__
 #define __KERNEL_H__
-
+#include <sys/types.h>
 #include "object.h"
 
 #include <CL/cl.h>

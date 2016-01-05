@@ -97,24 +97,24 @@ MBoxMsgQ::MBoxMsgQ(Coal::DSPDevice *device)
     MessageQ_Params_init(&msgqParams);
 
     char hostQueueName[MSGQ_NAME_LENGTH];
-    snprintf(hostQueueName, MSGQ_NAME_LENGTH, HostMsgQueString,"Host" );//getpid()
+//    snprintf(hostQueueName, MSGQ_NAME_LENGTH, HostMsgQueString,"Host" );//getpid()
     hostQue = MessageQ_create("Host" , &msgqParams);
     assert (hostQue != NULL);
 
     /* Open DSP message queues for DSP1 and DSP2 */
     char dspQueueName[MSGQ_NAME_LENGTH];
-    snprintf(dspQueueName, MSGQ_NAME_LENGTH, Ocl_DspMsgQueName, "DSP1");
+//    snprintf(dspQueueName, MSGQ_NAME_LENGTH, Ocl_DspMsgQueName, "DSP1");
 
     do {
         status = MessageQ_open("OCL:DSP1:MsgQ", &dspQue[0]);
-#ifdef _SYS_BIOS		
+#if _SYS_BIOS
         if (status == MessageQ_E_NOTFOUND) {
                        Task_sleep(1);
          }
 #endif		 
     } while (status == MessageQ_E_NOTFOUND);
 
-    snprintf(dspQueueName, MSGQ_NAME_LENGTH, Ocl_DspMsgQueName, "DSP2");
+//    snprintf(dspQueueName, MSGQ_NAME_LENGTH, Ocl_DspMsgQueName, "DSP2");
 #if 0
     do {
         status = MessageQ_open(dspQueueName, &dspQue[1]);

@@ -37,6 +37,9 @@
 #include <string.h>
 #include <stdlib.h>
 #include <xdc/std.h>
+#include <xdc/runtime/Memory.h>
+#include <ti/sysbios/heaps/HeapMem.h>
+
 #endif
 #include <CL/cl.h>
 #include <core/context.h>

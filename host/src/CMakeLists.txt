@@ -48,7 +48,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_FILE_OFFSET_BITS=64")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_PRODUCT_VERSION=${${PROJECT_NAME}_PKG_VERSION}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DLLVM_3_3")
 if (${BUILD_OS} MATCHES "SYS_BIOS")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDEVICE_AM57 -D_SYS_BIOS -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS -D_POSIX_THREADS -DLLVM_OLDER_THAN_3_6=1 -D_PTHREAD_H -DLOKI_CLASS_LEVEL_THREADING")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDEVICE_AM57 -D_SYS_BIOS -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS -D_POSIX_THREADS -DLLVM_OLDER_THAN_3_6=1 -D_PTHREAD_H")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I${XDC_INSTALL_PATH} -I${BIOS_INSTALL_PATH} -I${BOOST_INSTALL_PATH} -I${LOKI_INCLUDE_PATH} -I${SQLITE_PATH}")
 endif()
 
@@ -107,7 +107,8 @@ set(COAL_SRC_FILES
     core/platform.cpp
     core/icd.cpp
     core/util.cpp
- 
+    
+	core/dsp/mbox_impl_msgq.cpp
     core/dsp/genfile_cache.cpp
     core/dsp/program.cpp
     core/dsp/driver.cpp
@@ -117,11 +118,7 @@ set(COAL_SRC_FILES
     core/dsp/worker.cpp
     core/dsp/mmap_resource.cpp
 	core/dsp/shmem.cpp
-	
-	bios/list.cc
-	bios/strdup.cc
-	bios/tree.cc
-    
+		    
 )
 else()
 set(COAL_SRC_FILES
@@ -239,6 +236,12 @@ add_dependencies(OpenCL generate_stdlib_c)
 add_dependencies(OpenCL generate_builtins)
 endif()
 add_dependencies(OpenCL oclload)
+
+if (${BUILD_OS} MATCHES "SYS_BIOS")
+add_dependencies(OpenCL Bios_support)
+add_subdirectory(bios)
+endif()
+
 if (NOT (${BUILD_OS} MATCHES "SYS_BIOS"))
 add_dependencies(OpenCL generate_dsp_builtins)
 endif()
@@ -278,6 +281,7 @@ set (LIBS
 else()
 set (LIBS
       ${PROJECT_BINARY_DIR}/lib/liboclload.a
+	  ${PROJECT_BINARY_DIR}/lib/Bios_support.a
     )
 endif()
 

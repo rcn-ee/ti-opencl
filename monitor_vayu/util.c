@@ -24,7 +24,14 @@
  *  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF T
  *  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
-
+#ifdef _SYS_BIOS
+#include <xdc/std.h>
+#include <xdc/runtime/Diags.h>
+#include <xdc/runtime/Error.h>
+#include <xdc/runtime/Log.h>
+#include <xdc/runtime/Registry.h>
+#include <xdc/runtime/System.h>
+#endif
 #include "string.h"
 #include "util.h"
 #include "monitor.h"
@@ -99,11 +106,14 @@ void enableCache(unsigned first, unsigned last)
 ******************************************************************************/
 void cacheWbInvAllL2 ()
 {
+
+
     uint32_t lvInt = _disable_interrupts();
     CACHE_wbInvAllL2(CACHE_NOWAIT);
     CSL_XMC_invalidatePrefetchBuffer();
     __mfence();
     _restore_interrupts(lvInt);
+
     return;
 }
 
@@ -113,6 +123,7 @@ void cacheWbInvAllL2 ()
 ******************************************************************************/
 void cacheInvAllL2 ()
 {
+
     uint32_t lvInt = _disable_interrupts();
     CACHE_wbInvAllL1d(CACHE_NOWAIT); 
     __mfence();
@@ -121,6 +132,7 @@ void cacheInvAllL2 ()
     CSL_XMC_invalidatePrefetchBuffer();
     __mfence();
     _restore_interrupts(lvInt);
+
     return;
 }
 /******************************************************************************
@@ -129,11 +141,13 @@ void cacheInvAllL2 ()
 ******************************************************************************/
 void cacheWbInvL2 (uint8_t* bufferPtr, uint32_t bufferSize)
 {
-    uint32_t lvInt = _disable_interrupts();
+
+	uint32_t lvInt = _disable_interrupts();
     CACHE_wbInvL2(bufferPtr, bufferSize, CACHE_NOWAIT);
     CSL_XMC_invalidatePrefetchBuffer();
     __mfence();
     _restore_interrupts(lvInt);
+
     return;
 }
 
@@ -143,6 +157,7 @@ void cacheWbInvL2 (uint8_t* bufferPtr, uint32_t bufferSize)
 ******************************************************************************/
 void cacheInvL2 (uint8_t* bufferPtr, uint32_t bufferSize)
 {
+
     uint32_t lvInt = _disable_interrupts();
 
     CACHE_wbInvL1d(bufferPtr, bufferSize, CACHE_NOWAIT); 
@@ -151,6 +166,7 @@ void cacheInvL2 (uint8_t* bufferPtr, uint32_t bufferSize)
     CSL_XMC_invalidatePrefetchBuffer();
     __mfence();
     _restore_interrupts(lvInt);
+
     return;
 }
 
