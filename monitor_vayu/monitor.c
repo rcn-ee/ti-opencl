@@ -78,7 +78,7 @@
 #if defined(GDB_ENABLED)
 #include "GDB_server.h"
 #endif
-#ifdef _SYS_BIOS
+#ifdef _SYS_BIOS_Profile
 void _TSC_enable();
 UInt64 _TSC_read();
 float  time_kernel;
@@ -207,8 +207,9 @@ void ocl_main(UArg arg0, UArg arg1)
 
     /* printfs are enabled ony for the duration of an OpenCL kernel */
     enable_printf = false;
+#ifdef _SYS_BIOS_Profile	
     _TSC_enable();
-
+#endif
     /* create the dsp queue */
     if (create_mqueue())
     {
@@ -234,9 +235,10 @@ void ocl_main(UArg arg0, UArg arg1)
 void ocl_monitor()
 {
     Log_print0(Diags_ENTRY | Diags_INFO, "--> ocl_monitor:");
-    UInt64      start_time;
+#ifdef _SYS_BIOS_Profile    
+	UInt64      start_time;
     UInt64      end_time;
-
+#endif
 
 
     while (true)
@@ -248,8 +250,9 @@ void ocl_monitor()
         ocl_msgq_message_t *msgq_pkt;
         MessageQ_get(ocl_queues.dspQue, (MessageQ_Msg *)&msgq_pkt, 
                      MessageQ_FOREVER);
+#ifdef _SYS_BIOS_Profile					 
         start_time = _TSC_read();
-
+#endif
         /* Get the host queue id from the message & save it */
         MessageQ_QueueId  hostQueId = MessageQ_getReplyQueue(msgq_pkt);
         if (ocl_queues.hostQue == MessageQ_INVALIDMESSAGEQ)
@@ -297,10 +300,10 @@ void ocl_monitor()
         }
 
         enable_printf = false;
+#ifdef _SYS_BIOS_Profile		
         end_time = _TSC_read();
-
         time_msg = ((float)(end_time-start_time))/600.0;
-
+#endif
     } /* while (true) */
 }
 
@@ -372,12 +375,13 @@ static void process_kernel_command(ocl_msgq_message_t *msgq_pkt)
     uint32_t          WGid[3]   = {0,0,0};
     uint32_t          limits[3];
     uint32_t          offsets[3];
+#ifdef _SYS_BIOS_Profile	
     UInt64      start_time,start_time1;
    	UInt64      end_time,end_time1;
 
 
     start_time = _TSC_read();
-
+#endif
     memcpy(limits,  msg->u.k.config.global_size,   sizeof(limits));
     memcpy(offsets, msg->u.k.config.global_offset, sizeof(offsets));
 
@@ -415,11 +419,11 @@ static void process_kernel_command(ocl_msgq_message_t *msgq_pkt)
         time_workgroup = ((float)(end_time1-start_time1))/600.0;
 
     } while (!done);
-
+#ifdef _SYS_BIOS_Profile
     end_time = _TSC_read();
 
     time_kernel = ((float)(end_time-start_time))/600.0;
-
+#endif
 }
 
 /******************************************************************************
