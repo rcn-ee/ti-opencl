@@ -24,29 +24,29 @@ endif
 
 # LLVM
 
-ARM_LLVM_DIR?=/cgnas/llvm-3.6.0-20151113-arm
+ARM_LLVM_DIR?=/cgnas/llvm-3.6.0-20160113-arm
 
 ifeq (,$(findstring x86_64, $(UNAME_M)))
-    X86_LLVM_DIR?=/cgnas/llvm-3.6.0-20151113-x86
+    X86_LLVM_DIR?=/cgnas/llvm-3.6.0-20160113-x86
 else
-    X86_LLVM_DIR?=/cgnas/llvm-3.6.0-20151113-x86_64
+    X86_LLVM_DIR?=/cgnas/llvm-3.6.0-20160113-x86_64
 endif
 
 # OMP
 
-KEYSTONE_OMP_DIR?=/cgnas/openmp_dsp_2_02_00_01_ks_alpha
-AM57_OMP_DIR?=/cgnas/openmp_dsp_2_02_00_01_am57xx_alpha
+KEYSTONE_OMP_DIR?=/cgnas/openmp_dsp_k2x_2_02_01_00-20160114
+AM57_OMP_DIR?=/cgnas/openmp_dsp_am57xx_2_02_01_00-20160114
 
 # K2X PSDK
 ifeq ($(BUILD_K2H),1)
-    DEFAULT_PSDK_RTOS_K2X?=/cgnas/ti-processor-sdk-rtos-k2hk-evm-02.00.01.05-20151217
-    DEFAULT_PSDK_LINUX_K2X?=/cgnas/ti-processor-sdk-linux-k2hk-evm-02.00.01.05-20151217
+    DEFAULT_PSDK_RTOS_K2X?=/cgnas/ti-processor-sdk-rtos-k2hk-evm-02.00.01.06-20160105
+    DEFAULT_PSDK_LINUX_K2X?=/cgnas/ti-processor-sdk-linux-k2hk-evm-02.00.01.06-20160105
 else ifeq ($(BUILD_K2L),1)
-    DEFAULT_PSDK_RTOS_K2X?=/cgnas/ti-processor-sdk-rtos-k2l-evm-02.00.01.05-20151217
-    DEFAULT_PSDK_LINUX_K2X?=/cgnas/ti-processor-sdk-linux-k2l-evm-02.00.01.05-20151217
+    DEFAULT_PSDK_RTOS_K2X?=/cgnas/ti-processor-sdk-rtos-k2l-evm-02.00.01.06-20160105
+    DEFAULT_PSDK_LINUX_K2X?=/cgnas/ti-processor-sdk-linux-k2l-evm-02.00.01.06-20160105
 else ifeq ($(BUILD_K2E),1)
-    DEFAULT_PSDK_RTOS_K2X?=/cgnas/ti-processor-sdk-rtos-k2e-evm-02.00.01.05-20151217
-    DEFAULT_PSDK_LINUX_K2X?=/cgnas/ti-processor-sdk-linux-k2e-evm-02.00.01.05-20151217
+    DEFAULT_PSDK_RTOS_K2X?=/cgnas/ti-processor-sdk-rtos-k2e-evm-02.00.01.06-20160105
+    DEFAULT_PSDK_LINUX_K2X?=/cgnas/ti-processor-sdk-linux-k2e-evm-02.00.01.06-20160105
 else
 endif
 
@@ -67,8 +67,8 @@ endif
 
 # AM57 Processor SDK (2.0.1.x)
 
-DEFAULT_PSDK_RTOS?=/cgnas/ti-processor-sdk-rtos-am57xx-evm-02.00.01.04-20151206
-DEFAULT_PSDK_LINUX?=/cgnas/ti-processor-sdk-linux-am57xx-evm-02.00.01.04-20151206
+DEFAULT_PSDK_RTOS?=/cgnas/ti-processor-sdk-rtos-am57xx-evm-02.00.01.06-20160105
+DEFAULT_PSDK_LINUX?=/cgnas/ti-processor-sdk-linux-am57xx-evm-02.00.01.06-20160105
 PSDK_LINUX_DEVKIT_ROOT?=$(DEFAULT_PSDK_LINUX)/linux-devkit/sysroots/cortexa15hf-vfp-neon-linux-gnueabi
 
 # DSPC SDKs
