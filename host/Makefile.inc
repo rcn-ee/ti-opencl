@@ -32,23 +32,34 @@ else
     X86_LLVM_DIR?=/cgnas/llvm-3.6.0-20151119-x86_64
 endif
 
-# OMP
+# OMP 
 
-KEYSTONE_OMP_DIR?=/cgnas/openmp_dsp_k2x_2_02_01_00-20160114
-AM57_OMP_DIR?=/cgnas/openmp_dsp_am57xx_2_02_01_00-20160114
+OMP_DIR_K2X?=/cgnas/openmp_dsp_k2x_2_02_01_00-20160114
+OMP_DIR_AM57?=/cgnas/openmp_dsp_am57xx_2_02_01_00-20160114
 
-# K2X PSDK
+PSDK_VERSION ?= 02.00.01.06-20160105
+
+# SOC PSDK
 ifeq ($(BUILD_K2H),1)
-    DEFAULT_PSDK_RTOS_K2X?=/cgnas/ti-processor-sdk-rtos-k2hk-evm-02.00.01.06-20160105
-    DEFAULT_PSDK_LINUX_K2X?=/cgnas/ti-processor-sdk-linux-k2hk-evm-02.00.01.06-20160105
+    DEFAULT_PSDK_RTOS_K2X?=/cgnas/ti-processor-sdk-rtos-k2hk-evm-$(PSDK_VERSION)
+    DEFAULT_PSDK_LINUX_K2X?=/cgnas/ti-processor-sdk-linux-k2hk-evm-$(PSDK_VERSION)
+    OMP_DIR?=$(OMP_DIR_K2X)
 else ifeq ($(BUILD_K2L),1)
-    DEFAULT_PSDK_RTOS_K2X?=/cgnas/ti-processor-sdk-rtos-k2l-evm-02.00.01.06-20160105
-    DEFAULT_PSDK_LINUX_K2X?=/cgnas/ti-processor-sdk-linux-k2l-evm-02.00.01.06-20160105
+    DEFAULT_PSDK_RTOS_K2X?=/cgnas/ti-processor-sdk-rtos-k2l-evm-$(PSDK_VERSION)
+    DEFAULT_PSDK_LINUX_K2X?=/cgnas/ti-processor-sdk-linux-k2l-evm-$(PSDK_VERSION)
+    OMP_DIR?=$(OMP_DIR_K2X)
 else ifeq ($(BUILD_K2E),1)
-    DEFAULT_PSDK_RTOS_K2X?=/cgnas/ti-processor-sdk-rtos-k2e-evm-02.00.01.06-20160105
-    DEFAULT_PSDK_LINUX_K2X?=/cgnas/ti-processor-sdk-linux-k2e-evm-02.00.01.06-20160105
+    DEFAULT_PSDK_RTOS_K2X?=/cgnas/ti-processor-sdk-rtos-k2e-evm-$(PSDK_VERSION)
+    DEFAULT_PSDK_LINUX_K2X?=/cgnas/ti-processor-sdk-linux-k2e-evm-$(PSDK_VERSION)
+    OMP_DIR?=$(OMP_DIR_K2X)
+else ifeq ($(BUILD_AM57),1)
+    DEFAULT_PSDK_RTOS?=/cgnas/ti-processor-sdk-rtos-am57xx-evm-$(PSDK_VERSION)
+    DEFAULT_PSDK_LINUX?=/cgnas/ti-processor-sdk-linux-am57xx-evm-$(PSDK_VERSION)
+    OMP_DIR?=$(OMP_DIR_AM57)
 else
 endif
+
+PSDK_LINUX_DEVKIT_ROOT?=$(DEFAULT_PSDK_LINUX)/linux-devkit/sysroots/cortexa15hf-vfp-neon-linux-gnueabi
 
 ifeq (,$(findstring arm, $(UNAME_M)))
     PSDK_LINUX_DEVKIT_ROOT_K2X?=$(DEFAULT_PSDK_LINUX_K2X)/linux-devkit/sysroots/cortexa15hf-vfp-neon-linux-gnueabi
@@ -56,7 +67,7 @@ else
     PSDK_LINUX_DEVKIT_ROOT_K2X?=/
 endif
 
-# K2X MCSDK
+# K2X MCSDK - NOT USED? EJS
 
 DEFAULT_MCSDK?=/cgnas/mcsdk_3_01_04_07-20151002
 ifeq (,$(findstring arm, $(UNAME_M)))
@@ -64,12 +75,6 @@ ifeq (,$(findstring arm, $(UNAME_M)))
 else
     MCSDK_LINUX_DEVKIT_ROOT?=/
 endif
-
-# AM57 Processor SDK (2.0.1.x)
-
-DEFAULT_PSDK_RTOS?=/cgnas/ti-processor-sdk-rtos-am57xx-evm-02.00.01.06-20160105
-DEFAULT_PSDK_LINUX?=/cgnas/ti-processor-sdk-linux-am57xx-evm-02.00.01.06-20160105
-PSDK_LINUX_DEVKIT_ROOT?=$(DEFAULT_PSDK_LINUX)/linux-devkit/sysroots/cortexa15hf-vfp-neon-linux-gnueabi
 
 # DSPC SDKs
 

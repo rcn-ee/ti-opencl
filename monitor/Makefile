@@ -12,27 +12,17 @@ ifeq ($(TI_OCL_CGT_INSTALL),)
   $(error Monitor requires TI_OCL_CGT_INSTALL to point to C6000 Codegen tools)
 endif
 
-SDK_DIR        ?= $(DEFAULT_DLSDK)
-FC_DIR         ?= $(DEFAULT_DEV_INSTALL_DIR)/framework_components_3_40_01_04
-XDAIS_DIR      ?= $(DEFAULT_DEV_INSTALL_DIR)/xdais_7_24_00_04
-MPM_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/multiprocmgr_3_00_00_01
-OMP_DIR        ?= $(KEYSTONE_OMP_DIR)
-EDMA3LLD_DIR   ?= $(DEFAULT_DEV_INSTALL_DIR)/edma3_lld_02_12_01_22
-XDC_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/xdctools_3_31_02_38_core
+C6636_PDK_DIR  ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/pdk_k2*)
+IPC_DIR        ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/ipc_*)
+XDC_DIR        ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/xdctools_*)
+BIOS_DIR       ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/bios_*)
+OMP_DIR        ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/openmp_dsp_*)
+FC_DIR         ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/framework_components*)
+EDMA3LLD_DIR   ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/edma3_lld_*)
+XDAIS_DIR      ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/xdais_*)
 ULM_DIR        ?= $(LINUX_DEVKIT_ROOT)/usr/share/ti/ulm
 GDB_SERVER_DIR ?= $(LINUX_DEVKIT_ROOT)/usr/share/ti/gdbc6x
-BIOS_DIR       ?= $(DEFAULT_DEV_INSTALL_DIR)/bios_6_45_00_19
-IPC_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/ipc_3_41_00_08
-
-ifeq ($(BUILD_TARGET),ARM_K2H)
-    C6636_PDK_DIR  ?= $(DEFAULT_DEV_INSTALL_DIR)/pdk_k2hk_4_0_0
-else ifeq ($(BUILD_TARGET),ARM_K2L)
-    C6636_PDK_DIR  ?= $(DEFAULT_DEV_INSTALL_DIR)/pdk_k2l_4_0_0
-else ifeq ($(BUILD_TARGET),ARM_K2E)
-    C6636_PDK_DIR  ?= $(DEFAULT_DEV_INSTALL_DIR)/pdk_k2e_4_0_0
-else
-    C6636_PDK_DIR  ?= $(DEFAULT_DEV_INSTALL_DIR)/pdk_k2hk_4_0_0
-endif
+SDK_DIR        ?= $(DEFAULT_DLSDK)
 
 export XDC = $(XDC_DIR)
 export XDC_DIR
