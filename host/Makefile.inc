@@ -24,12 +24,12 @@ endif
 
 # LLVM
 
-ARM_LLVM_DIR?=/cgnas/llvm-3.6.0-20160113-arm
+ARM_LLVM_DIR?=/cgnas/llvm-3.6.0-20151119-arm
 
 ifeq (,$(findstring x86_64, $(UNAME_M)))
-    X86_LLVM_DIR?=/cgnas/llvm-3.6.0-20160113-x86
+    X86_LLVM_DIR?=/cgnas/llvm-3.6.0-20151119-x86
 else
-    X86_LLVM_DIR?=/cgnas/llvm-3.6.0-20160113-x86_64
+    X86_LLVM_DIR?=/cgnas/llvm-3.6.0-20151119-x86_64
 endif
 
 # OMP
