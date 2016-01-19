@@ -20,6 +20,7 @@ OMP_DIR        ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/openmp_dsp_*)
 FC_DIR         ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/framework_components*)
 EDMA3LLD_DIR   ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/edma3_lld_*)
 XDAIS_DIR      ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/xdais_*)
+MPM_DIR        ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/multiprocmgr_*)
 ULM_DIR        ?= $(LINUX_DEVKIT_ROOT)/usr/share/ti/ulm
 GDB_SERVER_DIR ?= $(LINUX_DEVKIT_ROOT)/usr/share/ti/gdbc6x
 SDK_DIR        ?= $(DEFAULT_DLSDK)
