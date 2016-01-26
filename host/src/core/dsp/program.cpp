@@ -78,6 +78,11 @@
 
 #include "genfile_cache.h"
 
+#include "dload.h"
+#include "program.h"
+
+using tiocl::DLOAD;
+
 genfile_cache * genfile_cache::pInstance = 0;
 
 timespec getTime()
@@ -98,9 +103,9 @@ double tsdiff (const timespec& start, const timespec& end)
 using namespace Coal;
 
 DSPProgram::DSPProgram(DSPDevice *device, Program *program)
-: DeviceProgram(), p_device(device), p_program(program), p_program_handle(-1),
+: DeviceProgram(), p_device(device), p_program(program),
   p_loaded(false), p_keep_files(false), p_cache_kernels(false), p_debug(false),
-  p_info(false), p_ocl_local_overlay_start(0)
+  p_info(false), p_ocl_local_overlay_start(0), p_dl(nullptr)
 {
     char *keep = getenv("TI_OCL_KEEP_FILES");
     if (keep) p_keep_files = true;
@@ -113,61 +118,40 @@ DSPProgram::DSPProgram(DSPDevice *device, Program *program)
 
     char *info = getenv("TI_OCL_DEVICE_PROGRAM_INFO");
     if (info) { p_info = true; p_keep_files = true; }
+
+    p_dl = new DLOAD(this);
 }
 
 DSPProgram::~DSPProgram()
 {
-    p_device->unload(p_program_handle);
+    unload();
+    delete p_dl;
+    p_dl = nullptr;
+
     if (!p_keep_files && !p_cache_kernels) unlink(p_outfile);
 }
 
-DSPProgram::segment_list *segments;
-
 bool DSPProgram::load()
 {
-    segments = &p_segments_written;
+    if (!p_dl->LoadProgram(p_outfile))
+        return false;
 
-    p_program_handle = p_device->load(p_outfile);
-    if (!p_program_handle) return false;
-
-    segments = NULL;
     p_loaded = true;
-
-    /*-------------------------------------------------------------------------
-    * ensure that the newly populated areas are not stale in device caches
-    *------------------------------------------------------------------------*/
-    if (p_info)
-    {
-        printf("For executable: %s\n", p_outfile);
-        int   segNum = p_segments_written.size();
-        for (int i=0; i < segNum; ++i)
-        {
-            uint32_t flags = p_segments_written[i].flags & 
-                       (DLOAD_SF_executable | DLOAD_SF_writable);
-
-            const char *seg_desc;
-            switch (flags)
-            {
-                case 0:                   seg_desc = "Read Only"; break;
-                case DLOAD_SF_executable: seg_desc = "Executable"; break;
-                case DLOAD_SF_writable:   seg_desc = "Writable"; break;
-                default:                  seg_desc = "Writable & Executable"; break;
-            }
-
-               printf("\t%s segment loaded to 0x%08x with size 0x%x\n", 
-                   seg_desc, p_segments_written[i].ptr, p_segments_written[i].size);
-        }
-        printf("\n");
-    }
 
     p_ocl_local_overlay_start = query_symbol("_ocl_local_overlay_start");
 
     /*-------------------------------------------------------------------------
+    * Ensure that the newly populated areas are not stale in device caches
     * Send the cache Inv command.  We do not wait here.  The wait will be 
     * handled by the standard wait loop in the worker thread.
     *------------------------------------------------------------------------*/
     p_device->mail_to(cacheMsg);
     return true;
+}
+
+bool DSPProgram::unload()
+{ 
+    return p_dl->UnloadProgram();
 }
 
 DSPDevicePtr DSPProgram::mem_l2_section_extent(uint32_t& size) const
@@ -186,16 +170,9 @@ DSPDevicePtr DSPProgram::mem_l2_section_extent(uint32_t& size) const
     return L2start;
 }
 
-DSPDevicePtr DSPProgram::program_load_addr() const
+DSPDevicePtr DSPProgram::LoadAddress() const
 {
-    DSPDevicePtr load_addr = 0;
-
-    for (int i = 0; i < p_segments_written.size(); ++i)
-        if (p_segments_written[i].flags & DLOAD_SF_executable)
-            if (load_addr == 0) load_addr = p_segments_written[i].ptr;
-            else return 0;  // if multiple, punt
-
-    return load_addr;
+    return p_dl->GetProgramLoadAddress();
 }
 
 bool DSPProgram::is_loaded() const
@@ -215,12 +192,7 @@ const char* DSPProgram::outfile_name() const
 
 DSPDevicePtr DSPProgram::data_page_ptr() 
 {
-    DSPDevicePtr p;
-
-    if (!is_loaded()) load();
-
-    DLOAD_get_static_base(p_device->dload_handle(), p_program_handle,  &p);
-    return p;
+    return p_dl->GetDataPagePointer();
 }
 
 void DSPProgram::createOptimizationPasses(llvm::PassManager *manager,
@@ -661,12 +633,9 @@ bool DSPProgram::build(llvm::Module *module, std::string *binary_str,
 
 DSPDevicePtr DSPProgram::query_symbol(const char *symname)
 {
-    DSPDevicePtr addr;
+    const std::string str(symname);
 
-    bool found = DLOAD_query_symbol(p_device->dload_handle(), p_program_handle,
-                                    symname, &addr);
-
-    return (found) ? addr : 0;
+    return p_dl->QuerySymbol(str);
 }
 
 extern "C" {

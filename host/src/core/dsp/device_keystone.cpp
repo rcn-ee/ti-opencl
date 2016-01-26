@@ -56,7 +56,6 @@ DSPDevice::DSPDevice(unsigned char dsp_id)
       p_device_ddr_heap1(),
       p_device_ddr_heap2(),
       p_device_ddr_heap3(),
-      p_dload_handle    (0),
       p_complete_pending(),
       p_mpax_default_res(NULL)
 { 

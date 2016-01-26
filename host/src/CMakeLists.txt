@@ -121,6 +121,7 @@ set(COAL_SRC_FILES
     core/dsp/kernel.cpp
     core/dsp/worker.cpp
     core/dsp/mmap_resource.cpp
+    core/dsp/dload.cpp
 
     llvmopencl/AllocasToEntry.cc
     llvmopencl/BarrierBlock.cc

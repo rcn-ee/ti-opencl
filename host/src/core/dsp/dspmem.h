@@ -29,12 +29,8 @@
 #ifndef _DSPMEM_H
 #define _DSPMEM_H
 
+#include "tiocl_types.h"
 
-typedef uint32_t	DSPDevicePtr;
-typedef uint64_t	DSPDevicePtr64;
-typedef uint32_t	DSPVirtPtr;
-// typedef uint64_t	DSPVirtPtr64;  // for future C7x?
-//
 /*****************************************************************************
  * AM5327 - DSP Device Memory Physical Addreess (8GB)
  * 0x0:8000_0000 - 0x0:800F_FFFF: 16MB shared heap

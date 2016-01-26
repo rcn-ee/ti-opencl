@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2013-2014, Texas Instruments Incorporated - http://www.ti.com/
+ * Copyright (c) 2013-2016, Texas Instruments Incorporated - http://www.ti.com/
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -30,7 +30,7 @@
 
 #include "device.h"
 #include "../deviceinterface.h"
-#include <vector>
+#include "dynamic_loader_interface.h"
 
 namespace llvm
 {
@@ -46,18 +46,6 @@ class Program;
 
 class DSPProgram : public DeviceProgram
 {
-    public:
-      struct seg_desc
-      {
-          seg_desc(DSPDevicePtr p, int s, uint32_t f) : 
-                     ptr(p), size(s), flags(f) {}
-          DSPDevicePtr ptr;
-          unsigned     size;
-          uint32_t     flags;
-      };
-  
-      typedef std::vector<seg_desc> segment_list;
-
     public:
         DSPProgram(DSPDevice *device, Program *program);
         ~DSPProgram();
@@ -77,22 +65,26 @@ class DSPProgram : public DeviceProgram
         DSPDevicePtr query_symbol(const char *symname);
         DSPDevicePtr data_page_ptr();
         bool load();
+        bool unload();
         bool is_loaded() const;
-        DSPDevicePtr program_load_addr() const;
+        DSPDevicePtr LoadAddress() const;
+
+        DSPDevice *GetDevice() const { return p_device; }
+        tiocl::DynamicLoader *GetDynamicLoader() const { return p_dl; }
+        bool IsPrintInfoEnabled() const { return p_info; }
 
     private:
         DSPDevice    *p_device;
         Program      *p_program;
         llvm::Module *p_module;
-        int           p_program_handle;
         char          p_outfile[32];
         bool          p_loaded;
-        segment_list  p_segments_written;
         bool          p_keep_files;
         bool          p_cache_kernels;
         bool          p_debug;
         bool          p_info;
         DSPDevicePtr  p_ocl_local_overlay_start;
+        tiocl::DynamicLoader  *p_dl;
 };
 }
 #endif
