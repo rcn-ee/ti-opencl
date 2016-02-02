@@ -302,8 +302,8 @@ class DeviceProgram
          * \param native \c std::string returns native binary if not NULL
          * \return true if the binary is indeed mixed
          */
-        virtual bool ExtractMixedBinary(std::string *binary_str, 
-                                     std::string *bitcode, std::string *native)
+        virtual bool ExtractMixedBinary(const std::string &binary_str, 
+                                              std::string &bitcode)
         {  return false;  }
 };
 

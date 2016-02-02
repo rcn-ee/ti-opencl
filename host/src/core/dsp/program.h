@@ -56,10 +56,10 @@ class DSPProgram : public DeviceProgram
                                       bool optimize, bool hasBarrier=false);
         bool build(llvm::Module *module, std::string *binary_str, 
                    char *binary_filename=NULL);
-        bool ExtractMixedBinary(std::string *binary_str,
-                                std::string *bitcode, std::string *native);
-        void WriteNativeOut(std::string *native);
-        void ReadEmbeddedBinary(std::string *binary_str);
+        bool ExtractMixedBinary(const std::string &binary_str,
+                                      std::string &bitcode);
+        void WriteNativeOut(const std::string &native);
+
 
         DSPDevicePtr mem_l2_section_extent(uint32_t& size) const;
         DSPDevicePtr query_symbol(const char *symname);
@@ -77,7 +77,7 @@ class DSPProgram : public DeviceProgram
         DSPDevice    *p_device;
         Program      *p_program;
         llvm::Module *p_module;
-        char          p_outfile[32];
+        std::string   p_outfile;
         bool          p_loaded;
         bool          p_keep_files;
         bool          p_cache_kernels;

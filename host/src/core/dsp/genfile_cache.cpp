@@ -15,7 +15,7 @@
  *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  *   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+ *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  *   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
  *   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
  *   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
@@ -27,13 +27,19 @@
  *****************************************************************************/
 #include "genfile_cache.h"
 
-std::string genfile_cache::lookup(llvm::Module *module, std::string options)
+#include <llvm/Support/raw_ostream.h>
+#include <llvm/IR/Module.h>
+#include <llvm/Bitcode/ReaderWriter.h>
+
+std::string genfile_cache::lookup(const llvm::Module *module,
+                                  const std::string &options)
 {
     uint32_t hash = convert_mod2crc(module, options);
     return lookup(hash);
 }
 
-std::string genfile_cache::lookup(std::string  &source, std::string options)
+std::string genfile_cache::lookup(const std::string &source,
+                                  const std::string &options)
 {
     uint32_t hash = convert_src2crc(source, options);
     return lookup(hash);
@@ -48,7 +54,7 @@ std::string genfile_cache::lookup(uint32_t hash)
 
     result = p_database.query(query.c_str());
 
-    if (!result.empty()) 
+    if (!result.empty())
     {
         string &filename = result[0][0];
 
@@ -67,18 +73,19 @@ std::string genfile_cache::lookup(uint32_t hash)
             return std::string();
         }
     }
-    else                 return std::string();
+    else
+        return std::string();
 }
 
-void genfile_cache::remember(const char *outfile, llvm::Module *module, 
-                             std::string options)
+void genfile_cache::remember(const char *outfile, const llvm::Module *module,
+                             const std::string &options)
 {
     uint32_t hash = convert_mod2crc(module, options);
     remember(outfile, hash);
 }
 
-void genfile_cache::remember(const char *outfile, std::string &source,
-                             std::string options)
+void genfile_cache::remember(const char *outfile, const std::string &source,
+                             const std::string &options)
 {
     uint32_t hash = convert_src2crc(source, options);
     remember(outfile, hash);
@@ -87,7 +94,7 @@ void genfile_cache::remember(const char *outfile, std::string &source,
 void genfile_cache::remember(const char *outfile, uint32_t hash)
 {
     std::string query("insert into programs(hash, value) values("
-                  + boost::lexical_cast<std::string>(hash) 
+                  + boost::lexical_cast<std::string>(hash)
                   + ", \""
                   + string(outfile)
                   + "\");");
@@ -95,8 +102,8 @@ void genfile_cache::remember(const char *outfile, uint32_t hash)
     p_database.query(query.c_str());
 }
 
-uint32_t genfile_cache::convert_mod2crc(llvm::Module *module, 
-                                        std::string  &options) 
+uint32_t genfile_cache::convert_mod2crc(const llvm::Module *module,
+                                        const std::string  &options)
 {
     std::string llvm_ir;
 
@@ -109,14 +116,14 @@ uint32_t genfile_cache::convert_mod2crc(llvm::Module *module,
     return get_crc(llvm_ir);
 }
 
-uint32_t genfile_cache::convert_src2crc(std::string &source,
-                                        std::string &options) 
+uint32_t genfile_cache::convert_src2crc(const std::string &source,
+                                        const std::string &options)
 {
     std::string source_options = source + options;
     return get_crc(source_options);
 }
 
-uint32_t genfile_cache::get_crc(std::string& my_string)
+uint32_t genfile_cache::get_crc(const std::string& my_string)
 {
     boost::crc_32_type result;
     result.process_bytes(my_string.data(), my_string.length());

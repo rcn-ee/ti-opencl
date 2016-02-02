@@ -41,12 +41,12 @@
 #include "../events.h"
 #include "../program.h"
 
-#include <llvm/IR/Function.h>
-#include <llvm/IR/Constants.h>
-#include <llvm/IR/Instructions.h>
-#include <llvm/IR/LLVMContext.h>
+//#include <llvm/IR/Function.h>
+//#include <llvm/IR/Constants.h>
+//#include <llvm/IR/Instructions.h>
+//#include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
-#include <llvm/ExecutionEngine/ExecutionEngine.h>
+//#include <llvm/ExecutionEngine/ExecutionEngine.h>
 
 #include <cstdlib>
 #include <cstring>
@@ -178,6 +178,8 @@ size_t CPUKernel::typeOffset(size_t &offset, size_t type_len)
 
 llvm::Function *CPUKernel::callFunction()
 {
+    return nullptr;
+#if 0
     pthread_mutex_lock(&p_call_function_mutex);
 
     // If we can reuse the same function between work groups, do it
@@ -289,6 +291,7 @@ llvm::Function *CPUKernel::callFunction()
     pthread_mutex_unlock(&p_call_function_mutex);
 
     return stub_function;
+#endif
 }
 
 /*
@@ -513,6 +516,8 @@ void *CPUKernelWorkGroup::callArgs(std::vector<void *> &locals_to_free)
 
 bool CPUKernelWorkGroup::run()
 {
+    return false;
+#if 0
     // Get the kernel function to call
     std::vector<void *> locals_to_free;
     llvm::Function *kernel_func = p_kernel->callFunction();
@@ -575,6 +580,7 @@ bool CPUKernelWorkGroup::run()
     }
 
     return true;
+#endif
 }
 
 CPUKernelWorkGroup::Context *CPUKernelWorkGroup::getContextAddr(unsigned int index)

@@ -114,7 +114,6 @@ set(COAL_SRC_FILES
 
     core/dsp/genfile_cache.cpp
     core/dsp/program.cpp
-    core/dsp/wga.cpp
     core/dsp/driver.cpp
     core/dsp/buffer.cpp
     core/dsp/device.cpp
@@ -122,34 +121,6 @@ set(COAL_SRC_FILES
     core/dsp/worker.cpp
     core/dsp/mmap_resource.cpp
     core/dsp/dload.cpp
-
-    llvmopencl/AllocasToEntry.cc
-    llvmopencl/BarrierBlock.cc
-    llvmopencl/BarrierTailReplication.cc
-    llvmopencl/BreakConstantGEPs.cpp
-    llvmopencl/CanonicalizeBarriers.cc
-    llvmopencl/DebugHelpers.cc
-    llvmopencl/Flatten.cc
-    llvmopencl/GenerateHeader.cc
-    llvmopencl/ImplicitConditionalBarriers.cc
-    llvmopencl/ImplicitLoopBarriers.cc
-    llvmopencl/IsolateRegions.cc
-    llvmopencl/Kernel.cc
-    llvmopencl/LLVMUtils.cc
-    llvmopencl/LoopBarriers.cc
-    llvmopencl/ParallelRegion.cc
-    llvmopencl/PHIsToAllocas.cc
-    llvmopencl/TargetAddressSpaces.cc
-    llvmopencl/VariableUniformityAnalysis.cc
-    llvmopencl/WIVectorize.cc
-    llvmopencl/Workgroup.cc
-    llvmopencl/WorkItemAliasAnalysis.cc
-    llvmopencl/WorkitemHandler.cc
-    llvmopencl/WorkitemHandlerChooser.cc
-    llvmopencl/WorkitemLoops.cc
-    llvmopencl/WorkitemReplication.cc
-    llvmopencl/SimplifyShuffleBIFCall.cpp
-    llvmopencl/PrivatizationAliasAnalysis.cpp
 )
 
 if (K2X_BUILD)
@@ -205,9 +176,13 @@ add_custom_command (TARGET OpenCL PRE_BUILD
                  COMMAND touch -c ${CMAKE_CURRENT_SOURCE_DIR}/core/platform.cpp)
 
 set (LIBS
-        ${CLANG_LIBS}
-        ${LLVM_LIBS_CORE}
-        ${LLVM_LIBS_JIT}
+        #${CLANG_LIBS}
+        #${LLVM_LIBS_CORE}
+        LLVMBitReader
+        LLVMBitWriter
+        LLVMCore
+        LLVMSupport
+        #${LLVM_LIBS_JIT}
 	${PROJECT_BINARY_DIR}/lib/liboclload.a
         pthread
         rt

@@ -124,7 +124,8 @@ int main(int argc, char *argv[])
      CommandQueue        *QcpuOO = NULL;
      CommandQueue        *QdspOO = NULL;
 
-    for (int d = 0; d < devices.size(); d++)
+     std::vector<Device> dspDevices;
+     for (int d = 0; d < devices.size(); d++)
      {
 	cl_device_type type;
 	devices[d].getInfo(CL_DEVICE_TYPE, &type);
@@ -135,7 +136,10 @@ int main(int argc, char *argv[])
 	   QcpuOO = new CommandQueue(context, devices[d], PROFILE|OOOEXEC);
 	}
 	else if (type == CL_DEVICE_TYPE_ACCELERATOR)
+        {
 	   QdspOO  = new CommandQueue(context, devices[d], PROFILE|OOOEXEC);
+           dspDevices.push_back(devices[d]);
+        }
      }
 
      if (QcpuIO == NULL)
@@ -156,7 +160,7 @@ int main(int argc, char *argv[])
      Program::Sources    source (1, std::make_pair(kernStr, strlen(kernStr)));
      Program             program(Program(context, source));
 
-     program.build(devices); 
+     program.build(dspDevices);
      Kernel K(program, "compute");
      K.setArg(1, elements);
 

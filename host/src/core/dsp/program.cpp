@@ -31,45 +31,11 @@
 
 #include "../program.h"
 
-#include <llvm/PassManager.h>
-#include <llvm/Analysis/Passes.h>
-#include <llvm/IR/Verifier.h>
-#include <llvm/Transforms/Scalar.h>
-#include <llvm/Transforms/IPO.h>
-#include <llvm/Transforms/Utils/UnifyFunctionExitNodes.h>
-#include <llvm/Support/raw_ostream.h>
-#include <llvm/Bitcode/ReaderWriter.h>
-#include "wga.h"
-
-#include <llvm/LinkAllPasses.h>
-#include <WorkitemHandlerChooser.h>
-#include <BreakConstantGEPs.h>
-#include <Flatten.h>
-#include <PHIsToAllocas.h>
-#include <IsolateRegions.h>
-#include <VariableUniformityAnalysis.h>
-#include <ImplicitLoopBarriers.h>
-#include <ImplicitConditionalBarriers.h>
-#include <LoopBarriers.h>
-#include <BarrierTailReplication.h>
-#include <CanonicalizeBarriers.h>
-#include <WorkItemAliasAnalysis.h>
-#include <WorkitemReplication.h>
-#include <WorkitemLoops.h>
-#include <AllocasToEntry.h>
-#include <Workgroup.h>
-#include <TargetAddressSpaces.h>
-#include <PrivatizationAliasAnalysis.h>
-
 #include <string>
 #include <iostream>
 #include <fstream>
-#include <sstream>
-#include <stdio.h>
 #include <stdlib.h>
-#include <vector>
 #include <sys/types.h>
-#include <sys/time.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -79,25 +45,11 @@
 #include "genfile_cache.h"
 
 #include "dload.h"
-#include "program.h"
+
 
 using tiocl::DLOAD;
 
 genfile_cache * genfile_cache::pInstance = 0;
-
-timespec getTime()
-{
-    struct timespec tp;
-    if (clock_gettime(CLOCK_MONOTONIC, &tp) != 0)
-        clock_gettime(CLOCK_REALTIME, &tp);
-    return tp;
-}
-
-double ts_to_double(const timespec &t)
-    { return ((double)t.tv_nsec) /1000000000.0 + (double)t.tv_sec; }
-
-double tsdiff (const timespec& start, const timespec& end)
-    { return ts_to_double(end) - ts_to_double(start); }
 
 
 using namespace Coal;
@@ -128,7 +80,7 @@ DSPProgram::~DSPProgram()
     delete p_dl;
     p_dl = nullptr;
 
-    if (!p_keep_files && !p_cache_kernels) unlink(p_outfile);
+    if (!p_keep_files && !p_cache_kernels) unlink(p_outfile.c_str());
 }
 
 bool DSPProgram::load()
@@ -187,7 +139,7 @@ bool DSPProgram::linkStdLib() const
 
 const char* DSPProgram::outfile_name() const
 {
-    return p_outfile;
+    return p_outfile.c_str();
 }
 
 DSPDevicePtr DSPProgram::data_page_ptr() 
@@ -198,126 +150,8 @@ DSPDevicePtr DSPProgram::data_page_ptr()
 void DSPProgram::createOptimizationPasses(llvm::PassManager *manager,
                                           bool optimize, bool hasBarrier)
 {
-    if (hasBarrier)
-    {
-        manager->add(    llvm::createPromoteMemoryToRegisterPass());
-        manager->add(new llvm::DominatorTreeWrapperPass());
-        manager->add(new llvm::PostDominatorTree());
-        manager->add(new pocl::WorkitemHandlerChooser());
-        manager->add(new       BreakConstantGEPs());   // from pocl
-        //       add(new       GenerateHeader());      // no need
-        manager->add(new pocl::Flatten());
-        manager->add(    llvm::createAlwaysInlinerPass());
-        manager->add(    llvm::createGlobalDCEPass());
-        manager->add(    llvm::createCFGSimplificationPass());
-        manager->add(    llvm::createLoopSimplifyPass());
-        manager->add(new pocl::VariableUniformityAnalysis());
-        manager->add(new pocl::PHIsToAllocas());
-        manager->add(    llvm::createRegionInfoPass());
-        manager->add(new pocl::IsolateRegions());
-        manager->add(new pocl::ImplicitLoopBarriers());
-        // manager->add(new pocl::ImplicitConditionalBarriers()); // pocl 0.9: clang -O2 crashes shoc spmv, disable for now
-        manager->add(new pocl::LoopBarriers());
-        manager->add(new pocl::BarrierTailReplication());
-        manager->add(new pocl::CanonicalizeBarriers());
-        manager->add(new pocl::IsolateRegions());
-        manager->add(new pocl::WorkItemAliasAnalysis());
-        //       add(new pocl::WorkitemReplication()); // no need
-        manager->add(new pocl::WorkitemLoops());
-        manager->add(new pocl::AllocasToEntry());
-        //       add(new pocl::Workgroup());           // no need
-        manager->add(new pocl::TargetAddressSpaces());
-        manager->add(new tiocl::TIOpenCLPrivatizationAliasAnalysis());
-    }
-
-    if (optimize)
-    {
-        /*
-         * Inspired by code from "The LLVM Compiler Infrastructure"
-         */
-        manager->add(llvm::createDeadArgEliminationPass());
-        manager->add(llvm::createInstructionCombiningPass());
-        manager->add(llvm::createFunctionInliningPass());
-        manager->add(llvm::createPruneEHPass());   // Remove dead EH info.
-        manager->add(llvm::createGlobalOptimizerPass());
-        manager->add(llvm::createGlobalDCEPass()); // Remove dead functions.
-        manager->add(llvm::createArgumentPromotionPass());
-        manager->add(llvm::createInstructionCombiningPass());
-        manager->add(llvm::createJumpThreadingPass());
-
-        //ASW TODO maybe turn off re: pete.  might gen bad xlator input 
-        //manager->add(llvm::createScalarReplAggregatesPass());
-
-        manager->add(llvm::createFunctionAttrsPass()); // Add nocapture.
-        manager->add(llvm::createGlobalsModRefPass()); // IP alias analysis.
-        manager->add(llvm::createLICMPass());      // Hoist loop invariants.
-        manager->add(llvm::createGVNPass());       // Remove redundancies.
-        manager->add(llvm::createMemCpyOptPass()); // Remove dead memcpys.
-        manager->add(llvm::createDeadStoreEliminationPass());
-        manager->add(llvm::createInstructionCombiningPass());
-        manager->add(llvm::createJumpThreadingPass());
-        manager->add(llvm::createCFGSimplificationPass());
-    }
-
-    manager->add(llvm::createUnifyFunctionExitNodesPass());
-    manager->add(llvm::createTIOpenclWorkGroupAggregationPass(hasBarrier));
-
-    /*-------------------------------------------------------------------------
-    * Borrow the pocl alloca hoister for the TI simplistic WGA pass as well
-    *------------------------------------------------------------------------*/
-    if (!hasBarrier)
-        manager->add(new pocl::AllocasToEntry());
 }
 
-
-std::string process_cl6x_options(std::string options)
-{
-    std::istringstream options_stream(options);
-    std::string token;
-    std::string result;
-
-    while (options_stream >> token)
-    {
-        if ((token.find(".obj")  != std::string::npos) ||
-            (token.find(".dll")  != std::string::npos) ||
-            (token.find(".ae66") != std::string::npos) ||
-            (token.find(".a66")  != std::string::npos) ||
-            (token.find(".out")  != std::string::npos) ||
-            (token.find(".lib")  != std::string::npos) ||
-            (token.find(".o")    != std::string::npos) ||
-            (token.find(".o66")  != std::string::npos) ||
-            (token.find(".oe66") != std::string::npos) ||
-            (token.find(".a")    != std::string::npos) ||
-            (token.find(".cmd")  != std::string::npos))  
-                result += token + " ";
-    }
-    return result;
-}
-
-/******************************************************************************
-* Find the C6000 CGT installation
-******************************************************************************/
-#define DEFAULT_TI_CGT_INSTALL_PATH "/usr/share/ti/cgt-c6x"
-
-const char *get_cgt_install()
-{
-    const char *install = getenv("TI_OCL_CGT_INSTALL");
-    if (install) return install;
-
-    bool def_install = access(DEFAULT_TI_CGT_INSTALL_PATH, F_OK|R_OK) != -1;
-
-    if (!def_install)
-    {
-       std::cout << "\nThe C6000 compiler lib/include installation is not "
-       "located in the default\n"
-       "location (/usr/share/ti/cgt-c6x).\n"
-       "Use the environment variable TI_OCL_CGT_INSTALL to specify an alternate\n"
-       "installation path.\n"  << std::endl;
-      
-       abort();
-    }
-    else return DEFAULT_TI_CGT_INSTALL_PATH;
-}
 
 
 /******************************************************************************
@@ -339,127 +173,46 @@ std::string get_ocl_dsp()
     abort();
 }
 
-/******************************************************************************
-* run_cl6x
-******************************************************************************/
-static int run_cl6x(char *filename, std::string *llvm_bitcode, 
-                    bool keep_files, bool debug, bool info, std::string options)
-{
-    std::string command("cl6x --f -q --abi=eabi --use_g3 -mv6600 -mt -mo "
-                        "-ft=/tmp -fs=/tmp -fr=/tmp ");
-
-    if (keep_files) command += "-mw -k --z ";
-
-    /*-------------------------------------------------------------------------
-    * Turned off for now to workaround a timing bug. Plan to re-enable later
-    *------------------------------------------------------------------------*/
-    command += "--disable:sploop ";
-
-    if (debug) command += "-o0 -g ";
-    else       command += "-o3 --symdebug:none ";
-
-    char *no_sp = getenv("TI_OCL_SOFTWARE_PIPELINE_OFF");
-    if (no_sp) command += "-mu ";
-
-    const char *cgt_install = get_cgt_install();
-
-    command += "-I"; command += cgt_install; command += "/include ";
-    command += "-I"; command += cgt_install; command += "/lib ";
-    command += "-I"; command += get_ocl_dsp().c_str(); command += " ";
-
-    command += "--bc_file="; command += filename; command += " "; 
-
-    /*-------------------------------------------------------------------------
-    * Encode LLVM bitcode as bytes in the .llvmir section of the .asm file
-    *------------------------------------------------------------------------*/
-    if (llvm_bitcode != NULL)
-    {
-        char bitasm_name[32];
-        strcpy(bitasm_name, filename);
-        strcat(bitasm_name, "_bc.asm");
-        std::ofstream outasmfile(bitasm_name, std::ios::out);
-        outasmfile << "\t.sect \".llvmir\"\n" << "\t.retain";
-        int nbytes = llvm_bitcode->size();
-        for (int i = 0; i < nbytes; i++)
-            if (i % 10 == 0)
-               outasmfile << "\n\t.byte " << (int) llvm_bitcode->at(i);
-            else
-               outasmfile << ", " << (int) llvm_bitcode->at(i);
-        outasmfile.close();
-
-        command += bitasm_name; command += " ";
-    }
-
-    command += "-z -ldsp.syms -o "; 
-    command += filename; command += ".out ";
-
-    if (keep_files) 
-        { command += "-m "; command += filename; command += ".map "; }
-
-    /*-------------------------------------------------------------------------
-    * Any libraries or object files need to go last to resolve references
-    *------------------------------------------------------------------------*/
-    command += process_cl6x_options(options); 
-
-    int x = system(command.c_str());
-
-    if (!debug && !info)
-    {
-        std::string strip_command("strip6x -p ");
-        strip_command += filename; strip_command += ".out";
-        x = system(strip_command.c_str());
-    }
-}
 
 
 /**
  * Extract llvm bitcode and native binary from MixedBinary
  */
-bool DSPProgram::ExtractMixedBinary(std::string *binary_str,
-                             std::string *bitcode, std::string *native)
+bool DSPProgram::ExtractMixedBinary(const std::string &binary_str,
+                                          std::string &bitcode)
 {
-    if (binary_str == NULL)  return false;
-    if (strncmp(&binary_str->at(0), ELFMAG, SELFMAG) != 0)  return false;
+    if (binary_str.empty())  return false;
+    if (strncmp(&binary_str.at(0), ELFMAG, SELFMAG) != 0)  return false;
 
     /*-------------------------------------------------------------------------
     * Parse ELF file format, extract ".llvmir" section into bitcode
     * Valid Assumptions: 1. cl6x only creates 32-bit ELF files (for now)
     *                    2. cl6x ELF file has the same endianness as the host
     *------------------------------------------------------------------------*/
-    if (bitcode != NULL)
+    Elf32_Ehdr ehdr;  /* memcpy into here to guarantee proper alignment */
+    memcpy(&ehdr, & binary_str.at(0), sizeof(Elf32_Ehdr));
+    int        n_sects    = ehdr.e_shnum;
+    int        shoff      = ehdr.e_shoff;
+    int        shstr_sect = ehdr.e_shstrndx;
+
+    Elf32_Shdr shdr;  /* memcpy into here to guarantee proper alignment */
+    int        shsize     = sizeof(Elf32_Shdr);
+    memcpy(&shdr, & binary_str.at(shoff + shstr_sect * shsize), shsize);
+    const char      *strtab = & binary_str.at(shdr.sh_offset);
+
+    int i;
+    for (i = 0; i < n_sects; i++)
     {
-        Elf32_Ehdr ehdr;  /* memcpy into here to guarantee proper alignment */
-        memcpy(&ehdr, & binary_str->at(0), sizeof(Elf32_Ehdr));
-        int        n_sects    = ehdr.e_shnum;
-        int        shoff      = ehdr.e_shoff;
-        int        shstr_sect = ehdr.e_shstrndx;
-
-        Elf32_Shdr shdr;  /* memcpy into here to guarantee proper alignment */
-        int        shsize     = sizeof(Elf32_Shdr);
-        memcpy(&shdr, & binary_str->at(shoff + shstr_sect * shsize), shsize);
-        char      *strtab = & binary_str->at(shdr.sh_offset);
-
-        int        i;
-        for (i = 0; i < n_sects; i++)
-        {
-            if (i == shstr_sect)  continue;
-            memcpy(&shdr, & binary_str->at(shoff + i * shsize), shsize);
-            if (strcmp(&strtab[shdr.sh_name], ".llvmir") == 0)  break;
-        }
-        if (i >= n_sects)  return false;
-
-        bitcode->clear();
-        bitcode->append(& binary_str->at(shdr.sh_offset), shdr.sh_size);
+        if (i == shstr_sect)  continue;
+        memcpy(&shdr, & binary_str.at(shoff + i * shsize), shsize);
+        if (strcmp(&strtab[shdr.sh_name], ".llvmir") == 0)  break;
     }
 
-    /*-------------------------------------------------------------------------
-    * Return the c6x ELF file in binary_str as native binary
-    *------------------------------------------------------------------------*/
-    if (native != NULL)
-    {
-        native->clear();
-        native->append(*binary_str);
-    }
+    if (i >= n_sects)  
+        return false;
+
+    bitcode.clear();
+    bitcode.append(& binary_str.at(shdr.sh_offset), shdr.sh_size);
 
     return true;
 }
@@ -468,17 +221,19 @@ bool DSPProgram::ExtractMixedBinary(std::string *binary_str,
 /**
  * Write native binary into file, create tmporary filename in p_outfile
  */
-void DSPProgram::WriteNativeOut(std::string *native)
+void DSPProgram::WriteNativeOut(const std::string &native)
 {
+    assert (native.empty() == false);
+
     try
     {
         char name_out[] = "/tmp/openclXXXXXX";
         int  fOutfile = mkstemp(name_out);
-        strcpy(p_outfile, name_out);
-        strcat(p_outfile, ".out");
+        p_outfile = name_out;
+        p_outfile += ".out";
 
-        std::ofstream outfile(p_outfile, std::ios::out | std::ios::binary);
-        outfile.write(native->data(), native->size());
+        std::ofstream outfile(p_outfile.c_str(), std::ios::out | std::ios::binary);
+        outfile.write(native.data(), native.size());
         outfile.close();
         close(fOutfile);
         unlink(name_out);
@@ -486,150 +241,27 @@ void DSPProgram::WriteNativeOut(std::string *native)
     catch(...) { std::cout << "ERROR: Binary write out failure" << std::endl; }
 }
 
-/**
- * Native binary is stored in file, filename in p_outfile
- * Input:  binary_str contains only the bitcode
- * Output: binary_str contains c6x ELF file with bitcode in ".llvmir" section
- */
-void DSPProgram::ReadEmbeddedBinary(std::string *binary_str)
-{
-    if (binary_str == NULL)  return;
-
-    int   length;
-    char *buffer = NULL;
-
-    try
-    {
-        std::ifstream is;
-        is.open(p_outfile, std::ios::binary);
-        is.seekg(0, std::ios::end);
-        length = is.tellg();
-        is.seekg(0, std::ios::beg);
-        buffer = new char[length];
-        is.read(buffer, length);
-        is.close();
- 
-        binary_str->clear();
-        binary_str->append(buffer, length);
-        delete [] buffer;
-    }
-    catch(...) { std::cout << "ERROR: Binary read in failure" << std::endl; }
-}
 
 bool DSPProgram::build(llvm::Module *module, std::string *binary_str,
                        char *binary_filename)
 {
     p_module = module;
 
-    /*------------------------------------------------------------------------
-    * If binary_filename is not NULL, then no need to rebuild
-    *------------------------------------------------------------------------*/
+    // Binary file has already been created by Compile::CompileAndLink
     if (binary_filename != NULL)
     {
-        strcpy(p_outfile, binary_filename);
+        p_outfile = binary_filename;
         return true;
     }
 
-    /*------------------------------------------------------------------------
-    * The input binary_str could be any of the following:
-    * 1. Mixed C6x binary embedded with LLVM bitcode, extract C6x native 
-    *    binary and return.  There is no need to rebuild from LLVM module.
-    * 2. LLVM bitcode, proceed to the regular build: 
-    *    2.1 return a corresponding cached c6x binary, if found
-    *    2.2 invoke c6x compiler toolchain, embed LLVM bitcode, build
-    *    In either case, put c6x binary in binary_str when return
-    *------------------------------------------------------------------------*/
-    std::string native;
-    if (ExtractMixedBinary(binary_str, NULL, &native))
+    // The OpenCL runtime was provided a binary file.
+    else if (binary_str != NULL)
     {
-        WriteNativeOut(&native);
+        WriteNativeOut(*binary_str);
         return true;
     }
 
-    if (p_cache_kernels)
-    {
-        string cached_outfile = genfile_cache::instance()->lookup
-            (p_module, p_program->deviceDependentCompilerOptions(p_device));
-
-        if (!cached_outfile.empty())
-        { 
-            strcpy(p_outfile, cached_outfile.c_str()); 
-            ReadEmbeddedBinary(binary_str);
-            return true; 
-        }
-    }
-
-    char name_template[] =  "/tmp/openclXXXXXX";
-    int pFile = mkstemp(name_template);
-
-    strcpy(p_outfile, name_template);
-    strcat(p_outfile, ".out");
-
-    if (pFile != -1)
-    {
-        if (p_keep_files)
-        {
-            //write out the source as well
-
-            std::string filename(name_template);
-            filename += ".cl";
-            std::ofstream out(filename.c_str());
-            out << p_program->source();
-            out.close();
-        }
-
-        llvm::raw_fd_ostream ostream(pFile, false);
-        llvm::WriteBitcodeToFile(p_module, ostream);
-        ostream.flush();
-
-        string xformed_binary_str;
-        llvm::raw_string_ostream str_ostream(xformed_binary_str);
-        llvm::WriteBitcodeToFile(p_module, str_ostream);
-        str_ostream.flush();
-        run_cl6x(name_template, &xformed_binary_str, p_keep_files, p_debug, p_info,
-                   p_program->deviceDependentCompilerOptions(p_device));
-
-        char objfile[32]; 
-        if (!p_keep_files)
-        {
-            unlink(name_template);
-
-            strcpy(objfile, name_template); 
-            strcat(objfile, ".obj");
-            unlink(objfile);
-        }
-        else
-        {
-            strcpy(objfile, name_template); 
-            strcat(objfile, ".objc");
-            unlink(objfile);
-
-            strcpy(objfile, name_template); 
-            strcat(objfile, "_bc.objc");
-            unlink(objfile);
-        }
-
-        if (binary_str != NULL)
-        {
-            strcpy(objfile, name_template); 
-            strcat(objfile, "_bc.asm");
-            unlink(objfile);
-
-            strcpy(objfile, name_template); 
-            strcat(objfile, "_bc.obj");
-            unlink(objfile);
-        }
-
-        if (p_cache_kernels)
-            genfile_cache::instance()->remember(p_outfile, p_module, 
-                    p_program->deviceDependentCompilerOptions(p_device));
-
-        ReadEmbeddedBinary(binary_str);
-    }
-
-    if (pFile != -1) close(pFile);
-
-    return true;
+    return false;
 }
 
 DSPDevicePtr DSPProgram::query_symbol(const char *symname)

@@ -28,9 +28,6 @@
 #ifndef _source_cache_
 #define _source_cache_
 
-#include <llvm/Support/raw_ostream.h>
-#include <llvm/Bitcode/ReaderWriter.h>
-
 #include <boost/lexical_cast.hpp>
 #include <boost/crc.hpp>
 

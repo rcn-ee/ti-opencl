@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2011, Denis Steckelmacher <steckdenis@yahoo.fr>
- * Copyright (c) 2012-2014, Texas Instruments Incorporated - http://www.ti.com/
+ * Copyright (c) 2012-2016, Texas Instruments Incorporated - http://www.ti.com/
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -80,7 +80,11 @@
 //source_cache * source_cache::pInstance = 0;
 
 using namespace Coal;
-using namespace llvm;
+
+static llvm::Module *BitcodeToLLVMModule(const string &bitcode,
+                                         llvm::LLVMContext &llvmcontext);
+static bool ReadBinaryIntoString(const std::string &outfile,
+                                       std::string &binary_str);
 
 Program::Program(Context *ctx)
 : Object(Object::T_Program, ctx), p_type(Invalid), p_state(Empty)
@@ -107,6 +111,8 @@ void Program::resetDeviceDependent()
         delete dep.compiler;
         delete dep.program;
         delete dep.linked_module;
+        dep.unlinked_binary.clear();
+
         if (dep.native_binary_filename) delete [] dep.native_binary_filename;
 
         p_device_dependent.pop_back();
@@ -186,7 +192,7 @@ std::vector<llvm::Function *> Program::kernelFunctions(DeviceDependent &dep)
         /*---------------------------------------------------------------------
         * Each node has only one operand : a llvm::Function
         *--------------------------------------------------------------------*/
-        llvm::Value *value = dyn_cast<llvm::ValueAsMetadata>(node->getOperand(0))->getValue();
+        llvm::Value *value = llvm::dyn_cast<llvm::ValueAsMetadata>(node->getOperand(0))->getValue();
 
         /*---------------------------------------------------------------------
         * Bug somewhere, don't crash
@@ -339,29 +345,15 @@ cl_int Program::loadBinaries(const unsigned char **data, const size_t *lengths,
         *                  or     LLVM bitcode itself
         *--------------------------------------------------------------------*/
         std::string bitcode;
-        if (! dep.program->ExtractMixedBinary(&dep.unlinked_binary, &bitcode, 
-                                              NULL))
+        if (!dep.program->ExtractMixedBinary(dep.unlinked_binary, bitcode)) 
         {
             bitcode = dep.unlinked_binary;
             dep.is_native_binary = false;
         }
 
-        const llvm::StringRef s_data(bitcode);
-        const llvm::StringRef s_name("<binary>");
+        dep.linked_module = BitcodeToLLVMModule(bitcode, *p_llvmcontext);
 
-        std::unique_ptr<llvm::MemoryBuffer> buffer = llvm::MemoryBuffer::getMemBuffer(
-                                                        s_data, s_name, false);
-
-        if (!buffer)
-            return CL_OUT_OF_HOST_MEMORY;
-
-        // Make a module of it
-        ErrorOr<Module *> ModuleOrErr = parseBitcodeFile(buffer->getMemBufferRef(), 
-                                             *p_llvmcontext);
-        if (ModuleOrErr) {
-           dep.linked_module = ModuleOrErr.get();
-        }
-        if (!dep.linked_module)
+        if (dep.linked_module == nullptr)
         {
             if (binary_status) binary_status[i] = CL_INVALID_VALUE;
             return CL_INVALID_BINARY;
@@ -403,269 +395,30 @@ cl_int Program::build(const char *options,
         // Do we need to compile the source for each device ?
         if (p_type == Source)
         {
-            bool do_clocl_compile = (getenv("TI_OCL_SRC_USE_ONLINE") == NULL);
-            bool do_cache_kernels = (getenv("TI_OCL_CACHE_KERNELS")  != NULL);
-            bool do_keep_files    = (getenv("TI_OCL_KEEP_FILES")     != NULL);
-            bool do_debug         = (getenv("TI_OCL_DEBUG")          != NULL);
-            bool do_symbols       = (getenv("TI_OCL_DEVICE_PROGRAM_INFO") != NULL);
+            std::string opts(options ? options: "");
+            std::string outfile;
 
-            cl_device_type devtype;
-            device_list[i]->info(CL_DEVICE_TYPE, sizeof(devtype), &devtype, 0);
-            if (devtype != CL_DEVICE_TYPE_ACCELERATOR) do_clocl_compile = false;
-
-            if (do_debug) do_cache_kernels = false;
-
-            if (do_clocl_compile)
-            {
-                char outfile[32];
-                bool found_cached_file = false;
-
-                #define STRINGIZE(x) #x
-                #define STRINGIZE2(x) STRINGIZE(x)
-                std::string product_version(STRINGIZE2(_PRODUCT_VERSION));
-                std::string tmp_options(options ? options : "");
-                tmp_options += product_version;
-
-                if (do_cache_kernels)
-                {
-                    std::string cached_file = genfile_cache::instance()->lookup(
-                                                         p_source, tmp_options);
-                    if (! cached_file.empty())
-                    {
-                        strcpy(outfile, cached_file.c_str());
-                        found_cached_file = true;
-                    }
-                }
-
-                if (! found_cached_file)
-                {   // Begin clocl compilation
-                    char  name_out[] = "/tmp/openclXXXXXX";
-                    char  srcfile[32];
-                    char  logfile[32];
-                    char *clocl_command = new char[(options?strlen(options):0)
-                                                   + 64];
-                    strcpy(clocl_command, "clocl -d -I. ");
-
-                    // Pass compile options to clocl and compiler object 
-		    // (so that they are available for build info requests)
-		    // TO DO: Investigate pushing clocl call into compile()
-		    if (options) 
-                    { 
-                       dep.compiler->set_options(options);
-		       strcat(clocl_command, options); 
-		       strcat(clocl_command, " "); 
-		    }
-
-                    if (do_keep_files) strcat(clocl_command, "-k ");
-                    if (do_debug)      strcat(clocl_command, "-g ");
-                    if (do_symbols)    strcat(clocl_command, "-s ");
-
-                    int  fOutfile = mkstemp(name_out);
-                    strcpy(srcfile, name_out);
-                    strcat(srcfile, ".cl");
-                    strcpy(outfile, name_out);
-                    strcat(outfile, ".out");
-                    strcpy(logfile, name_out);
-                    strcat(logfile, ".log");
-                    strcat(clocl_command, srcfile);
-                    strcat(clocl_command, " > ");
-                    strcat(clocl_command, logfile);
-
-                    /*--------------------------------------------------------
-                    * put source in a tmp file, run clocl, read tmp output in
-                    *--------------------------------------------------------*/
-                    std::ofstream src_out(srcfile);
-                    src_out << p_source;
-                    src_out.close();
-                    
-                    int ret_code = system(clocl_command);
-
-                    std::ifstream log_in(logfile);
-                    std::string log_line;
-                    if (log_in.is_open())
-                    {
-                        while (getline(log_in, log_line))
-                        {
-                            dep.compiler->appendLog(log_line);
-                            dep.compiler->appendLog("\n");
-                            std::cout << log_line << std::endl;
-                        }
-                        log_in.close();
-                    }
-                    delete [] clocl_command;
-                    close(fOutfile);
-                    if (! do_keep_files && !do_debug) unlink(srcfile);
-		    unlink(logfile);
-                    unlink(name_out);
-
-		    // Check for system() call failure or clocl compile failure
-		    if (ret_code == -1 || WEXITSTATUS(ret_code) == 0xFF) 
-		       return CL_BUILD_PROGRAM_FAILURE;
-
-                    if (do_cache_kernels)
-                        genfile_cache::instance()->remember(outfile, p_source,
-                                                            tmp_options);
-                }   // End clocl compilation
-                
-                std::ifstream bin_in(outfile, std::ios::binary);
-                bin_in.seekg (0, std::ios::end);
-                int bin_len = bin_in.tellg();
-                bin_in.seekg (0, std::ios::beg);
-                char *bin_data = new char [bin_len];
-                bin_in.read(bin_data, bin_len);
-                bin_in.close();
-
-                dep.native_binary_filename = new char[strlen(outfile)+1];
-                strcpy(dep.native_binary_filename, outfile);
-                
-                dep.unlinked_binary = std::string((const char *)bin_data,
-                                                                bin_len);
-                dep.is_native_binary = true;
-                if (bin_data != NULL)  delete [] bin_data;
-                
-                /*-------------------------------------------------------------
-                * make module from native code with LLVM bitcode embedded
-                *------------------------------------------------------------*/
-                std::string bitcode;
-                dep.program->ExtractMixedBinary(&dep.unlinked_binary, &bitcode,
-                                                NULL);
-                const llvm::StringRef s_data(bitcode);
-                const llvm::StringRef s_name("<binary>");
-                std::unique_ptr<llvm::MemoryBuffer> buffer = llvm::MemoryBuffer::getMemBuffer(
-                                                        s_data, s_name, false);
-                if (!buffer) return CL_OUT_OF_HOST_MEMORY;
-                
-                // Make a module of it
-                ErrorOr<Module *> ModuleOrErr = parseBitcodeFile(buffer->getMemBufferRef(), 
-                                                     *p_llvmcontext);
-                if (ModuleOrErr) {
-                   dep.linked_module = ModuleOrErr.get();
-                }
-                if (!dep.linked_module)
-                    return CL_BUILD_PROGRAM_FAILURE;
-            }
-            else
-            {
-                // Load source
-                const llvm::StringRef s_data(p_source);
-                const llvm::StringRef s_name("<source>");
-
-                std::unique_ptr<llvm::MemoryBuffer> buffer = llvm::MemoryBuffer::getMemBuffer(
-                                                               s_data, s_name);
-
-                // Compile
-                if (! dep.compiler->compile(options ? options : std::string(),
-                                            buffer.get(), p_llvmcontext) )
-                {
-                    if (pfn_notify)
-                        pfn_notify((cl_program)this, user_data);
-                    return CL_BUILD_PROGRAM_FAILURE;
-                }
-
-                // Get module and its bitcode
-                dep.linked_module = dep.compiler->module();
-
-                llvm::raw_string_ostream ostream(dep.unlinked_binary);
-                llvm::WriteBitcodeToFile(dep.linked_module, ostream);
-                ostream.flush();
-            }
-        }
-
-        // Link p_linked_module with the stdlib if the device needs that
-        if (! dep.is_native_binary && dep.program->linkStdLib())
-        {
-            // Load the stdlib bitcode
-            const llvm::StringRef s_data(embed_stdlib_c_bc,
-                                         sizeof(embed_stdlib_c_bc) - 1);
-            const llvm::StringRef s_name("stdlib.bc");
-            std::string errMsg;
-
-            std::unique_ptr<llvm::MemoryBuffer> buffer = llvm::MemoryBuffer::getMemBuffer(
-                                                        s_data, s_name, false);
-
-            if (!buffer)
-                return CL_OUT_OF_HOST_MEMORY;
-
-            ErrorOr<Module *> ModuleOrErr = parseBitcodeFile(buffer->getMemBufferRef(), 
-                                             *p_llvmcontext);
-            Module *stdlib = NULL;
-            if (ModuleOrErr) {
-               stdlib = ModuleOrErr.get();
-            }
-            else {
-               std::error_code EC = ModuleOrErr.getError();
-               errMsg = EC.message();
-            }
-
-            // Link
-            LLVMBool Result = false;
-            if (stdlib)
-            {
-               std::string Message;
-               raw_string_ostream Stream(Message);
-               DiagnosticPrinterRawOStream DP(Stream);
-               LLVMBool Result = llvm::Linker::LinkModules(dep.linked_module,
-                                  stdlib,
-                                  [&](const DiagnosticInfo &DI) {DI.print(DP); });
-               if (Result)
-                  errMsg += strdup(Message.c_str());
-            }
-            if (!stdlib || Result)
-            {
-                dep.compiler->appendLog("link error: ");
-                dep.compiler->appendLog(errMsg);
-                dep.compiler->appendLog("\n");
-
-                // DEBUG
-                std::cout << dep.compiler->log() << std::endl;
-
-                if (pfn_notify)
-                    pfn_notify((cl_program)this, user_data);
-
+            if (!dep.compiler->CompileAndLink(p_source, opts, outfile))
                 return CL_BUILD_PROGRAM_FAILURE;
-            }
+
+            ReadBinaryIntoString(outfile, dep.unlinked_binary);
+
+            dep.native_binary_filename = new char[outfile.size()+1];
+            strcpy(dep.native_binary_filename, outfile.c_str());
+            
+            dep.is_native_binary = true;
+            
+            // Extract LLVM bitcode from char array 
+            std::string bitcode;
+            dep.program->ExtractMixedBinary(dep.unlinked_binary, bitcode);
+
+            // Parse bitcode into a Module
+            dep.linked_module = BitcodeToLLVMModule(bitcode, *p_llvmcontext);
+
+            if (dep.linked_module == nullptr)
+                return CL_BUILD_PROGRAM_FAILURE;
         }
 
-        if (! dep.is_native_binary)
-        {
-            // Get list of kernels to strip other unused functions
-            std::vector<const char *> api;
-            std::vector<std::string> api_s; // Needed to keep valid data in api
-            const std::vector<llvm::Function *> &kernels = kernelFunctions(dep);
-         
-            for (size_t j=0; j<kernels.size(); ++j)
-            {
-                std::string s = kernels[j]->getName().str();
-                api_s.push_back(s);
-                api.push_back(s.c_str());
-            }
-         
-            // determine if module has barrier() function calls
-            bool hasBarrier = containsBarrierCall(*dep.linked_module);
-         
-            // Optimize code
-            llvm::PassManager *manager = new llvm::PassManager();
-         
-            // Common passes (primary goal : remove unused stdlib functions)
-            manager->add(llvm::createTypeBasedAliasAnalysisPass());
-            manager->add(llvm::createBasicAliasAnalysisPass());
-            manager->add(llvm::createInternalizePass(api));
-            manager->add(llvm::createIPSCCPPass());
-            manager->add(llvm::createGlobalOptimizerPass());
-            manager->add(llvm::createConstantMergePass());
-            manager->add(llvm::createAlwaysInlinerPass());
-         
-            dep.program->createOptimizationPasses(manager, 
-                                       dep.compiler->optimize(), hasBarrier);
-            manager->add(new tiocl::TIOpenCLSimplifyShuffleBIFCall());
-         
-            manager->add(llvm::createGlobalDCEPass());
-            manager->add(llvm::createCFGSimplificationPass());
-            manager->add(llvm::createLoopSimplifyPass());  // for llp6x
-         
-            manager->run(*dep.linked_module);
-            delete manager;
-        }
 
         // Now that the LLVM module is built, build the device-specific
         // representation
@@ -869,4 +622,60 @@ cl_int Program::buildInfo(DeviceInterface *device,
         std::memcpy(param_value, value, value_length);
 
     return CL_SUCCESS;
+}
+
+static bool ReadBinaryIntoString(const std::string &outfile,
+                                       std::string &binary_str)
+{
+    bool success = true;
+
+    try
+    {
+        int   length;
+        char *buffer = NULL;
+
+        std::ifstream is;
+        is.open(outfile.c_str(), std::ios::binary);
+        is.seekg(0, std::ios::end);
+        length = is.tellg();
+
+        is.seekg(0, std::ios::beg);
+        buffer = new char[length];
+
+        is.read(buffer, length);
+        is.close();
+
+        binary_str.assign(buffer, length);
+
+        delete [] buffer;
+    }
+    catch(...) { success = false; }
+
+    return success;
+}
+
+
+static llvm::Module *BitcodeToLLVMModule(const string &bitcode,
+                                         llvm::LLVMContext &llvmcontext)
+{
+    const llvm::StringRef s_data(bitcode);
+    const llvm::StringRef s_name("<binary>");
+
+    std::unique_ptr<llvm::MemoryBuffer> buffer =
+                     llvm::MemoryBuffer::getMemBuffer(s_data, s_name, false);
+
+    if (!buffer)
+        return nullptr;
+
+    // Make a module of it
+    llvm::ErrorOr<llvm::Module *> ModuleOrErr =
+                                    parseBitcodeFile(buffer->getMemBufferRef(), 
+                                                     llvmcontext);
+
+    if (std::error_code ec = ModuleOrErr.getError())
+        return nullptr;
+
+    llvm::Module *m = ModuleOrErr.get();
+
+    return m;
 }

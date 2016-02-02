@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2013-2014, Texas Instruments Incorporated - http://www.ti.com/
+ * Copyright (c) 2013-2016, Texas Instruments Incorporated - http://www.ti.com/
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -15,7 +15,7 @@
  *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  *   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+ *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  *   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
  *   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
  *   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
@@ -28,9 +28,10 @@
 #ifndef _genfile_cache_
 #define _genfile_cache_
 
-#include <llvm/Support/raw_ostream.h>
-#include <llvm/IR/Module.h>
-#include <llvm/Bitcode/ReaderWriter.h>
+namespace llvm
+{
+    class Module;
+}
 
 #include <boost/lexical_cast.hpp>
 #include <boost/crc.hpp>
@@ -48,12 +49,15 @@
 class genfile_cache
 {
   public:
-    std::string lookup   (llvm::Module *module, std::string options);
-    std::string lookup   (std::string  &source, std::string options);
-    void        remember (const char   *outfile, llvm::Module *module, 
-                          std::string  options);
-    void        remember (const char   *outfile, std::string  &source,
-                          std::string  options);
+    std::string lookup   (const llvm::Module *module,
+                          const std::string &options);
+    std::string lookup   (const std::string  &source,
+                          const std::string &options);
+
+    void        remember (const char   *outfile, const llvm::Module *module,
+                          const std::string  &options);
+    void        remember (const char   *outfile, const std::string  &source,
+                          const std::string &options);
 
     /*-------------------------------------------------------------------------
     * Thread safe instance function for singleton behavior
@@ -88,7 +92,8 @@ class genfile_cache
     Database    p_database;
 
   private:
-    genfile_cache(std::string db_name) : p_dbname(db_name), p_database(db_name.c_str())
+    genfile_cache(std::string db_name) :
+                            p_dbname(db_name), p_database(db_name.c_str())
     {
         p_database.query("create table if not exists "
                 "programs(hash integer, value string);");
@@ -96,9 +101,11 @@ class genfile_cache
 
     std::string lookup          (uint32_t hash);
     void        remember        (const char *outfile, uint32_t hash);
-    uint32_t    convert_mod2crc (llvm::Module *module, std::string &options);
-    uint32_t    convert_src2crc (std::string  &source, std::string &options);
-    uint32_t    get_crc         (std::string& my_string);
+    uint32_t    convert_mod2crc (const llvm::Module *module,
+                                 const std::string &options);
+    uint32_t    convert_src2crc (const std::string  &source,
+                                 const std::string &options);
+    uint32_t    get_crc         (const std::string& my_string);
 
     genfile_cache(const genfile_cache&);              // copy ctor disallowed
     genfile_cache& operator=(const genfile_cache&);   // assignment disallowed

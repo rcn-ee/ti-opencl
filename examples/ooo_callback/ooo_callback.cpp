@@ -144,6 +144,7 @@ int main(int argc, char *argv[])
      CommandQueue        *QdspIO = NULL;
      CommandQueue        *QdspOO = NULL;
 
+     std::vector<Device> dspDevices;
      for (int d = 0; d < devices.size(); d++)
      {
 	cl_device_type type;
@@ -153,6 +154,7 @@ int main(int argc, char *argv[])
         {
 	   QdspIO  = new CommandQueue(context, devices[d], PROFILE);
 	   QdspOO  = new CommandQueue(context, devices[d], PROFILE|OOOEXEC);
+           dspDevices.push_back(devices[d]);
         }
      }
 
@@ -161,7 +163,7 @@ int main(int argc, char *argv[])
      Program::Sources    source (1, std::make_pair(kernStr, strlen(kernStr)));
      Program             program(Program(context, source));
 
-     program.build(devices);
+     program.build(dspDevices);
      Kernel K(program, "compute");
 
      /*------------------------------------------------------------------------
