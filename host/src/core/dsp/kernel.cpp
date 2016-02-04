@@ -865,9 +865,10 @@ cl_int DSPKernelEvent::init_kernel_runtime_variables(Event::Type evtype,
         }
         else 
         {
-            p_WG_alloca_start = p_device->malloc_msmc(chip_alloca_size);
+            SharedMemory *shm = p_device->GetSHMHandler();
+            p_WG_alloca_start = shm->AllocateMSMC(chip_alloca_size);
             if (!p_WG_alloca_start)
-                p_WG_alloca_start = p_device->malloc_global(chip_alloca_size, true);
+                p_WG_alloca_start = shm->AllocateGlobal(chip_alloca_size, true);
         }
 
         if (!p_WG_alloca_start)
@@ -894,14 +895,15 @@ cl_int DSPKernelEvent::init_kernel_runtime_variables(Event::Type evtype,
 ******************************************************************************/
 cl_int DSPKernelEvent::allocate_temp_global(void)
 {
-    Driver *driver = Driver::instance();
+    SharedMemory *shm = p_device->GetSHMHandler();
+
     for (int i = 0; i < p_hostptr_tmpbufs.size(); ++i)
     {
         MemObject      *buffer       =  p_hostptr_tmpbufs[i].first;
         DSPDevicePtr64 *p_addr64     = &p_hostptr_tmpbufs[i].second.first;
         DSPVirtPtr     *p_arg_word   =  p_hostptr_tmpbufs[i].second.second;
         
-        *p_addr64 = p_device->malloc_global(buffer->size(), false);
+        *p_addr64 = shm->AllocateGlobal(buffer->size(), false);
 
         if (!(*p_addr64))
         {
@@ -917,13 +919,11 @@ cl_int DSPKernelEvent::allocate_temp_global(void)
 
         if (! WRITE_ONLY_BUFFER(buffer))
         {
-            void *mapped_tmpbuf = driver->map(p_device, *p_addr64,
-                                              buffer->size(), false);
+            void *mapped_tmpbuf = shm->Map(*p_addr64, buffer->size(), false);
             memcpy(mapped_tmpbuf, buffer->host_ptr(), buffer->size());
             p_flush_bufs.push_back(DSPMemRange(DSPPtrPair(
                                       *p_addr64, p_arg_word), buffer->size()));
-            driver->unmap(p_device, mapped_tmpbuf, *p_addr64, buffer->size(),
-                          true);
+            shm->Unmap(mapped_tmpbuf, *p_addr64, buffer->size(), true);
         }
     }
 
@@ -935,7 +935,8 @@ cl_int DSPKernelEvent::allocate_temp_global(void)
 *------------------------------------------------------------------------*/
 cl_int DSPKernelEvent::flush_special_use_host_ptr_buffers(void)
 {
-    Driver *driver = Driver::instance();
+    SharedMemory *shm = p_device->GetSHMHandler();
+
     int total_buf_size = 0;
     for (int i = 0; i < p_hostptr_clMalloced_bufs.size(); ++i)
     {
@@ -949,7 +950,7 @@ cl_int DSPKernelEvent::flush_special_use_host_ptr_buffers(void)
     *------------------------------------------------------------------------*/
     int  threshold  = (32<<20);
     bool wb_inv_all = false;
-    if (total_buf_size >= threshold)  wb_inv_all = driver->cacheWbInvAll();
+    if (total_buf_size >= threshold)  wb_inv_all = shm->CacheWbInvAll();
 
     if (! wb_inv_all)
     {
@@ -960,9 +961,9 @@ cl_int DSPKernelEvent::flush_special_use_host_ptr_buffers(void)
             DSPDevicePtr64 data = (DSPDevicePtr64)dspbuf->data();
 
             if (! READ_ONLY_BUFFER(buffer) && ! HOST_NO_ACCESS(buffer))
-                driver->cacheWbInv(data, buffer->host_ptr(), buffer->size());
+                shm->CacheWbInv(data, buffer->host_ptr(), buffer->size());
             else if (! WRITE_ONLY_BUFFER(buffer) && ! HOST_NO_ACCESS(buffer))
-                driver->cacheWb(data, buffer->host_ptr(), buffer->size());
+                shm->CacheWb(data, buffer->host_ptr(), buffer->size());
         }
     }
 
@@ -1046,8 +1047,9 @@ cl_int DSPKernelEvent::setup_extended_memory_mappings()
 ******************************************************************************/
 cl_int DSPKernelEvent::setup_stack_based_arguments()
 {
-    Driver *driver = Driver::instance();
-    uint32_t rounded_args_on_stack_size = 
+    SharedMemory *shm = p_device->GetSHMHandler();
+
+    uint32_t rounded_args_on_stack_size =
                 ROUNDUP(p_msg.u.k.kernel.args_on_stack_size, 128);
 
     uint32_t args_in_mem_size = rounded_args_on_stack_size + argref_offset;
@@ -1055,10 +1057,10 @@ cl_int DSPKernelEvent::setup_stack_based_arguments()
     if (args_in_mem_size > 0)
     {
         // 1. allocate memory
-        DSPDevicePtr64 args_addr = p_device->malloc_msmc(args_in_mem_size);
+        DSPDevicePtr64 args_addr = shm->AllocateMSMC(args_in_mem_size);
 
         if (!args_addr)
-            args_addr = p_device->malloc_global(args_in_mem_size, true);
+            args_addr = shm->AllocateGlobal(args_in_mem_size, true);
 
         if (!args_addr)
             QERR("Unable to allocate memory for kernel arguments",
@@ -1074,8 +1076,7 @@ cl_int DSPKernelEvent::setup_stack_based_arguments()
         }
 
         // 3. copy args_on_stack and args_of_argref
-        void *mapped_addr = driver->map(p_device, args_addr, args_in_mem_size,
-                                        false);
+        void *mapped_addr = shm->Map(args_addr, args_in_mem_size, false);
         if (rounded_args_on_stack_size > 0)
             memcpy(mapped_addr, args_on_stack, rounded_args_on_stack_size);
 
@@ -1083,7 +1084,7 @@ cl_int DSPKernelEvent::setup_stack_based_arguments()
             memcpy(((char*)mapped_addr)+rounded_args_on_stack_size, args_of_argref,
                    argref_offset);
 
-        driver->unmap(p_device, mapped_addr, args_addr, args_in_mem_size, true);
+        shm->Unmap(mapped_addr, args_addr, args_in_mem_size, true);
 
         // 4. set p_msg.u.k.kernel.args_on_stack_addr
         p_msg.u.k.kernel.args_on_stack_addr = (DSPVirtPtr) args_addr;
@@ -1126,23 +1127,24 @@ int DSPKernelEvent::debug_kernel_dispatch()
 ******************************************************************************/
 void DSPKernelEvent::free_tmp_bufs()
 {
-    Driver *driver = Driver::instance();
+    SharedMemory *shm = p_device->GetSHMHandler();
+
     if (p_WG_alloca_start > 0)
     {
         if (   p_WG_alloca_start >= MSMC_OCL_START_ADDR
             && p_WG_alloca_start < MSMC_OCL_END_ADDR)
-            p_device->free_msmc(p_WG_alloca_start);
+            shm->FreeMSMC(p_WG_alloca_start);
         else
-            p_device->free_global(p_WG_alloca_start);
+            shm->FreeGlobal(p_WG_alloca_start);
     }
 
     if (p_msg.u.k.kernel.args_on_stack_addr > 0)
     {
         if (   p_msg.u.k.kernel.args_on_stack_addr >= MSMC_OCL_START_ADDR
             && p_msg.u.k.kernel.args_on_stack_addr < MSMC_OCL_END_ADDR)
-            p_device->free_msmc(p_msg.u.k.kernel.args_on_stack_addr);
+            shm->FreeMSMC(p_msg.u.k.kernel.args_on_stack_addr);
         else
-            p_device->free_global(p_msg.u.k.kernel.args_on_stack_addr);
+            shm->FreeGlobal(p_msg.u.k.kernel.args_on_stack_addr);
     }
 
     for (int i = 0; i < p_hostptr_tmpbufs.size(); ++i)
@@ -1152,13 +1154,11 @@ void DSPKernelEvent::free_tmp_bufs()
 
         if (! READ_ONLY_BUFFER(buffer))
         {
-            void *mapped_tmpbuf = driver->map(p_device, addr64, buffer->size(),
-                                              true);
+            void *mapped_tmpbuf = shm->Map(addr64, buffer->size(), true);
             memcpy(buffer->host_ptr(), mapped_tmpbuf, buffer->size());
-            driver->unmap(p_device, mapped_tmpbuf, addr64, buffer->size(),
-                          false);
+            shm->Unmap(mapped_tmpbuf, addr64, buffer->size(), false);
         }
-        p_device->free_global(addr64);
+        shm->FreeGlobal(addr64);
     }
 
     /*-------------------------------------------------------------------------
@@ -1175,7 +1175,7 @@ void DSPKernelEvent::free_tmp_bufs()
         DSPBuffer *dspbuf = (DSPBuffer *) buffer->deviceBuffer(p_device);
         DSPDevicePtr64 data = (DSPDevicePtr64)dspbuf->data();
         if (! READ_ONLY_BUFFER(buffer))
-            driver->cacheInv(data, buffer->host_ptr(), buffer->size());
+            shm->CacheInv(data, buffer->host_ptr(), buffer->size());
     }
     // ***/
 }

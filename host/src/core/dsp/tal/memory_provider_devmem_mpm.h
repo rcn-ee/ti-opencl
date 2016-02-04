@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2013-2014, Texas Instruments Incorporated - http://www.ti.com/
+ * Copyright (c) 2013-2016, Texas Instruments Incorporated - http://www.ti.com/
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -25,54 +25,12 @@
  *   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  *   THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
-#ifndef _DRIVER_H
-#define _DRIVER_H
-#include "u_lockable.h"
-#include "device.h"
 
-#ifdef DSPC868X
-extern "C"
-{
-    #include "pciedrv.h"
-    #include "dnldmgr.h"
-    #include "cmem_drv.h"
-    #include "bufmgr.h"
+#pragma once
+
+#include "memory_provider_devmem.h"
+#include "devmem_map_policy_mpm.h"
+
+namespace tiocl {
+typedef DevMem<DevMemMapPolicyMPM> DevMemMPM;
 }
-#endif
-
-class Driver : public Lockable_off
-{
-  public:
-   // dtor is not called directly. DSPDevice calls close in its dtor
-   ~Driver() { close(); }
-
-   int32_t num_dsps() const { return pNum_dsps; }
-   std::string dsp_monitor(int dsp);
-   int cores_per_dsp(int dsp);
-   int32_t close();
-
-   void         reset_and_load   (int chip);
-   void*        create_image_handle(int chip);
-   void         free_image_handle(void *handle);
-
-
-   DSPDevicePtr get_symbol(void* image_handle, const char *name);
-
-   static Driver* instance ();
-
-  private:
-    static Driver*         pInstance;
-    int32_t                pNum_dsps;
-
-#ifdef DSPC868X
-    pciedrv_open_config_t  config;
-    pciedrv_device_info_t *pDevices_info;
-#endif
-
-    int32_t open ();
-    Driver()  { open(); }
-    Driver(const Driver&);              // copy ctor disallowed
-    Driver& operator=(const Driver&);   // assignment disallowed
-};
-
-#endif // _DRIVER_H

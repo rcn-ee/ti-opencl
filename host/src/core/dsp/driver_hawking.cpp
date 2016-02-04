@@ -15,7 +15,7 @@
  *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  *   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+ *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  *   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
  *   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
  *   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
@@ -44,6 +44,9 @@ extern "C"
 };
 #endif
 
+#include "../error_report.h"
+
+using namespace tiocl;
 
 #define ERR(status, msg) if (status) { printf("ERROR: %s\n", msg); exit(-1); }
 #define BOOT_ENTRY_LOCATION_ADDR   0x87FFFC
@@ -54,19 +57,19 @@ Driver* Driver::pInstance = 0;
 /******************************************************************************
 * Thread safe instance function for singleton behavior
 ******************************************************************************/
-Driver* Driver::instance () 
+Driver* Driver::instance ()
 {
     static Mutex Driver_instance_mutex;
     Driver* tmp = pInstance;
 
     __sync_synchronize();
 
-    if (tmp == 0) 
+    if (tmp == 0)
     {
         ScopedLock lck(Driver_instance_mutex);
 
         tmp = pInstance;
-        if (tmp == 0) 
+        if (tmp == 0)
         {
             tmp = new Driver;
             __sync_synchronize();
@@ -111,11 +114,6 @@ int Driver::cores_per_dsp(int dsp)
 #endif
 }
 
-/******************************************************************************
-* wait_for_ready
-******************************************************************************/
-bool Driver::wait_for_ready(int chip) { return true; }
-
 static void report_core_state(const char *curr_core)
 {
 #if 0
@@ -124,7 +122,7 @@ static void report_core_state(const char *curr_core)
     mpm_slave_state_e core_state;
 
     ret = mpm_state(curr_core, &core_state);
-    if ( ret < 0) 
+    if ( ret < 0)
         printf("state query failed, %s\n", curr_core);
 
     switch (core_state)
@@ -158,11 +156,11 @@ void Driver::reset_and_load(int chip)
         snprintf(curr_core, 5, "dsp%d", core);
 
         ret = mpm_reset(curr_core, &error_code);
-        if ( ret < 0) 
+        if ( ret < 0)
             printf("reset failed, core %d (retval: %d, error: %d)\n",
                    core, ret, error_code);
 // JKN Update ERR to handle error_code
-        ERR (ret, "DSP out of reset failed");  
+        ERR (ret, "DSP out of reset failed");
 
         report_core_state(curr_core);
     }
@@ -173,9 +171,9 @@ void Driver::reset_and_load(int chip)
     for (int core=0; core < n_cores; core++)
     {
         snprintf(curr_core, 5,"dsp%d", core);
-        ret = mpm_load(curr_core, const_cast<char*>(monitor.c_str()), 
+        ret = mpm_load(curr_core, const_cast<char*>(monitor.c_str()),
                        &error_code);
-        if ( ret < 0) 
+        if ( ret < 0)
             printf("load failed, core %d (retval: %d, error: %d)\n",
                    core, ret, error_code);
         ERR(ret, "Download image failed");
@@ -190,7 +188,7 @@ void Driver::reset_and_load(int chip)
     {
         snprintf(curr_core, 5,"dsp%d", core);
         ret = mpm_run(curr_core, &error_code);
-        if ( ret < 0) 
+        if ( ret < 0)
             printf("run failed, core %d (retval: %d, error: %d)\n",
                    core, ret, error_code);
         ERR(ret, "DSP run failed");
@@ -199,240 +197,27 @@ void Driver::reset_and_load(int chip)
     }
 
 #endif
-    return; 
+    return;
 }
 
 /******************************************************************************
 * Driver::open
 ******************************************************************************/
-int32_t Driver::open()         
-{ 
-    Lock lock(this); 
-
+int32_t Driver::open()
+{
     pNum_dsps = 1;
-
     return 0;
 }
 
 /******************************************************************************
-* Driver::close()         
+* Driver::close()
 ******************************************************************************/
-int32_t Driver::close()         
+int32_t Driver::close()
 {
-    Lock lock(this); 
-
-    while (!pShmem_areas.empty()) delete pShmem_areas.back(), pShmem_areas.pop_back();
-
-    cmem_exit();
     return 0;
 }
 
-void Driver::cmem_init(DSPDevicePtr64 *addr1, uint64_t *size1,
-                       DSPDevicePtr   *addr2, uint32_t *size2,
-                       DSPDevicePtr64 *addr3, uint64_t *size3)
-{
-    shmem_cmem::cmem_init(addr1, size1, addr2, size2, addr3, size3);
-}
 
-void Driver::cmem_exit()
-{
-    shmem_cmem::cmem_exit();
-}
-
-DSPDevicePtr64 Driver::cmem_ondemand_malloc(uint64_t size)
-{
-    return shmem_cmem_ondemand::cmem_malloc(size);
-}
-
-void Driver::cmem_ondemand_free(DSPDevicePtr64 addr)
-{
-    shmem_cmem_ondemand::cmem_free(addr);
-}
-
-/******************************************************************************
-* Driver::split_ddr_heap: partition DDR to persistent mapping part (heap1)
-*                                       and on demand mapping part (heap2)
-******************************************************************************/
-void Driver::split_ddr_memory(DSPDevicePtr64  addr,  uint64_t  size,
-                              DSPDevicePtr64& addr1, uint64_t& size1,
-                              DSPDevicePtr64& addr2, uint64_t& size2,
-                                                     uint64_t& size3)
-{
-    addr1 = addr;
-    size1 = size;
-    addr2 = 0;
-    size2 = 0;
-
-
-    // split ddr memory 1 into two chunks
-    if (getenv("TI_OCL_DSP_NOMAP") != NULL)
-    {
-        size3 = 0;
-    }
-    else if (addr + size > ALL_PERSISTENT_MAX_DSP_ADDR ||
-             (size3 > 0 && addr + size > MPAX_USER_MAPPED_DSP_ADDR))
-    {
-        size2 = addr + size - MPAX_USER_MAPPED_DSP_ADDR;
-        size1 = size - size2;
-        addr2 = addr + size1;
-    }
-
-    // translate first chunk to using 32-bit aliased physical addresses
-    if (addr > DSP_36BIT_ADDR)
-    {
-        addr1 = addr + 0xA0000000 - 0x820000000ULL;
-        /*---------------------------------------------------------------------
-        * if the ddr size is greater than we can currently support, limit it
-        *--------------------------------------------------------------------*/
-        //const int ddr_size_limit = (1.5 * 1024*1024*1024) - (48 *1024*1024);
-        const uint64_t ddr_size_limit = ALL_PERSISTENT_MAX_DSP_ADDR - addr;
-        if (size1 > ddr_size_limit)
-            size1 = ddr_size_limit;
-    }
-}
-
-void Driver::shmem_configure(DSPDevicePtr64 addr, uint64_t size, int cmem_block)
-{
-    if (size <= 0) return;
-
-    shmem *area;
-    if (addr >= MPAX_USER_MAPPED_DSP_ADDR)
-        area = new shmem_cmem_ondemand();
-    else if (cmem_block >= 0)
-        area = new shmem_cmem_persistent(cmem_block);
-    else
-        area = new shmem_persistent();
-
-    area->configure(addr, size);
-    pShmem_areas.push_back(area);
-}
-
-/******************************************************************************
-* Driver::get_memory_region
-******************************************************************************/
-shmem* Driver::get_memory_region(DSPDevicePtr64 addr)
-{
-
-    for (int i = 0; i < pShmem_areas.size(); ++i)
-    {
-        uint64_t end_exclusive = (uint64_t)pShmem_areas[i]->start() +
-                                           pShmem_areas[i]->size();
-
-        if (addr >= pShmem_areas[i]->start() && addr <  end_exclusive)
-            return pShmem_areas[i];
-    }
-
-    printf("Illegal memory region: addr = 0x%llx\n", addr);
-    exit(-1);
-}
-
-
-/******************************************************************************
-* Driver::write
-******************************************************************************/
-int32_t Driver::write(int32_t dsp_id, DSPDevicePtr64 addr, uint8_t *buf,
-                      uint32_t size)
-{ 
-    int n_cores = cores_per_dsp(dsp_id);
-
-    /*-------------------------------------------------------------------------
-    * if the write is to L2, then write for each core
-    *------------------------------------------------------------------------*/
-    if ((addr >> 20) == 0x008)
-    {
-        for (int core = 0; core < n_cores; core++)
-        {
-#if !defined (DEVICE_AM57)
-            write_core(dsp_id, ((0x10 + core) << 24) + addr, buf, size);
-#else
-            write_core(dsp_id, ((0x80 + core) << (3+20)) + addr, buf, size);
-#endif
-        }
-    }
-    else
-        write_core(dsp_id, addr, buf, size);
-}
-
-/******************************************************************************
-* Driver::write_core
-******************************************************************************/
-int32_t Driver::write_core(int32_t dsp_id, DSPDevicePtr64 addr, uint8_t *buf,
-                      uint32_t size)
-{ 
-    Lock lock(this); 
-
-    shmem* region = get_memory_region(addr);
-    void* dst_host_addr = region->map(addr, size, false);
-    if (dst_host_addr) memcpy((char*)dst_host_addr, buf, size);
-    else ERR(1, "Unable to map dsp addr for write");
-    region->unmap(dst_host_addr, size, true);
-
-    return 0;
-}
-
-void*   Driver::map(Coal::DSPDevice *device, DSPDevicePtr64 addr, uint32_t sz,
-                    bool is_read, bool allow_fail)
-{
-    Lock lock(this);
-    shmem* region = get_memory_region(addr);
-    void* host_addr = region->map(addr, sz, is_read);
-    if (host_addr == NULL && !allow_fail) ERR(1, "Unable to map a dsp address");
-    return host_addr;
-}
-
-int32_t Driver::unmap(Coal::DSPDevice *device, void *host_addr,
-                      DSPDevicePtr64 buf_addr, uint32_t sz, bool is_write)
-{
-    Lock lock(this);
-    shmem* region = get_memory_region(buf_addr);
-    region->unmap(host_addr, sz, is_write);
-    return 0;
-}
-
-bool Driver::cacheInv(DSPDevicePtr64 addr, void *host_addr, uint32_t sz)
-{
-    Lock lock(this);
-    shmem* region = get_memory_region(addr);
-    return region->cacheInv(host_addr, sz);
-}
-
-bool Driver::cacheWb(DSPDevicePtr64 addr, void *host_addr, uint32_t sz)
-{
-    Lock lock(this);
-    shmem* region = get_memory_region(addr);
-    return region->cacheWb(host_addr, sz);
-}
-
-bool Driver::cacheWbInv(DSPDevicePtr64 addr, void *host_addr, uint32_t sz)
-{
-    Lock lock(this);
-    shmem* region = get_memory_region(addr);
-    return region->cacheWbInv(host_addr, sz);
-}
-
-bool Driver::cacheWbInvAll()
-{
-    Lock lock(this);
-    return shmem_cmem::cacheWbInvAll();
-}
-
-
-/******************************************************************************
-* Driver::read
-******************************************************************************/
-int32_t Driver::read(int32_t dsp_id, DSPDevicePtr64 addr, uint8_t *buf, 
-                     uint32_t size)
-{ 
-    Lock lock(this); 
-
-    shmem* region = get_memory_region(addr);
-    void* dst_host_addr = region->map(addr, size, true);
-    if (dst_host_addr) memcpy(buf, (char*)dst_host_addr, size);
-    else ERR(1, "Unable to map dsp addr for read");
-    region->unmap(dst_host_addr, size, false);
-
-    return 0;
-}
 
 /******************************************************************************
 * Driver::create_image_handle
@@ -443,26 +228,26 @@ void* Driver::create_image_handle(int chip)
 
     bfd *dsp_bfd = bfd_openr(monitor.c_str(), NULL);
 
-    if(dsp_bfd == NULL) 
+    if(dsp_bfd == NULL)
     {
-      printf("\nERROR:driver: %s Error Open image %s\n",  
-             bfd_errmsg(bfd_get_error()), monitor.c_str()); 
-      exit(-1); 
+      printf("\nERROR:driver: %s Error Open image %s\n",
+             bfd_errmsg(bfd_get_error()), monitor.c_str());
+      exit(-1);
     }
 
     char** matching;
     char *ptr;
-    /* Check format with matching */	  
-    if (!bfd_check_format_matches (dsp_bfd, bfd_object, &matching)) 
+    /* Check format with matching */
+    if (!bfd_check_format_matches (dsp_bfd, bfd_object, &matching))
     {
-        fprintf(stderr, "\nERROR:driver  %s: %s\n", monitor.c_str(), 
-        bfd_errmsg(bfd_get_error()));  
-        if (bfd_get_error () == bfd_error_file_ambiguously_recognized) 
+        fprintf(stderr, "\nERROR:driver  %s: %s\n", monitor.c_str(),
+        bfd_errmsg(bfd_get_error()));
+        if (bfd_get_error () == bfd_error_file_ambiguously_recognized)
         {
-            for (ptr = *matching; ptr != NULL; ptr++) 
+            for (ptr = *matching; ptr != NULL; ptr++)
             {
-                printf("%s: \n", ptr); 
-                exit(-1); 
+                printf("%s: \n", ptr);
+                exit(-1);
             }
             free (matching);
         }
@@ -474,9 +259,9 @@ void* Driver::create_image_handle(int chip)
 /******************************************************************************
 * Driver::free_image_handle
 ******************************************************************************/
-void Driver::free_image_handle(void *handle) 
-{ 
-    bfd_close((bfd*)handle); 
+void Driver::free_image_handle(void *handle)
+{
+    bfd_close((bfd*)handle);
 }
 
 /******************************************************************************
@@ -503,7 +288,7 @@ DSPDevicePtr Driver::get_symbol(void* image_handle, const char *name)
     * Find boot address and address of mpi_rank.
     *------------------------------------------------------------------------*/
     nsize = bfd_get_symtab_upper_bound (dsp_bfd);
-    if ((symtab = (asymbol**)malloc(nsize)) == NULL) 
+    if ((symtab = (asymbol**)malloc(nsize)) == NULL)
     {
        std::cout << "ERROR: Failed to malloc memory in get_symbol"  << std::endl;
        exit(-1);
@@ -523,5 +308,5 @@ DSPDevicePtr Driver::get_symbol(void* image_handle, const char *name)
 
     free(symtab);
     std::cout << "ERROR: Get symbol failed" << std::endl;
-    exit(-1); 
+    exit(-1);
 }

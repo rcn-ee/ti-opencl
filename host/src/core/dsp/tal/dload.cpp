@@ -15,7 +15,7 @@
  *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  *   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+ *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  *   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
  *   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
  *   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
@@ -25,11 +25,16 @@
  *   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  *   THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
- 
-#include "dload.h"
+
+#include "dload_impl.h"
 #include "device.h"
 #include "driver.h"
 #include "program.h"
+#include "../../shared_memory_interface.h"
+
+extern "C" {
+#include "dload_api.h"
+}
 
 
 using Coal::DSPDevice;
@@ -80,7 +85,7 @@ bool DLOAD::UnloadProgram()
 
         return retval;
     }
-    return false; 
+    return false;
 }
 
 DSPDevicePtr DLOAD::QuerySymbol(const std::string &symName) const
@@ -103,7 +108,7 @@ DSPDevicePtr DLOAD::GetDataPagePointer() const
 
     DSPDevicePtr p = 0;
     DLOAD_get_static_base(dloadHandle, ph,  &p);
-    return p;    
+    return p;
 }
 
 DSPDevicePtr DLOAD::GetProgramLoadAddress() const
@@ -135,6 +140,7 @@ static bool load_kernels_onchip()
 BOOL DLIF_allocate(void* client_handle, struct DLOAD_MEMORY_REQUEST *targ_req)
 {
    DSPDevice* device = ((DSPProgram*) client_handle)->GetDevice();
+   SharedMemory* shm = device->GetSHMHandler();
 
    /*------------------------------------------------------------------------*/
    /* Get pointers to API segment and file descriptors.                      */
@@ -146,12 +152,12 @@ BOOL DLIF_allocate(void* client_handle, struct DLOAD_MEMORY_REQUEST *targ_req)
    if (device->addr_is_l2(obj_desc->target_address))
         addr = obj_desc->target_address; // do not allocate L2
    else if (device->addr_is_msmc(obj_desc->target_address) || load_kernels_onchip())
-        addr = (uint32_t)device->malloc_msmc  (obj_desc->memsz_in_bytes);
-   else addr = (uint32_t)device->malloc_global(obj_desc->memsz_in_bytes);
+        addr = (uint32_t)shm->AllocateMSMC(obj_desc->memsz_in_bytes);
+   else addr = (uint32_t)shm->AllocateGlobal(obj_desc->memsz_in_bytes, true);
 
 #if DEBUG
    printf("DLIF_allocate: %d bytes starting at 0x%x (relocated from 0x%x)\n",
-                      obj_desc->memsz_in_bytes, (uint32_t)addr, 
+                      obj_desc->memsz_in_bytes, (uint32_t)addr,
                       (uint32_t)obj_desc->target_address);
 #endif
 
@@ -170,12 +176,13 @@ BOOL DLIF_allocate(void* client_handle, struct DLOAD_MEMORY_REQUEST *targ_req)
 BOOL DLIF_release(void* client_handle, struct DLOAD_MEMORY_SEGMENT* ptr)
 {
    DSPDevice* device = ((DSPProgram*) client_handle)->GetDevice();
+   SharedMemory* shm = device->GetSHMHandler();
 
    if (device->addr_is_l2(ptr->target_address))
         ; // local was not allocated
    else if (device->addr_is_msmc(ptr->target_address) || load_kernels_onchip())
-        device->free_msmc  ((DSPDevicePtr)ptr->target_address);
-   else device->free_global((DSPDevicePtr)ptr->target_address);
+        shm->FreeMSMC((DSPDevicePtr)ptr->target_address);
+   else shm->FreeGlobal((DSPDevicePtr)ptr->target_address);
 
 #if DEBUG
    printf("DLIF_free: %d bytes starting at 0x%x\n",
@@ -201,14 +208,15 @@ BOOL DLIF_write(void* client_handle, struct DLOAD_MEMORY_REQUEST* req)
 
    int dsp_id = device->dspID();
 
+   SharedMemory*shm = device->GetSHMHandler();
+
    if (device->addr_is_l2(obj_desc->target_address))
    {
        if (req->host_address)
            printf("Warning: Initialized data for objects in .mem_l2 sections will be ignored.\n");
    }
    else if (req->host_address)
-       Driver::instance()->write (dsp_id,
-                             (uint32_t)obj_desc->target_address,
+       shm->WriteToShmem ((uint32_t)obj_desc->target_address,
                              (uint8_t*)req->host_address,
                              obj_desc->memsz_in_bytes);
 
@@ -217,7 +225,7 @@ BOOL DLIF_write(void* client_handle, struct DLOAD_MEMORY_REQUEST* req)
 
 #if DEBUG
     printf("DLIF_write (dsp:%d): %d bytes starting at 0x%x\n",
-               dsp_id, obj_desc->memsz_in_bytes, 
+               dsp_id, obj_desc->memsz_in_bytes,
                (uint32_t)obj_desc->target_address);
 #endif
 
@@ -234,8 +242,8 @@ BOOL DLIF_write(void* client_handle, struct DLOAD_MEMORY_REQUEST* req)
             default:                  seg_desc = "Writable & Executable"; break;
         }
 
-        printf("\t%s segment loaded to 0x%08x with size 0x%x\n", 
-                       seg_desc, obj_desc->target_address, 
+        printf("\t%s segment loaded to 0x%08x with size 0x%x\n",
+                       seg_desc, obj_desc->target_address,
                        obj_desc->memsz_in_bytes);
     }
 
@@ -257,12 +265,12 @@ BOOL DLIF_copy(void* client_handle, struct DLOAD_MEMORY_REQUEST* targ_req)
    int result = 1;
    if (obj_desc->objsz_in_bytes)
    {
-       buf = calloc(obj_desc->memsz_in_bytes, 1); 
+       buf = calloc(obj_desc->memsz_in_bytes, 1);
        fseek(f, targ_req->offset, SEEK_SET);
        result = fread(buf, obj_desc->objsz_in_bytes, 1, f);
    }
    else  if (!device->addr_is_l2(obj_desc->target_address))
-       buf = calloc(obj_desc->memsz_in_bytes, 1); 
+       buf = calloc(obj_desc->memsz_in_bytes, 1);
 
    assert(result == 1);
 
@@ -273,7 +281,7 @@ BOOL DLIF_copy(void* client_handle, struct DLOAD_MEMORY_REQUEST* targ_req)
 
 
 /******************************************************************************
-* DLIF_LOAD_DEPENDENT() 
+* DLIF_LOAD_DEPENDENT()
 ******************************************************************************/
 int DLIF_load_dependent(void* client_handle, const char* so_name)
 {
@@ -283,7 +291,7 @@ int DLIF_load_dependent(void* client_handle, const char* so_name)
    assert (dl != 0);
 
    FILE* fp = fopen(so_name, "rb");
-   
+
    if (!fp)
    {
       DLIF_error(DLET_FILE, "Can't open dependent file '%s'.\n", so_name);
@@ -292,7 +300,7 @@ int DLIF_load_dependent(void* client_handle, const char* so_name)
 
    int to_ret = DLOAD_load(dl->GetDloadHandle(), fp);
 
-   if (!to_ret)  
+   if (!to_ret)
        DLIF_error(DLET_MISC, "Failed load of dependent file '%s'.\n", so_name);
 
    fclose(fp);
@@ -300,7 +308,7 @@ int DLIF_load_dependent(void* client_handle, const char* so_name)
 }
 
 /******************************************************************************
-* DLIF_UNLOAD_DEPENDENT() 
+* DLIF_UNLOAD_DEPENDENT()
 ******************************************************************************/
 void DLIF_unload_dependent(void* client_handle, uint32_t file_handle)
 {

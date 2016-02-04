@@ -54,8 +54,9 @@
 #include <llvm/Support/raw_ostream.h>
 #include <llvm/Support/Casting.h>
 #include <llvm/Bitcode/ReaderWriter.h>
-#include <llvm/Transforms/IPO.h>
 #include <llvm/IR/LLVMContext.h>
+#if 0
+#include <llvm/Transforms/IPO.h>
 #include <llvm/IR/Module.h>
 #include <llvm/Linker/Linker.h>
 #include <llvm/PassManager.h>
@@ -68,9 +69,10 @@
 #include <llvm/IR/DiagnosticPrinter.h>
 #include <llvm/Transforms/Scalar.h>
 #include <SimplifyShuffleBIFCall.h>
+#endif
 
 #include <runtime/stdlib.c.bc.embed.h>
- 
+
 #include "dsp/genfile_cache.h"
 
 /*-----------------------------------------------------------------------------
@@ -180,7 +182,7 @@ std::vector<llvm::Function *> Program::kernelFunctions(DeviceDependent &dep)
 {
     std::vector<llvm::Function *> rs;
 
-    llvm::NamedMDNode *kernels = 
+    llvm::NamedMDNode *kernels =
                dep.linked_module->getNamedMetadata("opencl.kernels");
 
     if (!kernels) return rs;
@@ -197,7 +199,7 @@ std::vector<llvm::Function *> Program::kernelFunctions(DeviceDependent &dep)
         /*---------------------------------------------------------------------
         * Bug somewhere, don't crash
         *--------------------------------------------------------------------*/
-        if (!llvm::isa<llvm::Function>(value)) continue;       
+        if (!llvm::isa<llvm::Function>(value)) continue;
 
         llvm::Function *f = llvm::cast<llvm::Function>(value);
         rs.push_back(f);
@@ -232,7 +234,7 @@ Kernel *Program::createKernel(const std::string &name, cl_int *errcode_ret)
             if (func->getName().str() == name)
             {
                 found = true;
-                *errcode_ret = rs->addFunction(dep.device, func, 
+                *errcode_ret = rs->addFunction(dep.device, func,
                                                dep.linked_module);
                 if (*errcode_ret != CL_SUCCESS) return rs;
                 break;
@@ -345,7 +347,7 @@ cl_int Program::loadBinaries(const unsigned char **data, const size_t *lengths,
         *                  or     LLVM bitcode itself
         *--------------------------------------------------------------------*/
         std::string bitcode;
-        if (!dep.program->ExtractMixedBinary(dep.unlinked_binary, bitcode)) 
+        if (!dep.program->ExtractMixedBinary(dep.unlinked_binary, bitcode))
         {
             bitcode = dep.unlinked_binary;
             dep.is_native_binary = false;
@@ -405,10 +407,10 @@ cl_int Program::build(const char *options,
 
             dep.native_binary_filename = new char[outfile.size()+1];
             strcpy(dep.native_binary_filename, outfile.c_str());
-            
+
             dep.is_native_binary = true;
-            
-            // Extract LLVM bitcode from char array 
+
+            // Extract LLVM bitcode from char array
             std::string bitcode;
             dep.program->ExtractMixedBinary(dep.unlinked_binary, bitcode);
 
@@ -669,7 +671,7 @@ static llvm::Module *BitcodeToLLVMModule(const string &bitcode,
 
     // Make a module of it
     llvm::ErrorOr<llvm::Module *> ModuleOrErr =
-                                    parseBitcodeFile(buffer->getMemBufferRef(), 
+                                    parseBitcodeFile(buffer->getMemBufferRef(),
                                                      llvmcontext);
 
     if (std::error_code ec = ModuleOrErr.getError())

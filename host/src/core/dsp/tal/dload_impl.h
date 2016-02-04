@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2013-2014, Texas Instruments Incorporated - http://www.ti.com/
+ * Copyright (c) 2016, Texas Instruments Incorporated - http://www.ti.com/
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -25,54 +25,44 @@
  *   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  *   THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
-#ifndef _DRIVER_H
-#define _DRIVER_H
+
+#pragma once
+
+#include "dynamic_loader_interface.h"
 #include "u_lockable.h"
-#include "device.h"
-
-#ifdef DSPC868X
-extern "C"
-{
-    #include "pciedrv.h"
-    #include "dnldmgr.h"
-    #include "cmem_drv.h"
-    #include "bufmgr.h"
+extern "C" {
+    typedef void* DLOAD_HANDLE;
+//#include "dload_api.h"
 }
-#endif
 
-class Driver : public Lockable_off
+namespace Coal
 {
-  public:
-   // dtor is not called directly. DSPDevice calls close in its dtor
-   ~Driver() { close(); }
+    class DSPProgram;
+}
 
-   int32_t num_dsps() const { return pNum_dsps; }
-   std::string dsp_monitor(int dsp);
-   int cores_per_dsp(int dsp);
-   int32_t close();
-
-   void         reset_and_load   (int chip);
-   void*        create_image_handle(int chip);
-   void         free_image_handle(void *handle);
+namespace tiocl {
 
 
-   DSPDevicePtr get_symbol(void* image_handle, const char *name);
+class DLOAD : public DynamicLoader, public Lockable
+{
+public:
+    typedef int ProgramHandle;
 
-   static Driver* instance ();
+    explicit DLOAD(Coal::DSPProgram *program);
+    virtual ~DLOAD();
+    virtual bool LoadProgram(const std::string &fileName) override;
+    virtual bool UnloadProgram() override;
+    virtual DSPDevicePtr QuerySymbol(const std::string &symName) const override;
+    virtual DSPDevicePtr GetDataPagePointer() const override;
+    virtual DSPDevicePtr GetProgramLoadAddress() const override;
 
-  private:
-    static Driver*         pInstance;
-    int32_t                pNum_dsps;
+    void SetProgramLoadAddress(DSPDevicePtr address);
+    DLOAD_HANDLE GetDloadHandle() const { return dloadHandle; }
 
-#ifdef DSPC868X
-    pciedrv_open_config_t  config;
-    pciedrv_device_info_t *pDevices_info;
-#endif
-
-    int32_t open ();
-    Driver()  { open(); }
-    Driver(const Driver&);              // copy ctor disallowed
-    Driver& operator=(const Driver&);   // assignment disallowed
+private:
+    DLOAD_HANDLE dloadHandle;
+    DSPDevicePtr programLoadAddress;
+    ProgramHandle ph;
 };
 
-#endif // _DRIVER_H
+}

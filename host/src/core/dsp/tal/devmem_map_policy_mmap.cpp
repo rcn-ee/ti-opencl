@@ -25,54 +25,67 @@
  *   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  *   THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
-#ifndef _DRIVER_H
-#define _DRIVER_H
-#include "u_lockable.h"
-#include "device.h"
+#include <stdlib.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/mman.h>
+#include <cassert>
 
-#ifdef DSPC868X
-extern "C"
+#include "memory_provider_devmem.h"
+#include "devmem_map_policy_mmap.h"
+#include "../error_report.h"
+
+using namespace tiocl;
+
+
+DevMemMapPolicyMmap::DevMemMapPolicyMmap()
+ : host_addr_(nullptr), dsp_addr_(0), size_(0), xlate_dsp_to_host_offset_(nullptr), mmap_fd_(-1)
+{ }
+
+
+DevMemMapPolicyMmap::~DevMemMapPolicyMmap()
 {
-    #include "pciedrv.h"
-    #include "dnldmgr.h"
-    #include "cmem_drv.h"
-    #include "bufmgr.h"
+    if (host_addr_) munmap(host_addr_, size_);
+
+    if (mmap_fd_ != -1) close(mmap_fd_);
+
+    ReportTrace("DevMem munmap  %p, %lld bytes\n", host_addr_, size_);
 }
-#endif
 
-class Driver : public Lockable_off
+void DevMemMapPolicyMmap::Configure(DSPDevicePtr64 dsp_addr,  uint64_t size)
 {
-  public:
-   // dtor is not called directly. DSPDevice calls close in its dtor
-   ~Driver() { close(); }
+    mmap_fd_ = open("/dev/mem", (O_RDWR | O_SYNC));
+    if (mmap_fd_ == -1)
+        ReportError(ErrorType::Fatal, ErrorKind::FailedToOpenFileName,
+                    "/dev/mem");
 
-   int32_t num_dsps() const { return pNum_dsps; }
-   std::string dsp_monitor(int dsp);
-   int cores_per_dsp(int dsp);
-   int32_t close();
+    dsp_addr_ = dsp_addr;
+    size_     = size;
 
-   void         reset_and_load   (int chip);
-   void*        create_image_handle(int chip);
-   void         free_image_handle(void *handle);
+    host_addr_ = mmap(0, size, (PROT_READ|PROT_WRITE), MAP_SHARED, mmap_fd_,
+                         (off_t)dsp_addr);
 
+    assert (host_addr_ != MAP_FAILED);
 
-   DSPDevicePtr get_symbol(void* image_handle, const char *name);
+    xlate_dsp_to_host_offset_ = (void*)((int64_t)host_addr_ - dsp_addr);
 
-   static Driver* instance ();
+    ReportTrace("DevMem mmap 0x%llx -> %p, %lld bytes\n", dsp_addr, host_addr_, size_);
+}
 
-  private:
-    static Driver*         pInstance;
-    int32_t                pNum_dsps;
+void* DevMemMapPolicyMmap::Map (DSPDevicePtr64 dsp_addr,  size_t size) const
+{
+    if (!host_addr_) return 0;
 
-#ifdef DSPC868X
-    pciedrv_open_config_t  config;
-    pciedrv_device_info_t *pDevices_info;
-#endif
+    if (dsp_addr >= dsp_addr_ && dsp_addr + size <= dsp_addr_ + size_)
+         return dsp_addr + (char*)xlate_dsp_to_host_offset_;
+    else
+        ReportError(ErrorType::Fatal,
+                    ErrorKind::TranslateAddressOutsideMappedAddressRange);
+    return 0;
+}
 
-    int32_t open ();
-    Driver()  { open(); }
-    Driver(const Driver&);              // copy ctor disallowed
-    Driver& operator=(const Driver&);   // assignment disallowed
-};
+void DevMemMapPolicyMmap::Unmap(void* host_addr, size_t size) const
+{}
 
-#endif // _DRIVER_H
+template class DevMem<DevMemMapPolicyMmap>;

@@ -15,7 +15,7 @@
  *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  *   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+ *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  *   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
  *   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
  *   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
@@ -44,7 +44,7 @@
 
 #include "genfile_cache.h"
 
-#include "dload.h"
+#include "tal/dload_impl.h"
 
 
 using tiocl::DLOAD;
@@ -94,7 +94,7 @@ bool DSPProgram::load()
 
     /*-------------------------------------------------------------------------
     * Ensure that the newly populated areas are not stale in device caches
-    * Send the cache Inv command.  We do not wait here.  The wait will be 
+    * Send the cache Inv command.  We do not wait here.  The wait will be
     * handled by the standard wait loop in the worker thread.
     *------------------------------------------------------------------------*/
     p_device->mail_to(cacheMsg);
@@ -102,7 +102,7 @@ bool DSPProgram::load()
 }
 
 bool DSPProgram::unload()
-{ 
+{
     return p_dl->UnloadProgram();
 }
 
@@ -142,7 +142,7 @@ const char* DSPProgram::outfile_name() const
     return p_outfile.c_str();
 }
 
-DSPDevicePtr DSPProgram::data_page_ptr() 
+DSPDevicePtr DSPProgram::data_page_ptr()
 {
     return p_dl->GetDataPagePointer();
 }
@@ -208,7 +208,7 @@ bool DSPProgram::ExtractMixedBinary(const std::string &binary_str,
         if (strcmp(&strtab[shdr.sh_name], ".llvmir") == 0)  break;
     }
 
-    if (i >= n_sects)  
+    if (i >= n_sects)
         return false;
 
     bitcode.clear();
@@ -287,7 +287,7 @@ uint64_t __query_symbol(cl_program d_program, const char *sym_name)
         return 0;
 
     DSPProgram *prog = (DSPProgram *)(program->deviceDependentProgram(device));
-            
+
     if (!prog->is_loaded()) prog->load();
 
     if (!prog->is_loaded())
