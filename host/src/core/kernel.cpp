@@ -45,14 +45,26 @@
 #include <cstdlib>
 #include <boost/tuple/tuple.hpp>
 
-#include <llvm/Support/Casting.h>
+
 #include <llvm/IR/Attributes.h>
-#include <llvm/IR/Module.h>
+
 #include <llvm/IR/Type.h>
 #include <llvm/IR/DerivedTypes.h>
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR >4 
 #include <llvm/IR/Constants.h>
-#include <llvm/IR/Metadata.h>
 
+#endif
+#include <llvm/IR/Metadata.h>
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <=3 
+#include <llvm/Support/InstIterator.h>
+#include <llvm/Support/Casting.h>
+
+#else
+#include <llvm/IR/InstIterator.h>
+#endif
+#include <llvm/IR/Module.h>
+#include <llvm/IR/Instructions.h>
+#include <llvm/IR/DataLayout.h>
 
 using namespace Coal;
 Kernel::Kernel(Program *program)
@@ -450,8 +462,15 @@ boost::tuple<uint,uint,uint> Kernel::reqdWorkGroupSize(llvm::Module *module) con
         /*---------------------------------------------------------------------
         * Each node has only one operand : a llvm::Function
         *--------------------------------------------------------------------*/
+#if !defined LLVM_3_2 || !defined LLVM_3_3
+      llvm::Value *value = NULL;
+      if (llvm::isa<llvm::ValueAsMetadata>(node->getOperand(0)))
+        value = 
+          llvm::dyn_cast<llvm::ValueAsMetadata>(node->getOperand(0))->getValue();      
+      		 		  
+#else
         llvm::Value *value = node->getOperand(0);
-
+#endif		
         /*---------------------------------------------------------------------
         * Bug somewhere, don't crash
         *--------------------------------------------------------------------*/
@@ -463,15 +482,37 @@ boost::tuple<uint,uint,uint> Kernel::reqdWorkGroupSize(llvm::Module *module) con
         if (node->getNumOperands() <= 1) return zeros;
 
         llvm::MDNode *meta = llvm::cast<llvm::MDNode>(node->getOperand(1));
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR < 6			
         if (meta->getNumOperands() == 4 &&
-            meta->getOperand(0)->getName().str() == std::string("reqd_work_group_size"))
-        {
+            (meta->getOperand(0))->getName().str() == std::string("reqd_work_group_size"))
+		{
+     
             uint x = llvm::cast<llvm::ConstantInt> (meta->getOperand(1))->getValue().getLimitedValue();
             uint y = llvm::cast<llvm::ConstantInt> (meta->getOperand(2))->getValue().getLimitedValue();
             uint z = llvm::cast<llvm::ConstantInt> (meta->getOperand(3))->getValue().getLimitedValue();
 
             return boost::tuple<uint,uint,uint> (x,y,z);
         }
+#else			
+        if (meta->getNumOperands() == 4 &&			
+           llvm::cast<llvm::MDString>(meta->getOperand(0))->getString().str()	== std::string("reqd_work_group_size"))
+		{
+     
+
+            uint x = (llvm::cast<llvm::ConstantInt>(
+                           llvm::dyn_cast<llvm::ConstantAsMetadata>(
+				 		   meta->getOperand(1))->getValue()))->getLimitedValue();
+            uint y = (llvm::cast<llvm::ConstantInt>(
+                           llvm::dyn_cast<llvm::ConstantAsMetadata>(
+				 		   meta->getOperand(2))->getValue()))->getLimitedValue();
+            uint z = (llvm::cast<llvm::ConstantInt>(
+                           llvm::dyn_cast<llvm::ConstantAsMetadata>(
+				 		   meta->getOperand(3))->getValue()))->getLimitedValue();
+
+            return boost::tuple<uint,uint,uint> (x,y,z);
+        }
+#endif		   
+        
 
 
     }

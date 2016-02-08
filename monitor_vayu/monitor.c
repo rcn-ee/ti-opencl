@@ -50,7 +50,7 @@
 *----------------------------------------------------------------------------*/
 #include <ti/sysbios/BIOS.h>
 #include <ti/sysbios/knl/Task.h>
-#include <ti/sysbios/knl/clock.h>
+#include <ti/sysbios/knl/Clock.h>
 
 /*-----------------------------------------------------------------------------
 * C standard library
@@ -400,7 +400,10 @@ static void process_kernel_command(ocl_msgq_message_t *msgq_pkt)
     *--------------------------------------------------------*/
     do 
     {
+#ifdef _SYS_BIOS_Profile
+
     	start_time1 = _TSC_read();
+#endif
         msg->command = NDRKERNEL;
         kernel_config_t *cfg = &msg->u.k.config;
 
@@ -415,8 +418,10 @@ static void process_kernel_command(ocl_msgq_message_t *msgq_pkt)
                                                                    cfg->WG_id);
 
         done = incVec(cfg->num_dims, WGid, &cfg->local_size[0], limits);
+#ifdef _SYS_BIOS_Profile
         end_time1 = _TSC_read();
         time_workgroup = ((float)(end_time1-start_time1))/600.0;
+#endif
 
     } while (!done);
 #ifdef _SYS_BIOS_Profile

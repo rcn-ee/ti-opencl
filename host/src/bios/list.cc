@@ -1,4 +1,4 @@
-// std::list utilities implementation -*- C++ -*-
+/* std::list utilities implementation -*- C++ -*-
 // Copyright (C) 2003, 2005, 2009, 2010, 2011 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free

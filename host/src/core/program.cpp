@@ -59,8 +59,15 @@
 #include <llvm/Transforms/IPO.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
+#if !defined LLVM_3_2 || !defined LLVM_3_3
+#include <llvm/Linker/Linker.h>
+#include <llvm/Bitcode/ReaderWriter.h>
+#else
 #include <llvm/Linker.h>
 #include <llvm/PassManager.h>
+#endif
+
+
 #include <llvm/IR/Metadata.h>
 #include <llvm/IR/Function.h>
 #ifndef _SYS_BIOS
@@ -68,7 +75,11 @@
 #include <llvm/Transforms/IPO.h>
 #endif
 #include <llvm/IR/Instructions.h>
+#if !defined LLVM_3_2 || !defined LLVM_3_3
+#include <llvm/IR/InstIterator.h>
+#else
 #include <llvm/Support/InstIterator.h>
+#endif
 #include <llvm/Transforms/Scalar.h>
 #include <SimplifyShuffleBIFCall.h>
 #ifndef _SYS_BIOS
@@ -83,6 +94,7 @@
 //source_cache * source_cache::pInstance = 0;
 
 using namespace Coal;
+using namespace llvm;
 
 Program::Program(Context *ctx)
 : Object(Object::T_Program, ctx), p_type(Invalid), p_state(Empty)
@@ -204,8 +216,17 @@ std::vector<llvm::Function *> Program::kernelFunctions(DeviceDependent &dep)
         /*---------------------------------------------------------------------
         * Each node has only one operand : a llvm::Function
         *--------------------------------------------------------------------*/
+#if !defined LLVM_3_2 || !defined LLVM_3_3
+      llvm::Value *value = NULL;
+      if (isa<ValueAsMetadata>(node->getOperand(0)))
+        value = 
+          dyn_cast<ValueAsMetadata>(node->getOperand(0))->getValue();      
+      else if (isa<ConstantAsMetadata>(node->getOperand(0)))
+        value = 
+          dyn_cast<ConstantAsMetadata>(node->getOperand(0))->getValue(); 
+#else
         llvm::Value *value = node->getOperand(0);
-
+#endif
         /*---------------------------------------------------------------------
         * Bug somewhere, don't crash
         *--------------------------------------------------------------------*/
@@ -376,15 +397,29 @@ cl_int Program::loadBinaries(const unsigned char **data, const size_t *lengths,
         const llvm::StringRef s_data(bitcode);
         const llvm::StringRef s_name("<binary>");
 
-        llvm::MemoryBuffer *buffer = llvm::MemoryBuffer::getMemBuffer(
+        
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <6 
+    llvm::MemoryBuffer *buffer = llvm::MemoryBuffer::getMemBuffer(
                                                         s_data, s_name, false);
-
+#else	
+    std::unique_ptr<MemoryBuffer> buffer = llvm::MemoryBuffer::getMemBuffer(
+                                                        s_data, s_name, false);
+#endif
         if (!buffer)
             return CL_OUT_OF_HOST_MEMORY;
 
         // Make a module of it
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <6 		
         dep.linked_module = ParseBitcodeFile(buffer, *p_llvmcontext);
+#else
+        ErrorOr<Module *> ModuleOrErr = parseBitcodeFile(buffer.get()->getMemBufferRef(), *p_llvmcontext);
+		if (std::error_code EC = ModuleOrErr.getError()) {
+          dep.linked_module = (Module*)nullptr;
+        }
 
+        dep.linked_module = ModuleOrErr.get();
+      
+#endif
         if (!dep.linked_module)
         {
             if (binary_status) binary_status[i] = CL_INVALID_VALUE;

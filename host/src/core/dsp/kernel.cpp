@@ -77,7 +77,11 @@ extern "C"
 
 using namespace Coal;
 
-#include "llvm/Support/InstIterator.h"
+#if LLVM_VERSION_MAJOR <= 3 && LLVM_VERSION_MINOR <=3 
+#include <llvm/Support/InstIterator.h>
+#else
+#include <llvm/IR/InstIterator.h>
+#endif
 
 DSPKernel::DSPKernel(DSPDevice *device, Kernel *kernel, llvm::Function *function)
 : DeviceKernel(), p_device(device), p_kernel(kernel), 

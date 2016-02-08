@@ -2,7 +2,11 @@
 
 # Determine if cross-compiling and set appropriate CMAKE options
 ifeq ($(TARGET_OS),SYS_BIOS)
+ifeq ($(OS),Linux)
+    CMAKE_DEFINES = -DCMAKE_TOOLCHAIN_FILE=../host/cmake/CMakeBiosARMToolChain.txt
+else
     CMAKE_DEFINES = -DCMAKE_TOOLCHAIN_FILE=../host/cmake/CMakeBiosARMToolChain.txt -G "MinGW Makefiles"
+endif
 else
 ifneq (,$(findstring 86, $(shell uname -m)))
     CMAKE_DEFINES = -DCMAKE_TOOLCHAIN_FILE=../host/cmake/CMakeARMToolChain.txt
@@ -31,10 +35,16 @@ CLEAN_DIRS = host monitor monitor_vayu builtins examples libm host/clocl
 ifeq ($(TARGET_OS),SYS_BIOS)
 
 install: $(OCL_BUILD_DIR)
-	cd $(OCL_BUILD_DIR)/
-	cd /d $(OCL_BUILD_DIR) && cmake $(CMAKE_DEFINES) ../host/src 
+ifeq ($(OS),Linux)
+	cd $(OCL_BUILD_DIR); cmake $(CMAKE_DEFINES) ../host/src;
+	cd $(OCL_BUILD_DIR); make -f ../monitor_vayu/Makefile.bios all;
+	cd $(OCL_BUILD_DIR); make install;
+
+else
+	cd /d $(OCL_BUILD_DIR) && cmake $(CMAKE_DEFINES) ../host/src
 	cd /d $(OCL_BUILD_DIR) && gmake -f ../monitor_vayu/makefile.bios all
-	cd /d $(OCL_BUILD_DIR) && gmake install 
+	cd /d $(OCL_BUILD_DIR) && gmake install
+endif
 else
 install: $(OCL_BUILD_DIR)
 	cd $(OCL_BUILD_DIR); cmake $(CMAKE_DEFINES) ../host; make -j4 install;
@@ -50,7 +60,7 @@ clean:
 endif
 fresh: clean install
 
-$(OCL_BUILD_DIR): 
+$(OCL_BUILD_DIR):
 	mkdir -p $(OCL_BUILD_DIR)
 
 change:
