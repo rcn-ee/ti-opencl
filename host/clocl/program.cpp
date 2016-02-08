@@ -72,7 +72,7 @@ using namespace std;
 /******************************************************************************
 * Find the C6000 CGT installation
 ******************************************************************************/
-#define DEFAULT_TI_CGT_INSTALL_PATH "C:/ti/C6000CGT81"
+#define DEFAULT_TI_CGT_INSTALL_PATH "C:/ti/C6000CGTT80"
 
 const char *get_cgt_install()
 {
