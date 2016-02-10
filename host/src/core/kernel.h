@@ -291,9 +291,9 @@ class Kernel : public Object
                              size_t param_value_size,
                              void *param_value,
                              size_t *param_value_size_ret) const;
-#ifdef _SYS_BIOS
+
         boost::tuple<uint,uint,uint> reqdWorkGroupSize(llvm::Module *module) const;
-#endif
+
 
         int get_wi_alloca_size() { return wi_alloca_size; }
 
