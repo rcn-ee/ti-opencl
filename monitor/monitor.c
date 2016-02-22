@@ -101,7 +101,6 @@
 
 #if defined(GDB_ENABLED)
 #include "GDB_server.h"
-DDR (EdmaMgr_Handle, gdb_channel) = NULL;
 #endif
 
 /*-----------------------------------------------------------------------------
@@ -763,9 +762,7 @@ EVENT_HANDLER(service_exit)
         ocl_exitGlobalQMSS();
     }
 #endif
-#if defined(GDB_ENABLED)
-    if (MASTER_THREAD && gdb_channel != NULL) EdmaMgr_free(gdb_channel);
-#endif
+
     /* Send final exiting acknowledgement back to host */
     if (MASTER_THREAD)
     {
@@ -1093,19 +1090,17 @@ extern int32_t  *ti_sdo_fc_edmamgr_region2Instance;
 
 static int initialize_gdbserver()
 {
+    int error;
+
 #if defined(GDB_ENABLED)
-   if (MASTER_THREAD)
-   {
-      gdb_channel = EdmaMgr_alloc(1);
+    // Dedicated DSP interrupt vector used by GDB monitor for DSP-ARM IPC
+    error = GDB_server_init(4); 
 
-      if (!gdb_channel || GDB_server_initGlob(4,DSP_CC(DNUM), gdb_channel) != 0)
-	 return RETURN_FAIL;  
-   }
-    
-   waitAtCoreBarrier();
-
-   // Start up the gdb server on all the cores
-   if (GDB_server_initLocal() != 0) return RETURN_FAIL;   
+    if(error != 0)
+    {
+        ERROR("GDB monitor init failed\n");
+        return RETURN_FAIL;
+    }
 #endif
 
    return RETURN_OK;
