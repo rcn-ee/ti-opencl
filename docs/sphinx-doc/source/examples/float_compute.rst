@@ -223,20 +223,16 @@ Sample Output
 
     ./float_compute 
 
-    This example computes y[i] = M[i] * x[i] + C on a single precision float point 
-    array of size 2097152
-     Computation on the ARM is parallelized across the 2 A15s using OpenMP.
-     Computation on the DSP is performed by dispatching an OpenCL NDRange kernel 
-       across the 2 compute units (C66x cores) in the compute device.
-    .....
+    This example computes y[i] = M[i] * x[i] + C on single precision floating point arrays of size 2097152
+    - Computation on the ARM is parallelized across the A15s using OpenMP.
+      - Computation on the DSP is performed by dispatching an OpenCL NDRange kernel across the compute units (C66x cores) in the compute device.
 
-    Average across 5 runs: 
-    ARM (2 OpenMP threads)         : 0.016421 secs
-    DSP (OpenCL NDRange kernel)    : 0.009904 secs
-    OpenCL-DSP speedup             : 1.657894
+      Running.....
 
+      Average across 5 runs: 
+      ARM (2 OpenMP threads)         : 0.012077 secs
+      DSP (OpenCL NDRange kernel)    : 0.005909 secs
+      OpenCL-DSP speedup             : 2.043985
 
-    For more information on:
-      * TI's OpenCL product, http://processors.wiki.ti.com/index.php/OpenCL
-      * This and other OpenCL examples, http://processors.wiki.ti.com/index.php/OpenCL_Examples
-
+      For more information on:
+        * TI's OpenCL product, http://software-dl.ti.com/mctools/esd/docs/opencl/index.html
