@@ -37,7 +37,7 @@ endif()
 STRING(REGEX MATCH "^x86_64" IS_X86_64_HOST ${BUILD_PROCESSOR})
 if(IS_X86_64_HOST)
    # For Hawking just use the x86 version when running clang
-   if (K2X_BUILD OR AM57_BUILD)
+   if (K2X_BUILD OR K2G_BUILD OR AM57_BUILD)
      set(LLVM_HOST_PROCESSOR x86)
    else()
      set(LLVM_HOST_PROCESSOR x86_64)
@@ -49,7 +49,7 @@ set(LLVM_VERSION 360)
 
 
 # Set llvm path to appropriate target llvm install
-if (K2X_BUILD OR AM57_BUILD)
+if (K2X_BUILD OR K2G_BUILD OR AM57_BUILD)
    set (LLVM_INSTALL_DIR ${ARM_LLVM_DIR})
 elseif(C6678_BUILD) 
    set (LLVM_INSTALL_DIR ${X86_LLVM_DIR})
@@ -123,7 +123,7 @@ MESSAGE(STATUS "LLVM LD flags: " ${LLVM_LDFLAGS})
 # Generate list of LLVM libraries to link against
 if (C6678_BUILD)
   set (LLVM_LIB_TARGET X86)
-elseif(K2X_BUILD OR AM57_BUILD)
+elseif(K2X_BUILD OR K2G_BUILD OR AM57_BUILD)
   set (LLVM_LIB_TARGET ARM)
 endif()
 

@@ -31,14 +31,20 @@
 
 #include <stdint.h>
 #include <ti/csl/csl_cacheAux.h>
-//#include "mbox_msgq_shared.h"
 
 extern cregister volatile unsigned int DNUM;
 
 #define RETURN_FAIL 0
 #define RETURN_OK   1
 
-#define NUM_CORES            (2)
+#if defined(DEVICE_AM572x)
+    #define NUM_CORES 2
+#elif defined(DEVICE_K2G)
+    #define NUM_CORES 1
+#else
+    #error Unknown device
+#endif
+
 #define ROUNDUP(val, pow2)   (((val) + (pow2) - 1) & ~((pow2) - 1))
 
 #define EXPORT __attribute__((visibility("protected")))
@@ -107,17 +113,9 @@ EVENT_HANDLER(service_exit);
                    __attribute((section(".ddr")))
 
 /******************************************************************************
-* ERROR Handling: 
-*  0) system printf the problem
-*  1) send error mailbox back to host, 
-*  2) exit all cores
+* Device functions
 ******************************************************************************/
-#define ERROR(msg) do { printMsg = (Msg_t*)print_msg_mem; printf("%s\n", msg);\
-                        printMsg = NULL; process_exit_command(); } while(0)
-
-/******************************************************************************
-* Define Macros to aid in EM queue creation
-******************************************************************************/
-#define EM_QUEUE(name, pri, grp) 
+void initialize_memory(void);
+unsigned dsp_speed();
 
 #endif  //_monitor_h_

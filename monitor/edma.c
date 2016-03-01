@@ -11,13 +11,13 @@
 #include <xdc/runtime/Diags.h>
 #endif
 
-#include "stdio.h"
 #include "monitor.h"
+#include "util.h"
+#include <stdint.h>
 #include "edma.h"
 
 #define ADDR_IS_EDMA3_COHERENT(addr) (((unsigned int) (addr) >> 20) == 0x008)
 
-extern cregister volatile unsigned int DNUM;
 
 /*-----------------------------------------------------------------------------
 * If the edmamgr resource map changes, we may need to revisit these macros
@@ -29,7 +29,6 @@ extern cregister volatile unsigned int DNUM;
 
 // Edma stride/pitch field is signed 16-bits
 #define EDMA_PITCH_LIMIT            (32767)
-
 
 DDR_2D  (copy_event, edma_channel_pool, MAX_NUM_CORES, EDMA_MGR_MAX_NUM_CHANNELS);
 PRIVATE (copy_event *, available_edma_channel) = NULL;
@@ -93,7 +92,7 @@ static copy_event *get_edma_channel()
    // Don't bother setting up next available. Assuming typical use case
    // is that a wait_group_events() has been called and we set up an available
    // channel then.
-   if (available_edma_channel != NULL) 
+   if (available_edma_channel != NULL)
    {
       available_edma_channel->status = EV_IN_USE;
       result = available_edma_channel;
@@ -110,23 +109,23 @@ static copy_event *get_edma_channel()
       else
       {
          /*--------------------------------------------------------------------
-         * if we eventually support freeing channels, then an available may 
+         * if we eventually support freeing channels, then an available may
          * exist beyond this not allocated and we could recover from an
          * edmamgr_alloc failure.
          *-------------------------------------------------------------------*/
-	 if (edma_channel_pool[DNUM][i].status == EV_NOT_ALLOCATED)	 
-	    if ((edma_channel_pool[DNUM][i].channel = EdmaMgr_alloc(1)) == NULL)
-	       return NULL;
+         if (edma_channel_pool[DNUM][i].status == EV_NOT_ALLOCATED)
+            if ((edma_channel_pool[DNUM][i].channel = EdmaMgr_alloc(1)) == NULL)
+               return NULL;
 
-	 edma_channel_pool[DNUM][i].status = EV_IN_USE;
-	 return &edma_channel_pool[DNUM][i];
+         edma_channel_pool[DNUM][i].status = EV_IN_USE;
+         return &edma_channel_pool[DNUM][i];
       }
    }
 
    // Didn't find a channel
    return NULL;
 }
-   
+
 /******************************************************************************
 * Implement a copy. Using edma if the size warrants, otherwise use memcpy()
 ******************************************************************************/
@@ -141,28 +140,28 @@ EXPORT copy_event * __copy_1D1D(copy_event *event, void *dst, void *src,
    if (bytes > MEMCPY_THRESHOLD && event)
    {
       /*-----------------------------------------------------------------------
-      * We do not currently need to wb a potentially no coherent source, since 
+      * We do not currently need to wb a potentially no coherent source, since
       * we are operating in write through mode.  The code is here as a reminder
       * for the day when we dynamically support writeback mode.
       *----------------------------------------------------------------------*/
-      //if (!ADDR_IS_EDMA3_COHERENT(src)) 
-	 //Cache_wb(src, bytes, Cache_Type_ALL, TRUE);
+      //if (!ADDR_IS_EDMA3_COHERENT(src))
+         //Cache_wb(src, bytes, Cache_Type_ALL, TRUE);
 
       EdmaMgr_copy1D1D(event->channel, src, dst, bytes);
 
       /*-----------------------------------------------------------------------
       * The dst needs to be invalidate before the core can read it again.
-      * This could be performed after the copy is complete, but we issue it 
+      * This could be performed after the copy is complete, but we issue it
       * here because we have the size readily available.
       *----------------------------------------------------------------------*/
-      if (!ADDR_IS_EDMA3_COHERENT(dst)) 
-	 Cache_inv(dst, bytes, Cache_Type_ALL, TRUE);
+      if (!ADDR_IS_EDMA3_COHERENT(dst))
+         Cache_inv(dst, bytes, Cache_Type_ALL, TRUE);
 
    }
    // Requested copy size isn't efficient using edma or we didn't get a channel
    else
    {
-       memcpy(dst, src, bytes); 
+       memcpy(dst, src, bytes);
        if (!event) event = &memcpy_event;
    }
 
@@ -185,15 +184,15 @@ EXPORT copy_event *__copy_1D2D(copy_event *event, void *dst, void *src,
    if (pitch < EDMA_PITCH_LIMIT && event)
    {
       /*-----------------------------------------------------------------------
-      * Dst is known to be global (aka DDR) and is therefore known to not be 
+      * Dst is known to be global (aka DDR) and is therefore known to not be
       * coherent.  The dst needs to be invalidate before the core can read it
       * again. This could be performed after the copy is complete, but we issue
       * it here because we have the size readily available.
       *
       * We do not need to wb the source because it is onchip and coherent.
       *----------------------------------------------------------------------*/
-      EdmaMgr_copy1D2D(event->channel, src, dst, bytes, num_lines, 
-		       bytes * pitch);
+      EdmaMgr_copy1D2D(event->channel, src, dst, bytes, num_lines,
+                       bytes * pitch);
       Cache_inv(dst, bytes * (1+(num_lines-1)*pitch), Cache_Type_ALL, TRUE);
    }
    // pitch(stride) is too large or we didn't get a channel.
@@ -201,8 +200,7 @@ EXPORT copy_event *__copy_1D2D(copy_event *event, void *dst, void *src,
    {
       int i;
       for(i = 0; i < num_lines; i++)
-	 memcpy((char *)dst+( i*bytes*pitch), (char *)src+(i*bytes), 
-		bytes); 
+         memcpy((char *)dst+( i*bytes*pitch), (char *)src+(i*bytes), bytes); 
       if (!event) event = &memcpy_event;
    }
 
@@ -225,26 +223,24 @@ EXPORT copy_event *__copy_2D1D(copy_event *event, void *dst, void *src,
    if (pitch < EDMA_PITCH_LIMIT && event)
    {
       /*-----------------------------------------------------------------------
-      * We do not currently need to wb the non-coherent source, since 
+      * We do not currently need to wb the non-coherent source, since
       * we are operating in write through mode.  The code is here as a reminder
       * for the day when we dynamically support writeback mode.
       *
       * We do not need to inv the dst because it is onchip and coherent.
       *----------------------------------------------------------------------*/
       //Cache_wb(...);
-         
-      EdmaMgr_copy2D1D(event->channel, src, dst, bytes, num_lines, 
-		       bytes*pitch);
+
+      EdmaMgr_copy2D1D(event->channel, src, dst, bytes, num_lines, bytes*pitch);
    }
    // pitch(stride) is too large or we didn't get a channel
    else
    {
       int i;
       for(i = 0; i < num_lines; i++)
-	 memcpy((char *)dst+(i*bytes), (char *)src+(i*bytes*pitch), 
-		bytes); 
+         memcpy((char *)dst+(i*bytes), (char *)src+(i*bytes*pitch), bytes);
 
-       if (!event) event = &memcpy_event;
+      if (!event) event = &memcpy_event;
    }
 
    return event;
@@ -273,7 +269,7 @@ void free_edma_channel_pool()
 
    for(i = 0; i < EDMA_MGR_MAX_NUM_CHANNELS; i++)
       if (edma_channel_pool[DNUM][i].status != EV_NOT_ALLOCATED)
-	 EdmaMgr_free(edma_channel_pool[DNUM][i].channel);
+         EdmaMgr_free(edma_channel_pool[DNUM][i].channel);
 }
 
 #endif   // #ifdef TI_66AK2X

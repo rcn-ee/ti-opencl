@@ -158,7 +158,6 @@ class DSPDevice : public DeviceInterface, public Lockable
         virtual void setup_dsp_mhz(void);
 
     private:
-        bool               p_core_mail;        // send mails per core ?
         unsigned int       p_cores;
         unsigned int       p_num_events;
         float              p_dsp_mhz;

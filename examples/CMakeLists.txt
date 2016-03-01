@@ -28,13 +28,13 @@ IF (K2X_BUILD)
   # Add any hawking-specific examples
   LIST (APPEND OCL_EXAMPLES_INSTALL_LIST ooo_map vecadd_mpax)
   LIST (APPEND OCL_OMP_EXAMPLES_INSTALL_LIST vecadd_mpax_openmp)
-ENDIF(K2X_BUILD)
+ENDIF()
 
 # Install C6678 (dspc) specific examples
 IF (C6678_BUILD)
   # Add any C6678-specific examples, none currently
   # LIST (APPEND OCL_EXAMPLE_INSTALL_LIST xxx xxx)
-ENDIF(C6678_BUILD)
+ENDIF()
 
 # Loop through the directory list and install
 FOREACH(subdir ${OCL_EXAMPLES_INSTALL_LIST})

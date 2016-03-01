@@ -104,14 +104,12 @@ EXPORT kernel_config_t kernel_config_l2;
 /******************************************************************************
 * Initialization Routines
 ******************************************************************************/
-static void initialize_memory        (void);
 static void initialize_gdbserver     ();
 static void flush_buffers(flush_msg_t *Msg);
 
 /******************************************************************************
 * External prototypes
 ******************************************************************************/
-extern unsigned dsp_speed();
 extern void*    dsp_rpc(void* p, void *more_args, uint32_t more_args_size);
 
 /******************************************************************************
@@ -207,7 +205,7 @@ int main(int argc, char* argv[])
     }
 
     if (tomp_initOpenMPforOpenCL() < 0)
-       /* Error */ ;
+        System_abort("main: tomp_initOpenMPforOpenCL() failed");
 
     /* Start scheduler, this never returns */
     BIOS_start();
@@ -281,7 +279,7 @@ void ocl_monitor()
                 break;
 
             case NDRKERNEL: 
-                Log_print0(Diags_INFO, "NDKERNEL\n");
+                Log_print0(Diags_INFO, "NDRKERNEL\n");
                 process_kernel_command(msgq_pkt);
                 process_cache_command(ocl_msg->u.k.kernel.Kernel_id, msgq_pkt);
                 TRACE(ULM_OCL_NDR_CACHE_COHERENCE_COMPLETE,
@@ -458,7 +456,7 @@ static void process_kernel_command(ocl_msgq_message_t *msgq_pkt)
     bool is_debug_mode = (cfg->WG_gid_start[0] == DEBUG_MODE_WG_GID_START);
     if (is_debug_mode)
     {
-        if (get_dsp_id() != 0) return;
+        if (DNUM != 0) return;
     }
     else
     {
@@ -467,7 +465,7 @@ static void process_kernel_command(ocl_msgq_message_t *msgq_pkt)
         if (!any_work) return;
     }
 
-    workgroup = get_dsp_id() * (limits[0] * limits[1] * limits[2]) /
+    workgroup = DNUM * (limits[0] * limits[1] * limits[2]) /
                 (cfg->local_size[0] * cfg->local_size[1] * cfg->local_size[2]);
     /*---------------------------------------------------------
     * Iterate over each Work Group
@@ -502,11 +500,11 @@ static int setup_ndr_chunks(int dims, uint32_t* limits, uint32_t* offsets,
         if (IS_MULTIPLE(num_chunks, gsz[dims]) && IS_MULTIPLE(lsz[dims], gsz[dims] / num_chunks))
         {
             limits[dims] /= num_chunks;
-            offsets[dims] += (get_dsp_id() * limits[dims]);
+            offsets[dims] += (DNUM * limits[dims]);
             return true;
         }
 
-    return (get_dsp_id() == 0);
+    return (DNUM == 0);
 }
 
 
@@ -544,42 +542,17 @@ static void process_cache_command (int pkt_id, ocl_msgq_message_t *msgq_pkt)
 ******************************************************************************/
 static void process_exit_command(ocl_msgq_message_t *msg_pkt)
 {
+#ifdef DEVICE_K2G
+    respond_to_host(msg_pkt, -1);
+    Log_print0(Diags_INFO, "ocl_monitor: EXIT");
+    cacheWbInvAllL2();
+    exit(0);
+#else
     /* Not sending a response to host, delete the msg */
     MessageQ_free((MessageQ_Msg)msg_pkt);
-
     Log_print0(Diags_INFO, "ocl_monitor: EXIT, no response");
-
     cacheWbInvAllL2();
-}
-
-
-/******************************************************************************
-* initialize_memory
-******************************************************************************/
-void initialize_memory(void)
-{
-    extern uint32_t nocache_virt_start;
-    extern uint32_t nocache_size;
-    extern uint32_t nocache2_virt_start;
-    extern uint32_t nocache2_size;
-
-    uint32_t nc_virt = (uint32_t) &nocache_virt_start;
-    uint32_t nc_size = (uint32_t) &nocache_size;
-    uint32_t nc2_virt = (uint32_t) &nocache2_virt_start;
-    uint32_t nc2_size = (uint32_t) &nocache2_size;
-
-    int32_t mask = _disable_interrupts();
-
-    /***  BIOS is configuring the default cache sizes, see Platform.xdc ***/
-
-    enableCache (0x40, 0x40); // enable write through for OCMC
-    enableCache (0x80, 0xFF);
-    disableCache(nc_virt >> 24, (nc_virt+nc_size-1) >> 24);
-    disableCache(nc2_virt >> 24, (nc2_virt+nc2_size-1) >> 24);
-
-    _restore_interrupts(mask);
-
-    return;
+#endif
 }
 
 static void initialize_gdbserver()
@@ -598,28 +571,6 @@ static void initialize_gdbserver()
 
    return;
 }
-
-
-#if 0
-/******************************************************************************
-* reset_memory
-******************************************************************************/
-static void reset_memory(void)
-{
-    int32_t mask = _disable_interrupts();
-
-    CACHE_setL1DSize(CACHE_L1_32KCACHE);
-    CACHE_getL1DSize();
-    CACHE_setL1PSize(CACHE_L1_32KCACHE);
-    CACHE_getL1PSize();
-    CACHE_setL2Size (CACHE_0KCACHE);
-    CACHE_getL2Size ();
-
-    disableCache (0x80, 0xFF);
-
-    _restore_interrupts(mask);
-}
-#endif
 
 /******************************************************************************
 * incVec
@@ -680,7 +631,7 @@ _CODE_ACCESS void __TI_writemsg(               unsigned char  command,
     printMsg->command = PRINT;
 
     unsigned int msgLen = sizeof(kernel_msg_t) + sizeof(flush_msg_t);
-    printMsg->u.message[0] = get_dsp_id() + '0';
+    printMsg->u.message[0] = DNUM + '0';
     msgLen = (length <= msgLen-2) ? length : msgLen-2;
     memcpy(printMsg->u.message+1, data, msgLen);
     printMsg->u.message[msgLen+1] = '\0';
@@ -705,38 +656,22 @@ _CODE_ACCESS void __TI_readmsg(register unsigned char *parm,
  */
 static bool create_mqueue()
 {
-    MessageQ_Params     msgqParams;
-    char                msgqName[MSGQ_NAME_LENGTH];
+    MessageQ_Params msgqParams;
 
     /* Create DSP message queue (inbound messages from ARM) */
     MessageQ_Params_init(&msgqParams);
-    snprintf(msgqName, MSGQ_NAME_LENGTH, Ocl_DspMsgQueName,
-             MultiProc_getName(MultiProc_self()));
-    ocl_queues.dspQue = MessageQ_create(msgqName, &msgqParams);
+    ocl_queues.dspQue = MessageQ_create(Ocl_DspMsgQueueName[DNUM], &msgqParams);
 
     if (ocl_queues.dspQue == NULL) 
     {
         Log_print1(Diags_INFO,"create_mqueue: DSP %d MessageQ creation failed",
-                   get_dsp_id());
+                   DNUM);
         return false;
     }
 
     ocl_queues.hostQue = MessageQ_INVALIDMESSAGEQ;
 
-    Log_print1(Diags_INFO,"create_mqueue: DSP %d queue ready", get_dsp_id());
+    Log_print1(Diags_INFO,"create_mqueue: %s ready", Ocl_DspMsgQueueName[DNUM]);
 
     return true;
-}
-
-
-/*
- * Sets the MultiProc core Id. Called via Startup from monitor.cfg  
- */
-void ocl_set_multiproc_id()
-{
-    uint32_t dsp_id = get_dsp_id();
-
-    if      (dsp_id == 0) MultiProc_setLocalId(MultiProc_getId("DSP1"));
-    else if (dsp_id == 1) MultiProc_setLocalId(MultiProc_getId("DSP2"));
-    else    assert(0);
 }

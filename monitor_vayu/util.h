@@ -40,16 +40,9 @@ void     cacheWbInvAllL2        (void);
 void     cacheInvAllL2          (void);
 void     cacheWbInvL2           (uint8_t* bufferPtr, uint32_t bufferSize);
 void     cacheInvL2             (uint8_t* bufferPtr, uint32_t bufferSize);
-uint32_t get_dsp_id             (void);
 uint32_t count_trailing_zeros   (uint32_t x);
 
 void     enableCache    (unsigned start, unsigned next_start);
 void     disableCache   (unsigned start, unsigned next_start);
-void     set_MPAX       (            int index, uint32_t bAddr, uint32_t rAddr, uint8_t segSize);
-void     set_MSMC_MPAX  (int privId, int index, uint32_t bAddr, uint32_t rAddr, uint8_t segSize);
-void     reset_MPAX     (            int index);
-void     reset_MSMC_MPAX(int privId, int index);
-void     set_kernel_MPAXs  (int num_mpaxs, uint32_t *settings);
-void     reset_kernel_MPAXs(int num_mpaxs);
 
 #endif /* _util_h_ */

@@ -12,7 +12,7 @@ if (C6678_BUILD OR CROSS_COMPILE)
   add_custom_target(x86_clocl DEPENDS x86/clocl)
 endif()
 
-if (K2X_BUILD OR AM57_BUILD)
+if (K2X_BUILD OR K2G_BUILD OR AM57_BUILD)
  add_custom_command(OUTPUT arm/clocl COMMAND make -j4 ${CROSS_TARGET}
                     _PRODUCT_VERSION=${${PROJECT_NAME}_PKG_VERSION}
                     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})

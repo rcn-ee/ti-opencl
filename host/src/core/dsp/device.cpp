@@ -114,7 +114,7 @@ void *dsp_worker_event_completion (void* data);
 void HOSTwait   (unsigned char dsp_id);
 
 
-#if defined (DSPC868X) || defined (DEVICE_K2X)
+#if defined (DSPC868X) || defined (DEVICE_K2X) || defined(DEVICE_K2G)
 #include "device_keystone.cpp"
 #elif defined (DEVICE_AM57)
 #include "device_am57x.cpp"
@@ -225,7 +225,7 @@ DSPDevice::~DSPDevice()
         pthread_cond_destroy(&p_worker_cond);
     }
 
-#if defined(DEVICE_K2X) || defined(DSPC868X)
+#if defined(DEVICE_K2X) || defined(DEVICE_K2G) || defined(DSPC868X)
     /*-------------------------------------------------------------------------
     * Wait for the EXIT acknowledgement from device
     *------------------------------------------------------------------------*/
@@ -433,7 +433,6 @@ bool DSPDevice::gotEnoughToWorkOn() { return p_num_events > 0; }
 /******************************************************************************
 * Getter functions
 ******************************************************************************/
-bool          DSPDevice::hostSchedule() const { return p_core_mail;   }
 unsigned int  DSPDevice::dspCores()      const { return p_cores;   }
 float         DSPDevice::dspMhz()       const { return p_dsp_mhz; }
 unsigned char DSPDevice::dspID()        const { return p_dsp_id;  }
@@ -628,49 +627,65 @@ int DSPDevice::numHostMails(Msg_t &msg) const
 
 void DSPDevice::mail_to(Msg_t &msg, unsigned int core)
 {
-    switch(msg.command)
+    if(hostSchedule())
     {
-        /*---------------------------------------------------------------------
-        * for hostScheduled platforms, broadcast the following messages
-        *--------------------------------------------------------------------*/
-        case EXIT:
-        case CACHEINV:
-        case NDRKERNEL:
-            if (hostSchedule())
+        switch(msg.command)
+        {
+            /*-----------------------------------------------------------------
+            * for hostScheduled platforms, broadcast the following messages
+            * according to numHostMails()
+            *----------------------------------------------------------------*/
+            case EXIT:
+            case CACHEINV:
+            case NDRKERNEL:
             {
                 for (int i = 0; i < numHostMails(msg); i++)
                     p_mb->to((uint8_t*)&msg, sizeof(Msg_t), i);
-                return;
-            }
-            // fall through
 
-       case TASK:
-           if (hostSchedule())
-           {
+                break;
+            }
+
+            /*-----------------------------------------------------------------
+            * for hostScheduled platforms, OoO TASKs are sent to cores in
+            * round-robin order, in-order TASKs are broadcast to all cores
+            *----------------------------------------------------------------*/
+            case TASK:
+            {
                 if (IS_OOO_TASK(msg))
                 {
                     static int counter = 0;
-                    int dsp_id = ((counter++ & 0x1) == 0) ? 0 : 1;
+                    int dsp_id = counter++ % dspCores();
                     p_mb->to((uint8_t*)&msg, sizeof(Msg_t), dsp_id);
-                    return;
                 }
                 else
                 {
                     /*---------------------------------------------------------
-                    * For an in-order task send a message to both all cores.
-                    * This is a trick to enable the OpenMP runtime.  OpenMP
-                    * kernels run as in-order tasks.
-                    *---------------------------------------------------------*/
-                    p_mb->to((uint8_t*)&msg, sizeof(Msg_t), 1);
+                    * note: for in-order TASKs this is a trick to enable the
+                    * OpenMP runtime. OpenMP kernels run as in-order tasks.
+                    *-------------------------------------------------------*/
+                    for (int i = 0; i < dspCores(); i++)
+                        p_mb->to((uint8_t*)&msg, sizeof(Msg_t), i);
                 }
-           }
-           // fall through
-          
+
+                break;
+            }
+
+            /*-----------------------------------------------------------------
+            * otherwise send it to the designated core
+            *---------------------------------------------------------------*/
+            default:
+            {
+                p_mb->to((uint8_t*)&msg, sizeof(Msg_t), core);
+                break;
+            }
+        }
+    }
+    else
+    {
         /*---------------------------------------------------------------------
-        * otherwise send it to the designated core
-        *--------------------------------------------------------------------*/
-        default: 
-            p_mb->to((uint8_t*)&msg, sizeof(Msg_t), core);
+        * non-hostScheduled platforms always send directly to the given core
+        *-------------------------------------------------------------------*/
+        p_mb->to((uint8_t*)&msg, sizeof(Msg_t), core);
     }
 }
 

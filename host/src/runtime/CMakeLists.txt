@@ -1,7 +1,7 @@
 # If building for ARM target host then set appropriate clang target
 # Needs to match what's used when using clang to build the kernel
 # See compiler.cpp 
-if (K2X_BUILD OR AM57_BUILD)
+if (K2X_BUILD OR K2G_BUILD OR AM57_BUILD)
    set(HOST_TARGET -target c6000-unknown-unknown-unknown)
 endif()
 

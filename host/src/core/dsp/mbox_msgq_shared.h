@@ -43,10 +43,19 @@ typedef struct {
     Msg_t               message;
 } ocl_msgq_message_t;
 
+static char const *const Ocl_DspMsgQueueName[] = {
+#if defined(DEVICE_AM57) || defined(DEVICE_AM572x)
+    "OCL:DSP1:MsgQ",
+    "OCL:DSP2:MsgQ",
+#elif defined(DEVICE_K2G)
+    "OCL:CORE0:MsgQ",
+#else
+    #error Unknown device
+#endif
+};
 
-/* Name of the MessageQ. Cannot be >32 characters */
-#define MSGQ_NAME_LENGTH      (32)
-#define Ocl_DspMsgQueName     "OCL:%s:MsgQ" /* %s is DSP1 or DSP2 */
+static int const Ocl_MaxNumDspMsgQueues =
+    sizeof Ocl_DspMsgQueueName / sizeof Ocl_DspMsgQueueName[0];
 
 
 #if defined (__cplusplus)

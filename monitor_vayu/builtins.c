@@ -47,7 +47,7 @@ extern cregister volatile unsigned int DNUM;
 /******************************************************************************
 * __core_num()
 ******************************************************************************/
-EXPORT int __core_num() { return get_dsp_id(); }
+EXPORT int __core_num() { return DNUM; }
 
 /*-----------------------------------------------------------------------------
  * Variant across DSP cores. Place in nocache msmc to avoid false sharing.
@@ -223,46 +223,4 @@ EXPORT void __cache_l2_flush()
     CSL_XMC_invalidatePrefetchBuffer();
     __mfence();
     _restore_interrupts(lvInt);
-}
-
-
-#define OCL_SPINLOCK_IDX    1     // used in bulitins/lib/dsp/atomics.cl
-#define ADDR_SPINLOCK(IDX)  ((volatile uint32_t *) (0x4A0F6800 + 4 * IDX))
-uint32_t acquire_spinlock(int idx)
-{
-    uint32_t lvInt = _disable_interrupts();
-    uint32_t acquired = 1;
-    while (acquired != 0)  acquired = (* ADDR_SPINLOCK(idx)) & 0x1;
-    return lvInt;
-}
-
-void release_spinlock(int idx, uint32_t lvInt)
-{
-    * ADDR_SPINLOCK(idx) = 0;
-    _restore_interrupts(lvInt);
-}
-
-EXPORT uint32_t __sem_lock(int idx)
-{
-    return acquire_spinlock(idx);
-}
-
-EXPORT void __sem_unlock(int idx, uint32_t lvInt)
-{
-    _mfence(); // Wait until data written to memory
-    _mfence(); // Second one because of a bug
-    asm(" NOP 9");
-    asm(" NOP 7");
-    release_spinlock(idx, lvInt);
-}
-
-EXPORT void __inv(char*p, int sz)
-{
-    CACHE_invL2(p, sz, CACHE_NOWAIT);
-    CSL_XMC_invalidatePrefetchBuffer();
-
-    _mfence(); // Wait until data written to memory
-    _mfence(); // Second one because of a bug
-    asm(" NOP 9");
-    asm(" NOP 7");
 }

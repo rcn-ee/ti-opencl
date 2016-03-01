@@ -58,6 +58,11 @@ if (K2X_BUILD)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
 endif()
 
+if (K2G_BUILD)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDEVICE_K2G")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
+endif()
+
 if (AM57_BUILD)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDEVICE_AM57")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
@@ -127,7 +132,7 @@ if (K2X_BUILD)
     set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/rm_qmss_res.c)
 endif()
 
-if (AM57_BUILD)
+if (K2G_BUILD OR AM57_BUILD)
     set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/mbox_impl_msgq.cpp)
 endif()
 
@@ -215,6 +220,15 @@ elseif(C6678_BUILD)
 	${SDK}/sdk/mailBox/host/lib/mailBox.a
         pciaccess
 	)
+elseif (K2G_BUILD)
+  find_library(CMEM_LIB          ticmem)
+  find_library(IPC_LIB           tiipc)
+  find_library(IPC_UTIL_LIB      tiipcutils)
+  find_library(IPC_TRANS_RPMSG   titransportrpmsg)
+  find_library(MPMTRANSPORT_LIB  mpmtransport)
+  find_library(MPMCLIENT_LIB     mpmclient)
+  LIST (APPEND LIBS ${CMEM_LIB} ${IPC_LIB} ${IPC_UTIL_LIB} ${IPC_TRANS_RPMSG}
+                    ${MPMTRANSPORT_LIB} ${MPMCLIENT_LIB})
 elseif (AM57_BUILD)
   find_library(CMEM_LIB          ticmem)
   find_library(IPC_LIB           tiipc)
