@@ -34,10 +34,11 @@ endif
 
 # OMP 
 
-OMP_DIR_K2X?=/cgnas/openmp_dsp_k2x_2_02_01_00-20160126
-OMP_DIR_AM57?=/cgnas/openmp_dsp_am57xx_2_02_01_00-20160126
+OMP_DIR_K2X?=/cgnas/openmp_dsp_k2x_2_02_01_00-20160302
+OMP_DIR_K2G?=/cgnas/openmp_dsp_k2g_2_02_01_00-20160302
+OMP_DIR_AM57?=/cgnas/openmp_dsp_am57xx_2_02_01_00-20160302
 
-PSDK_VERSION ?= 02.00.01.07-release
+PSDK_VERSION ?= 02.00.02.03-20160225
 
 # SOC PSDK
 ifeq ($(BUILD_K2H),1)
@@ -52,6 +53,10 @@ else ifeq ($(BUILD_K2E),1)
     DEFAULT_PSDK_RTOS_K2X?=/cgnas/ti-processor-sdk-rtos-k2e-evm-$(PSDK_VERSION)
     DEFAULT_PSDK_LINUX_K2X?=/cgnas/ti-processor-sdk-linux-k2e-evm-$(PSDK_VERSION)
     OMP_DIR?=$(OMP_DIR_K2X)
+else ifeq ($(BUILD_K2G),1)
+    DEFAULT_PSDK_RTOS_K2X?=/cgnas/ti-processor-sdk-rtos-k2g-evm-$(PSDK_VERSION)
+    DEFAULT_PSDK_LINUX_K2X?=/cgnas/ti-processor-sdk-linux-k2g-evm-$(PSDK_VERSION)
+    OMP_DIR?=$(OMP_DIR_K2G)
 else ifeq ($(BUILD_AM57),1)
     DEFAULT_PSDK_RTOS?=/cgnas/ti-processor-sdk-rtos-am57xx-evm-$(PSDK_VERSION)
     DEFAULT_PSDK_LINUX?=/cgnas/ti-processor-sdk-linux-am57xx-evm-$(PSDK_VERSION)
