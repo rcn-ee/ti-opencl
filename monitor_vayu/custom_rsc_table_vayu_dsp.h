@@ -51,10 +51,6 @@
 /* DSP Memory Map */
 #define L4_DRA7XX_BASE          0x4A000000
 
-#define L2_DRA7XX_BASE_LOCAL    0x00800000
-#define L2_DRA7XX_BASE_GLOBAL   (0x40800000 + (DSP_CORE_ID * 0x800000))
-#define L2_DRA7XX_SIZE          0x00048000
-
 // Valid OCMC memory regions, physical addresses:
 // OCMC1: [0x40300000 , 0x40380000)
 // OCMC2: [0x40400000 , 0x40500000)
@@ -159,7 +155,7 @@
 struct my_resource_table {
     struct resource_table base;
 
-    UInt32 offset[21];  /* Should match 'num' in actual definition */
+    UInt32 offset[20];  /* Should match 'num' in actual definition */
 
     /* rpmsg vdev entry */
     struct fw_rsc_vdev rpmsg_vdev;
@@ -208,8 +204,6 @@ struct my_resource_table {
     /* devmem entry */
     struct fw_rsc_devmem devmem11;
 
-    struct fw_rsc_intmem intmem;
-
     /* devmem entries for OCMC */
     struct fw_rsc_devmem devmem_ocmc_ram1;
     struct fw_rsc_devmem devmem_ocmc_ram23;
@@ -228,7 +222,7 @@ extern char ti_trace_SysMin_Module_State_0_outbuf__A;
 
 struct my_resource_table ti_ipc_remoteproc_ResourceTable = {
     1,      /* we're the first version that implements this */
-    21,     /* number of entries in the table */
+    20,     /* number of entries in the table */
     0, 0,   /* reserved, must be zero */
     /* offsets to entries */
     {
@@ -247,7 +241,6 @@ struct my_resource_table ti_ipc_remoteproc_ResourceTable = {
         offsetof(struct my_resource_table, devmem9),
         offsetof(struct my_resource_table, devmem10),
         offsetof(struct my_resource_table, devmem11),
-        offsetof(struct my_resource_table, intmem),
         offsetof(struct my_resource_table, devmem_ocmc_ram1),
         offsetof(struct my_resource_table, devmem_ocmc_ram23),
         offsetof(struct my_resource_table, devmem_ocmc_prefetch1),
@@ -345,12 +338,6 @@ struct my_resource_table ti_ipc_remoteproc_ResourceTable = {
         TYPE_DEVMEM,
         DSP_PERIPHERAL_ISS, L3_PERIPHERAL_ISS,
         SZ_256K, 0, 0, "DSP_PERIPHERAL_ISS",
-    },
-
-    {
-        TYPE_INTMEM, 1,
-        L2_DRA7XX_BASE_LOCAL, L2_DRA7XX_BASE_GLOBAL,
-        L2_DRA7XX_SIZE, 0, "L2_DRA7XX_MEM",
     },
 
     {
