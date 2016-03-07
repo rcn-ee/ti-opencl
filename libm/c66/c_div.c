@@ -157,7 +157,7 @@ float native_dividef(float arg1, float arg2)
 }
 
 DLLEXPORT
-float native_divided(double arg1, double arg2)
+float native_divide(double arg1, double arg2)
 {
     float X0 = _rcpdp(arg2);
     float X1 = X0 *  (2.0 - arg2 * X0);

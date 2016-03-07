@@ -48,7 +48,7 @@ float native_recipf(float arg)
 }
 
 DLLEXPORT
-double native_recipd(double arg)
+double native_recip(double arg)
 {
     double X0 = _rcpdp(arg);
     double X1 = X0 *  (2.0 - arg * X0);
@@ -93,7 +93,7 @@ double reciprocald(double arg)
     if (subnormal) arg = __dmpy_by_0x1p54(arg);
     if (underflow) arg *= 0x1p-4;
 
-                   arg = native_recipd(arg);
+                   arg = native_recip(arg);
 
     if (subnormal) arg *= 0x1p54;
     if (underflow) arg *= 0x1p-4;

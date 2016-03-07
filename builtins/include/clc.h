@@ -1055,6 +1055,7 @@ _UNARY(tgamma)
 #define native_exp(__x)           exp(__x)
 #define native_exp2(__x)          exp2(__x)
 #define native_exp10(__x)         exp10(__x)
+#define native_log(__x)           log(__x)
 #define native_log2(__x)          log2(__x)
 #define native_log10(__x)         log10(__x)
 
