@@ -4,7 +4,8 @@ Large OpenCL buffers and Memory Beyond the 32-bit DSP Address Space
 
 .. Note::
 
-    This information is only applicable to platforms with > 2GB DDR.
+    This information is only applicable to platforms with > 2GB DDR. The
+    66AK2G OpenCL implementation does not support extended memory.
 
 The 66AK2x devices will support up to 8GB of DDR3 on the DDR3A bus.  The C66
 DSP, however is a 32-bit architecture and cannot access all 8GB at any given

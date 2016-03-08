@@ -333,6 +333,6 @@ devices.  See :doc:`../memory/dsp-malloc-extension`
 
    * mandelbrot, mandelbrot_native
    * vecadd_openmp, vecadd_openmp_t
-   * vecadd_mpax, vecadd_mpax_openmp
+   * vecadd_mpax, vecadd_mpax_openmp (not available on 66AK2G)
    * sgemm
    * dgemm
