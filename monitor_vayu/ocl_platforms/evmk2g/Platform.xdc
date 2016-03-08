@@ -28,7 +28,7 @@ config ti.platforms.generic.Platform.Instance CPU =
 
       [ "OCL_LOCAL", { name: "OCL_LOCAL",
                        base: 0x00810000,
-                       len:     0xe0000,
+                       len:     0xd0000,
                        space: "code/data",
                        access: "RWX", } ],
 
