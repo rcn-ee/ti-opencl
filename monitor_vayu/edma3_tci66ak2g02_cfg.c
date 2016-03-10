@@ -85,13 +85,13 @@ EDMA3_RM_GblConfigParams edma3GblCfgParams [NUM_EDMA3_INSTANCES] =
 		(void *)NULL
 		},
 		/** Interrupt no. for Transfer Completion */
-		38u,
+		0x88,
 		/** Interrupt no. for CC Error */
-		32u,
+		0x99,
 		/** Interrupt no. for TCs Error */
 		{
-		34u,
-		35u,
+		0xA0,
+		0xA1,
 		0u,
 		0u,
 		0u,
@@ -200,10 +200,14 @@ EDMA3_RM_GblConfigParams edma3GblCfgParams [NUM_EDMA3_INSTANCES] =
 		  * on the mapped channel.
 		  */
 		{
-		0u, 1u, 2u, 3u, 4u, 5u, 6u, 7u,
-		8u, 9u, 10u, 11u, 12u, 13u, 14u, 15u,
-		16u, 17u, 18u, 19u, 20u, 21u, 22u, 23u,
-		24u, 25u, 26u, 27u, 28u, 29u, 30u, 31u,
+		EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP,
+		EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP,
+		EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP,
+		EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP,
+		EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP,
+		EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP,
+		EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP,
+		EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP,
 		EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP,
 		EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP,
 		EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP,
@@ -236,9 +240,9 @@ EDMA3_RM_GblConfigParams edma3GblCfgParams [NUM_EDMA3_INSTANCES] =
 		/** Total number of PaRAM Sets supported by the EDMA3 Controller */
 		512u,
 		/** Total number of Event Queues in the EDMA3 Controller */
-		4u,
+		2u,
 		/** Total number of Transfer Controllers (TCs) in the EDMA3 Controller */
-		4u,
+		2u,
 		/** Number of Regions on this EDMA3 controller */
 		8u,
 
@@ -254,28 +258,28 @@ EDMA3_RM_GblConfigParams edma3GblCfgParams [NUM_EDMA3_INSTANCES] =
 		1u,
 
 		/** Global Register Region of CC Registers */
-		(void *)0x02720000u,
+		(void *)0x02728000u,
 		/** Transfer Controller (TC) Registers */
 		{
-		(void *)0x02770000u,
-		(void *)0x02778000u,
-		(void *)0x02780000u,
-		(void *)0x02788000u,
+		(void *)0x027B0000u,
+		(void *)0x027B8000u,
+		(void *)NULL,
+		(void *)NULL,
 		(void *)NULL,
 		(void *)NULL,
 		(void *)NULL,
 		(void *)NULL
 		},
 		/** Interrupt no. for Transfer Completion */
-		8u,
+		0x90,
 		/** Interrupt no. for CC Error */
-		0u,
+		0x9C,
 		/** Interrupt no. for TCs Error */
 		{
-		2u,
-		3u,
-		4u,
-		5u,
+		0xA4,
+		0xA5,
+		0u,
+		0u,
 		0u,
 		0u,
 		0u,
@@ -382,10 +386,14 @@ EDMA3_RM_GblConfigParams edma3GblCfgParams [NUM_EDMA3_INSTANCES] =
 		  * on the mapped channel.
 		  */
 		{
-		0u, 1u, 2u, 3u, 4u, 5u, 6u, 7u,
-		8u, 9u, 10u, 11u, 12u, 13u, 14u, 15u,
-		16u, 17u, 18u, 19u, 20u, 21u, 22u, 23u,
-		24u, 25u, 26u, 27u, 28u, 29u, 30u, 31u,
+		EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP,
+		EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP,
+		EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP,
+		EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP,
+		EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP,
+		EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP,
+		EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP,
+		EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP,
 		EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP,
 		EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP,
 		EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP, EDMA3_RM_CH_NO_TCC_MAP,
@@ -795,17 +803,17 @@ EDMA3_RM_InstanceInitConfig defInstInitConfig [NUM_EDMA3_INSTANCES][EDMA3_MAX_RE
 			{
 				/* ownPaRAMSets */
 				/* 31     0     63    32     95    64     127   96 */
-				{0x00000000u, 0x00000000u, 0xFFFFFFFFu, 0x00FFFFFFu,
+				{0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu,
 				/* 159  128     191  160     223  192     255  224 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
+				 0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu,
 				/* 287  256     319  288     351  320     383  352 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
+				 0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu,
 				/* 415  384     447  416     479  448     511  480 */
-				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u},
+				 0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu},
 
 				/* ownDmaChannels */
 				/* 31     0     63    32 */
-				{0x000000FFu, 0x00000000u},
+				{0xFFFFFFFFu, 0xFFFFFFFFu},
 
 				/* ownQdmaChannels */
 				/* 31     0 */
@@ -813,11 +821,11 @@ EDMA3_RM_InstanceInitConfig defInstInitConfig [NUM_EDMA3_INSTANCES][EDMA3_MAX_RE
 
 				/* ownTccs */
 				/* 31     0     63    32 */
-				{0x000000FFu, 0x00000000u},
+				{0xFFFFFFFFu, 0xFFFFFFFFu},
 
 				/* resvdPaRAMSets */
 				/* 31     0     63    32     95    64     127   96 */
-				{0xFFFFFFFFu, 0xFFFFFFFFu, 0x00000000u, 0x00000000u,
+				{0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
 				/* 159  128     191  160     223  192     255  224 */
 				 0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,
 				/* 287  256     319  288     351  320     383  352 */
