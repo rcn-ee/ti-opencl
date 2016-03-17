@@ -174,7 +174,13 @@ int main(int argc, char* argv[])
     /* enable ENTRY/EXIT/INFO log events */
     Diags_setMask(MODULE_NAME"-EXF");
 
+    /* Setup non-cacheable memory, etc... */
     initialize_memory();
+
+    /* Do this early since the heap is initialized by OpenMP */
+    if (tomp_initOpenMPforOpenCL() < 0)
+        System_abort("main: tomp_initOpenMPforOpenCL() failed");
+
     initialize_edmamgr();
     initialize_gdbserver();
 #if defined(DEVICE_AM572x)
@@ -212,9 +218,6 @@ int main(int argc, char* argv[])
     if (Error_check(&eb)) {
         System_abort("main: failed to create ocl_service_omp thread");
     }
-
-    if (tomp_initOpenMPforOpenCL() < 0)
-        System_abort("main: tomp_initOpenMPforOpenCL() failed");
 
     /* Start scheduler, this never returns */
     BIOS_start();
