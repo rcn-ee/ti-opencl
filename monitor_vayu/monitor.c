@@ -44,6 +44,9 @@
 *----------------------------------------------------------------------------*/
 #include <ti/ipc/Ipc.h>
 #include <ti/ipc/MessageQ.h>
+#if defined(DEVICE_AM572x)
+#include <ti/pm/IpcPower.h>
+#endif
 
 /*-----------------------------------------------------------------------------
 * BIOS header files
@@ -105,6 +108,9 @@ EXPORT kernel_config_t kernel_config_l2;
 * Initialization Routines
 ******************************************************************************/
 static void initialize_gdbserver     ();
+#if defined(DEVICE_AM572x)
+static void initialize_ipcpower_callbacks();
+#endif
 static void flush_buffers(flush_msg_t *Msg);
 
 /******************************************************************************
@@ -171,6 +177,9 @@ int main(int argc, char* argv[])
     initialize_memory();
     initialize_edmamgr();
     initialize_gdbserver();
+#if defined(DEVICE_AM572x)
+    initialize_ipcpower_callbacks();
+#endif
 
     Task_Params     taskParams;
     Error_Block     eb;
@@ -566,11 +575,28 @@ static void initialize_gdbserver()
         Log_error1("GDB monitor init failed, error code:%d\n",error);
     else
         Log_print0(Diags_INFO, "C66x GDB monitor init success...\n");
-    
+
 #endif
 
    return;
 }
+
+#if defined(DEVICE_AM572x)
+void ocl_suspend_call(Int event, Ptr data)
+{
+    free_edma_channel_pool();
+}
+
+void ocl_resume_call(Int event, Ptr data)
+{
+}
+
+static void initialize_ipcpower_callbacks()
+{
+    IpcPower_registerCallback(IpcPower_Event_SUSPEND, ocl_suspend_call, NULL);
+  //IpcPower_registerCallback(IpcPower_Event_RESUME,  ocl_resume_call,  NULL);
+}
+#endif
 
 /******************************************************************************
 * incVec

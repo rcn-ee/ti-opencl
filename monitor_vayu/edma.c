@@ -277,12 +277,18 @@ EXPORT void __copy_wait(copy_event *event)
 
 /******************************************************************************
 * De-allocate all used edma channels
+* AM57x: Allocated EdmaMgr channels currently can NOT survive IpcPower
+* suspend/resume yet, we have to free them before suspend.
 ******************************************************************************/
 void free_edma_channel_pool()
 {
    int i;
 
+   available_edma_channel = NULL;
    for(i = 0; i < EDMA_MGR_MAX_NUM_CHANNELS; i++)
       if (edma_channel_pool[DNUM][i].status != EV_NOT_ALLOCATED)
+      {
          EdmaMgr_free(edma_channel_pool[DNUM][i].channel);
+         edma_channel_pool[DNUM][i].status = EV_NOT_ALLOCATED;
+      }
 }
