@@ -212,8 +212,38 @@ EXPORT int __cache_l2_128k()
     return 1;
 }
 
+#ifdef DEVICE_AM572x
 EXPORT int __cache_l2_256k() { return 0; }
 EXPORT int __cache_l2_512k() { return 0; }
+#else
+EXPORT int __cache_l2_256k()
+{
+    int32_t scratch_delta = __cache_l2_size() - (256 << 10);
+    uint32_t scratch_size  = kernel_config_l2.L2_scratch_size;
+    if (-scratch_delta > scratch_size) return 0;
+    kernel_config_l2.L2_scratch_size += scratch_delta;
+
+    CACHE_wbInvAllL2(CACHE_NOWAIT);
+    __mfence();
+    CACHE_setL2Size (CACHE_256KCACHE);
+    CACHE_getL2Size ();
+    return 1;
+}
+
+EXPORT int __cache_l2_512k()
+{
+    int32_t scratch_delta = __cache_l2_size() - (512 << 10);
+    uint32_t scratch_size  = kernel_config_l2.L2_scratch_size;
+    if (-scratch_delta > scratch_size) return 0;
+    kernel_config_l2.L2_scratch_size += scratch_delta;
+
+    CACHE_wbInvAllL2(CACHE_NOWAIT);
+    __mfence();
+    CACHE_setL2Size (CACHE_512KCACHE);
+    CACHE_getL2Size ();
+    return 1;
+}
+#endif
 
 EXPORT void __cache_l2_flush()
 {
