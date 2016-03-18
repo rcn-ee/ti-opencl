@@ -1,6 +1,6 @@
 // Header for ImplicitLoopBarriers loop pass.
 // 
-// Copyright (c) 2012-2014 Pekka Jääskeläinen / TUT
+// Copyright (c) 2012-2013 Pekka Jääskeläinen / TUT
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -35,7 +35,6 @@ namespace pocl {
     virtual bool runOnLoop(llvm::Loop *L, llvm::LPPassManager &LPM);
 
   private:
-    llvm::DominatorTree *DT;
 
     bool ProcessLoop(llvm::Loop *L, llvm::LPPassManager &LPM);
     bool AddInnerLoopBarrier(llvm::Loop *L, llvm::LPPassManager &LPM);

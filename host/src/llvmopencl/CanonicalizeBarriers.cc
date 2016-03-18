@@ -1,7 +1,8 @@
 // LLVM function pass to canonicalize barriers.
 // 
 // Copyright (c) 2011 Universidad Rey Juan Carlos
-//               2012 Pekka Jääskeläinen / Tampere University of Technology
+//               2012-2014 Pekka Jääskeläinen / Tampere University of Technology
+// Copyright (c) 2013-2016, Texas Instruments Incorporated - http://www.ti.com/
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -30,6 +31,8 @@
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include <iostream>
 
+#include "VariableUniformityAnalysis.h"
+
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Dominators.h"
@@ -48,13 +51,8 @@ char CanonicalizeBarriers::ID = 0;
 void
 CanonicalizeBarriers::getAnalysisUsage(AnalysisUsage &AU) const
 {
-#if (defined LLVM_3_3)
-   AU.addRequired<DominatorTree>();
-#else
-   AU.addRequired<DominatorTreeWrapperPass>();
-   //TODO Dunni: What does this do?
-   //AU.addPreserved<VariableUniformityAnalysis>();
-#endif
+  AU.addRequired<DominatorTreeWrapperPass>();
+  AU.addPreserved<VariableUniformityAnalysis>();    
 }
 
 bool
@@ -78,9 +76,14 @@ CanonicalizeBarriers::runOnFunction(Function &F)
   for (Function::iterator i = F.begin(), e = F.end(); i != e; ++i) {
     BasicBlock *b = i;
     TerminatorInst *t = b->getTerminator();
-    if ((t->getNumSuccessors() == 0) && (!isa<BarrierBlock>(b))) {
+
+    const bool isExitNode = 
+      (t->getNumSuccessors() == 0) && (!isa<BarrierBlock>(b));
+
+    // The function exits should have barriers.
+    if (isExitNode && !Barrier::hasOnlyBarrier(b)) {
       /* In case the bb is already terminated with a barrier,
-         split before the barrier so we dot create an empty
+         split before the barrier so we don't create an empty
          parallel region.
          
          This is because the assumptions of the other passes in the 
@@ -99,43 +102,32 @@ CanonicalizeBarriers::runOnFunction(Function &F)
   }
 
   DT = &getAnalysis<DominatorTreeWrapperPass>().getDomTree();
-  LI = getAnalysisIfAvailable<LoopInfo>();
 
-  bool changed = ProcessFunction(F);
-
-  if (DT)
-    DT->verifyDomTree();
-  if (LI)
-    LI->verifyAnalysis();
-
-  return changed;
+  return ProcessFunction(F);
 }
 
 
 // Canonicalize barriers: ensure all barriers are in a separate BB
 // containing only the barrier and the terminator, with just one
-// predecessor and one successor. This allows us to use
-// those BBs as markers only, they will not be replicated.
+// predecessor. This allows us to use those BBs as markers only, 
+// they will not be replicated.
 bool
-CanonicalizeBarriers::ProcessFunction(Function &F)
-{
+CanonicalizeBarriers::ProcessFunction(Function &F) {
+
   bool changed = false;
 
   InstructionSet Barriers;
 
   for (Function::iterator i = F.begin(), e = F.end();
-       i != e; ++i) 
-    {
-      BasicBlock *b = i;
-      for (BasicBlock::iterator i = b->begin(), e = b->end();
-           i != e; ++i) 
-        {
-          if (isa<Barrier>(i))
-            {
-              Barriers.insert(i);
-            }
-        }
+       i != e; ++i) {
+    BasicBlock *b = i;
+    for (BasicBlock::iterator i = b->begin(), e = b->end();
+         i != e; ++i) {
+      if (isa<Barrier>(i)) {
+        Barriers.insert(i);
+      }
     }
+  }
   
   // Finally add all the split points, now that we are done with the
   // iterators.
@@ -187,8 +179,8 @@ CanonicalizeBarriers::ProcessFunction(Function &F)
     changed = true;
   }
 
-  /* Prune empty regions. That is, if there are two successive
-     barriers, remove the other one. */
+  // Prune empty regions. That is, if there are two successive
+  // pure barrier blocks without side branches, remove the other one. 
   /* TI: Now we treat "barrier()", "wait_group_events()", and
      "async_work_group[_strided]_copy()" all as BARRIERs.
      We can only remove the "barrier()" ones, before or after.
@@ -197,11 +189,11 @@ CanonicalizeBarriers::ProcessFunction(Function &F)
   do {
     emptyRegionDeleted = false;
     for (Function::iterator i = F.begin(), e = F.end();
-         i != e; ++i) 
-      {
+         i != e; ++i) {
         BasicBlock *b = i;
         llvm::TerminatorInst *t = b->getTerminator();
-        if (!Barrier::endsWithBarrier(b) || t->getNumSuccessors() != 1) continue;
+        if (!Barrier::endsWithBarrier(b) || t->getNumSuccessors() != 1) 
+          continue;
 
         BasicBlock *successor = t->getSuccessor(0);
 
@@ -219,19 +211,19 @@ CanonicalizeBarriers::ProcessFunction(Function &F)
           }
 
         /* TI: if predecessor is barrier() only block, remove it */
-        if (Barrier::beginsWithBarrier(successor) &&
+        if (Barrier::startsWithBarrier(successor) &&
             Barrier::hasOnlyBarrier(b) &&
             Barrier::hasOriginalBarrier(b) &&
-            successor->getSinglePredecessor() == b)
-         {
+            successor->getSinglePredecessor() == b) {
             b->replaceAllUsesWith(successor);
             b->eraseFromParent();
             emptyRegionDeleted = true;
             changed = true;
             break;
-         }
+          }
       }
   } while (emptyRegionDeleted);
+  
 
   return changed;
 }

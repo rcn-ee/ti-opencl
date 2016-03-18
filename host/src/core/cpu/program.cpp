@@ -37,6 +37,7 @@
 
 #include "../program.h"
 
+#if 0 // JIT compilation disabled
 #include <llvm/PassManager.h>
 #include <llvm/Analysis/Passes.h>
 #include <llvm/IR/Verifier.h>
@@ -47,6 +48,7 @@
 #include <llvm/ExecutionEngine/MCJIT.h>
 #include <llvm/ExecutionEngine/Interpreter.h>
 #include <llvm/Support/ErrorHandling.h>
+#endif
 
 #include <string>
 #include <iostream>
@@ -63,6 +65,7 @@ CPUProgram::CPUProgram(CPUDevice *device, Program *program)
 
 CPUProgram::~CPUProgram()
 {
+#if 0
     if (p_jit)
     {
         // Dont delete the module
@@ -70,6 +73,7 @@ CPUProgram::~CPUProgram()
 
         delete p_jit;
     }
+#endif
 }
 
 bool CPUProgram::linkStdLib() const
@@ -80,31 +84,6 @@ bool CPUProgram::linkStdLib() const
 void CPUProgram::createOptimizationPasses(llvm::PassManager *manager,
                                           bool optimize, bool hasBarrier)
 {
-    if (optimize)
-    {
-        /*
-         * Inspired by code from "The LLVM Compiler Infrastructure"
-         */
-        manager->add(llvm::createDeadArgEliminationPass());
-        manager->add(llvm::createInstructionCombiningPass());
-        manager->add(llvm::createFunctionInliningPass());
-        manager->add(llvm::createPruneEHPass());   // Remove dead EH info.
-        manager->add(llvm::createGlobalOptimizerPass());
-        manager->add(llvm::createGlobalDCEPass()); // Remove dead functions.
-        manager->add(llvm::createArgumentPromotionPass());
-        manager->add(llvm::createInstructionCombiningPass());
-        manager->add(llvm::createJumpThreadingPass());
-        manager->add(llvm::createScalarReplAggregatesPass());
-        manager->add(llvm::createFunctionAttrsPass()); // Add nocapture.
-        manager->add(llvm::createGlobalsModRefPass()); // IP alias analysis.
-        manager->add(llvm::createLICMPass());      // Hoist loop invariants.
-        manager->add(llvm::createGVNPass());       // Remove redundancies.
-        manager->add(llvm::createMemCpyOptPass()); // Remove dead memcpys.
-        manager->add(llvm::createDeadStoreEliminationPass());
-        manager->add(llvm::createInstructionCombiningPass());
-        manager->add(llvm::createJumpThreadingPass());
-        manager->add(llvm::createCFGSimplificationPass());
-    }
 }
 
 bool CPUProgram::build(llvm::Module *module, std::string *binary_str,
@@ -118,6 +97,8 @@ bool CPUProgram::build(llvm::Module *module, std::string *binary_str,
 
 bool CPUProgram::initJIT()
 {
+    return false;
+#if 0
     if (p_jit)
         return true;
 
@@ -145,6 +126,7 @@ bool CPUProgram::initJIT()
     p_jit->InstallLazyFunctionCreator(&getBuiltin);
 
     return true;
+#endif
 }
 
 llvm::ExecutionEngine *CPUProgram::jit() const

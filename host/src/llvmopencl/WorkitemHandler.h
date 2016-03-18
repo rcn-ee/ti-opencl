@@ -51,10 +51,8 @@ namespace pocl {
   protected:
     
     void movePhiNodes(llvm::BasicBlock* src, llvm::BasicBlock* dst);
-    bool fixUndominatedVariableUses(llvm::DominatorTreeWrapperPass *DTP, 
-                                    llvm::Function &F);
-    bool dominatesUse(llvm::DominatorTreeWrapperPass *DTP, 
-                      llvm::Instruction &I, unsigned i);
+    bool fixUndominatedVariableUses(llvm::DominatorTreeWrapperPass *DT, llvm::Function &F);
+    bool dominatesUse(llvm::DominatorTreeWrapperPass *DT, llvm::Instruction &I, unsigned i);
 
     int LocalSizeX, LocalSizeY, LocalSizeZ;
 

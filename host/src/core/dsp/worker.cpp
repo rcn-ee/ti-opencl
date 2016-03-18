@@ -51,7 +51,7 @@ using namespace Coal;
 
 #define ERR(status, msg) if (status) { printf("OCL ERROR: %s\n", msg); exit(-1); }
 
-#if defined(DEVICE_AM57)
+#if defined(DEVICE_AM57) || defined(DEVICE_K2G)
 #define MAX_NUM_COMPLETION_PENDING  16
 #elif defined(DEVICE_K2X) || defined(DSPC868X)
 #define MAX_NUM_COMPLETION_PENDING  32

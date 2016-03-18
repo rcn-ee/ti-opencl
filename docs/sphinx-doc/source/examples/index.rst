@@ -11,3 +11,4 @@ Examples
    build_and_run
    overview
    float_compute
+   monte_carlo

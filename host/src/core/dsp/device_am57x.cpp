@@ -33,7 +33,6 @@
 ******************************************************************************/
 DSPDevice::DSPDevice(unsigned char dsp_id)
     : DeviceInterface   (), 
-      p_core_mail       (1), 
       p_cores           (0),
       p_num_events      (0), 
       p_dsp_mhz         (600), // 600 MHz 
@@ -47,7 +46,6 @@ DSPDevice::DSPDevice(unsigned char dsp_id)
       p_device_ddr_heap1(),
       p_device_ddr_heap2(),
       p_device_ddr_heap3(),
-      p_dload_handle    (0),
       p_complete_pending(),
       p_mpax_default_res(NULL)
 { 
@@ -146,3 +144,7 @@ void DSPDevice::setup_dsp_mhz(void)
     p_dsp_mhz = ret;
 }
 
+bool DSPDevice::hostSchedule() const
+{
+    return true;
+}

@@ -59,7 +59,7 @@ config ti.platforms.generic.Platform.Instance CPU =
                           space: "code/data",
                           access: "RWX", } ],
 
-      /* Non-cached DDR */
+      /* Cached DDR */
       [ "DDR3_HEAP", { name: "DDR3_HEAP",
                           base: 0x81000000,
                           len:  0x01000000,

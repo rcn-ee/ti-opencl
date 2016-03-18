@@ -114,7 +114,7 @@ void *dsp_worker_event_completion (void* data);
 void HOSTwait   (unsigned char dsp_id);
 
 
-#if defined (DSPC868X) || defined (DEVICE_K2X)
+#if defined (DSPC868X) || defined (DEVICE_K2X) || defined(DEVICE_K2G)
 #include "device_keystone.cpp"
 #elif defined (DEVICE_AM57)
 #include "device_am57x.cpp"
@@ -225,7 +225,7 @@ DSPDevice::~DSPDevice()
         pthread_cond_destroy(&p_worker_cond);
     }
 
-#if defined(DEVICE_K2X) || defined(DSPC868X)
+#if defined(DEVICE_K2X) || defined(DEVICE_K2G) || defined(DSPC868X)
     /*-------------------------------------------------------------------------
     * Wait for the EXIT acknowledgement from device
     *------------------------------------------------------------------------*/
@@ -433,44 +433,11 @@ bool DSPDevice::gotEnoughToWorkOn() { return p_num_events > 0; }
 /******************************************************************************
 * Getter functions
 ******************************************************************************/
-bool          DSPDevice::hostSchedule() const { return p_core_mail;   }
 unsigned int  DSPDevice::dspCores()      const { return p_cores;   }
 float         DSPDevice::dspMhz()       const { return p_dsp_mhz; }
 unsigned char DSPDevice::dspID()        const { return p_dsp_id;  }
-DLOAD_HANDLE  DSPDevice::dload_handle() const { return p_dload_handle;  }
 
 
-int DSPDevice::load(const char *filename)
-{ 
-   if (!p_dload_handle)
-   {
-       p_dload_handle = DLOAD_create((void*)this);
-       DLOAD_initialize(p_dload_handle);
-   }
-
-   FILE *fp = fopen(filename, "rb");
-   if (!fp) { printf("can't open OpenCL Program file\n"); exit(1); }
-
-   // for multiple application host threads
-   Lock lock(this);
-   int prog_handle = DLOAD_load(p_dload_handle, fp);
-
-   fclose(fp);
-   return prog_handle;
-}
-
-bool DSPDevice::unload(int file_handle)
-{ 
-   if (p_dload_handle)
-   {
-       // for multiple application host threads
-       Lock lock(this);
-       bool retval = DLOAD_unload(p_dload_handle, file_handle);
-
-       return retval;
-   }
-   return false;
-}
 
 DSPDevicePtr DSPDevice::get_L2_extent(uint32_t &size)
 { 
@@ -660,49 +627,65 @@ int DSPDevice::numHostMails(Msg_t &msg) const
 
 void DSPDevice::mail_to(Msg_t &msg, unsigned int core)
 {
-    switch(msg.command)
+    if(hostSchedule())
     {
-        /*---------------------------------------------------------------------
-        * for hostScheduled platforms, broadcast the following messages
-        *--------------------------------------------------------------------*/
-        case EXIT:
-        case CACHEINV:
-        case NDRKERNEL:
-            if (hostSchedule())
+        switch(msg.command)
+        {
+            /*-----------------------------------------------------------------
+            * for hostScheduled platforms, broadcast the following messages
+            * according to numHostMails()
+            *----------------------------------------------------------------*/
+            case EXIT:
+            case CACHEINV:
+            case NDRKERNEL:
             {
                 for (int i = 0; i < numHostMails(msg); i++)
                     p_mb->to((uint8_t*)&msg, sizeof(Msg_t), i);
-                return;
-            }
-            // fall through
 
-       case TASK:
-           if (hostSchedule())
-           {
+                break;
+            }
+
+            /*-----------------------------------------------------------------
+            * for hostScheduled platforms, OoO TASKs are sent to cores in
+            * round-robin order, in-order TASKs are broadcast to all cores
+            *----------------------------------------------------------------*/
+            case TASK:
+            {
                 if (IS_OOO_TASK(msg))
                 {
                     static int counter = 0;
-                    int dsp_id = ((counter++ & 0x1) == 0) ? 0 : 1;
+                    int dsp_id = counter++ % dspCores();
                     p_mb->to((uint8_t*)&msg, sizeof(Msg_t), dsp_id);
-                    return;
                 }
                 else
                 {
                     /*---------------------------------------------------------
-                    * For an in-order task send a message to both all cores.
-                    * This is a trick to enable the OpenMP runtime.  OpenMP
-                    * kernels run as in-order tasks.
-                    *---------------------------------------------------------*/
-                    p_mb->to((uint8_t*)&msg, sizeof(Msg_t), 1);
+                    * note: for in-order TASKs this is a trick to enable the
+                    * OpenMP runtime. OpenMP kernels run as in-order tasks.
+                    *-------------------------------------------------------*/
+                    for (int i = 0; i < dspCores(); i++)
+                        p_mb->to((uint8_t*)&msg, sizeof(Msg_t), i);
                 }
-           }
-           // fall through
-          
+
+                break;
+            }
+
+            /*-----------------------------------------------------------------
+            * otherwise send it to the designated core
+            *---------------------------------------------------------------*/
+            default:
+            {
+                p_mb->to((uint8_t*)&msg, sizeof(Msg_t), core);
+                break;
+            }
+        }
+    }
+    else
+    {
         /*---------------------------------------------------------------------
-        * otherwise send it to the designated core
-        *--------------------------------------------------------------------*/
-        default: 
-            p_mb->to((uint8_t*)&msg, sizeof(Msg_t), core);
+        * non-hostScheduled platforms always send directly to the given core
+        *-------------------------------------------------------------------*/
+        p_mb->to((uint8_t*)&msg, sizeof(Msg_t), core);
     }
 }
 
@@ -1168,176 +1151,10 @@ cl_int DSPDevice::info(cl_device_info param_name,
     return CL_SUCCESS;
 }
 
-/******************************************************************************
-* Call back functions from the target loader
-******************************************************************************/
-extern "C"
-{
-
-static bool load_kernels_onchip()
-{
-   return (getenv("TI_OCL_LOAD_KERNELS_ONCHIP") != NULL);
-}
-
-/*****************************************************************************/
-/* DLIF_ALLOCATE() - Return the load address of the segment/section          */
-/*      described in its parameters and record the run address in            */
-/*      run_address field of DLOAD_MEMORY_REQUEST.                           */
-/*****************************************************************************/
 bool DSPDevice::addr_is_l2  (DSPDevicePtr addr)const { return (addr >> 20 == 0x008); }
+
+// TODO: Fix msmc address for AM57
 bool DSPDevice::addr_is_msmc(DSPDevicePtr addr)const { return (addr >> 20 == 0x0C0); }
-
-BOOL DLIF_allocate(void* client_handle, struct DLOAD_MEMORY_REQUEST *targ_req)
-{
-   DSPDevice* device = (DSPDevice*) client_handle;
-
-   /*------------------------------------------------------------------------*/
-   /* Get pointers to API segment and file descriptors.                      */
-   /*------------------------------------------------------------------------*/
-   struct DLOAD_MEMORY_SEGMENT* obj_desc = targ_req->segment;
-
-   uint32_t addr;
-
-   if (device->addr_is_l2(obj_desc->target_address))
-        addr = obj_desc->target_address; // do not allocate L2
-   else if (device->addr_is_msmc(obj_desc->target_address) || load_kernels_onchip())
-        addr = (uint32_t)device->malloc_msmc  (obj_desc->memsz_in_bytes);
-   else addr = (uint32_t)device->malloc_global(obj_desc->memsz_in_bytes);
-
-#if DEBUG
-   printf("DLIF_allocate: %d bytes starting at 0x%x (relocated from 0x%x)\n",
-                      obj_desc->memsz_in_bytes, (uint32_t)addr, 
-                      (uint32_t)obj_desc->target_address);
-#endif
-
-   obj_desc->target_address = (TARGET_ADDRESS) addr;
-
-   /*------------------------------------------------------------------------*/
-   /* Target memory request was successful.                                  */
-   /*------------------------------------------------------------------------*/
-   return addr == 0 ? 0 : 1;
-}
-
-/*****************************************************************************/
-/* DLIF_RELEASE() - Unmap or free target memory that was previously          */
-/*      allocated by DLIF_allocate().                                        */
-/*****************************************************************************/
-BOOL DLIF_release(void* client_handle, struct DLOAD_MEMORY_SEGMENT* ptr)
-{
-   DSPDevice* device = (DSPDevice*) client_handle;
-
-   if (device->addr_is_l2(ptr->target_address))
-        ; // local was not allocated
-   else if (device->addr_is_msmc(ptr->target_address) || load_kernels_onchip())
-        device->free_msmc  ((DSPDevicePtr)ptr->target_address);
-   else device->free_global((DSPDevicePtr)ptr->target_address);
-
-#if DEBUG
-   printf("DLIF_free: %d bytes starting at 0x%x\n",
-                      ptr->memsz_in_bytes, (uint32_t)ptr->target_address);
-#endif
-
-   return 1;
-}
-
-/*****************************************************************************/
-/* DLIF_WRITE() - Write updated (relocated) segment contents to target       */
-/*      memory.                                                              */
-/*****************************************************************************/
-BOOL DLIF_write(void* client_handle, struct DLOAD_MEMORY_REQUEST* req)
-{
-   struct DLOAD_MEMORY_SEGMENT* obj_desc = req->segment;
-   DSPDevice* device = (DSPDevice*) client_handle;
-   int dsp_id = device->dspID();
-
-   if (device->addr_is_l2(obj_desc->target_address))
-   {
-       if (req->host_address)
-           printf("Warning: Initialized data for objects in .mem_l2 sections will be ignored.\n");
-   }
-   else if (req->host_address)
-       Driver::instance()->write (dsp_id,
-                             (uint32_t)obj_desc->target_address,
-                             (uint8_t*)req->host_address,
-                             obj_desc->memsz_in_bytes);
-
-#if DEBUG
-    printf("DLIF_write (dsp:%d): %d bytes starting at 0x%x\n",
-               dsp_id, obj_desc->memsz_in_bytes, 
-               (uint32_t)obj_desc->target_address);
-#endif
-    
-    extern DSPProgram::segment_list *segments;
-
-    if (segments) segments->push_back
-        (DSPProgram::seg_desc((DSPDevicePtr)obj_desc->target_address, obj_desc->memsz_in_bytes, req->flags));
-
-    return 1;
-}
-
-/*****************************************************************************/
-/* DLIF_COPY() - Copy data from file to host-accessible memory.              */
-/*      Returns a host pointer to the data in the host_address field of the  */
-/*      DLOAD_MEMORY_REQUEST object.                                         */
-/*****************************************************************************/
-BOOL DLIF_copy(void* client_handle, struct DLOAD_MEMORY_REQUEST* targ_req)
-{
-   struct DLOAD_MEMORY_SEGMENT* obj_desc = targ_req->segment;
-   DSPDevice* device = (DSPDevice*) client_handle;
-   LOADER_FILE_DESC* f = targ_req->fp;
-   void *buf = NULL;
-
-   int result = 1;
-   if (obj_desc->objsz_in_bytes)
-   {
-       buf = calloc(obj_desc->memsz_in_bytes, 1); 
-       fseek(f, targ_req->offset, SEEK_SET);
-       result = fread(buf, obj_desc->objsz_in_bytes, 1, f);
-   }
-   else  if (!device->addr_is_l2(obj_desc->target_address))
-       buf = calloc(obj_desc->memsz_in_bytes, 1); 
-
-   assert(result == 1);
-
-   targ_req->host_address = buf;
-
-   return 1;
-}
-
-
-/******************************************************************************
-* DLIF_LOAD_DEPENDENT() 
-******************************************************************************/
-int DLIF_load_dependent(void* client_handle, const char* so_name)
-{
-   DSPDevice* device = (DSPDevice*) client_handle;
-   FILE* fp = fopen(so_name, "rb");
-   
-   if (!fp)
-   {
-      DLIF_error(DLET_FILE, "Can't open dependent file '%s'.\n", so_name);
-      return 0;
-   }
-
-   int to_ret = DLOAD_load(device->dload_handle(), fp);
-
-   if (!to_ret)  
-       DLIF_error(DLET_MISC, "Failed load of dependent file '%s'.\n", so_name);
-
-   fclose(fp);
-   return to_ret;
-}
-
-/******************************************************************************
-* DLIF_UNLOAD_DEPENDENT() 
-******************************************************************************/
-void DLIF_unload_dependent(void* client_handle, uint32_t file_handle)
-{
-   DSPDevice* device = (DSPDevice*) client_handle;
-   DLOAD_unload(device->dload_handle(), file_handle);
-}
-
-}
 
 void dump_hex(char *addr, int bytes)
 {

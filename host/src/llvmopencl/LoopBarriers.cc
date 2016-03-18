@@ -1,7 +1,7 @@
 // LLVM loop pass that adds required barriers to loops.
 // 
 // Copyright (c) 2011 Universidad Rey Juan Carlos
-//               2012-2014 Pekka Jääskeläinen / Tampere University of Technology
+//               2012-2013 Pekka Jääskeläinen / Tampere University of Technology
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -59,6 +59,9 @@ bool
 LoopBarriers::runOnLoop(Loop *L, LPPassManager &LPM)
 {
   if (!Workgroup::isKernelToProcess(*L->getHeader()->getParent()))
+    return false;
+
+  if (!Workgroup::hasWorkgroupBarriers(*L->getHeader()->getParent()))
     return false;
 
   if (isReqdWGSize111(*L->getHeader()->getParent()))  return false;
@@ -181,12 +184,11 @@ LoopBarriers::ProcessLoop(Loop *L, LPPassManager &LPM)
   Instruction *prev = NULL;
   if (&preheader->front() != t)
     prev = t->getPrevNode();
-  if (prev && isa<Barrier>(prev))
-    {
+  if (prev && isa<Barrier>(prev)) {
       BasicBlock *new_b = SplitBlock(preheader, t, this);
       new_b->setName(preheader->getName() + ".postbarrier_dummy");
       return true;
-    }
+  }
 
   return changed;
 }

@@ -41,6 +41,8 @@
 
 #include "mbox.h"
 
+#include "mbox_msgq_shared.h"
+
 using namespace Coal;
 
 class MBoxMsgQ : public MBox, public Lockable
@@ -58,7 +60,7 @@ class MBoxMsgQ : public MBox, public Lockable
 
   private:
     MessageQ_Handle    hostQue;   // created by host
-    MessageQ_QueueId   dspQue[2]; // created by DSP1/DSP2, opened by host
+    MessageQ_QueueId   dspQue[Ocl_MaxNumDspMsgQueues]; // created by DSPs
     UInt16             heapId;    // heap for MessageQ_alloc, 0 on host
     Coal::DSPDevice   *p_device;
 };

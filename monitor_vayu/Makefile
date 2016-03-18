@@ -21,14 +21,14 @@ ifeq ($(TI_OCL_CGT_INSTALL),)
   $(error Monitor requires TI_OCL_CGT_INSTALL to point to C6000 Codegen tools)
 endif
 
-AM57_PDK_DIR   ?= $(DEFAULT_DEV_INSTALL_DIR)/pdk_am57xx_1_0_1
-IPC_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/ipc_3_41_00_06_eng
-XDC_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/xdctools_3_31_02_38_core
-BIOS_DIR       ?= $(DEFAULT_DEV_INSTALL_DIR)/bios_6_45_00_13
-OMP_DIR        ?= $(AM57_OMP_DIR)
-FC_DIR         ?= $(DEFAULT_DEV_INSTALL_DIR)/framework_components_3_40_01_04
-EDMA3LLD_DIR   ?= $(DEFAULT_DEV_INSTALL_DIR)/edma3_lld_02_12_01_22
-XDAIS_DIR      ?= $(DEFAULT_DEV_INSTALL_DIR)/xdais_7_24_00_04
+AM57_PDK_DIR   ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/pdk_am57xx_*)
+IPC_DIR        ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/ipc_*)
+XDC_DIR        ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/xdctools_*)
+BIOS_DIR       ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/bios_*)
+OMP_DIR        ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/openmp_dsp_*)
+FC_DIR         ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/framework_components*)
+EDMA3LLD_DIR   ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/edma3_lld_*)
+XDAIS_DIR      ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/xdais_*)
 ULM_DIR        ?= $(LINUX_DEVKIT_ROOT)/usr/share/ti/ulm
 GDB_SERVER_DIR ?= $(LINUX_DEVKIT_ROOT)/usr/share/ti/gdbc6x
 
@@ -54,9 +54,9 @@ INCLUDES += -i $(ULM_DIR) -DULM_ENABLED
 INCLUDES += -i $(GDB_SERVER_DIR)/include -DGDB_ENABLED
 
 SOURCES = monitor.c util.c dsp_rpc.asm touch.asm builtins.c edma.c \
-          edma3_config.c
+          edma3_config.c device_am57.c
 HEADERS = edma.h monitor.h util.h trace.h custom_rsc_table_vayu_dsp.h
-LIBS    = monitor.cmd
+LIBS    = monitor.$(PLATFORM).cmd
 LIBS   += $(ULM_DIR)/libtiulm.ae66
 LIBS   += $(GDB_SERVER_DIR)/lib/gdb_server.ae66
 OBJS1   = $(patsubst %.c,%.obj,$(SOURCES))
@@ -99,7 +99,7 @@ define create_dsp_syms
 	@$(TI_OCL_CGT_INSTALL)/bin/nm6x -l $(1) | grep PROT | awk -F\| '{ print "\t.weak "$$8"\n"$$8"\t.set "$$2 };' >  $(2).asm
 	@$(TI_OCL_CGT_INSTALL)/bin/nm6x -l $(1) | grep FUNC | grep -fexport_syms | awk -F\| '{ print "\t.weak "$$8"\n"$$8"\t.set "$$2 };' >> $(2).asm
 	@$(CC) $(2).asm
-	@cp dsp_link_commands $(2)
+	@cp dsp_link_commands.$(PLATFORM) $(2)
 	@rm -f $(1).syms.tmp* $(2).asm
 endef
 
@@ -140,13 +140,13 @@ ocl_platforms/am57x/package/package_ocl_platforms.am57x.c: ocl_platforms/am57x/P
 	 $(MAKE) -C ocl_platforms/am57x
 
 
-$(LINK_CMD0): monitor.cfg ocl_platforms/am57x/package/package_ocl_platforms.am57x.c
-	$(XDC_DIR)/xs --xdcpath "$(XDCPATH)" xdc.tools.configuro -c $(TI_OCL_CGT_INSTALL) --cb -t $(XDCTARGET) -p ocl_platforms.$(PLATFORM) -r $(BUILD_TYPE) -DDSPCORE=0 -o $(PROJECT)0 $(PROJECT).cfg
+$(LINK_CMD0): monitor.$(PLATFORM).cfg ocl_platforms/am57x/package/package_ocl_platforms.am57x.c
+	$(XDC_DIR)/xs --xdcpath "$(XDCPATH)" xdc.tools.configuro -c $(TI_OCL_CGT_INSTALL) --cb -t $(XDCTARGET) -p ocl_platforms.$(PLATFORM) -r $(BUILD_TYPE) -DDSPCORE=0 -o $(PROJECT)0 $(PROJECT).$(PLATFORM).cfg
 	@sed '/c6xabi\.exidx/d' $(LINK_CMD0) > lnk_tmp
 	@mv lnk_tmp $(LINK_CMD0)
 
-$(LINK_CMD1): monitor.cfg ocl_platforms/am57x/package/package_ocl_platforms.am57x.c
-	$(XDC_DIR)/xs --xdcpath "$(XDCPATH)" xdc.tools.configuro -c $(TI_OCL_CGT_INSTALL) --cb -t $(XDCTARGET) -p ocl_platforms.$(PLATFORM) -r $(BUILD_TYPE) -DDSPCORE=1 -o $(PROJECT)1 $(PROJECT).cfg
+$(LINK_CMD1): monitor.$(PLATFORM).cfg ocl_platforms/am57x/package/package_ocl_platforms.am57x.c
+	$(XDC_DIR)/xs --xdcpath "$(XDCPATH)" xdc.tools.configuro -c $(TI_OCL_CGT_INSTALL) --cb -t $(XDCTARGET) -p ocl_platforms.$(PLATFORM) -r $(BUILD_TYPE) -DDSPCORE=1 -o $(PROJECT)1 $(PROJECT).$(PLATFORM).cfg
 	@sed '/c6xabi\.exidx/d' $(LINK_CMD1) > lnk_tmp
 	@mv lnk_tmp $(LINK_CMD1)
 
@@ -163,6 +163,7 @@ $(LINK_CMD1): monitor.cfg ocl_platforms/am57x/package/package_ocl_platforms.am57
 
 .PHONY: clean
 clean:
+	@$(MAKE) -f Makefile.evmk2g clean
 	@rm -fr *.out *.map *.syms *.obj libm.cmd libm.fcns builtins.cmd builtins.fcns $(PROJECT)0 $(PROJECT)1
 
 .PHONY: realclean

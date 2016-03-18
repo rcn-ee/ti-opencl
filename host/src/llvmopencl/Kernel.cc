@@ -1,8 +1,8 @@
 // Class for kernels, llvm::Functions that represent OpenCL C kernels.
 // 
 // Copyright (c) 2011 Universidad Rey Juan Carlos and
-//               2012 Pekka Jääskeläinen / TUT
-// Copyright (c) 2013-2014, Texas Instruments Incorporated - http://www.ti.com/
+//               2012-2015 Pekka Jääskeläinen / TUT
+// Copyright (c) 2013-2016, Texas Instruments Incorporated - http://www.ti.com/
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -30,7 +30,7 @@
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/InlineAsm.h"
 
-//#define DEBUG_PR_CREATION
+#include "DebugHelpers.h"
 
 using namespace llvm;
 using namespace pocl;
@@ -136,11 +136,6 @@ add_predecessors(SmallVectorImpl<BasicBlock *> &v, BasicBlock *b)
 {
   for (pred_iterator i = pred_begin(b), e = pred_end(b);
        i != e; ++i) {
-    if ((isa<BarrierBlock> (*i)) && isa<BarrierBlock> (b)) {
-      // Ignore barrier-to-barrier edges * Why? --Pekka
-      add_predecessors(v, *i);
-      continue;
-    }
     v.push_back(*i);
   }
 }
@@ -258,6 +253,10 @@ Kernel::getParallelRegions(llvm::LoopInfo *LI) {
       assert ((exit != NULL) && "Parallel region without entry barrier!");
     }
   }
+
+#ifdef DEBUG_PR_CREATION
+  pocl::dumpCFG(*this, this->getName().str() + ".pregions.dot", parallel_regions);
+#endif
   return parallel_regions;
 
 }

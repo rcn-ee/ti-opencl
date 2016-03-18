@@ -29,7 +29,11 @@
 
 // Included in device.cpp
 
+#ifdef DEVICE_K2G
+#include "mbox_impl_msgq.h"
+#else
 #include "mbox_impl_mpm.h"
+#endif
 
 #if defined(DEVICE_K2X)
 extern "C" {
@@ -42,7 +46,6 @@ extern "C" {
 ******************************************************************************/
 DSPDevice::DSPDevice(unsigned char dsp_id)
     : DeviceInterface   (), 
-      p_core_mail       (0), 
       p_cores           (0),
       p_num_events      (0), 
       p_dsp_mhz         (1000), // 1.00 GHz
@@ -56,7 +59,6 @@ DSPDevice::DSPDevice(unsigned char dsp_id)
       p_device_ddr_heap1(),
       p_device_ddr_heap2(),
       p_device_ddr_heap3(),
-      p_dload_handle    (0),
       p_complete_pending(),
       p_mpax_default_res(NULL)
 { 
@@ -112,7 +114,7 @@ DSPDevice::DSPDevice(unsigned char dsp_id)
     *------------------------------------------------------------------------*/
     setup_mailbox();
 
-#if defined(DEVICE_K2X)
+#if defined(DEVICE_K2X) && !defined(DEVICE_K2G)
     /*-------------------------------------------------------------------------
     * Send monitor configuration
     *------------------------------------------------------------------------*/
@@ -137,7 +139,11 @@ DSPDevice::DSPDevice(unsigned char dsp_id)
 
 void DSPDevice::setup_mailbox(void)
 {
+#ifdef DEVICE_K2G
+    p_mb = new MBoxMsgQ(this);
+#else
     p_mb = new MBoxMPM(this);
+#endif
 }
 
 
@@ -160,4 +166,11 @@ void DSPDevice::setup_dsp_mhz(void)
 #endif
 }
 
-
+bool DSPDevice::hostSchedule() const
+{
+#ifdef DEVICE_K2G
+    return true;
+#else
+    return false;
+#endif
+}

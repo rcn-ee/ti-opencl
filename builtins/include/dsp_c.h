@@ -63,6 +63,7 @@ int      __cache_l1d_4k    (void);
 int      __cache_l1d_8k    (void);
 int      __cache_l1d_16k   (void);
 void     __cache_l1d_flush (void);
+uint32_t __cache_l1d_size  (void);
 
 int      __cache_l2_none   (void);
 int      __cache_l2_32k    (void);
@@ -71,6 +72,7 @@ int      __cache_l2_128k   (void);
 int      __cache_l2_256k   (void);
 int      __cache_l2_512k   (void);
 void     __cache_l2_flush  (void);
+uint32_t __cache_l2_size   (void);
 
 void     __heap_init_ddr  (__global void *__ptr, size_t __size);
 void*    __malloc_ddr     (size_t __size);

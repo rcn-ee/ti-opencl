@@ -58,6 +58,11 @@ if (K2X_BUILD)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
 endif()
 
+if (K2G_BUILD)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDEVICE_K2G")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
+endif()
+
 if (AM57_BUILD)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDEVICE_AM57")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
@@ -114,48 +119,20 @@ set(COAL_SRC_FILES
 
     core/dsp/genfile_cache.cpp
     core/dsp/program.cpp
-    core/dsp/wga.cpp
     core/dsp/driver.cpp
     core/dsp/buffer.cpp
     core/dsp/device.cpp
     core/dsp/kernel.cpp
     core/dsp/worker.cpp
     core/dsp/mmap_resource.cpp
-
-    llvmopencl/AllocasToEntry.cc
-    llvmopencl/BarrierBlock.cc
-    llvmopencl/BarrierTailReplication.cc
-    llvmopencl/BreakConstantGEPs.cpp
-    llvmopencl/CanonicalizeBarriers.cc
-    llvmopencl/DebugHelpers.cc
-    llvmopencl/Flatten.cc
-    llvmopencl/GenerateHeader.cc
-    llvmopencl/ImplicitConditionalBarriers.cc
-    llvmopencl/ImplicitLoopBarriers.cc
-    llvmopencl/IsolateRegions.cc
-    llvmopencl/Kernel.cc
-    llvmopencl/LLVMUtils.cc
-    llvmopencl/LoopBarriers.cc
-    llvmopencl/ParallelRegion.cc
-    llvmopencl/PHIsToAllocas.cc
-    llvmopencl/TargetAddressSpaces.cc
-    llvmopencl/VariableUniformityAnalysis.cc
-    llvmopencl/WIVectorize.cc
-    llvmopencl/Workgroup.cc
-    llvmopencl/WorkItemAliasAnalysis.cc
-    llvmopencl/WorkitemHandler.cc
-    llvmopencl/WorkitemHandlerChooser.cc
-    llvmopencl/WorkitemLoops.cc
-    llvmopencl/WorkitemReplication.cc
-    llvmopencl/SimplifyShuffleBIFCall.cpp
-    llvmopencl/PrivatizationAliasAnalysis.cpp
+    core/dsp/dload.cpp
 )
 
 if (K2X_BUILD)
     set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/rm_qmss_res.c)
 endif()
 
-if (AM57_BUILD)
+if (K2G_BUILD OR AM57_BUILD)
     set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/mbox_impl_msgq.cpp)
 endif()
 
@@ -204,9 +181,13 @@ add_custom_command (TARGET OpenCL PRE_BUILD
                  COMMAND touch -c ${CMAKE_CURRENT_SOURCE_DIR}/core/platform.cpp)
 
 set (LIBS
-        ${CLANG_LIBS}
-        ${LLVM_LIBS_CORE}
-        ${LLVM_LIBS_JIT}
+        #${CLANG_LIBS}
+        #${LLVM_LIBS_CORE}
+        LLVMBitReader
+        LLVMBitWriter
+        LLVMCore
+        LLVMSupport
+        #${LLVM_LIBS_JIT}
 	${PROJECT_BINARY_DIR}/lib/liboclload.a
         pthread
         rt
@@ -239,6 +220,15 @@ elseif(C6678_BUILD)
 	${SDK}/sdk/mailBox/host/lib/mailBox.a
         pciaccess
 	)
+elseif (K2G_BUILD)
+  find_library(CMEM_LIB          ticmem)
+  find_library(IPC_LIB           tiipc)
+  find_library(IPC_UTIL_LIB      tiipcutils)
+  find_library(IPC_TRANS_RPMSG   titransportrpmsg)
+  find_library(MPMTRANSPORT_LIB  mpmtransport)
+  find_library(MPMCLIENT_LIB     mpmclient)
+  LIST (APPEND LIBS ${CMEM_LIB} ${IPC_LIB} ${IPC_UTIL_LIB} ${IPC_TRANS_RPMSG}
+                    ${MPMTRANSPORT_LIB} ${MPMCLIENT_LIB})
 elseif (AM57_BUILD)
   find_library(CMEM_LIB          ticmem)
   find_library(IPC_LIB           tiipc)

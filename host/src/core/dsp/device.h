@@ -36,7 +36,6 @@ extern "C" {
 #if defined (ULM_ENABLED)
    #include "tiulm.h"  
 #endif
-   #include "dload_api.h"
 }
 
 #include "../deviceinterface.h"
@@ -94,10 +93,6 @@ class DSPDevice : public DeviceInterface, public Lockable
         unsigned int dspCores() const;
         float dspMhz() const;
         unsigned char dspID() const;
-        DLOAD_HANDLE dload_handle() const;
-
-        int    load(const char *filename);
-        bool unload(int file_handle);
 
         bool addr_is_l2  (DSPDevicePtr addr) const ;
         bool addr_is_msmc(DSPDevicePtr addr) const ;
@@ -163,7 +158,6 @@ class DSPDevice : public DeviceInterface, public Lockable
         virtual void setup_dsp_mhz(void);
 
     private:
-        bool               p_core_mail;        // send mails per core ?
         unsigned int       p_cores;
         unsigned int       p_num_events;
         float              p_dsp_mhz;
@@ -184,7 +178,6 @@ class DSPDevice : public DeviceInterface, public Lockable
         dspheap            p_device_msmc_heap;
         clMallocMapping    p_clMalloc_mapping;
 
-        DLOAD_HANDLE       p_dload_handle;
         concurrent_map<uint32_t, class Event*> p_complete_pending;
 
         DSPDevicePtr       p_addr_kernel_config;

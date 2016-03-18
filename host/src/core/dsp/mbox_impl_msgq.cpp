@@ -36,7 +36,6 @@
 #include <unistd.h>
 
 #include "mbox_impl_msgq.h"
-#include "mbox_msgq_shared.h"
 
 /* Work around IPC usage of typedef void */
 #define Void void
@@ -62,32 +61,33 @@ MBoxMsgQ::MBoxMsgQ(Coal::DSPDevice *device)
     MessageQ_Params     msgqParams;
     MessageQ_Params_init(&msgqParams);
 
-    char hostQueueName[MSGQ_NAME_LENGTH];
-    snprintf(hostQueueName, MSGQ_NAME_LENGTH, HostMsgQueString, getpid());
+    char hostQueueName[32];
+    snprintf(hostQueueName, sizeof hostQueueName, HostMsgQueString, getpid());
+    hostQueueName[sizeof hostQueueName - 1] = '\0';
     hostQue = MessageQ_create(hostQueueName, &msgqParams);
     assert (hostQue != NULL);
 
-    /* Open DSP message queues for DSP1 and DSP2 */
-    char dspQueueName[MSGQ_NAME_LENGTH];
-    snprintf(dspQueueName, MSGQ_NAME_LENGTH, Ocl_DspMsgQueName, "DSP1");
+    /* Open the DSP message queues (outbound messages to DSPs) */
+    assert(p_device->dspCores() <= Ocl_MaxNumDspMsgQueues);
+    for(int i = 0; i < p_device->dspCores(); ++i)
+    {
+        do {
+            status = MessageQ_open(
+                const_cast<char *>(Ocl_DspMsgQueueName[i]), &dspQue[i]);
+        } while (status == MessageQ_E_NOTFOUND);
 
-    do {
-        status = MessageQ_open(dspQueueName, &dspQue[0]);
-    } while (status == MessageQ_E_NOTFOUND);
-
-    snprintf(dspQueueName, MSGQ_NAME_LENGTH, Ocl_DspMsgQueName, "DSP2");
-
-    do {
-        status = MessageQ_open(dspQueueName, &dspQue[1]);
-    } while (status == MessageQ_E_NOTFOUND);
-
-
+        if(status != MessageQ_S_SUCCESS)
+        {
+            printf("failed to open msgq %s\n", Ocl_DspMsgQueueName[i]);
+            exit(1);
+        }
+    }
 }
 
 void MBoxMsgQ::write (uint8_t *buf, uint32_t size, uint32_t trans_id, 
                       uint8_t id)
 { 
-    assert (id == 0 || id == 1);
+    assert(id < p_device->dspCores());
 
     ocl_msgq_message_t *msg = 
        (ocl_msgq_message_t *)MessageQ_alloc(heapId, sizeof(ocl_msgq_message_t));
@@ -139,12 +139,12 @@ inline bool MBoxMsgQ::query(uint8_t id)
 
 MBoxMsgQ::~MBoxMsgQ(void)
 {    
-    /* Close the DSP message queue */
-    int status = MessageQ_close(&dspQue[0]);
-    assert (status == MessageQ_S_SUCCESS);
-
-    status = MessageQ_close(&dspQue[1]);
-    assert (status == MessageQ_S_SUCCESS);
+    /* Close the DSP message queues */
+    for(int i = 0; i < p_device->dspCores(); ++i)
+    {
+        int status = MessageQ_close(&dspQue[i]);
+        assert(status == MessageQ_S_SUCCESS);
+    }
 
     /* Unblocks reader thread that is blocked on a MessageQ_get(). The 
      * MessageQ_get() call will return with status MessageQ_E_UNBLOCKED 
@@ -157,7 +157,7 @@ MBoxMsgQ::~MBoxMsgQ(void)
     MessageQ_unblock(hostQue);
 
     /* Delete the host message queue */
-    status = MessageQ_delete(&hostQue);
+    int status = MessageQ_delete(&hostQue);
     assert (status == MessageQ_S_SUCCESS);
 
     Ipc_stop();

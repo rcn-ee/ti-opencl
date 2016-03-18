@@ -26,10 +26,6 @@
  *  THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
 
-/* Example documented at:
- * http://processors.wiki.ti.com/index.php/OpenCL_float_compute_example
- */
-
 #define __CL_ENABLE_EXCEPTIONS
 #include <CL/cl.hpp>
 #include <iostream>
@@ -233,7 +229,7 @@ static void print_header()
     cout << "This example computes y[i] = M[i] * x[i] + C on "
          << "single precision floating point arrays of size " << NumElements
          << endl
-         << "- Computation on the ARM is parallelized across the 2 A15s"
+         << "- Computation on the ARM is parallelized across the A15s"
          << " using OpenMP."
          << endl
          << "- Computation on the DSP is performed by dispatching an OpenCL"
@@ -247,8 +243,7 @@ static void print_footer()
 {
     cout << endl;
     cout << "For more information on:" << endl;
-    cout << "  * TI's OpenCL product, http://processors.wiki.ti.com/index.php/OpenCL" << endl;
-    cout << "  * This and other OpenCL examples, http://processors.wiki.ti.com/index.php/OpenCL_Examples" << endl;
+    cout << "  * TI's OpenCL product, http://software-dl.ti.com/mctools/esd/docs/opencl/index.html" << endl;
     cout << endl;
 }
 

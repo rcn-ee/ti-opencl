@@ -24,10 +24,17 @@
 /*-----------------------------------------------------------------------------
 * If the edmamgr resource map changes, we may need to revisit these macros
 *----------------------------------------------------------------------------*/
-#define EDMA_MGR_MAX_NUM_CHANNELS    (32)
+#ifdef DEVICE_AM572x
+    #define EDMA_MGR_MAX_NUM_CHANNELS    (32)
+#elif defined(DEVICE_K2G)
+    #define EDMA_MGR_MAX_NUM_CHANNELS    (16)
+#else
+    #error Unknown device
+#endif
+
 #define STARTUP_NUM_OF_EDMA_CHANNELS (4)
 
-#define MEMCPY_THRESHOLD             (0x800)
+#define MEMCPY_THRESHOLD             (0x800) 
 
 // Edma stride/pitch field is signed 16-bits
 #define EDMA_PITCH_LIMIT            (32767)
@@ -42,28 +49,26 @@ DDR     (copy_event,   memcpy_event) = { EV_MEMCPY, NULL };
 static int initialize_edma_channel_pool()
 {
    int i;
-   uint32_t dspid = get_dsp_id();
-
-   // Initialized the edma table to be not allocated
-   for(i = 0; i < EDMA_MGR_MAX_NUM_CHANNELS; i++)
-   {
-      edma_channel_pool[dspid][i].status = EV_NOT_ALLOCATED;
-      edma_channel_pool[dspid][i].channel = NULL;
-   }
 
    // Pre-allocate a fixed number of edma channels
    for(i = 0; i < STARTUP_NUM_OF_EDMA_CHANNELS; i++)
    {
-      if (!(edma_channel_pool[dspid][i].channel = EdmaMgr_alloc(1))) return -1;
-      edma_channel_pool[dspid][i].status = EV_AVAILABLE;
+      if (!(edma_channel_pool[DNUM][i].channel = EdmaMgr_alloc(1))) return -1;
+      edma_channel_pool[DNUM][i].status = EV_AVAILABLE;
+   }
+
+   // Set up the rest of the edma table in case more channels are needed
+   for(i = STARTUP_NUM_OF_EDMA_CHANNELS; i < EDMA_MGR_MAX_NUM_CHANNELS; i++)
+   {
+      edma_channel_pool[DNUM][i].status = EV_NOT_ALLOCATED;
+      edma_channel_pool[DNUM][i].channel = NULL;
    }
 
    // Set up next available pointer
-   available_edma_channel = &edma_channel_pool[dspid][0];
+   available_edma_channel = &edma_channel_pool[DNUM][0];
 
    return 0;
 }
-
 
 /******************************************************************************
 * initialize_edmamgr and allocate an initial pool of edma channels
@@ -77,9 +82,13 @@ int initialize_edmamgr()
    Diags_setMask(FCSETTINGS_MODNAME"+EX1234567");
 #endif
 
+#ifdef DEVICE_AM572x
    // On AM57x, Each DSP has an identical copy of EDMA
    // Use proc_id 0 to pick Instance 1, region 2 (see edma_config.c)
    if((status = EdmaMgr_init(0, NULL)) != EdmaMgr_SUCCESS)
+#else
+   if((status = EdmaMgr_init(DNUM, NULL)) != EdmaMgr_SUCCESS)
+#endif
       return !status;
 
    return !initialize_edma_channel_pool();
@@ -106,12 +115,12 @@ static copy_event *get_edma_channel()
 
       return result;
    }
+
    // Otherwise search table for available channel, allocate a new one if needed
    // TBD: Not currently attempting to free unused channels
-   uint32_t dspid = get_dsp_id();
    for(i = 0; i < EDMA_MGR_MAX_NUM_CHANNELS; i++)
    {
-      if (edma_channel_pool[dspid][i].status == EV_IN_USE) continue;
+      if (edma_channel_pool[DNUM][i].status == EV_IN_USE) continue;
       else
       {
          /*--------------------------------------------------------------------
@@ -119,19 +128,18 @@ static copy_event *get_edma_channel()
          * exist beyond this not allocated and we could recover from an
          * edmamgr_alloc failure.
          *-------------------------------------------------------------------*/
-         if (edma_channel_pool[dspid][i].status == EV_NOT_ALLOCATED)
-            if ((edma_channel_pool[dspid][i].channel = EdmaMgr_alloc(1)) == NULL)
+         if (edma_channel_pool[DNUM][i].status == EV_NOT_ALLOCATED)
+            if ((edma_channel_pool[DNUM][i].channel = EdmaMgr_alloc(1)) == NULL)
                return NULL;
 
-         edma_channel_pool[dspid][i].status = EV_IN_USE;
-         return &edma_channel_pool[dspid][i];
+         edma_channel_pool[DNUM][i].status = EV_IN_USE;
+         return &edma_channel_pool[DNUM][i];
       }
    }
 
    // Didn't find a channel
    return NULL;
 }
-
 
 /******************************************************************************
 * Implement a copy. Using edma if the size warrants, otherwise use memcpy()
@@ -205,9 +213,9 @@ EXPORT copy_event *__copy_1D2D(copy_event *event, void *dst, void *src,
    // pitch(stride) is too large or we didn't get a channel.
    else
    {
-       int i;
-       for(i = 0; i < num_lines; i++)
-          memcpy((char *)dst+( i*bytes*pitch), (char *)src+(i*bytes), bytes);
+      int i;
+      for(i = 0; i < num_lines; i++)
+         memcpy((char *)dst+( i*bytes*pitch), (char *)src+(i*bytes), bytes); 
       if (!event) event = &memcpy_event;
    }
 
@@ -238,19 +246,17 @@ EXPORT copy_event *__copy_2D1D(copy_event *event, void *dst, void *src,
       *----------------------------------------------------------------------*/
       //Cache_wb(...);
 
-      EdmaMgr_copy2D1D(event->channel, src, dst, bytes, num_lines,
-                       bytes*pitch);
+      EdmaMgr_copy2D1D(event->channel, src, dst, bytes, num_lines, bytes*pitch);
    }
    // pitch(stride) is too large or we didn't get a channel
    else
    {
-       int i;
-       for(i = 0; i < num_lines; i++)
-          memcpy((char *)dst+(i*bytes), (char *)src+(i*bytes*pitch),
-                 bytes);
+      int i;
+      for(i = 0; i < num_lines; i++)
+         memcpy((char *)dst+(i*bytes), (char *)src+(i*bytes*pitch), bytes);
 
-       if (!event) event = &memcpy_event;
-    }
+      if (!event) event = &memcpy_event;
+   }
 
    return event;
 }
@@ -271,13 +277,18 @@ EXPORT void __copy_wait(copy_event *event)
 
 /******************************************************************************
 * De-allocate all used edma channels
+* AM57x: Allocated EdmaMgr channels currently can NOT survive IpcPower
+* suspend/resume yet, we have to free them before suspend.
 ******************************************************************************/
 void free_edma_channel_pool()
 {
    int i;
-   uint32_t dspid = get_dsp_id();
 
+   available_edma_channel = NULL;
    for(i = 0; i < EDMA_MGR_MAX_NUM_CHANNELS; i++)
-      if (edma_channel_pool[dspid][i].status != EV_NOT_ALLOCATED)
-         EdmaMgr_free(edma_channel_pool[dspid][i].channel);
+      if (edma_channel_pool[DNUM][i].status != EV_NOT_ALLOCATED)
+      {
+         EdmaMgr_free(edma_channel_pool[DNUM][i].channel);
+         edma_channel_pool[DNUM][i].status = EV_NOT_ALLOCATED;
+      }
 }

@@ -1,3 +1,9 @@
+ti-opencl (01.01.08.00-0ubuntu0~ppa1) trusty; urgency=medium
+
+  * Added K2G platform support 
+
+ -- TI Keystone PPA <ti-keystone-ppa@list.ti.com>  Fri, 18 Mar 2016 13:29:07 -0500
+
 ti-opencl (01.01.06.00-0ubuntu0~ppa1) trusty; urgency=medium
 
   * Added L1D scratchpad management functions

@@ -164,15 +164,6 @@ void cacheInvL2 (uint8_t* bufferPtr, uint32_t bufferSize)
     return;
 }
 
-
-#define DSP_SYS_HWINFO  (0x01D00004)
-
-uint32_t get_dsp_id()
-{
-    uint32_t id = (*((uint32_t *)DSP_SYS_HWINFO)) & 0xf;
-    return id;
-}
-
 uint32_t count_trailing_zeros(uint32_t x)
 {
     int cnt = 0;
@@ -185,18 +176,4 @@ uint32_t count_trailing_zeros(uint32_t x)
         cnt ++;
     }
     return cnt;
-}
-
-unsigned dsp_speed()
-{
-    /*-------------------------------------------------------------------------
-     * F_dpll = F_ref * 2 * M / (N + 1)
-     *-----------------------------------------------------------------------*/
-    const unsigned AM57_DSP_PLL     = 10*1000*1000;  // 10 MHz
-    unsigned CM_CLKSEL_DPLL_DSP_val = *((unsigned*) 0x4A005240);
-
-    unsigned M   = ((CM_CLKSEL_DPLL_DSP_val & 0x7FF00) >> 8);
-    unsigned N   =  (CM_CLKSEL_DPLL_DSP_val & 0x7F);
-    float  speed = (float)AM57_DSP_PLL * 2 * M / (N + 1);
-    return speed / 1e6;
 }

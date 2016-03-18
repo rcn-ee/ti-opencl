@@ -2,7 +2,8 @@
 // per-workgroup variables) into the kernel.
 // 
 // Copyright (c) 2011 Universidad Rey Juan Carlos
-// Copyright (c) 2013-2014, Texas Instruments Incorporated - http://www.ti.com/
+//               2012-2015 Pekka Jääskeläinen
+// Copyright (c) 2013-2016, Texas Instruments Incorporated - http://www.ti.com/
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -30,7 +31,6 @@ extern cl::opt<std::string> KernelName;
 char Flatten::ID = 0;
 static RegisterPass<Flatten> X("flatten", "Kernel function flattening pass");
 
-
 //#define DEBUG_FLATTEN
 
 #define INLINE_ALL_NON_KERNEL
@@ -51,7 +51,9 @@ Flatten::runOnModule(Module &M)
           AttributeSet attrs;
           f->removeAttributes(
               AttributeSet::FunctionIndex, 
-              attrs.addAttribute(M.getContext(), AttributeSet::FunctionIndex, Attribute::AlwaysInline));
+              attrs.addAttribute
+              (M.getContext(), 
+               AttributeSet::FunctionIndex, Attribute::AlwaysInline));
 
           f->addFnAttr(Attribute::NoInline);
 
@@ -66,7 +68,9 @@ Flatten::runOnModule(Module &M)
           AttributeSet attrs;
           f->removeAttributes(
               AttributeSet::FunctionIndex, 
-              attrs.addAttribute(M.getContext(), AttributeSet::FunctionIndex, Attribute::NoInline));
+              attrs.addAttribute(M.getContext(), 
+                                 AttributeSet::FunctionIndex, 
+                                 Attribute::NoInline));
           f->addFnAttr(Attribute::AlwaysInline);
 
           f->setLinkage(llvm::GlobalValue::InternalLinkage);
@@ -88,7 +92,8 @@ static const char *workgroup_variables[] = {
   "_num_groups_x", "_num_groups_y", "_num_groups_z",
   "_group_id_x", "_group_id_y", "_group_id_z",
   "_global_offset_x", "_global_offset_y", "_global_offset_z",
-  NULL};
+  NULL
+};
 
 bool
 Flatten::runOnModule(Module &M)
@@ -111,11 +116,7 @@ Flatten::runOnModule(Module &M)
 
     for (Value::use_iterator i = v->use_begin(), e = v->use_end();
 	 i != e; ++i) {
-#if defined LLVM_3_2 || defined LLVM_3_3 || defined LLVM_3_4
-      llvm::User *user = *i;
-#else
       llvm::User *user = i->getUser();
-#endif
       if (Instruction *ci = dyn_cast<Instruction>(user)) {
         // Prevent infinite looping on recursive functions
         // (though OpenCL does not allow this?)

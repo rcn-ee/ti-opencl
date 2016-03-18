@@ -1,7 +1,7 @@
 // Header for WorkitemLoops function pass.
 // 
 // Copyright (c) 2012 Pekka Jääskeläinen / TUT
-// Copyright (c) 2013-2014, Texas Instruments Incorporated - http://www.ti.com/
+// Copyright (c) 2013-2016, Texas Instruments Incorporated - http://www.ti.com/
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -39,7 +39,7 @@
 #define MAX_DIMENSIONS 3u
 
 namespace llvm {
-  class PostDominatorTree;
+  struct PostDominatorTree;
 }
 
 namespace pocl {

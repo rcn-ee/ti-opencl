@@ -24,6 +24,7 @@
 #include "Workgroup.h"
 #include "WorkitemHandlerChooser.h"
 #include "WorkitemLoops.h"
+#include "VariableUniformityAnalysis.h"
 #include "../core/util.h"
 
 #include "config.h"
@@ -37,6 +38,8 @@ namespace {
       "phistoallocas", "Convert all PHI nodes to allocas");
 }
 
+#include <iostream>
+
 namespace pocl {
 
 char PHIsToAllocas::ID = 0;
@@ -44,15 +47,16 @@ char PHIsToAllocas::ID = 0;
 using namespace llvm;
 
 void
-PHIsToAllocas::getAnalysisUsage(AnalysisUsage &AU) const
-{
+PHIsToAllocas::getAnalysisUsage(AnalysisUsage &AU) const {
   AU.addRequired<pocl::WorkitemHandlerChooser>();
   AU.addPreserved<pocl::WorkitemHandlerChooser>();
+
+  AU.addRequired<pocl::VariableUniformityAnalysis>();
+  AU.addPreserved<pocl::VariableUniformityAnalysis>();
 }
 
 bool
-PHIsToAllocas::runOnFunction(Function &F)
-{
+PHIsToAllocas::runOnFunction(Function &F) {
   if (!Workgroup::isKernelToProcess(F))
     return false;
 
@@ -71,27 +75,22 @@ PHIsToAllocas::runOnFunction(Function &F)
 
   for (Function::iterator bb = F.begin(); bb != F.end(); ++bb) {
     for (BasicBlock::iterator p = bb->begin(); 
-         p != bb->end(); ++p)
-      {
+         p != bb->end(); ++p) {
         Instruction* instr = p;
-        if (isa<PHINode>(instr))
-          {
+        if (isa<PHINode>(instr)) {
             PHIs.push_back(instr);
-          }
-      }
-
+        }
+    }
   }
 
   bool changed = false;
   for (InstructionVec::iterator i = PHIs.begin(); i != PHIs.end();
-       ++i) 
-    {
+       ++i) {
       Instruction *instr = *i;
       BreakPHIToAllocas(dyn_cast<PHINode>(instr));
       changed = true;
-    }  
+  }  
   return changed;
-
 }
 
 /**
@@ -108,30 +107,56 @@ PHIsToAllocas::runOnFunction(Function &F)
  * break the assumption of single entry regions.
  */
 llvm::Instruction *
-PHIsToAllocas::BreakPHIToAllocas(PHINode* phi) 
-{
+PHIsToAllocas::BreakPHIToAllocas(PHINode* phi) {
+
+  // Loop iteration variables can be detected only when they are
+  // implemented using PHI nodes. Maintain information of the
+  // split PHI nodes in the VUA by first analyzing the function
+  // with the PHIs intact and propagating the uniformity info
+  // of the PHI nodes.
+  VariableUniformityAnalysis &VUA = 
+      getAnalysis<VariableUniformityAnalysis>();
+
   std::string allocaName = std::string(phi->getName().str()) + ".ex_phi";
 
   llvm::Function *function = phi->getParent()->getParent();
+
+  const bool OriginalPHIWasUniform = VUA.isUniform(function, phi);
+
   IRBuilder<> builder(function->getEntryBlock().getFirstInsertionPt());
 
   llvm::Instruction *alloca = 
     builder.CreateAlloca(phi->getType(), 0, allocaName);
 
   for (unsigned incoming = 0; incoming < phi->getNumIncomingValues(); 
-       ++incoming)
-    {
+       ++incoming) {
       Value *val = phi->getIncomingValue(incoming);
       BasicBlock *incomingBB = phi->getIncomingBlock(incoming);
       builder.SetInsertPoint(incomingBB->getTerminator());
-      builder.CreateStore(val, alloca);
-    }
-
+      llvm::Instruction *store = builder.CreateStore(val, alloca);
+      if (OriginalPHIWasUniform)
+          VUA.setUniform(function, store);
+  }
   builder.SetInsertPoint(phi);
 
   llvm::Instruction *loadedValue = builder.CreateLoad(alloca);
   phi->replaceAllUsesWith(loadedValue);
+
+  if (OriginalPHIWasUniform) {
+#ifdef DEBUG_PHIS_TO_ALLOCAS
+      std::cout << "PHIsToAllocas: Original PHI was uniform" << std::endl
+                << "original:";
+      phi->dump();
+      std::cout << "alloca:";
+      alloca->dump();
+      std::cout << "loadedValue:";
+      loadedValue->dump();
+#endif
+      VUA.setUniform(function, alloca);
+      VUA.setUniform(function, loadedValue);
+  }
   phi->eraseFromParent();
+
   return loadedValue;
 }
 

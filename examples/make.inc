@@ -45,24 +45,24 @@ else ifneq (,$(findstring 86, $(UNAME_M)))
 endif
 
 %.o: %.cpp
-	@$(CPP) -c $(CPP_FLAGS) $<
 	@echo Compiling $<
+	@$(CPP) -c $(CPP_FLAGS) $<
 
 %.o: %.c
-	@$(CPP) -c $(CPP_FLAGS) $<
 	@echo Compiling $<
+	@$(CPP) -c $(CPP_FLAGS) $<
 
 %.obj: %.c
-	@$(CL6X) -c $(CL6X_FLAGS) $<
 	@echo Compiling $<
+	@$(CL6X) -c $(CL6X_FLAGS) $<
 
 %.out: %.cl
-	@$(CLOCL) $(CLOCL_FLAGS) $^
 	@echo Compiling $< 
+	@$(CLOCL) $(CLOCL_FLAGS) $^
 
 %.dsp_h: %.cl
-	@$(CLOCL) -t $(CLOCL_FLAGS) $^
 	@echo Compiling $< 
+	@$(CLOCL) -t $(CLOCL_FLAGS) $^
 
 $(EXE):
 

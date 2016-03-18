@@ -184,7 +184,7 @@ namespace Coal
                 break;
 
             case CL_PLATFORM_NAME:
-#if defined(DEVICE_K2X)
+#if defined(DEVICE_K2X) || defined(DEVICE_K2G)
                 STRING_ASSIGN("TI KeyStone II");
 #elif defined(DEVICE_AM57)
                 STRING_ASSIGN("TI AM57x");

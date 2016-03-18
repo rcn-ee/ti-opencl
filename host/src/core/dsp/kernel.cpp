@@ -1110,7 +1110,7 @@ int DSPKernelEvent::debug_kernel_dispatch()
         DSPProgram *prog  = (DSPProgram *)(p->deviceDependentProgram(p_device));
 
         debug_pause(p_kernel->device_entry_pt(), p_device->dspID(), 
-                    prog->outfile_name(), name, prog->program_load_addr(),
+                    prog->outfile_name(), name, prog->LoadAddress(),
                     (p_debug_kernel == GDBC6X));
         free (name);
     }
