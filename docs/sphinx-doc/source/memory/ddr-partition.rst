@@ -152,6 +152,7 @@ are similar).
  #. Reboot your evm, check /proc/iomem or run OpenCL platforms example to
     verify the changes,
     ::
+
       # cat /proc/iomem | grep CMEM
       0c100000-0c57ffff : CMEM
       822000000-828ffffff : CMEM
