@@ -129,20 +129,20 @@ _CLC_OVERLOAD _CLC_DEF __utype##16  __name(__type##16 __x, __type2##16 __y)   \
                       __op(__x.s8,__y.s8), __op(__x.s9,__y.s9), __op(__x.sa,__y.sa), __op(__x.sb,__y.sb),\
                       __op(__x.sc,__y.sc), __op(__x.sd,__y.sd), __op(__x.se,__y.se), __op(__x.sf,__y.sf)); }
 
-#define _TERNARY_VEC_DEF(__type,__utype,__name,__op)\
-_CLC_OVERLOAD _CLC_DEF __utype##2  __name(__type##2 __x, __type##2 __y, __type##2 __z)   \
+#define _TERNARY_VEC_DEF_INLINE(__def_inline,__type,__utype,__name,__op)\
+_CLC_OVERLOAD __def_inline __utype##2  __name(__type##2 __x, __type##2 __y, __type##2 __z)   \
 { return (__utype##2)  (__op(__x.s0,__y.s0,__z.s0), __op(__x.s1,__y.s1,__z.s1)); }\
-_CLC_OVERLOAD _CLC_DEF __utype##3  __name(__type##3 __x, __type##3 __y, __type##3 __z)   \
+_CLC_OVERLOAD __def_inline __utype##3  __name(__type##3 __x, __type##3 __y, __type##3 __z)   \
 { return (__utype##3)  (__op(__x.s0,__y.s0,__z.s0), __op(__x.s1,__y.s1,__z.s1), __op(__x.s2,__y.s2,__z.s2)); }\
-_CLC_OVERLOAD _CLC_DEF __utype##4  __name(__type##4 __x, __type##4 __y, __type##4 __z)   \
+_CLC_OVERLOAD __def_inline __utype##4  __name(__type##4 __x, __type##4 __y, __type##4 __z)   \
 { return (__utype##4)  (__op(__x.s0,__y.s0,__z.s0), __op(__x.s1,__y.s1,__z.s1), \
                       __op(__x.s2,__y.s2,__z.s2), __op(__x.s3,__y.s3,__z.s3)); }\
-_CLC_OVERLOAD _CLC_DEF __utype##8  __name(__type##8 __x, __type##8 __y, __type##8 __z)   \
+_CLC_OVERLOAD __def_inline __utype##8  __name(__type##8 __x, __type##8 __y, __type##8 __z)   \
 { return (__utype##8)  (__op(__x.s0,__y.s0,__z.s0), __op(__x.s1,__y.s1,__z.s1), \
                       __op(__x.s2,__y.s2,__z.s2), __op(__x.s3,__y.s3,__z.s3),\
                       __op(__x.s4,__y.s4,__z.s4), __op(__x.s5,__y.s5,__z.s5), \
                       __op(__x.s6,__y.s6,__z.s6), __op(__x.s7,__y.s7,__z.s7)); }\
-_CLC_OVERLOAD _CLC_DEF __utype##16  __name(__type##16 __x, __type##16 __y, __type##16 __z)   \
+_CLC_OVERLOAD __def_inline __utype##16  __name(__type##16 __x, __type##16 __y, __type##16 __z)   \
 { return (__utype##16)  (__op(__x.s0,__y.s0,__z.s0), __op(__x.s1,__y.s1,__z.s1), \
                        __op(__x.s2,__y.s2,__z.s2), __op(__x.s3,__y.s3,__z.s3),\
                        __op(__x.s4,__y.s4,__z.s4), __op(__x.s5,__y.s5,__z.s5), \
@@ -151,6 +151,9 @@ _CLC_OVERLOAD _CLC_DEF __utype##16  __name(__type##16 __x, __type##16 __y, __typ
                        __op(__x.sa,__y.sa,__z.sa), __op(__x.sb,__y.sb,__z.sb),\
                        __op(__x.sc,__y.sc,__z.sc), __op(__x.sd,__y.sd,__z.sd), \
                        __op(__x.se,__y.se,__z.se), __op(__x.sf,__y.sf,__z.sf)); }
+
+#define _TERNARY_VEC_DEF(__type,__utype,__name,__op)    _TERNARY_VEC_DEF_INLINE(_CLC_DEF,   __type,__utype,__name,__op)
+#define _TERNARY_VEC_INLINE(__type,__utype,__name,__op) _TERNARY_VEC_DEF_INLINE(_CLC_INLINE,__type,__utype,__name,__op)
 
 
 #define _VEC_TYPE(__type,__sz) __type##__sz
@@ -985,8 +988,8 @@ _UNARY(logb)
 
 _CLC_OVERLOAD _CLC_INLINE float  mad(float __a,  float __b,  float __c)  { return (__a*__b)+__c; }
 _CLC_OVERLOAD _CLC_INLINE double mad(double __a, double __b, double __c) { return (__a*__b)+__c; }
-_TERNARY_VEC_DECL(float,  float,  mad)
-_TERNARY_VEC_DECL(double, double, mad)
+_TERNARY_VEC_INLINE(float,  float,  mad, mad)
+_TERNARY_VEC_INLINE(double, double, mad, mad)
 
 _BINARY(maxmag)
 _BINARY(minmag)
@@ -1701,12 +1704,12 @@ _EXPAND_SIZES(double)
 *----------------------------------------------------------------------------*/
 _CLC_OVERLOAD _CLC_INLINE float  dot(float __p0, float __p1)   {return __p0*__p1;}
 _CLC_OVERLOAD _CLC_INLINE float  dot(float2 __p0, float2 __p1) {return __p0.x*__p1.x+__p0.y*__p1.y;}
-_CLC_OVERLOAD _CLC_DECL   float  dot(float3 __p0, float3 __p1);
-_CLC_OVERLOAD _CLC_DECL   float  dot(float4 __p0, float4 __p1);
+_CLC_OVERLOAD _CLC_INLINE float  dot(float3 __p0, float3 __p1) { return __p0.x*__p1.x + __p0.y*__p1.y + __p0.z*__p1.z; }
+_CLC_OVERLOAD _CLC_INLINE float  dot(float4 __p0, float4 __p1) { return __p0.x*__p1.x + __p0.y*__p1.y + __p0.z*__p1.z + __p0.w*__p1.w; }
 _CLC_OVERLOAD _CLC_INLINE double dot(double __p0, double __p1)   {return __p0*__p1;}
 _CLC_OVERLOAD _CLC_INLINE double dot(double2 __p0, double2 __p1) {return __p0.x*__p1.x+__p0.y*__p1.y;}
-_CLC_OVERLOAD _CLC_DECL   double dot(double3 __p0, double3 __p1) ;
-_CLC_OVERLOAD _CLC_DECL   double dot(double4 __p0, double4 __p1) ;
+_CLC_OVERLOAD _CLC_INLINE double dot(double3 __p0, double3 __p1) { return __p0.x*__p1.x + __p0.y*__p1.y + __p0.z*__p1.z; }
+_CLC_OVERLOAD _CLC_INLINE double dot(double4 __p0, double4 __p1) { return __p0.x*__p1.x + __p0.y*__p1.y + __p0.z*__p1.z + __p0.w*__p1.w; }
 
 _CLC_OVERLOAD _CLC_DECL float3  cross(float3 __p0, float3 __p1);
 _CLC_OVERLOAD _CLC_DECL float4  cross(float4 __p0, float4 __p1);

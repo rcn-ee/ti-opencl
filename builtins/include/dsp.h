@@ -1,5 +1,6 @@
 /******************************************************************************
- * Copyright (c) 2013-2014, Texas Instruments Incorporated - http://www.ti.com/
+ * Copyright (c) 2011-2014, Peter Collingbourne <peter@pcc.me.uk>
+ * Copyright (c) 2013-2016, Texas Instruments Incorporated - http://www.ti.com/
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -521,34 +522,6 @@ _CLC_OVERLOAD _CLC_INLINE int4     vload4 (size_t __offset, _ADDR_SPACE const in
 _CLC_OVERLOAD _CLC_INLINE float4   vload4 (size_t __offset, _ADDR_SPACE const float *__p)\
 { return (float4)(vload2(__offset*2, __p), vload2(__offset*2+1, __p)); }\
 \
-_CLC_OVERLOAD _CLC_DECL ushort16 vload16(size_t __offset, _ADDR_SPACE const ushort *__p);\
-_CLC_OVERLOAD _CLC_DECL short16  vload16(size_t __offset, _ADDR_SPACE const short *__p);\
-_CLC_OVERLOAD _CLC_DECL uint8    vload8 (size_t __offset, _ADDR_SPACE const uint *__p);\
-_CLC_OVERLOAD _CLC_DECL uint16   vload16(size_t __offset, _ADDR_SPACE const uint *__p);\
-_CLC_OVERLOAD _CLC_DECL int8     vload8 (size_t __offset, _ADDR_SPACE const int *__p);\
-_CLC_OVERLOAD _CLC_DECL int16    vload16(size_t __offset, _ADDR_SPACE const int *__p);\
-_CLC_OVERLOAD _CLC_DECL float8   vload8 (size_t __offset, _ADDR_SPACE const float *__p);\
-_CLC_OVERLOAD _CLC_DECL float16  vload16(size_t __offset, _ADDR_SPACE const float *__p);\
-_CLC_OVERLOAD _CLC_DECL ulong4   vload4 (size_t __offset, _ADDR_SPACE const ulong *__p);\
-_CLC_OVERLOAD _CLC_DECL ulong8   vload8 (size_t __offset, _ADDR_SPACE const ulong *__p);\
-_CLC_OVERLOAD _CLC_DECL ulong16  vload16(size_t __offset, _ADDR_SPACE const ulong *__p);\
-_CLC_OVERLOAD _CLC_DECL long4    vload4 (size_t __offset, _ADDR_SPACE const long *__p);\
-_CLC_OVERLOAD _CLC_DECL long8    vload8 (size_t __offset, _ADDR_SPACE const long *__p);\
-_CLC_OVERLOAD _CLC_DECL long16   vload16(size_t __offset, _ADDR_SPACE const long *__p);\
-_CLC_OVERLOAD _CLC_DECL double4  vload4 (size_t __offset, _ADDR_SPACE const double *__p);\
-_CLC_OVERLOAD _CLC_DECL double8  vload8 (size_t __offset, _ADDR_SPACE const double *__p);\
-_CLC_OVERLOAD _CLC_DECL double16 vload16(size_t __offset, _ADDR_SPACE const double *__p);\
-\
-_CLC_OVERLOAD _CLC_DECL uchar3   vload3 (size_t __offset, _ADDR_SPACE const uchar *__p);\
-_CLC_OVERLOAD _CLC_DECL char3    vload3 (size_t __offset, _ADDR_SPACE const char *__p);\
-_CLC_OVERLOAD _CLC_DECL ushort3  vload3 (size_t __offset, _ADDR_SPACE const ushort *__p);\
-_CLC_OVERLOAD _CLC_DECL short3   vload3 (size_t __offset, _ADDR_SPACE const short *__p);\
-_CLC_OVERLOAD _CLC_DECL uint3    vload3 (size_t __offset, _ADDR_SPACE const uint *__p);\
-_CLC_OVERLOAD _CLC_DECL int3     vload3 (size_t __offset, _ADDR_SPACE const int *__p);\
-_CLC_OVERLOAD _CLC_DECL float3   vload3 (size_t __offset, _ADDR_SPACE const float *__p);\
-_CLC_OVERLOAD _CLC_DECL ulong3   vload3 (size_t __offset, _ADDR_SPACE const ulong *__p);\
-_CLC_OVERLOAD _CLC_DECL long3    vload3 (size_t __offset, _ADDR_SPACE const long *__p);\
-_CLC_OVERLOAD _CLC_DECL double3  vload3 (size_t __offset, _ADDR_SPACE const double *__p);\
 
 _VLOAD_ADDR_SPACES(__private)
 _VLOAD_ADDR_SPACES(__constant)
@@ -632,35 +605,6 @@ _CLC_OVERLOAD _CLC_INLINE void vstore4 (int4     __data, size_t __offset, _ADDR_
 \
 _CLC_OVERLOAD _CLC_INLINE void vstore4 (float4   __data, size_t __offset, _ADDR_SPACE float *__p)\
 { vstore2(__data.lo, __offset*2, __p); vstore2(__data.hi, __offset*2+1, __p); } \
-\
-_CLC_OVERLOAD _CLC_DECL void vstore16(ushort16 __data, size_t __offset, _ADDR_SPACE ushort *__p);\
-_CLC_OVERLOAD _CLC_DECL void vstore16(short16  __data, size_t __offset, _ADDR_SPACE short *__p);\
-_CLC_OVERLOAD _CLC_DECL void vstore8 (uint8    __data, size_t __offset, _ADDR_SPACE uint *__p);\
-_CLC_OVERLOAD _CLC_DECL void vstore16(uint16   __data, size_t __offset, _ADDR_SPACE uint *__p);\
-_CLC_OVERLOAD _CLC_DECL void vstore8 (int8     __data, size_t __offset, _ADDR_SPACE int *__p);\
-_CLC_OVERLOAD _CLC_DECL void vstore16(int16    __data, size_t __offset, _ADDR_SPACE int *__p);\
-_CLC_OVERLOAD _CLC_DECL void vstore8 (float8   __data, size_t __offset, _ADDR_SPACE float *__p);\
-_CLC_OVERLOAD _CLC_DECL void vstore16(float16  __data, size_t __offset, _ADDR_SPACE float *__p);\
-_CLC_OVERLOAD _CLC_DECL void vstore4 (ulong4   __data, size_t __offset, _ADDR_SPACE ulong *__p);\
-_CLC_OVERLOAD _CLC_DECL void vstore8 (ulong8   __data, size_t __offset, _ADDR_SPACE ulong *__p);\
-_CLC_OVERLOAD _CLC_DECL void vstore16(ulong16  __data, size_t __offset, _ADDR_SPACE ulong *__p);\
-_CLC_OVERLOAD _CLC_DECL void vstore4 (long4    __data, size_t __offset, _ADDR_SPACE long *__p);\
-_CLC_OVERLOAD _CLC_DECL void vstore8 (long8    __data, size_t __offset, _ADDR_SPACE long *__p);\
-_CLC_OVERLOAD _CLC_DECL void vstore16(long16   __data, size_t __offset, _ADDR_SPACE long *__p);\
-_CLC_OVERLOAD _CLC_DECL void vstore4 (double4  __data, size_t __offset, _ADDR_SPACE double *__p);\
-_CLC_OVERLOAD _CLC_DECL void vstore8 (double8  __data, size_t __offset, _ADDR_SPACE double *__p);\
-_CLC_OVERLOAD _CLC_DECL void vstore16(double16 __data, size_t __offset, _ADDR_SPACE double *__p);\
-\
-_CLC_OVERLOAD _CLC_DECL void vstore3 (uchar3   __data, size_t __offset, _ADDR_SPACE uchar *__p);\
-_CLC_OVERLOAD _CLC_DECL void vstore3 (char3    __data, size_t __offset, _ADDR_SPACE char *__p);\
-_CLC_OVERLOAD _CLC_DECL void vstore3 (ushort3  __data, size_t __offset, _ADDR_SPACE ushort *__p);\
-_CLC_OVERLOAD _CLC_DECL void vstore3 (short3   __data, size_t __offset, _ADDR_SPACE short *__p);\
-_CLC_OVERLOAD _CLC_DECL void vstore3 (uint3    __data, size_t __offset, _ADDR_SPACE uint *__p);\
-_CLC_OVERLOAD _CLC_DECL void vstore3 (int3     __data, size_t __offset, _ADDR_SPACE int *__p);\
-_CLC_OVERLOAD _CLC_DECL void vstore3 (float3   __data, size_t __offset, _ADDR_SPACE float *__p);\
-_CLC_OVERLOAD _CLC_DECL void vstore3 (ulong3   __data, size_t __offset, _ADDR_SPACE ulong *__p);\
-_CLC_OVERLOAD _CLC_DECL void vstore3 (long3    __data, size_t __offset, _ADDR_SPACE long *__p);\
-_CLC_OVERLOAD _CLC_DECL void vstore3 (double3  __data, size_t __offset, _ADDR_SPACE double *__p);\
 
 _VSTORE_ADDR_SPACES(__private)
 _VSTORE_ADDR_SPACES(__global)
@@ -745,4 +689,199 @@ _CLC_OVERLOAD _CLC_INLINE short16 rhadd(short16 __a, short16 __b)
     __x.hi = rhadd(__a.hi, __b.hi);
     return __x;
 }
+
+
+#ifndef _OCL_LIB_BUILD
+/*-----------------------------------------------------------------------------
+* Selected convert_* BIFs to be inlined
+*----------------------------------------------------------------------------*/
+_CLC_OVERLOAD _CLC_INLINE short convert_short_sat(int __x)
+{
+  __x = clamp(__x, (int)SHRT_MIN, (int)SHRT_MAX);
+  return (short)__x;
+}
+
+_CLC_OVERLOAD _CLC_INLINE uchar convert_uchar_sat(int __x)
+{
+  __x = clamp(__x, (int)0, (int)UCHAR_MAX);
+  return (uchar)__x;
+}
+
+_CLC_OVERLOAD _CLC_INLINE uchar2 convert_uchar2_sat(int2 __x)
+{
+  return (uchar2)(convert_uchar_sat(__x.lo), convert_uchar_sat(__x.hi));
+}
+
+_CLC_OVERLOAD _CLC_INLINE uchar3 convert_uchar3_sat(int3 __x)
+{
+  return (uchar3)(convert_uchar2_sat(__x.s01), convert_uchar_sat(__x.s2));
+}
+
+_CLC_OVERLOAD _CLC_INLINE uchar4 convert_uchar4_sat(int4 __x)
+{
+  return (uchar4)(convert_uchar2_sat(__x.lo), convert_uchar2_sat(__x.hi));
+}
+
+_CLC_OVERLOAD _CLC_INLINE int convert_int(uchar __x)
+{
+  return (int)__x;
+}
+
+_CLC_OVERLOAD _CLC_INLINE short convert_short(int __x)
+{
+  return (short)__x;
+}
+
+_CLC_OVERLOAD _CLC_INLINE uchar convert_uchar(uint __x)
+{
+  return (uchar)__x;
+}
+
+_CLC_OVERLOAD _CLC_INLINE float convert_float(float __x)
+{
+  return __x;
+}
+
+_CLC_OVERLOAD _CLC_INLINE float convert_float(int __x)
+{
+  return (float)__x;
+}
+
+_CLC_OVERLOAD _CLC_INLINE float convert_float(uchar __x)
+{
+  return (float)__x;
+}
+#endif
+
+/*-----------------------------------------------------------------------------
+* Remaining vload/vstore BIFs
+*----------------------------------------------------------------------------*/
+#define VLOAD_VECTORIZE(PRIM_TYPE, ADDR_SPACE) \
+  _CLC_OVERLOAD _CLC_INLINE PRIM_TYPE##3 vload3(size_t __offset, const ADDR_SPACE PRIM_TYPE *__x) { \
+    return (PRIM_TYPE##3)(__x[3*__offset] , __x[3*__offset+1], __x[3*__offset+2]); } \
+  _CLC_OVERLOAD _CLC_INLINE PRIM_TYPE##4 vload4(size_t __offset, const ADDR_SPACE PRIM_TYPE *__x) { \
+    return (PRIM_TYPE##4)(vload2(__offset<<1, __x), vload2((__offset<<1)+1,__x)); } \
+  _CLC_OVERLOAD _CLC_INLINE PRIM_TYPE##8 vload8(size_t __offset, const ADDR_SPACE PRIM_TYPE *__x) { \
+    return (PRIM_TYPE##8)(vload4(__offset<<1, __x), vload4((__offset<<1)+1,__x)); } \
+  _CLC_OVERLOAD _CLC_INLINE PRIM_TYPE##16 vload16(size_t __offset, const ADDR_SPACE PRIM_TYPE *__x) { \
+    return (PRIM_TYPE##16)(vload8(__offset<<1, __x), vload8((__offset<<1)+1,__x)); } \
+
+#define VLOAD_ADDR_SPACES(__CLC_SCALAR_GENTYPE) \
+    VLOAD_VECTORIZE(__CLC_SCALAR_GENTYPE, __private) \
+    VLOAD_VECTORIZE(__CLC_SCALAR_GENTYPE, __local) \
+    VLOAD_VECTORIZE(__CLC_SCALAR_GENTYPE, __constant) \
+    VLOAD_VECTORIZE(__CLC_SCALAR_GENTYPE, __global) \
+
+VLOAD_ADDR_SPACES(long)
+VLOAD_ADDR_SPACES(ulong)
+VLOAD_ADDR_SPACES(double)
+
+#undef VLOAD_VECTORIZE
+#define VLOAD_VECTORIZE(PRIM_TYPE, ADDR_SPACE) \
+  _CLC_OVERLOAD _CLC_INLINE PRIM_TYPE##3 vload3(size_t __offset, const ADDR_SPACE PRIM_TYPE *__x) { \
+    return (PRIM_TYPE##3)(__x[3*__offset] , __x[3*__offset+1], __x[3*__offset+2]); } \
+  _CLC_OVERLOAD _CLC_INLINE PRIM_TYPE##8 vload8(size_t __offset, const ADDR_SPACE PRIM_TYPE *__x) { \
+    return (PRIM_TYPE##8)(vload4(__offset<<1, __x), vload4((__offset<<1)+1,__x)); } \
+  _CLC_OVERLOAD _CLC_INLINE PRIM_TYPE##16 vload16(size_t __offset, const ADDR_SPACE PRIM_TYPE *__x) { \
+    return (PRIM_TYPE##16)(vload8(__offset<<1, __x), vload8((__offset<<1)+1,__x)); } \
+
+VLOAD_ADDR_SPACES(int)
+VLOAD_ADDR_SPACES(uint)
+VLOAD_ADDR_SPACES(float)
+
+#undef VLOAD_VECTORIZE
+#define VLOAD_VECTORIZE(PRIM_TYPE, ADDR_SPACE) \
+  _CLC_OVERLOAD _CLC_INLINE PRIM_TYPE##3 vload3(size_t __offset, const ADDR_SPACE PRIM_TYPE *__x) { \
+    return (PRIM_TYPE##3)(__x[3*__offset] , __x[3*__offset+1], __x[3*__offset+2]); } \
+  _CLC_OVERLOAD _CLC_INLINE PRIM_TYPE##16 vload16(size_t __offset, const ADDR_SPACE PRIM_TYPE *__x) { \
+    return (PRIM_TYPE##16)(vload8(__offset<<1, __x), vload8((__offset<<1)+1,__x)); } \
+
+VLOAD_ADDR_SPACES(short)
+VLOAD_ADDR_SPACES(ushort)
+
+#undef VLOAD_VECTORIZE
+#undef VLOAD_VECTORIZE
+#define VLOAD_VECTORIZE(PRIM_TYPE, ADDR_SPACE) \
+  _CLC_OVERLOAD _CLC_INLINE PRIM_TYPE##3 vload3(size_t __offset, const ADDR_SPACE PRIM_TYPE *__x) { \
+    return (PRIM_TYPE##3)(__x[3*__offset] , __x[3*__offset+1], __x[3*__offset+2]); } \
+
+VLOAD_ADDR_SPACES(char)
+VLOAD_ADDR_SPACES(uchar)
+
+#undef VLOAD_VECTORIZE
+
+#define VSTORE_VECTORIZE(PRIM_TYPE, ADDR_SPACE) \
+  _CLC_OVERLOAD _CLC_INLINE void vstore3(PRIM_TYPE##3 vec, size_t __offset, ADDR_SPACE PRIM_TYPE *__mem) { \
+    __mem[3*__offset]   = vec.s0; \
+    __mem[(3*__offset)+1] = vec.s1; \
+    __mem[(3*__offset)+2] = vec.s2; \
+  } \
+  _CLC_OVERLOAD _CLC_INLINE void vstore4(PRIM_TYPE##4 vec, size_t __offset, ADDR_SPACE PRIM_TYPE *__mem) { \
+    vstore2(vec.lo, __offset<<1, __mem); vstore2(vec.hi, (__offset<<1)+1, __mem);\
+  } \
+  _CLC_OVERLOAD _CLC_INLINE void vstore8(PRIM_TYPE##8 vec, size_t __offset, ADDR_SPACE PRIM_TYPE *__mem) { \
+    vstore4(vec.lo, __offset<<1, __mem); vstore4(vec.hi, (__offset<<1)+1, __mem);\
+  } \
+  _CLC_OVERLOAD _CLC_INLINE void vstore16(PRIM_TYPE##16 vec, size_t __offset, ADDR_SPACE PRIM_TYPE *__mem) { \
+    vstore8(vec.lo, __offset<<1, __mem); vstore8(vec.hi, (__offset<<1)+1, __mem);\
+  } \
+
+#define VSTORE_ADDR_SPACES(__CLC_SCALAR___CLC_GENTYPE) \
+    VSTORE_VECTORIZE(__CLC_SCALAR___CLC_GENTYPE, __private) \
+    VSTORE_VECTORIZE(__CLC_SCALAR___CLC_GENTYPE, __local) \
+    VSTORE_VECTORIZE(__CLC_SCALAR___CLC_GENTYPE, __global) \
+
+
+VSTORE_ADDR_SPACES(long)
+VSTORE_ADDR_SPACES(ulong)
+VSTORE_ADDR_SPACES(double)
+
+#undef VSTORE_VECTORIZE
+#define VSTORE_VECTORIZE(PRIM_TYPE, ADDR_SPACE) \
+  _CLC_OVERLOAD _CLC_INLINE void vstore3(PRIM_TYPE##3 vec, size_t __offset, ADDR_SPACE PRIM_TYPE *__mem) { \
+    __mem[3*__offset]   = vec.s0; \
+    __mem[(3*__offset)+1] = vec.s1; \
+    __mem[(3*__offset)+2] = vec.s2; \
+  } \
+  _CLC_OVERLOAD _CLC_INLINE void vstore8(PRIM_TYPE##8 vec, size_t __offset, ADDR_SPACE PRIM_TYPE *__mem) { \
+    vstore4(vec.lo, __offset<<1, __mem); vstore4(vec.hi, (__offset<<1)+1, __mem);\
+  } \
+  _CLC_OVERLOAD _CLC_INLINE void vstore16(PRIM_TYPE##16 vec, size_t __offset, ADDR_SPACE PRIM_TYPE *__mem) { \
+    vstore8(vec.lo, __offset<<1, __mem); vstore8(vec.hi, (__offset<<1)+1, __mem);\
+  } \
+
+
+VSTORE_ADDR_SPACES(int)
+VSTORE_ADDR_SPACES(uint)
+VSTORE_ADDR_SPACES(float)
+
+#undef VSTORE_VECTORIZE
+#define VSTORE_VECTORIZE(PRIM_TYPE, ADDR_SPACE) \
+  _CLC_OVERLOAD _CLC_INLINE void vstore3(PRIM_TYPE##3 vec, size_t __offset, ADDR_SPACE PRIM_TYPE *__mem) { \
+    __mem[3*__offset]   = vec.s0; \
+    __mem[(3*__offset)+1] = vec.s1; \
+    __mem[(3*__offset)+2] = vec.s2; \
+  } \
+  _CLC_OVERLOAD _CLC_INLINE void vstore16(PRIM_TYPE##16 vec, size_t __offset, ADDR_SPACE PRIM_TYPE *__mem) { \
+    vstore8(vec.lo, __offset<<1, __mem); vstore8(vec.hi, (__offset<<1)+1, __mem);\
+  } \
+
+VSTORE_ADDR_SPACES(short)
+VSTORE_ADDR_SPACES(ushort)
+
+#undef VSTORE_VECTORIZE
+#define VSTORE_VECTORIZE(PRIM_TYPE, ADDR_SPACE) \
+  _CLC_OVERLOAD _CLC_INLINE void vstore3(PRIM_TYPE##3 vec, size_t __offset, ADDR_SPACE PRIM_TYPE *__mem) { \
+    __mem[3*__offset]   = vec.s0; \
+    __mem[(3*__offset)+1] = vec.s1; \
+    __mem[(3*__offset)+2] = vec.s2; \
+  } \
+
+VSTORE_ADDR_SPACES(char)
+VSTORE_ADDR_SPACES(uchar)
+
+#undef VSTORE_VECTORIZE
+#undef VSTORE_ADDR_SPACES
+#undef VLOAD_ADDR_SPACES
+
 #endif //_DSP_CLC_H_

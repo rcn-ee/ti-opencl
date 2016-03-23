@@ -17,7 +17,7 @@ CL6X_CFLAGS   = -q -o3 -mv6600 --abi=eabi --use_g3 -mt -mo
 CL6X_CFLAGS  += --mem_model:code=far --mem_model:data=far
 CLANG_CFLAGS  = -cc1 -O2 -triple=c6000-unknown-unknown-unknown -Fvisibility=protected
 CLANG_CFLAGS += -x cl -cl-std=CL1.2 -fno-builtin -ffp-contract=off 
-CLANG_CFLAGS += -Iinclude 
+CLANG_CFLAGS += -Iinclude -D_OCL_LIB_BUILD
 
 CL_FILES = $(wildcard lib/*.cl lib/dsp/*.cl)
 OBJECTS := ${CL_FILES:.cl=.obj}
