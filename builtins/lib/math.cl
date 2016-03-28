@@ -86,7 +86,6 @@ UNARY(log2)
 UNARY(log10)
 UNARY(log1p)
 UNARY(logb)
-TERNARY(mad)
 BINARY(maxmag)
 BINARY(minmag)
 

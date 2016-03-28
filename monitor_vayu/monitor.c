@@ -110,6 +110,8 @@ EXPORT kernel_config_t kernel_config_l2;
 static void initialize_gdbserver     ();
 #if defined(DEVICE_AM572x)
 static void initialize_ipcpower_callbacks();
+static void enable_ipcpower_suspend();
+static void disable_ipcpower_suspend();
 #endif
 static void flush_buffers(flush_msg_t *Msg);
 
@@ -128,6 +130,7 @@ static void process_kernel_command(ocl_msgq_message_t* msgq_pkt);
 static void process_task_command  (ocl_msgq_message_t* msgq_msg);
 static void process_cache_command (int pkt_id, ocl_msgq_message_t *msgq_pkt);
 static void process_exit_command  (ocl_msgq_message_t* msgq_msg);
+static void process_setup_debug_command(ocl_msgq_message_t* msgq_pkt);
 static void service_workgroup     (Msg_t* msg);
 static int  setup_ndr_chunks      (int dims, uint32_t* limits, uint32_t* offsets, 
                                    uint32_t *gsz, uint32_t* lsz);
@@ -182,7 +185,9 @@ int main(int argc, char* argv[])
         System_abort("main: tomp_initOpenMPforOpenCL() failed");
 
     initialize_edmamgr();
+#if !defined(DEVICE_AM572x)
     initialize_gdbserver();
+#endif
 #if defined(DEVICE_AM572x)
     initialize_ipcpower_callbacks();
 #endif
@@ -307,6 +312,11 @@ void ocl_monitor()
                 Log_print0(Diags_INFO, "EXIT\n");
                 TRACE(ULM_OCL_EXIT, 0, 0);
                 process_exit_command(msgq_pkt);
+                break;
+
+            case SETUP_DEBUG:
+                Log_print0(Diags_INFO, "SETUP_DEBUG\n");
+                process_setup_debug_command(msgq_pkt);
                 break;
 
             case FREQUENCY:
@@ -563,7 +573,21 @@ static void process_exit_command(ocl_msgq_message_t *msg_pkt)
     /* Not sending a response to host, delete the msg */
     MessageQ_free((MessageQ_Msg)msg_pkt);
     Log_print0(Diags_INFO, "ocl_monitor: EXIT, no response");
+    enable_ipcpower_suspend();
     cacheWbInvAllL2();
+#endif
+}
+
+/******************************************************************************
+* process_setup_debug_command
+******************************************************************************/
+static void process_setup_debug_command(ocl_msgq_message_t* msg_pkt)
+{
+    MessageQ_free((MessageQ_Msg)msg_pkt);
+#ifdef DEVICE_K2G
+#else
+    disable_ipcpower_suspend();
+    initialize_gdbserver();
 #endif
 }
 
@@ -598,6 +622,20 @@ static void initialize_ipcpower_callbacks()
 {
     IpcPower_registerCallback(IpcPower_Event_SUSPEND, ocl_suspend_call, NULL);
   //IpcPower_registerCallback(IpcPower_Event_RESUME,  ocl_resume_call,  NULL);
+}
+
+extern int AET_C66x_GDB_Release(void);
+static void enable_ipcpower_suspend()
+{
+#if defined(GDB_ENABLED)
+    AET_C66x_GDB_Release();
+#endif
+    while (! IpcPower_canHibernate())  IpcPower_hibernateUnlock();
+}
+
+static void disable_ipcpower_suspend()
+{
+    if (IpcPower_canHibernate())  IpcPower_hibernateLock();
 }
 #endif
 

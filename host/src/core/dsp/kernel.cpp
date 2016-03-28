@@ -1100,6 +1100,10 @@ int DSPKernelEvent::debug_kernel_dispatch()
 {
     if (p_debug_kernel != NODEBUG)
     {
+#if defined(DEVICE_AM57)
+        p_device->mail_to(debugMsg);
+#endif
+
         size_t name_length;
         p_kernel->kernel()->info(CL_KERNEL_FUNCTION_NAME, 0, 0, &name_length);
         char *name = (char*)malloc(name_length);
