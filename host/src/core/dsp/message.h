@@ -33,7 +33,8 @@
 typedef enum
 {
     READY, EXIT, TASK, NDRKERNEL, WORKGROUP, CACHEINV,
-    FREQUENCY, SUCCESS, ERROR, PRINT, BROADCAST, CONFIGURE_MONITOR
+    FREQUENCY, SUCCESS, ERROR, PRINT, BROADCAST, CONFIGURE_MONITOR,
+    SETUP_DEBUG
 } command_codes;
 
 #define MAX_NDR_DIMENSIONS   3
@@ -125,6 +126,7 @@ static Msg_t readyMsg     = {READY};
 static Msg_t errorMsg     = {ERROR};
 static Msg_t frequencyMsg = {FREQUENCY};
 static Msg_t cacheMsg     = {CACHEINV};
+static Msg_t debugMsg     = {SETUP_DEBUG};
 
 // static far Msg_t printMsg  = {PRINT}; // moved to L2 in monitor
 

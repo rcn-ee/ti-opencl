@@ -532,7 +532,7 @@ static int process_exit_command(void)
     service_exit(NULL);
     return 0;
 }
-    
+
 /******************************************************************************
 * send a command to all cores through a qmss Q and wait for said command to 
 * complete on at least core 0. 

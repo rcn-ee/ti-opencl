@@ -167,7 +167,7 @@ SECTIONS
 
     .fardata: load >> DDR3
     .far: load >> DDR3
-    .gdb_server: >> DDR3
+    .gdb_server: load = L2SRAM, type = NOLOAD, fill = 0x0
 }
 
 --symbol_map=acosd=acos
