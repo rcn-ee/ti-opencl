@@ -120,3 +120,17 @@ and window 2::
     On AM57, if your kernel code contains ``printf``, debugging with gdbc6x
     will crash once ``printf`` is executed.  We are working to fix this issue.
 
+.. Note::
+    On AM57, starting with OpenCL product v01.01.08.01, DSPs could enter
+    suspended state when idling, to save power.  Sometimes, after a gdbc6x
+    debug session, DSP core 0 gets stuck in non-suspendable state.  To resolve
+    this, user can either reboot the EVM or use the following script to reload
+    DSP firmware.
+        | $ cat reload_dspfirmware.sh
+        | #!/bin/sh
+        | cd /sys/bus/platform/drivers/omap-rproc
+        | echo 40800000.dsp > unbind
+        | echo 41000000.dsp > unbind
+        | echo 40800000.dsp > bind
+        | echo 41000000.dsp > bind
+
