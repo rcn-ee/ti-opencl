@@ -44,7 +44,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 if (${BUILD_OS} MATCHES "SYS_BIOS")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mcpu=cortex-a15 -mtune=cortex-a15 -mfloat-abi=hard -Dxdc_target_types__=${BIOS_INSTALL_PATH}/gnu/targets/arm/std.h -Dxdc_target_name__=A15F")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDEVICE_AM57 -D_SYS_BIOS -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS -mcpu=cortex-a15 -mtune=cortex-a15 -mfloat-abi=hard")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I${XDC_INSTALL_PATH} -I${BIOS_INSTALL_PATH} -I${BOOST_INSTALL_PATH} -I${LOKI_INCLUDE_PATH}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I${XDC_INSTALL_PATH} -I${BIOS_INSTALL_PATH} -I${LOKI_INCLUDE_PATH}")
 endif()
 
 
