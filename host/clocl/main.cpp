@@ -32,6 +32,7 @@
 #include <sstream>
 #include <cstdlib>
 #include <sys/stat.h>
+#include <unistd.h>
 
 #include <llvm/Bitcode/ReaderWriter.h>
 #include <llvm/PassManager.h>

@@ -1,24 +1,28 @@
 ###YUAN TODO: bring in sync with latest Makefile or maybe even merge with it
 
-OPENCL_SRC_DIR = ../host
+# If not specified, assume the opencl source directory is at same location as
+# monitor
+OPENCL_SRC_DIR ?= ../host
 
 TI_OCL_CGT_INSTALL=/cgnas/ti-cgt-c6000-current-linux
 DEFAULT_DEV_INSTALL_DIR = /cgnas/ti-processor-sdk-rtos-am57xx-evm-02.00.01.07-release
 
 SOURCE_DIR = ../monitor_vayu
 
-PDK_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/pdk_am57xx_1_0_1
-IPC_DIR        = $(DEFAULT_DEV_INSTALL_DIR)/ipc_3_41_00_08
-XDC_DIR        = $(DEFAULT_DEV_INSTALL_DIR)/xdctools_3_31_02_38_core
-BIOS_DIR       = $(DEFAULT_DEV_INSTALL_DIR)/bios_6_45_00_19
-FC_DIR         = $(DEFAULT_DEV_INSTALL_DIR)/framework_components_3_40_01_04
-EDMA3LLD_DIR   = $(DEFAULT_DEV_INSTALL_DIR)/edma3_lld_02_12_01_22
-XDAIS_DIR      ?= $(DEFAULT_DEV_INSTALL_DIR)/xdais_7_24_00_04
-#CSL_DIR        = $(DEFAULT_DEV_INSTALL_DIR)/CSL
-CSL_DIR        = $(PDK_DIR)/packages/ti/csl
+AM57_PDK_DIR   ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/pdk_am57xx_*)
+IPC_DIR        ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/ipc_*)
+XDC_DIR        ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/xdctools_*)
+BIOS_DIR       ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/bios_*)
+#OMP_DIR        ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/openmp_dsp_*)
+FC_DIR         ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/framework_components*)
+EDMA3LLD_DIR   ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/edma3_lld_*)
+XDAIS_DIR      ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/xdais_*)
+
+#CSL_DIR        = $(AM57_PDK_DIR)/packages/ti/csl
 OBJDIR         = dsp_monitor
 
-export XDC_DIR := $(XDC_DIR)
+export XDC_DIR
+export BIOS_DIR
 
 PLATFORM  = ti.platforms.evmDRA7XX:dsp1
 PROJECT   = monitor
@@ -32,11 +36,12 @@ CC= cl6x -o3 -mv6600 --abi=eabi --mem_model:const=data --mem_model:data=far -D_S
 CFLAGS_DIROPTS = -fr=$(OBJDIR) -fs=$(OBJDIR)
 
 INCLUDES  = -i. -i $(OPENCL_SRC_DIR)/src/core/dsp
-INCLUDES += -i $(PDK_DIR)/packages -i $(TI_OCL_CGT_INSTALL)/include \
+INCLUDES += -i $(AM57_PDK_DIR)/packages -i $(TI_OCL_CGT_INSTALL)/include \
 	    -i $(IPC_DIR)/packages -i $(XDC_DIR)/packages           \
 	    -i $(BIOS_DIR)/packages -i $(EDMA3LLD_DIR)/packages     \
 	    -i $(FC_DIR)/packages -i $(XDAIS_DIR)/packages          \
-	    -i $(CSL_DIR)
+
+#	    -i $(CSL_DIR)
 INCLUDES += -D$(DEVICE)
 INCLUDES += -D$(SOC)
 INCLUDES += -i $(SOURCE_DIR)
@@ -55,7 +60,7 @@ LIB_INC = -i"$(FC_DIR)/packages/ti/sdo/fc/ires/nullresource/lib/debug" \
 
 
 SOURCES = monitor.c util.c builtins.c edma.c \
-		  edma3_config.c custom_rsc_table_vayu_dsp0.c
+          edma3_config.c device_am57.c
 SOURCES_ASM = dsp_rpc.asm touch.asm
 HEADERS = edma.h monitor.h util.h trace.h custom_rsc_table_vayu_dsp.h
 LIBS    = -lnullres.ae66 -lfcsettings.ae66 -lfcutils.ae66 -lrmm.ae66 -lrmmp.ae66 -lsmgr.ae66 -losal_support.ae66 -ldskt2.ae66 -lrman.ae66 -lecpy.ae66 -ledma3.ae66 -ledmamgr.ae66 -ledma3_lld_rm.ae66 -ledma3_lld_drv.ae66 $(SOURCE_DIR)/monitor_bios.cmd
@@ -100,7 +105,7 @@ define create_dsp_syms
 	@$(TI_OCL_CGT_INSTALL)/bin/nm6x -l $(1) | grep PROT | awk -F\| '{ print "\t.weak "$$8"\n"$$8"\t.set "$$2 };' >  $(2).asm
 	@$(TI_OCL_CGT_INSTALL)/bin/nm6x -l $(1) | grep FUNC | grep -f$(SOURCE_DIR)/export_syms | awk -F\| '{ print "\t.weak "$$8"\n"$$8"\t.set "$$2 };' >> $(2).asm
 	@$(CC) $(2).asm
-	@cp $(SOURCE_DIR)/dsp_link_commands $(2)
+	@cp $(SOURCE_DIR)/dsp_link_commands.am57x $(2)
 	@rm -f $(1).syms.tmp* $(2).asm
 endef
 

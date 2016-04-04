@@ -109,7 +109,7 @@ EXPORT kernel_config_t kernel_config_l2;
 * Initialization Routines
 ******************************************************************************/
 static void initialize_gdbserver     ();
-#if defined(DEVICE_AM572x)
+#if defined(DEVICE_AM572x) && !defined(_SYS_BIOS)
 static void initialize_ipcpower_callbacks();
 static void enable_ipcpower_suspend();
 static void disable_ipcpower_suspend();
@@ -188,15 +188,17 @@ int main(int argc, char* argv[])
     /* Setup non-cacheable memory, etc... */
     initialize_memory();
 
+#if !defined(_SYS_BIOS)
     /* Do this early since the heap is initialized by OpenMP */
     if (tomp_initOpenMPforOpenCL() < 0)
         System_abort("main: tomp_initOpenMPforOpenCL() failed");
+#endif
 
     initialize_edmamgr();
 #if !defined(DEVICE_AM572x)
     initialize_gdbserver();
 #endif
-#if defined(DEVICE_AM572x)
+#if defined(DEVICE_AM572x) && !defined(_SYS_BIOS)
     initialize_ipcpower_callbacks();
 #endif
 
@@ -232,6 +234,7 @@ int main(int argc, char* argv[])
     if (Error_check(&eb)) {
         System_abort("main: failed to create ocl_service_omp thread");
     }
+#endif
 
     /* Start scheduler, this never returns */
     BIOS_start();
@@ -586,7 +589,9 @@ static void process_exit_command(ocl_msgq_message_t *msg_pkt)
     /* Not sending a response to host, delete the msg */
     MessageQ_free((MessageQ_Msg)msg_pkt);
     Log_print0(Diags_INFO, "ocl_monitor: EXIT, no response");
+#if !defined(_SYS_BIOS)
     enable_ipcpower_suspend();
+#endif
     cacheWbInvAllL2();
 #endif
 }
@@ -597,10 +602,10 @@ static void process_exit_command(ocl_msgq_message_t *msg_pkt)
 static void process_setup_debug_command(ocl_msgq_message_t* msg_pkt)
 {
     MessageQ_free((MessageQ_Msg)msg_pkt);
-#ifdef DEVICE_K2G
-#else
+#if defined(DEVICE_AM572x) && !defined(_SYS_BIOS)
     disable_ipcpower_suspend();
     initialize_gdbserver();
+#else
 #endif
 }
 
@@ -621,7 +626,7 @@ static void initialize_gdbserver()
    return;
 }
 
-#if defined(DEVICE_AM572x)
+#if defined(DEVICE_AM572x) && !defined(_SYS_BIOS)
 void ocl_suspend_call(Int event, Ptr data)
 {
     free_edma_channel_pool();
@@ -760,16 +765,6 @@ static bool create_mqueue()
     Log_print1(Diags_INFO,"create_mqueue: %s ready", Ocl_DspMsgQueueName[DNUM]);
 
     return true;
-}
-
-/*
- * Sets the MultiProc core Id. Called via Startup from monitor.cfg  
- */
-void ocl_set_multiproc_id()
-{
-    if      (DNUM == 0) MultiProc_setLocalId(MultiProc_getId("DSP1"));
-    else if (DNUM == 1) MultiProc_setLocalId(MultiProc_getId("DSP2"));
-    else    assert(0);
 }
 
 #ifdef _SYS_BIOS
