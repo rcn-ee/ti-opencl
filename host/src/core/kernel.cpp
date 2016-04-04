@@ -118,7 +118,8 @@ cl_int Kernel::addFunction(DeviceInterface *device, llvm::Function *function,
                          (llvm::AttributeSet::FunctionIndex, "_wi_alloca_size")
                                              .getValueAsString();
 
-    if (!WAS_str.empty()) wi_alloca_size = std::stoi(WAS_str);
+    //YUAN if (!WAS_str.empty()) wi_alloca_size = std::stoi(WAS_str);
+    if (!WAS_str.empty()) wi_alloca_size = atoi(WAS_str.c_str());
 
     /*-------------------------------------------------------------------------
     * Add a device dependent

@@ -1,0 +1,154 @@
+###YUAN TODO: bring in sync with latest Makefile or maybe even merge with it
+
+OPENCL_SRC_DIR = ../host
+
+TI_OCL_CGT_INSTALL=/cgnas/ti-cgt-c6000-current-linux
+DEFAULT_DEV_INSTALL_DIR = /cgnas/ti-processor-sdk-rtos-am57xx-evm-02.00.01.07-release
+
+SOURCE_DIR = ../monitor_vayu
+
+PDK_DIR        ?= $(DEFAULT_DEV_INSTALL_DIR)/pdk_am57xx_1_0_1
+IPC_DIR        = $(DEFAULT_DEV_INSTALL_DIR)/ipc_3_41_00_08
+XDC_DIR        = $(DEFAULT_DEV_INSTALL_DIR)/xdctools_3_31_02_38_core
+BIOS_DIR       = $(DEFAULT_DEV_INSTALL_DIR)/bios_6_45_00_19
+FC_DIR         = $(DEFAULT_DEV_INSTALL_DIR)/framework_components_3_40_01_04
+EDMA3LLD_DIR   = $(DEFAULT_DEV_INSTALL_DIR)/edma3_lld_02_12_01_22
+XDAIS_DIR      ?= $(DEFAULT_DEV_INSTALL_DIR)/xdais_7_24_00_04
+#CSL_DIR        = $(DEFAULT_DEV_INSTALL_DIR)/CSL
+CSL_DIR        = $(PDK_DIR)/packages/ti/csl
+OBJDIR         = dsp_monitor
+
+export XDC_DIR := $(XDC_DIR)
+
+PLATFORM  = ti.platforms.evmDRA7XX:dsp1
+PROJECT   = monitor
+DEVICE    = DEVICE_AM572x
+SOC       = SOC_AM572x
+OBJEXT    = obj
+
+## !Need -O* to inline CACHE_* functions!
+CC= cl6x -o3 -mv6600 --abi=eabi --mem_model:const=data --mem_model:data=far -D_SYS_BIOS
+
+CFLAGS_DIROPTS = -fr=$(OBJDIR) -fs=$(OBJDIR)
+
+INCLUDES  = -i. -i $(OPENCL_SRC_DIR)/src/core/dsp
+INCLUDES += -i $(PDK_DIR)/packages -i $(TI_OCL_CGT_INSTALL)/include \
+	    -i $(IPC_DIR)/packages -i $(XDC_DIR)/packages           \
+	    -i $(BIOS_DIR)/packages -i $(EDMA3LLD_DIR)/packages     \
+	    -i $(FC_DIR)/packages -i $(XDAIS_DIR)/packages          \
+	    -i $(CSL_DIR)
+INCLUDES += -D$(DEVICE)
+INCLUDES += -D$(SOC)
+INCLUDES += -i $(SOURCE_DIR)
+
+LIB_INC = -i"$(FC_DIR)/packages/ti/sdo/fc/ires/nullresource/lib/debug" \
+          -i"$(FC_DIR)/packages/ti/sdo/fc/global/lib/debug" \
+		  -i"$(FC_DIR)/packages/ti/sdo/fc/utils/lib/debug" \
+		  -i"$(FC_DIR)/packages/ti/sdo/fc/utils/osalsupport/lib/debug" \
+		  -i"$(FC_DIR)/packages/ti/sdo/fc/dskt2/lib/debug" \
+		  -i"$(FC_DIR)/packages/ti/sdo/fc/rman/lib/debug" \
+		  -i"$(FC_DIR)/packages/ti/sdo/fc/ecpy/lib/debug" \
+		  -i"$(FC_DIR)/packages/ti/sdo/fc/edma3/lib/debug" \
+		  -i"$(FC_DIR)/packages/ti/sdo/fc/edmamgr/lib/debug" \
+		  -i"$(EDMA3LLD_DIR)/packages/ti/sdo/edma3/rm/lib/tda2xx-evm/66/debug" \
+		  -i"$(EDMA3LLD_DIR)/packages/ti/sdo/edma3/drv/lib/66/debug"
+
+
+SOURCES = monitor.c util.c builtins.c edma.c \
+		  edma3_config.c custom_rsc_table_vayu_dsp0.c
+SOURCES_ASM = dsp_rpc.asm touch.asm
+HEADERS = edma.h monitor.h util.h trace.h custom_rsc_table_vayu_dsp.h
+LIBS    = -lnullres.ae66 -lfcsettings.ae66 -lfcutils.ae66 -lrmm.ae66 -lrmmp.ae66 -lsmgr.ae66 -losal_support.ae66 -ldskt2.ae66 -lrman.ae66 -lecpy.ae66 -ledma3.ae66 -ledmamgr.ae66 -ledma3_lld_rm.ae66 -ledma3_lld_drv.ae66 $(SOURCE_DIR)/monitor_bios.cmd
+
+OBJ_PATHS = $(patsubst %.c, $(OBJDIR)/%.$(OBJEXT), $(SOURCE_DIR))
+
+OBJS1   = $(patsubst %.c,$(OBJDIR)/%.obj,$(SOURCES))
+OBJS    = $(patsubst %.asm,$(OBJDIR)/%.obj,$(SOURCES_ASM))
+
+LINK_CMD  = $(PROJECT)/linker.cmd
+
+
+#----------------------------------------------------------------------------
+# XDC stuff
+#----------------------------------------------------------------------------
+XDCPATH = ./;$(IPC_DIR)/packages;$(BIOS_DIR)/packages;$(EDMA3LLD_DIR)/packages;$(FC_DIR)/packages;$(XDAIS_DIR)/packages
+
+XDCTARGET = ti.targets.elf.C66
+
+COMP_OPTS  = $(PROJECT)/compiler.opt
+BUILD_TYPE = release
+
+#----------------------------------------------------------------------------
+# LIBM
+#----------------------------------------------------------------------------
+LIBM_DIR=../libm
+LIBM=$(LIBM_DIR)/libm.lib
+
+
+#----------------------------------------------------------------------------
+# BUILTINS
+#----------------------------------------------------------------------------
+BUILTINS_DIR=../builtins
+BUILTINS=$(BUILTINS_DIR)/dsp.lib
+
+
+#---------------------------------------------------------------------------
+# Function to create the dsp symbols database
+#----------------------------------------------------------------------------
+define create_dsp_syms
+	@echo Creating $(2)
+	@$(TI_OCL_CGT_INSTALL)/bin/nm6x -l $(1) | grep PROT | awk -F\| '{ print "\t.weak "$$8"\n"$$8"\t.set "$$2 };' >  $(2).asm
+	@$(TI_OCL_CGT_INSTALL)/bin/nm6x -l $(1) | grep FUNC | grep -f$(SOURCE_DIR)/export_syms | awk -F\| '{ print "\t.weak "$$8"\n"$$8"\t.set "$$2 };' >> $(2).asm
+	@$(CC) $(2).asm
+	@cp $(SOURCE_DIR)/dsp_link_commands $(2)
+	@rm -f $(1).syms.tmp* $(2).asm
+endef
+
+
+
+.PHONY: all dsp0
+all: dsp0 dsp0.syms
+dsp0 : dsp0.out
+
+
+#---------------------------------------------------------------------------
+# Build monitors
+#----------------------------------------------------------------------------
+dsp0.out:  -l$(OBJDIR)/configPkg/linker.cmd $(OBJS) $(OBJS1) $(BUILTINS) $(LIBM)
+	@echo Linking $@
+	@echo $(LINK_CMD)
+	$(CC) -z --priority -w -x -m$(OBJDIR)/$@.map --define=DDR3_FCSECTION=DDR3_FC0 $^ -I$(TI_OCL_CGT_INSTALL)/lib $(LIB_INC) -l$(LIBM) -l$(BUILTINS) -llibc.a $(LIBS) -o $(OBJDIR)/$@
+
+-l$(OBJDIR)/configPkg/linker.cmd :
+	$(XDC_DIR)/xs --xdcpath "$(XDCPATH)" xdc.tools.configuro  -o $(OBJDIR)/configPkg -c $(TI_OCL_CGT_INSTALL) -t $(XDCTARGET) -p $(PLATFORM) -r $(BUILD_TYPE)  -b "../cfg/config.bld" ../cfg/$(PROJECT).cfg
+
+%.syms: %.out
+	$(call create_dsp_syms, $(OBJDIR)/$^, $(OBJDIR)/$@)
+
+$(LIBM): 
+	$(MAKE) -C $(LIBM_DIR) -j4 
+
+$(BUILTINS): 
+	$(MAKE) -C $(BUILTINS_DIR) -j4 
+
+
+#---------------------------------------------------------------------------
+# Default build rules
+#----------------------------------------------------------------------------
+$(OBJS1):$(OBJDIR)/%.$(OBJEXT): $(SOURCE_DIR)/%.c
+	@echo Compiling $<
+	$(CC) $(INCLUDES) $(CFLAGS_DIROPTS) -c $<
+
+$(OBJS): $(OBJDIR)/%.$(OBJEXT): $(SOURCE_DIR)/%.asm
+	@echo Compiling $<
+	$(CC) $(INCLUDES) $(CFLAGS_DIROPTS) -c $<
+
+.PHONY: clean
+clean:
+	@rm -fr *.out *.map *.syms *.obj $(PROJECT)
+
+.PHONY: realclean
+realclean: clean
+	@$(MAKE) -C $(LIBM_DIR) clean
+	@$(MAKE) -C $(BUILTINS_DIR) clean
+

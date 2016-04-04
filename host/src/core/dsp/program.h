@@ -78,6 +78,7 @@ class DSPProgram : public DeviceProgram
         Program      *p_program;
         llvm::Module *p_module;
         std::string   p_outfile;
+        std::string  *p_nativebin;
         bool          p_loaded;
         bool          p_keep_files;
         bool          p_cache_kernels;

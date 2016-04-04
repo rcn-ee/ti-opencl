@@ -54,6 +54,7 @@
 #include <ti/sysbios/BIOS.h>
 #include <ti/sysbios/knl/Task.h>
 #include <ti/sysbios/knl/Semaphore.h>
+#include <ti/sysbios/knl/Clock.h>
 
 /*-----------------------------------------------------------------------------
 * C standard library
@@ -142,16 +143,19 @@ static int  setup_ndr_chunks      (int dims, uint32_t* limits, uint32_t* offsets
 * Bios Task and helper routines
 ******************************************************************************/
 static void ocl_main(UArg arg0, UArg arg1);
+#ifndef _SYS_BIOS  // YUAN TODO: disbale OpenMP for now
 static void ocl_service_omp(UArg arg0, UArg arg1);
+#endif
 static bool create_mqueue(void);
 static void ocl_monitor();
 
+#ifndef _SYS_BIOS
 extern tomp_initOpenMPforOpenCL(void);
 extern tomp_exitOpenMPforOpenCL(void);
 extern void tomp_dispatch_once(void);
 extern void tomp_dispatch_finish(void);
-extern void tomp_dispatch_finish(void);
 extern bool tomp_dispatch_is_finished(void);
+#endif
 
 // Prevent RTS versions of malloc etc. from getting pulled into link
 //void _minit(void) { }
@@ -176,6 +180,10 @@ int main(int argc, char* argv[])
 
     /* enable ENTRY/EXIT/INFO log events */
     Diags_setMask(MODULE_NAME"-EXF");
+
+#ifdef _SYS_BIOS       
+    int status = Ipc_start();
+#endif 
 
     /* Setup non-cacheable memory, etc... */
     initialize_memory();
@@ -210,6 +218,7 @@ int main(int argc, char* argv[])
         System_abort("main: failed to create ocl_main thread");
     }
 
+#ifndef _SYS_BIOS
     /* Create a task to service OpenMP kernels */
     Error_init(&eb);
     Task_Params_init(&taskParams);
@@ -376,6 +385,7 @@ static void process_task_command(ocl_msgq_message_t* msgq_pkt)
     uint32_t more_args_size = Msg->u.k.kernel.args_on_stack_size;
     void *   more_args      = (void *) Msg->u.k.kernel.args_on_stack_addr;
 
+#ifndef _SYS_BIOS
     if (is_inorder)
     {
        omp_msgq_pkt = msgq_pkt;
@@ -385,6 +395,7 @@ static void process_task_command(ocl_msgq_message_t* msgq_pkt)
           /* Error */; 
     }
     else
+#endif
     {
        TRACE(ULM_OCL_OOT_KERNEL_START, kernel_id, 0);
        dsp_rpc(&((kernel_msg_t *)&Msg->u.k.kernel)->entry_point,
@@ -401,6 +412,7 @@ static void process_task_command(ocl_msgq_message_t* msgq_pkt)
     return;
 }
 
+#ifndef _SYS_BIOS
 /******************************************************************************
 * ocl_service_omp - This is it's own task to switch the stack to DDR.
 ******************************************************************************/
@@ -456,6 +468,7 @@ void ocl_service_omp(UArg arg0, UArg arg1)
        }
     } /* while (true) */
 }
+#endif
 
 
 /******************************************************************************
@@ -729,7 +742,11 @@ static bool create_mqueue()
 
     /* Create DSP message queue (inbound messages from ARM) */
     MessageQ_Params_init(&msgqParams);
+#ifndef _SYS_BIOS
     ocl_queues.dspQue = MessageQ_create(Ocl_DspMsgQueueName[DNUM], &msgqParams);
+#else  // YUAN TODO: see if this is necessary, what about DSP2?
+    ocl_queues.dspQue = MessageQ_create("OCL:DSP1:MsgQ", &msgqParams);
+#endif
 
     if (ocl_queues.dspQue == NULL) 
     {
@@ -744,3 +761,21 @@ static bool create_mqueue()
 
     return true;
 }
+
+/*
+ * Sets the MultiProc core Id. Called via Startup from monitor.cfg  
+ */
+void ocl_set_multiproc_id()
+{
+    if      (DNUM == 0) MultiProc_setLocalId(MultiProc_getId("DSP1"));
+    else if (DNUM == 1) MultiProc_setLocalId(MultiProc_getId("DSP2"));
+    else    assert(0);
+}
+
+#ifdef _SYS_BIOS
+void mainDsp1TimerTick(UArg arg)
+{
+    Clock_tick();
+}
+#endif
+

@@ -40,6 +40,7 @@
 
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Constants.h>
+#include "llvm/IR/InstIterator.h"
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
@@ -51,10 +52,22 @@
 #include <string>
 #include <vector>
 #include <unistd.h>
+#ifndef _SYS_BIOS
 #include <sys/mman.h>
+#else
+#define MIN(X, Y)  ((X) < (Y) ? (X) : (Y))
+#define MAN(X, Y)  ((X) > (Y) ? (X) : (Y))
+
+int __sync_fetch_and_add(int* p, int inc)
+{
+  int tmp = *p;
+  tmp += inc;
+  *p = tmp;
+  return tmp;
+}
+#endif
 #include <sys/param.h>
 
-#include "llvm/IR/InstIterator.h"
 
 #if defined(DEVICE_K2X)
 extern "C"
@@ -339,7 +352,8 @@ DSPDevicePtr DSPKernel::locals_in_kernel_extent(uint32_t &ret_size) const
                      (llvm::AttributeSet::FunctionIndex, "_kernel_local_size")
                      .getValueAsString();
 
-    if (!KLS_str.empty()) locals_in_kernel_size = std::stoi(KLS_str);
+    //YUAN if (!KLS_str.empty()) locals_in_kernel_size = std::stoi(KLS_str);
+    if (!KLS_str.empty()) locals_in_kernel_size = atoi(KLS_str.c_str());
     ret_size = ROUNDUP(locals_in_kernel_size, MIN_BLOCK_SIZE);
     return addr;
 }
@@ -536,7 +550,7 @@ cl_int DSPKernelEvent::callArgs(unsigned max_args_size)
 
                 args_in_reg_index = getarg_inreg_index(4, AP, BP, AQ, BQ);
                 DSPVirtPtr *buf_dspvirtptr = (args_in_reg_index >= 0) ?
-                                             (&args_in_reg[args_in_reg_index]) :
+                              (DSPVirtPtr *)(&args_in_reg[args_in_reg_index]) :
                    (DSPVirtPtr *)(more_args_in_mem+ROUNDUP(more_arg_offset,4));
 
                 /*-------------------------------------------------------------
@@ -637,7 +651,7 @@ cl_int DSPKernelEvent::callArgs(unsigned max_args_size)
                     // 1. get address of argref in_reg or on_stack
                     args_in_reg_index = getarg_inreg_index(4, AP, BP, AQ, BQ);
                     DSPVirtPtr *argref_dspvirtptr = (args_in_reg_index >= 0) ?
-                                            (&args_in_reg[args_in_reg_index]) :
+                              (DSPVirtPtr *)(&args_in_reg[args_in_reg_index]) :
                    (DSPVirtPtr *)(more_args_in_mem+ROUNDUP(more_arg_offset,4));
 
                     // 2. put argref placeholder (dummy 0) in_reg or on_stack
@@ -944,7 +958,11 @@ cl_int DSPKernelEvent::allocate_temp_global(void)
         DSPDevicePtr64 *p_addr64     = &p_hostptr_tmpbufs[i].second.first;
         DSPVirtPtr     *p_arg_word   =  p_hostptr_tmpbufs[i].second.second;
         
+#ifndef _SYS_BIOS
         *p_addr64 = shm->AllocateGlobal(buffer->size(), false);
+#else
+        *p_addr64 = (DSPDevicePtr64)((int64_t)((uint32_t)(buffer->host_ptr())));
+#endif
 
         if (!(*p_addr64))
         {
@@ -960,8 +978,12 @@ cl_int DSPKernelEvent::allocate_temp_global(void)
 
         if (! WRITE_ONLY_BUFFER(buffer))
         {
+#ifndef _SYS_BIOS
             void *mapped_tmpbuf = shm->Map(*p_addr64, buffer->size(), false);
             memcpy(mapped_tmpbuf, buffer->host_ptr(), buffer->size());
+#else
+            void *mapped_tmpbuf = (void*)((uint32_t)*p_addr64);
+#endif
             p_flush_bufs.push_back(DSPMemRange(DSPPtrPair(
                                       *p_addr64, p_arg_word), buffer->size()));
             shm->Unmap(mapped_tmpbuf, *p_addr64, buffer->size(), true);
@@ -1195,11 +1217,17 @@ void DSPKernelEvent::free_tmp_bufs()
 
         if (! READ_ONLY_BUFFER(buffer))
         {
+#ifndef _SYS_BIOS
             void *mapped_tmpbuf = shm->Map(addr64, buffer->size(), true);
             memcpy(buffer->host_ptr(), mapped_tmpbuf, buffer->size());
+#else
+            void *mapped_tmpbuf = (void*)((uint32_t)addr64);
+#endif
             shm->Unmap(mapped_tmpbuf, addr64, buffer->size(), false);
         }
+#ifndef _SYS_BIOS
         shm->FreeGlobal(addr64);
+#endif
     }
 
     /*-------------------------------------------------------------------------

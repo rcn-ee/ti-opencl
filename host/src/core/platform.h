@@ -34,7 +34,11 @@
 #include "icd.h"
 #include "shared_memory_interface.h"
 
+#ifdef _SYS_BIOS
+#include <ti/sysbios/posix/pthread.h>
+#else
 #include <pthread.h>
+#endif
 #define  LOKI_PTHREAD_H
 #include <loki/Singleton.h>
 
@@ -70,7 +74,12 @@ class Platform
 struct _cl_platform_id : public Coal::Platform 
 {};
 
+#ifndef _SYS_BIOS
 typedef Loki::SingletonHolder<Coal::Platform, Loki::CreateUsingNew, 
                                Loki::DefaultLifetime, Loki::ClassLevelLockable> the_platform;
+#else
+typedef Loki::SingletonHolder<Coal::Platform, Loki::CreateUsingNew,
+                               Loki::DefaultLifetime, Loki::SingleThreaded> the_platform;
+#endif
 
 #endif

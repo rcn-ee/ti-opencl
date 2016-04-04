@@ -35,7 +35,11 @@
 
 #include "../deviceinterface.h"
 
+#ifdef _SYS_BIOS
+#include <ti/sysbios/posix/pthread.h>
+#else
 #include <pthread.h>
+#endif
 #include <list>
 #include <string>
 

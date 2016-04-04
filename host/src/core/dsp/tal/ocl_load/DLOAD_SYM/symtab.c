@@ -367,7 +367,7 @@ BOOL DLSYM_lookup_local_symtab(const char *sym_name, struct Elf32_Sym *symtab,
 /*                             symbol table that contains the symbol tables  */
 /*                             from all the necessary modules.               */
 /*****************************************************************************/
-BOOL DLSYM_canonical_lookup(DLOAD_HANDLE handle, int sym_index, 
+BOOL DLSYM_canonical_lookup(DLOAD_HANDLE handle, int32_t sym_index, 
                             DLIMP_Dynamic_Module *dyn_module, 
                             Elf32_Addr *sym_value)
 {

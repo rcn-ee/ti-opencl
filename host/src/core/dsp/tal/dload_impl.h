@@ -50,7 +50,11 @@ public:
 
     explicit DLOAD(Coal::DSPProgram *program);
     virtual ~DLOAD();
+#ifndef _SYS_BIOS
     virtual bool LoadProgram(const std::string &fileName) override;
+#else
+    virtual bool LoadProgram(const std::string &binary_str) override;
+#endif
     virtual bool UnloadProgram() override;
     virtual DSPDevicePtr QuerySymbol(const std::string &symName) const override;
     virtual DSPDevicePtr GetDataPagePointer() const override;

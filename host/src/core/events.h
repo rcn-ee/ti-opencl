@@ -35,7 +35,7 @@
 #define __EVENTS_H__
 
 #include "commandqueue.h"
-#include <core/config.h>
+#include "config.h"
 
 #include <list>
 

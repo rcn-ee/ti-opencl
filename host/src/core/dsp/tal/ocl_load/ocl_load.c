@@ -43,15 +43,73 @@ int global_argc;
 char **global_argv;
 
 int DLIF_fseek(LOADER_FILE_DESC *stream, int32_t offset, int origin)
+#ifndef _SYS_BIOS
     { return fseek(stream, offset, origin); }
+#else
+{
+    if(stream->mode == 0)
+        return fseek(stream->fp, offset, origin);
+    else
+    {
+        switch(origin){
+            case SEEK_SET:
+                stream->cur = stream->orig;
+                stream->cur += offset;
+                stream->read_size = offset;
+                return 0;
+            case SEEK_CUR:
+                stream->cur += offset;
+                stream->read_size += offset;
+                return 0;
+            case SEEK_END:
+                stream->cur = stream->orig + stream->size;
+                stream->read_size = stream->size;
+                return 0;
+            default:
+                return -1;
+        }
+    }
+}
+#endif
 
 
 size_t DLIF_fread(void *ptr, size_t size, size_t nmemb,
                   LOADER_FILE_DESC *stream)
+#ifndef _SYS_BIOS
     { return fread(ptr, size, nmemb, stream); }
+#else
+{
+    if(stream->mode == 0)
+        return fread(ptr, size, nmemb, stream->fp);
+    else
+    {
+        memcpy(ptr, stream->cur, size*nmemb);
+        stream->cur += size*nmemb;
+        stream->read_size +=size*nmemb;
+        return nmemb;
+    }
+}
+#endif
 
-int32_t DLIF_ftell (LOADER_FILE_DESC *stream) { return ftell(stream); }
-int32_t DLIF_fclose(LOADER_FILE_DESC *fd)     { return fclose(fd); }
+int32_t DLIF_ftell (LOADER_FILE_DESC *stream)
+#ifndef _SYS_BIOS
+{ return ftell(stream); }
+#else
+{
+    if(stream->mode == 0)
+        return ftell(stream->fp);
+    else
+        return (int32_t)stream->cur;
+}
+#endif
+
+int32_t DLIF_fclose(LOADER_FILE_DESC *fd)
+#ifndef _SYS_BIOS
+{ return fclose(fd); }
+#else
+{ return 0; }
+#endif
+
 void*   DLIF_malloc(size_t size)              { return malloc(size); }
 void    DLIF_free  (void* ptr)                { free(ptr); }
 

@@ -34,7 +34,9 @@
 #include "platform.h"
 #include "propertylist.h"
 #include "object.h"
+#ifndef _SYS_BIOS
 #include "cpu/device.h"
+#endif
 #include "dsp/device.h"
 #include "dsp/device_info.h"
 
@@ -47,7 +49,9 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
+#ifndef _SYS_BIOS
 #include <signal.h>
+#endif
 
 using namespace Coal;
 
@@ -71,6 +75,7 @@ static int begin_file_lock_crit_section(const char* fname)
 
     std::string str_fname(fname);
 
+#ifndef _SYS_BIOS
     if (lock_fd < 0) 
     {
         std::cout << "Can not open lock file " << str_fname << ", Aborting !" << std::endl;
@@ -97,6 +102,7 @@ static int begin_file_lock_crit_section(const char* fname)
            exit(-1);
        }
     }
+#endif
 
     return lock_fd;
 
@@ -106,6 +112,7 @@ namespace Coal
 {
     Platform::Platform() : dispatch(&dispatch_table)
     {
+#ifndef _SYS_BIOS
         p_lock_fd = begin_file_lock_crit_section("/var/lock/opencl");
 
 	    // For now, don't add the CPU device on K2X platforms unless it is
@@ -115,6 +122,7 @@ namespace Coal
 	        Coal::DeviceInterface * device = new Coal::CPUDevice;
             p_devices.push_back(desc(device));
         }
+#endif
 
         for (int i = 0; i < tiocl::DeviceInfo::Instance().GetNumDevices(); i++)
         {
@@ -123,15 +131,19 @@ namespace Coal
             p_devices.push_back(desc(device));
         }
 
+#ifndef _SYS_BIOS
         signal(SIGINT,  exit);
         signal(SIGABRT, exit);
         signal(SIGTERM, exit);
+#endif
     }
 
     Platform::~Platform()
     {
+#ifndef _SYS_BIOS
         flock(p_lock_fd, LOCK_UN);
         close(p_lock_fd);
+#endif
 
         for (int i = 0; i < p_devices.size(); i++)
 	        delete pobj(p_devices[i]);

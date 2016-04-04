@@ -72,7 +72,11 @@ if (CROSS_COMPILE)
   set(CMAKE_SKIP_RPATH TRUE)
 endif()
 
+if (${BUILD_OS} MATCHES "SYS_BIOS")
+OPTION(BUILD_SHARED_LIBS "Set to OFF to build static libraries" OFF)
+else()
 OPTION(BUILD_SHARED_LIBS "Set to OFF to build static libraries" ON)
+endif()
 
 #ADD_DEFINITIONS("-DLOCK")
 
@@ -80,8 +84,12 @@ OPTION(BUILD_SHARED_LIBS "Set to OFF to build static libraries" ON)
 
 # Find_Package() for LLVM/CLANG defined in CMAKE_MODULE_PATH
 # Do not use system installed versions
+if (${BUILD_OS} MATCHES "SYS_BIOS")
+  MESSAGE(STATUS "Build OS IS SYS BIOS")
+else()
 Find_Package(LLVM REQUIRED)
 Find_Package(Clang REQUIRED)
+endif()
 
 # OpenCL requires boost headers. If boost is installed to some directory
 # other than /usr/include then define BOOST_INCLUDEDIR as below:
@@ -143,7 +151,11 @@ if(NOT DEFINED ENABLE_ULM)
   elseif(C6678_BUILD)
     set(ENABLE_ULM off)
   elseif(AM57_BUILD)
+if (NOT (${BUILD_OS} MATCHES "SYS_BIOS"))
     set(ENABLE_ULM on)
+else()
+    set(ENABLE_ULM off)
+endif()
   endif()
 endif()
 
@@ -151,6 +163,10 @@ if (NOT BUILD_OUTPUT)
   set(BUILD_OUTPUT all)
 endif()
 
+if (${BUILD_OS} MATCHES "SYS_BIOS")
+  add_subdirectory(src)
+  #add_subdirectory(${OCL_MONITOR_DIR} ${CMAKE_CURRENT_BINARY_DIR}/monitor)
+else()
 if (${BUILD_OUTPUT} STREQUAL "all")
   add_subdirectory(${OCL_MONITOR_DIR} ${CMAKE_CURRENT_BINARY_DIR}/monitor)
 endif()
@@ -195,6 +211,7 @@ IF (BUILD_TESTS)
     Find_Package(Check REQUIRED)
     add_subdirectory(tests)
 ENDIF (BUILD_TESTS)
+endif()
 
 set (CPACK_GENERATOR "DEB")
 set (CPACK_DEBIAN_PACKAGE_MAINTAINER "TI")

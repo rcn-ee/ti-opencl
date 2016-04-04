@@ -54,10 +54,15 @@ DLOAD::~DLOAD()
     dloadHandle = 0;
 }
 
+#ifndef _SYS_BIOS
 bool DLOAD::LoadProgram(const std::string &fileName)
+#else
+bool DLOAD::LoadProgram(const std::string &binary_str)
+#endif
 {
     Lock lock(this);
 
+#ifndef _SYS_BIOS
     FILE *fp = fopen(fileName.c_str(), "rb");
 
     //TODO: Can we propagate the error to DeviceProgram instead of exiting?
@@ -66,6 +71,17 @@ bool DLOAD::LoadProgram(const std::string &fileName)
     ph = DLOAD_load(dloadHandle, fp);
 
     fclose(fp);
+#else
+    LOADER_FILE_DESC f;
+    f.binary = (int8_t*) binary_str.data();
+    f.cur =  (int8_t*) binary_str.data();
+    f.orig = f.cur;
+    f.length =  binary_str.size();
+    f.read_size = 0;
+    f.size = binary_str.size();
+    f.mode = 1;
+    ph = DLOAD_load(dloadHandle, &f);
+#endif
 
     // DLOAD_load returns 0 if it fails
     if (ph == 0)
@@ -264,9 +280,15 @@ BOOL DLIF_copy(void* client_handle, struct DLOAD_MEMORY_REQUEST* targ_req)
    int result = 1;
    if (obj_desc->objsz_in_bytes)
    {
+#ifndef _SYS_BIOS
        buf = calloc(obj_desc->memsz_in_bytes, 1);
        fseek(f, targ_req->offset, SEEK_SET);
        result = fread(buf, obj_desc->objsz_in_bytes, 1, f);
+#else
+       buf = calloc(obj_desc->memsz_in_bytes, 1); 
+       DLIF_fseek(f, targ_req->offset, SEEK_SET);
+       result = DLIF_fread(buf, obj_desc->objsz_in_bytes, 1, f);
+#endif
    }
    else  if (!device->addr_is_l2(obj_desc->target_address))
        buf = calloc(obj_desc->memsz_in_bytes, 1);
@@ -284,6 +306,7 @@ BOOL DLIF_copy(void* client_handle, struct DLOAD_MEMORY_REQUEST* targ_req)
 ******************************************************************************/
 int DLIF_load_dependent(void* client_handle, const char* so_name)
 {
+#ifndef _SYS_BIOS
    DSPProgram *program = static_cast<DSPProgram *>(client_handle);
    DLOAD *dl = dynamic_cast<DLOAD *>(program->GetDynamicLoader());
 
@@ -304,6 +327,9 @@ int DLIF_load_dependent(void* client_handle, const char* so_name)
 
    fclose(fp);
    return to_ret;
+#else
+   return -1;
+#endif
 }
 
 /******************************************************************************

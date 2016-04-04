@@ -129,7 +129,7 @@ BOOL DLDYN_c60_process_dynamic_tag(DLIMP_Dynamic_Module* dyn_module, int i)
 /*                                                                           */
 /*****************************************************************************/
 BOOL DLDYN_c60_relocate_dynamic_tag_info(DLIMP_Dynamic_Module *dyn_module, 
-                                         int32_t i)
+                                         int i)
 {
    switch (dyn_module->dyntab[i].d_tag)
    {

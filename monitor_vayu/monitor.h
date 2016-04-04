@@ -29,6 +29,14 @@
 #ifndef  _monitor_h_
 #define  _monitor_h_
 
+#ifdef _SYS_BIOS
+#include <xdc/std.h>
+#include <xdc/runtime/Diags.h>
+#include <xdc/runtime/Error.h>
+#include <xdc/runtime/Log.h>
+#include <xdc/runtime/Registry.h>
+#include <xdc/runtime/System.h>
+#endif
 #include <stdint.h>
 #include <ti/csl/csl_cacheAux.h>
 
@@ -38,7 +46,8 @@ extern cregister volatile unsigned int DNUM;
 #define RETURN_OK   1
 
 #if defined(DEVICE_AM572x)
-    #define NUM_CORES 2
+    // #define NUM_CORES 2
+    #define NUM_CORES 1   // YUAN TODO: to use both DSPs
 #elif defined(DEVICE_K2G)
     #define NUM_CORES 1
 #else

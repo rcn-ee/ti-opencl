@@ -45,6 +45,16 @@
 #include <iostream>
 #include <stdio.h>
 
+#ifdef _SYS_BIOS
+#include <xdc/runtime/Memory.h>
+#include <ti/sysbios/heaps/HeapMem.h>
+
+//#include <list>
+//#include <queue>
+//uint32_t ARM_CCNT_Enable();
+//uint32_t ARM_CCNT_Read();
+#endif
+
 using namespace Coal;
 
 #define ONLY_MAIN_THREAD_CAN_RELEASE_EVENT	0
@@ -73,6 +83,10 @@ CommandQueue::CommandQueue(Context *ctx,
         return;
     }
     p_device->init();
+#ifdef _SYS_BIOS
+    /*PMU Clock counter reset*/
+    //ARM_CCNT_Enable();
+#endif
 
     *errcode_ret = checkProperties();
 }
@@ -855,6 +869,7 @@ void Event::updateTiming(Timing timing)
         return;
     }
 
+#ifndef _SYS_BIOS
     struct timespec tp;
     cl_ulong rs;
 
@@ -863,6 +878,13 @@ void Event::updateTiming(Timing timing)
 
     rs = tp.tv_nsec / 1e3;  // convert to microseconds
     rs += tp.tv_sec * 1e6;  // convert to microseconds
+#else
+    cl_ulong rs;
+    uint32_t count = 0;
+    //count = ARM_CCNT_Read();
+    /*convert to nano sec*/  // YUAN TODO: make sure conversion is consistent
+    rs = count*64;
+#endif
 
     p_timing[timing] = rs;
 

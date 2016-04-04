@@ -43,7 +43,7 @@
 
 BOOL DLDYN_c60_process_dynamic_tag(DLIMP_Dynamic_Module* dyn_module, int i);
 BOOL DLDYN_c60_process_eiosabi(DLIMP_Dynamic_Module* dyn_module);
-BOOL DLDYN_c60_relocate_dynamic_tag_info(DLIMP_Dynamic_Module *dyn_module, int32_t i);
+BOOL DLDYN_c60_relocate_dynamic_tag_info(DLIMP_Dynamic_Module *dyn_module, int i);
 
 #define T_INTSZ 32
 #define T_CHARSZ 8

@@ -27,6 +27,7 @@
  *****************************************************************************/
 #pragma once
 
+#ifndef _SYS_BIOS
 /* package header files */
 #include <ti/ipc/Std.h>
 /* Work around IPC usage of typedef void */
@@ -34,6 +35,16 @@
 #include <ti/ipc/MultiProc.h>
 #include <ti/ipc/MessageQ.h>
 #undef Void
+#else
+#include <xdc/std.h>
+#include <xdc/runtime/Assert.h>
+#include <xdc/runtime/Diags.h>
+#include <xdc/runtime/Error.h>
+#include <ti/ipc/Ipc.h>
+#include <ti/ipc/MultiProc.h>
+#include <ti/ipc/MessageQ.h>
+#include <ti/ipc/SharedRegion.h>
+#endif
 
 #include "u_locks_pthread.h"
 #include "u_lockable.h"
