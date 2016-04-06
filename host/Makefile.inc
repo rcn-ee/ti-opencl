@@ -34,11 +34,11 @@ endif
 
 # OMP 
 
-OMP_DIR_K2X?=/cgnas/openmp_dsp_k2x_2_02_01_00-20160302
-OMP_DIR_K2G?=/cgnas/openmp_dsp_k2g_2_02_01_00-20160302
-OMP_DIR_AM57?=/cgnas/openmp_dsp_am57xx_2_02_01_00-20160302
+OMP_DIR_K2X?=/cgnas/openmp_dsp_k2x_02_03_00_00-20160406
+OMP_DIR_K2G?=/cgnas/openmp_dsp_k2g_02_03_00_00-20160406
+OMP_DIR_AM57?=/cgnas/openmp_dsp_am57xx_02_03_00_00-20160406
 
-PSDK_VERSION ?= 02.00.02.03-20160225
+PSDK_VERSION ?= 02.00.02.10-release
 
 # SOC PSDK
 ifeq ($(BUILD_K2H),1)
