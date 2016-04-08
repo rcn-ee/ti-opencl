@@ -108,15 +108,18 @@ similar).  You can make changes with the sizes that suit your use case.
 
  #. Make a copy of the original k2hk-evm.dtb (if you care)
     ::
+
       cp /var/lib/tftpboot/k2hk-evm.dtb /var/lib/tftpboot.k2hk-evm.dtb.orig
 
  #. Convert device tree blob format to source format
     ::
+
       dtc -I dtb -O dts /var/lib/tftpboot/k2hk-evm.dtb -o tmp.dts
 
  #. Modify the sizes in both cmem_block@0 and corresponding cmem_block_mem
     nodes
     ::
+
       --- k2hk-evm.dts.orig	2016-03-31 15:05:58.779020849 -0500
       +++ k2hk-evm.dts	        2016-03-31 15:06:33.083021624 -0500
       @@ -2814,7 +2814,7 @@
@@ -140,6 +143,7 @@ similar).  You can make changes with the sizes that suit your use case.
 
     Or, if 4GB of CMEM is desired, change the sizes to
     ::
+
       -			reg = <0x8 0x29000000 0x0 0x17000000>;
       +			reg = <0x8 0x29000000 0x1 0x00000000>;
       -			cmem-buf-pools = <0x1 0x0 0x17000000>;
@@ -147,11 +151,13 @@ similar).  You can make changes with the sizes that suit your use case.
 
  #. Convert device tree source back to blob format
     ::
+
       dtc -I dts -O dtb tmp.dts -o /var/lib/tftpboot/k2hk-evm.dtb
 
  #. Reboot your evm, check /proc/iomem or run OpenCL "platforms" example to
     verify the changes
     ::
+
       # cat /proc/iomem | grep CMEM
       0c100000-0c57ffff : CMEM
       822000000-828ffffff : CMEM

@@ -126,11 +126,13 @@ and window 2::
     debug session, DSP core 0 gets stuck in non-suspendable state.  To resolve
     this, user can either reboot the EVM or use the following script to reload
     DSP firmware.
-        | $ cat reload_dspfirmware.sh
-        | #!/bin/sh
-        | cd /sys/bus/platform/drivers/omap-rproc
-        | echo 40800000.dsp > unbind
-        | echo 41000000.dsp > unbind
-        | echo 40800000.dsp > bind
-        | echo 41000000.dsp > bind
+    ::
+
+        $ cat reload_dspfirmware.sh
+        #!/bin/sh
+        cd /sys/bus/platform/drivers/omap-rproc
+        echo 40800000.dsp > unbind
+        echo 41000000.dsp > unbind
+        echo 40800000.dsp > bind
+        echo 41000000.dsp > bind
 
