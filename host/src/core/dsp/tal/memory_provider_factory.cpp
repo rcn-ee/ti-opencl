@@ -5,7 +5,7 @@
 #include "../error_report.h"
 
 
-#if defined (DEVICE_K2X)
+#if defined (DEVICE_K2X) || defined (DEVICE_K2G)
 #define DEVICE_USES_DEVMEM_MPM      (1)
 #define DEVICE_USES_DEVMEM_MMAP     (!(DEVICE_USES_DEVMEM_MPM))
 

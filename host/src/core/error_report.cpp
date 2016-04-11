@@ -97,7 +97,7 @@ void tiocl::ReportError(const ErrorType et, const ErrorKind ek, ...)
 
     va_list args;
     va_start (args, ek);
-    vprintf  (error_format.c_str(), args);
+    vfprintf  (stderr, error_format.c_str(), args);
     va_end   (args);
 
     if (et == ErrorType::Fatal)
@@ -111,7 +111,7 @@ void tiocl::ReportTrace(const char *fmt, ...)
     trace_fmt += fmt;
     va_list ap;
     va_start(ap, fmt);
-    std::vprintf(trace_fmt.c_str(), ap);
+    vfprintf(stderr, trace_fmt.c_str(), ap);
     va_end(ap);
     std::fflush(stdout);
 }

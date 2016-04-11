@@ -167,10 +167,10 @@ inline MBoxMPM::MBoxMPM(Coal::DSPDevice *device)
     p_mpf = new tiocl::MemoryProviderFactory();
     p_mpf->CreateMemoryProvider(MemoryRange(addr_mbox_d2h_phys, size_mbox_d2h,
                                         MemoryRange::Kind::DEVMEM,
-                                        MemoryRange::Location::OFFCHIP));
+                                        MemoryRange::Location::ONCHIP));
     p_mpf->CreateMemoryProvider(MemoryRange(addr_mbox_h2d_phys, size_mbox_h2d,
                                          MemoryRange::Kind::DEVMEM,
-                                         MemoryRange::Location::OFFCHIP));
+                                         MemoryRange::Location::ONCHIP));
     const tiocl::MemoryProvider *mp =
                                 p_mpf->GetMemoryProvider (addr_mbox_h2d_phys);
     mbConfig.mem_start_addr   = (uint32_t)mp->MapToHostAddressSpace(

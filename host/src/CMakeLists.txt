@@ -139,6 +139,9 @@ set(COAL_SRC_FILES
 
 if (K2X_BUILD)
     set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/rm_qmss_res.c)
+endif()
+
+if (K2X_BUILD OR K2G_BUILD)
     set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/devmem_map_policy_mpm.cpp)
 endif()
 

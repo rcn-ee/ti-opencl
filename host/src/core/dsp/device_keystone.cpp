@@ -29,13 +29,15 @@
 
 // Included in device.cpp
 
-#include "tal/mbox_impl_mpm.h"
 #include <vector>
 
 #if defined(DEVICE_K2X)
 extern "C" {
     extern int get_ocl_qmss_res(Msg_t *msg);
 }
+#include "tal/mbox_impl_mpm.h"
+#elif defined (DEVICE_K2G)
+#include "tal/mbox_impl_msgq.h"
 #endif
 
 /******************************************************************************
