@@ -126,8 +126,8 @@ dsp1.out: custom_rsc_table_vayu_dsp1.obj $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD1
 	@echo $(LINK_CMD1)
 	$(CC) -z --priority -w -x -m$@.map --define=DDR3_FCSECTION=DDR3_FC $^ -I$(TI_OCL_CGT_INSTALL)/lib -llibc.a -o $@
 
-%.syms: %.out
-	$(call create_dsp_syms, $^, $@)
+%.syms: %.out export_syms
+	$(call create_dsp_syms, $<, $@)
 
 $(LIBM): 
 	$(MAKE) -C $(LIBM_DIR) -j4 
