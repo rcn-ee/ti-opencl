@@ -23,14 +23,11 @@ Next, launch CCS, "View -> Target Configurations", create a "User Defined"
 "New Target Configuration".  For "Connection", choose your emulator model
 from the list, e.g. "Spectrum Digital XDS560V2 STM USB Emulator".
 For "Board or Device", choose your EVM model from the list, e.g. "66AK2H",
-"TMS320C6678".  For AM57xx, you will need to install DRA7xx Chip Support
-Packet (CSP) as an update into CCS.  However, DRA7xx CSP requires NDA
-agreement with TI as of this writing.  If it does not come by default with
-latest CCS that you can download, please contact your Field Application
-Engineer (FAE) for support.  Once DRA7xx CSP is installed in CCS, please
-choose "DRA75x_DRA74x" as "Board or Device".  Once "Connection" and "Board
-or Device" are chosen, please save configuration and test connection to
-ensure that CCS can talk to the EVM via the emulator.
+"TMS320C6678", or "GPEVM_AM572X".  Device support are often added
+over time with CCS releases.  If you don't see your device being listed and
+your CCS installation is old, please update to the latest CCS release.
+Once "Connection" and "Board or Device" are chosen, please save configuration
+and test connection to ensure that CCS can talk to the EVM via the emulator.
 
 If you choose to have CCS talk to the emulator via Ethernet, you can use
 configuration utility that comes with CCS installation to find the IP address
