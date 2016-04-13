@@ -45,9 +45,9 @@
 class dspheap : public Lockable
 {
   typedef std::map<DSPDevicePtr64, uint64_t> block_list;
-  typedef block_list::iterator           block_iter;
-  typedef block_list::const_iterator     const_block_iter;
-  typedef block_list::value_type         block_descriptor;
+  typedef block_list::iterator               block_iter;
+  typedef block_list::const_iterator         const_block_iter;
+  typedef block_list::value_type             block_descriptor;
 
   public:
     dspheap(DSPDevicePtr64 start_addr, uint64_t length) 

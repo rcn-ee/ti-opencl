@@ -475,7 +475,11 @@ static void*
 clMalloc(size_t size, cl_mem_flags flags, cl_context d_context)
 {
     Coal::DSPDevice *dspdevice = getDspDevice();
-    if (dspdevice != NULL)  return dspdevice->clMalloc(size, flags);
+    if (dspdevice != NULL)
+    {
+        tiocl::MemoryRange::Location l = dspdevice->ClFlagToLocation(flags);
+        return dspdevice->GetSHMHandler()->clMalloc(size, l);
+    }
     return NULL;
 }
 
@@ -483,7 +487,7 @@ static void
 clFree(void *p, cl_context d_context)
 {
     Coal::DSPDevice *dspdevice = getDspDevice();
-    if (dspdevice != NULL)  dspdevice->clFree(p);
+    if (dspdevice != NULL)  dspdevice->GetSHMHandler()->clFree(p);
 }
 
 void *

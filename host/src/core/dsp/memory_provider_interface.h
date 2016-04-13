@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2016, Texas Instruments Incorporated - http://www.ti.com/
+ * Copyright (c) 2013-2016, Texas Instruments Incorporated - http://www.ti.com/
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -15,7 +15,7 @@
  *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  *   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+ *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  *   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
  *   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
  *   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
@@ -25,10 +25,48 @@
  *   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  *   THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
- 
+
 #pragma once
 
-typedef uint32_t	DSPDevicePtr;
-typedef uint64_t	DSPDevicePtr64;
-typedef uint32_t	DSPVirtPtr;
-// typedef uint64_t	DSPVirtPtr64;  // for future C7x?
+#include <cstdlib>
+#include "../tiocl_types.h"
+#include "../memory_range.h"
+
+using tiocl::MemoryRange;
+
+namespace tiocl {
+
+// Handles memory related functionality for a given range
+// - Mapping/unmapping of memory ranges into the host address space
+// - Cache operations
+// - Properties of a memory range (alignment, block size etc.)
+class MemoryProvider
+{
+public:
+    MemoryProvider(const MemoryRange &r) :
+                            range(r) {}
+
+    virtual ~MemoryProvider() {}
+
+    virtual void *MapToHostAddressSpace (DSPDevicePtr64 dsp_addr, size_t size,
+                                                 bool is_read) const = 0;
+    virtual void  UnmapFromHostAddressSpace (void* host_addr, uint32_t size,
+                                                bool is_write) const = 0;
+
+    virtual bool   CacheInv  (void *host_addr, std::size_t size) const = 0;
+    virtual bool   CacheWb   (void *host_addr, std::size_t size) const = 0;
+    virtual bool   CacheWbInv(void *host_addr, std::size_t size) const = 0;
+
+    virtual size_t MinAllocationBlockSize() const = 0;
+    virtual size_t MinAllocationAlignment() const = 0;
+
+    bool IsAddressInRange(DSPDevicePtr64 addr) const {
+        return range.IsAddressInRange(addr);
+    }
+
+private:
+    const MemoryRange range;
+
+};
+
+} // namespace tiocl

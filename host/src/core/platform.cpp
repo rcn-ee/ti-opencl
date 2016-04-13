@@ -108,17 +108,18 @@ namespace Coal
     {
         p_lock_fd = begin_file_lock_crit_section("/var/lock/opencl");
 
-	// For now, don't add the CPU device on K2X platforms unless it is
-	// asserted that we want to enable it (eg. the ooo example)
-	if (getenv("TI_OCL_CPU_DEVICE_ENABLE") != NULL)
+	    // For now, don't add the CPU device on K2X platforms unless it is
+	    // asserted that we want to enable it (eg. the ooo example)
+	    if (getenv("TI_OCL_CPU_DEVICE_ENABLE") != NULL)
         {
-	    Coal::DeviceInterface * device = new Coal::CPUDevice;
+	        Coal::DeviceInterface * device = new Coal::CPUDevice;
             p_devices.push_back(desc(device));
         }
 
         for (int i = 0; i < Driver::instance()->num_dsps(); i++)
         {
-	    Coal::DeviceInterface * device = new Coal::DSPDevice(i);
+            tiocl::SharedMemory* shm = p_shmFactory.CreateSharedMemoryProvider(i);
+	        Coal::DeviceInterface* device = new Coal::DSPDevice(i, shm);
             p_devices.push_back(desc(device));
         }
 
@@ -133,7 +134,9 @@ namespace Coal
         close(p_lock_fd);
 
         for (int i = 0; i < p_devices.size(); i++)
-	    delete pobj(p_devices[i]);
+	        delete pobj(p_devices[i]);
+
+        p_shmFactory.DestroySharedMemoryProviders();
     }
 
     cl_uint Platform::getDevices(cl_device_type device_type, 

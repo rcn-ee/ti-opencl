@@ -56,10 +56,6 @@
 
 using namespace Coal;
 
-#if !defined(DSPC868X)
-#include "../dsp/shmem.h"
-// unsigned arm_speed();
-#endif
 
 CPUDevice::CPUDevice()
 : DeviceInterface(), p_cores(0), p_num_events(0), p_workers(0), p_stop(false),
@@ -647,27 +643,3 @@ cl_int CPUDevice::info(cl_device_info param_name,
 
     return CL_SUCCESS;
 }
-
-#if !defined(DSPC868X)
-#if 0 // /dev/mem is no longer available
-unsigned arm_speed()
-{
-    //return 1000.0;
-    const unsigned TETRIS_PLL = 125000000;
-    const unsigned pagesize = 0x1000;
-
-    shmem_persistent page;
-    page.configure(0x02620000, pagesize);
-    char *host_msmc = (char*)page.map(0x02620000, pagesize);
-    unsigned SECPLLCTL0 = *(unsigned*)(host_msmc + 0x370);
-    unsigned prediv = 1 + (SECPLLCTL0 & 0x3F);
-    unsigned mult   = 1 + ((SECPLLCTL0 >> 6) & 0x1FFF);
-    unsigned output_div = 1 + ((SECPLLCTL0 >> 19) & 0xF);
-    unsigned speed = TETRIS_PLL * mult / prediv / output_div;
-    page.unmap(host_msmc, pagesize);
-
-    return speed / 1000000;
-}
-#endif
-#endif
-

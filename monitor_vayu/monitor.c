@@ -72,7 +72,7 @@
 #include "util.h"
 #include "edma.h"
 #include "trace.h"
-#include "mbox_msgq_shared.h"
+#include "tal/mbox_msgq_shared.h"
 
 #if defined(ULM_ENABLED)
 #include "tiulm.h"

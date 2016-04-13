@@ -15,7 +15,7 @@
  *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  *   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+ *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  *   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
  *   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
  *   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
@@ -29,14 +29,7 @@
 #define __DSP_DEVICE_H__
 
 
-extern "C" {
-/*-----------------------------------------------------------------------------
-* Add ULM memory state messages if ULM library is available
-*----------------------------------------------------------------------------*/
-#if defined (ULM_ENABLED)
-   #include "tiulm.h"  
-#endif
-}
+
 
 #include "../deviceinterface.h"
 #include "dspheap.h"
@@ -47,8 +40,8 @@ extern "C" {
 #include <pthread.h>
 #include <string>
 #include <list>
-#include "mbox.h"
-
+#include "mbox_interface.h"
+#include "../shared_memory_interface.h"
 
 namespace Coal
 {
@@ -58,15 +51,13 @@ class Event;
 class Program;
 class Kernel;
 
-typedef std::pair<DSPDevicePtr64, size_t>         PhysAddrSizePair;
-typedef std::pair<PhysAddrSizePair, cl_mem_flags> PhysAddrSizeFlagsTriple;
-typedef std::map<void*, PhysAddrSizeFlagsTriple>  clMallocMapping;
-typedef clMallocMapping::iterator                 clMallocMapping_iter;
+using tiocl::SharedMemory;
+using tiocl::MemoryRange;
 
 class DSPDevice : public DeviceInterface, public Lockable
 {
     public:
-        DSPDevice(unsigned char dsp_id);
+        DSPDevice(unsigned char dsp_id, SharedMemory* shm);
         ~DSPDevice();
 
         void init();
@@ -97,30 +88,9 @@ class DSPDevice : public DeviceInterface, public Lockable
         bool addr_is_l2  (DSPDevicePtr addr) const ;
         bool addr_is_msmc(DSPDevicePtr addr) const ;
 
-        /*---------------------------------------------------------------------
-        * These malloc routines return a uint32_t instead of a pointer
-        * Because the target memory space is 32 bit and is independent of the 
-        * size of a host pointer (ie. 32bit vs 64 bit)
-        * Device/Target global memory could be 36-bit.
-        * get_local_scratch returns max local free block for per kernel use.
-        *--------------------------------------------------------------------*/
         DSPDevicePtr   get_L2_extent(uint32_t &size);
-        DSPDevicePtr   malloc_msmc  (size_t   size);
-        void           free_msmc    (DSPDevicePtr add);
-        DSPDevicePtr64 malloc_global(size_t   size, bool prefer_32bit=true);
-        void           free_global  (DSPDevicePtr64 add);
 
-        void           dsptop_msmc        ();
-        void           dsptop_ddr_fixed   ();
-        void           dsptop_ddr_extended();
 
-        /*---------------------------------------------------------------------
-        * clMalloc, clFree, clMallocQuery
-        * Allocate space in physical heap, map into host's address space
-        *--------------------------------------------------------------------*/
-        void* clMalloc     (size_t size, cl_mem_flags flags);
-        void  clFree       (void* ptr);
-        bool  clMallocQuery(void* ptr, DSPDevicePtr64* p_addr, size_t* p_size);
         bool  isInClMallocedRegion(void *ptr);
 
         int  numHostMails(Msg_t& msg) const;
@@ -145,13 +115,11 @@ class DSPDevice : public DeviceInterface, public Lockable
         void*        get_mpax_default_res();
 #endif
 
-        void setup_memory(void);
-        void setup_memory(DSPDevicePtr64 &global1, DSPDevicePtr64 &global2,
-                             DSPDevicePtr64 &global3,
-                             uint64_t &gsize1, uint64_t &gsize2,
-                             uint64_t &gsize3);
+        void init_ulm();
 
-        void init_ulm(uint64_t gsize1, uint64_t gsize2, uint64_t gsize3);
+        SharedMemory* GetSHMHandler() const { return p_shmHandler; }
+
+        MemoryRange::Location ClFlagToLocation(cl_mem_flags flags) const;
 
     protected:
         virtual void setup_mailbox(void);
@@ -168,29 +136,21 @@ class DSPDevice : public DeviceInterface, public Lockable
         pthread_mutex_t    p_events_mutex;
         pthread_cond_t     p_worker_cond;
         pthread_mutex_t    p_worker_mutex;
-        bool               p_stop; 
+        bool               p_stop;
         volatile bool      p_exit_acked;
         bool               p_initialized;
         unsigned char      p_dsp_id;
-        dspheap            p_device_ddr_heap1;  // persistently mapped memory
-        dspheap            p_device_ddr_heap2;  // ondemand mapped memory
-        dspheap            p_device_ddr_heap3;  // addl ondemand mapped memory
-        dspheap            p_device_msmc_heap;
-        clMallocMapping    p_clMalloc_mapping;
 
         concurrent_map<uint32_t, class Event*> p_complete_pending;
 
         DSPDevicePtr       p_addr_kernel_config;
-        DSPDevicePtr64     p_addr64_global_mem;
         DSPDevicePtr       p_addr_local_mem;
-        DSPDevicePtr       p_addr_msmc_mem;
-        uint64_t           p_size64_global_mem;
         uint32_t           p_size_local_mem;
-        uint32_t           p_size_msmc_mem;
 
         MBox              *p_mb;
 
         void*              p_mpax_default_res;
+        SharedMemory      *p_shmHandler;
 };
 
 }

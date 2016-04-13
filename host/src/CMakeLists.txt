@@ -24,9 +24,10 @@ include_directories (
     ${LLVM_INCLUDE_DIR}
     ${CLANG_INCLUDE_DIRS}
     ${CMAKE_CURRENT_BINARY_DIR}
-    ${PROJECT_SOURCE_DIR}/src/core/dsp/ocl_load/DLOAD_API
-    ${PROJECT_SOURCE_DIR}/src/core/dsp/ocl_load/DLOAD
-    ${PROJECT_SOURCE_DIR}/src/llvmopencl
+    ${PROJECT_SOURCE_DIR}/src/core/dsp/tal/ocl_load/DLOAD_API
+    ${PROJECT_SOURCE_DIR}/src/core/dsp/tal/ocl_load/DLOAD
+    ${PROJECT_SOURCE_DIR}/src/core/dsp/tal
+    ${PROJECT_SOURCE_DIR}/src/core/dsp
     ${TARGET_INCLUDES}
     )
 
@@ -101,6 +102,7 @@ set(COAL_SRC_FILES
     core/platform.cpp
     core/icd.cpp
     core/util.cpp
+    core/error_report.cpp
 
     core/cpu/buffer.cpp
     core/cpu/device.cpp
@@ -125,15 +127,30 @@ set(COAL_SRC_FILES
     core/dsp/kernel.cpp
     core/dsp/worker.cpp
     core/dsp/mmap_resource.cpp
-    core/dsp/dload.cpp
+
+    core/dsp/tal/memory_provider_cmem.cpp
+    core/dsp/tal/dload.cpp
+    core/dsp/tal/memory_provider_factory.cpp
+    core/dsp/tal/shared_memory_provider.cpp
+    core/dsp/tal/shmem_provider_factory.cpp
+    core/dsp/tal/shmem_cmem.cpp
+    core/dsp/tal/shmem_rw_policy_cmem.cpp
 )
 
 if (K2X_BUILD)
     set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/rm_qmss_res.c)
 endif()
 
+if (K2X_BUILD OR K2G_BUILD)
+    set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/devmem_map_policy_mpm.cpp)
+endif()
+
 if (K2G_BUILD OR AM57_BUILD)
-    set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/mbox_impl_msgq.cpp)
+    set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/mbox_impl_msgq.cpp)
+endif()
+
+if (AM57_BUILD)
+    set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/devmem_map_policy_mmap.cpp)
 endif()
 
 add_subdirectory(runtime)
@@ -159,7 +176,7 @@ add_dependencies(OpenCL generate_builtins)
 add_dependencies(OpenCL oclload)
 add_dependencies(OpenCL generate_dsp_builtins)
 
-add_subdirectory(core/dsp/ocl_load)
+add_subdirectory(core/dsp/tal/ocl_load)
 
 SET(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
 

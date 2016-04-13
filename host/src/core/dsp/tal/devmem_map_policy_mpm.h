@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2016, Texas Instruments Incorporated - http://www.ti.com/
+ * Copyright (c) 2013-2014, Texas Instruments Incorporated - http://www.ti.com/
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -15,7 +15,7 @@
  *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  *   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+ *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  *   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
  *   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
  *   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
@@ -25,43 +25,36 @@
  *   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  *   THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
- 
 #pragma once
 
-#include "dynamic_loader_interface.h"
-#include "u_lockable.h"
-extern "C" { 
-#include "dload_api.h" 
+#include <stdint.h>
+#include "../tiocl_types.h"
+
+extern "C" {
+#include <mpm_transport.h>
 }
 
-namespace Coal
+namespace tiocl
 {
-    class DSPProgram;
-}
 
-namespace tiocl {
-
-
-class DLOAD : public DynamicLoader, public Lockable
+// Map /dev/mem using the MPM transport api (K2x only)
+// Used as a template argument to instantiate tiocl::DevMem
+class DevMemMapPolicyMPM
 {
-public:
-    typedef int ProgramHandle;
+protected:
+    DevMemMapPolicyMPM();
+    ~DevMemMapPolicyMPM();
 
-    explicit DLOAD(Coal::DSPProgram *program);
-    virtual ~DLOAD();
-    virtual bool LoadProgram(const std::string &fileName);
-    virtual bool UnloadProgram();
-    virtual DSPDevicePtr QuerySymbol(const std::string &symName) const;
-    virtual DSPDevicePtr GetDataPagePointer() const;
-    virtual DSPDevicePtr GetProgramLoadAddress() const;
-
-    void SetProgramLoadAddress(DSPDevicePtr address);
-    DLOAD_HANDLE GetDloadHandle() const { return dloadHandle; }
+    void  Configure (DSPDevicePtr64 dsp_addr,  uint64_t size);
+    void *Map       (DSPDevicePtr64 dsp_addr,  size_t   size) const;
+    void  Unmap     (void*          host_addr, size_t   size) const;
 
 private:
-    DLOAD_HANDLE dloadHandle;
-    DSPDevicePtr programLoadAddress;
-    ProgramHandle ph;
+    DSPDevicePtr64  dsp_addr_;
+    uint64_t        size_;
+    void*           host_addr_;
+    void*           xlate_dsp_to_host_offset_;
+    mpm_transport_h mpm_transport_handle_;
 };
 
-}
+} // namespace tiocl

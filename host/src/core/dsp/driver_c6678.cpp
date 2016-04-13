@@ -15,7 +15,7 @@
  *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  *   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+ *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  *   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
  *   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
  *   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
@@ -44,19 +44,19 @@ Driver* Driver::pInstance = 0;
 /******************************************************************************
 * Thread safe instance function for singleton behavior
 ******************************************************************************/
-Driver* Driver::instance () 
+Driver* Driver::instance ()
 {
     static Mutex Driver_instance_mutex;
     Driver* tmp = pInstance;
 
     __sync_synchronize();
 
-    if (tmp == 0) 
+    if (tmp == 0)
     {
         ScopedLock lck(Driver_instance_mutex);
 
         tmp = pInstance;
-        if (tmp == 0) 
+        if (tmp == 0)
         {
             tmp = new Driver;
             __sync_synchronize();
@@ -98,7 +98,7 @@ int Driver::cores_per_dsp(int dsp)
 /******************************************************************************
 * wait_for_ready
 ******************************************************************************/
-bool Driver::wait_for_ready(int chip)
+static bool wait_for_ready(int chip)
 {
     int execution_wait_count = 0;
     int n_cores = cores_per_dsp(chip);
@@ -109,7 +109,7 @@ bool Driver::wait_for_ready(int chip)
         for (core = 0; core < n_cores; core++)
         {
             uint32_t boot_entry_value;
-            int ret = pciedrv_dsp_read(chip, 
+            int ret = pciedrv_dsp_read(chip,
                               ((0x10 + core) << 24) + BOOT_ENTRY_LOCATION_ADDR,
                               (unsigned char *) &boot_entry_value, 4);
             ERR(ret, "pciedrv_dsp_read failed");
@@ -117,7 +117,7 @@ bool Driver::wait_for_ready(int chip)
             if (boot_entry_value != 0) break;
         }
 
-        if (core == n_cores) return true; 
+        if (core == n_cores) return true;
         if (++execution_wait_count > 1000)    return false;
 
         usleep(1000);
@@ -135,10 +135,10 @@ void Driver::reset_and_load(int chip)
     * Determine DSP speed. 1 Ghz by default. Set Env Var for  1.25Ghz Oper
     *-----------------------------------------------------------------------*/
     uint32_t pll_multiplier = 0x00000014; // 1.00 Ghz by default
-    if (getenv("TI_OCL_DSP_1_25GHZ")) pll_multiplier = 0x00000019; 
+    if (getenv("TI_OCL_DSP_1_25GHZ")) pll_multiplier = 0x00000019;
 
     /*-------------------------------------------------------------------------
-    * Configure boot config 
+    * Configure boot config
     *------------------------------------------------------------------------*/
     uint32_t   bootcfg_words[]= { 0xBABEFACE, pll_multiplier };
     boot_cfg_t bootcfg = { 0x86FF00, sizeof(bootcfg_words), bootcfg_words};
@@ -154,16 +154,16 @@ void Driver::reset_and_load(int chip)
     init += "/usr/share/ti/opencl/init_";
     init += board;
     init += ".out";
- 
+
     void    *init_image_handle;
     uint32_t init_entry;
     ret = dnldmgr_get_image(
         const_cast<char *>(init.c_str()), &init_image_handle, &init_entry);
     ERR(ret, "Get reset image failed");
- 
+
     ret = dnldmgr_reset_dsp(chip, 1, init_image_handle, init_entry, &bootcfg);
     ERR (ret, "DSP out of reset failed");
- 
+
     dnldmgr_free_image(init_image_handle);
 
     /*---------------------------------------------------------------------
@@ -203,9 +203,9 @@ void* Driver::create_image_handle(int chip)
 /******************************************************************************
 * Driver::open
 ******************************************************************************/
-int32_t Driver::open()         
-{ 
-    Lock lock(this); 
+int32_t Driver::open()
+{
+    Lock lock(this);
 
     memset((void*)&config, 0, sizeof(pciedrv_open_config_t));
     config.dsp_outbound_reserved_mem_size = 0;
@@ -216,18 +216,18 @@ int32_t Driver::open()
     config.dsp_outbound_block_size        = 0x400000;
     config.max_dma_transactions           = 256;
 
-    int status = pciedrv_open(&config);  
+    int status = pciedrv_open(&config);
     ERR(status, "PCIe Driver Open Error");
 
     pNum_dsps = pciedrv_get_num_devices();
 
     /*-------------------------------------------------------------------------
-    * Allocate space for and retrieve device info 
+    * Allocate space for and retrieve device info
     *------------------------------------------------------------------------*/
     pDevices_info = (pciedrv_device_info_t*)
                    malloc(pNum_dsps * sizeof(pciedrv_device_info_t));
     ERR (!pDevices_info, "malloc failed pciedrv_devices_info_t");
-  
+
     int ret = pciedrv_get_pci_info(pDevices_info);
     ERR(ret, "get pci info failed");
 
@@ -236,13 +236,13 @@ int32_t Driver::open()
 }
 
 /******************************************************************************
-* Driver::close()         
+* Driver::close()
 ******************************************************************************/
-int32_t Driver::close()         
+int32_t Driver::close()
 {
-    Lock lock(this); 
+    Lock lock(this);
     free (pDevices_info);
-    int status = pciedrv_close();  
+    int status = pciedrv_close();
     ERR(status, "PCIe Driver Close Error");
     return 0;
 }
@@ -251,9 +251,9 @@ int32_t Driver::close()
 /******************************************************************************
 * Driver::write
 ******************************************************************************/
-int32_t Driver::write(int32_t dsp_id, DSPDevicePtr64 addr, uint8_t *buf, 
+int32_t Driver::write(int32_t dsp_id, DSPDevicePtr64 addr, uint8_t *buf,
                       uint32_t size)
-{ 
+{
     int n_cores = cores_per_dsp(dsp_id);
 
     /*-------------------------------------------------------------------------
@@ -278,22 +278,22 @@ int32_t Driver::write(int32_t dsp_id, DSPDevicePtr64 addr, uint8_t *buf,
 /******************************************************************************
 * Driver::write
 ******************************************************************************/
-int32_t Driver::write_core(int32_t dsp_id, DSPDevicePtr64 addr64, uint8_t *buf, 
+int32_t Driver::write_core(int32_t dsp_id, DSPDevicePtr64 addr64, uint8_t *buf,
                            uint32_t size)
-{ 
+{
     DSPDevicePtr addr = (DSPDevicePtr) addr64;
     /*-------------------------------------------------------------------------
     * Regular writes under 24k are faster than DMA writes (may change)
     *------------------------------------------------------------------------*/
-    if (size < 24 * 1024) 
+    if (size < 24 * 1024)
     {
         int status = pciedrv_dsp_write(dsp_id, addr, buf, size);
         ERR(status, "PCIe Driver Write Error");
         return 0;
     }
 
-    Lock lock(this); 
-    Cmem::instance()->dma_write(dsp_id, addr, buf, size); 
+    Lock lock(this);
+    Cmem::instance()->dma_write(dsp_id, addr, buf, size);
     return 0;
 }
 
@@ -340,13 +340,13 @@ bool Driver::cacheWbInvAll()
 /******************************************************************************
 * Driver::read
 ******************************************************************************/
-int32_t Driver::read(int32_t dsp_id, DSPDevicePtr64 addr64, uint8_t *buf, 
+int32_t Driver::read(int32_t dsp_id, DSPDevicePtr64 addr64, uint8_t *buf,
                      uint32_t size)
-{ 
-    Lock lock(this); 
+{
+    Lock lock(this);
 
     DSPDevicePtr addr = (DSPDevicePtr) addr64;
-    Cmem::instance()->dma_read(dsp_id, addr, buf, size); 
+    Cmem::instance()->dma_read(dsp_id, addr, buf, size);
     return 0;
 }
 
@@ -358,7 +358,7 @@ DSPDevicePtr Driver::get_symbol(void* image_handle, const char *name)
     DSPDevicePtr addr;
     int ret = dnldmgr_get_symbol_address(
         image_handle, const_cast<char *>(name), &addr);
-    if (ret) { printf("ERROR: Get symbol failed\n"); exit(-1); } 
+    if (ret) { printf("ERROR: Get symbol failed\n"); exit(-1); }
 
     return addr;
 }
@@ -366,9 +366,9 @@ DSPDevicePtr Driver::get_symbol(void* image_handle, const char *name)
 /******************************************************************************
 * Driver::free_image_handle
 ******************************************************************************/
-void Driver::free_image_handle(void *handle) 
-{ 
-    dnldmgr_free_image(handle); 
+void Driver::free_image_handle(void *handle)
+{
+    dnldmgr_free_image(handle);
 }
 
 /******************************************************************************

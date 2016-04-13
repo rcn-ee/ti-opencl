@@ -32,6 +32,7 @@
 #include <vector>
 #include <cstring>
 #include "icd.h"
+#include "shared_memory_interface.h"
 
 #include <pthread.h>
 #define  LOKI_PTHREAD_H
@@ -54,9 +55,13 @@ class Platform
                     void *param_value,
                     size_t *param_value_size_ret) const;
 
+        const tiocl::SharedMemoryProviderFactory& GetSharedMemoryProviderFactory() const
+        { return p_shmFactory; }
+
     private:
         KHRicdVendorDispatch *dispatch;
         std::vector <cl_device_id> p_devices;
+        tiocl::SharedMemoryProviderFactory p_shmFactory;
         int p_lock_fd;
 };
 
