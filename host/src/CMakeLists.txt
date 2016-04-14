@@ -127,22 +127,24 @@ set(COAL_SRC_FILES
     core/dsp/kernel.cpp
     core/dsp/worker.cpp
     core/dsp/mmap_resource.cpp
+    core/dsp/device_info.cpp
 
-    core/dsp/tal/memory_provider_cmem.cpp
     core/dsp/tal/dload.cpp
     core/dsp/tal/memory_provider_factory.cpp
     core/dsp/tal/shared_memory_provider.cpp
     core/dsp/tal/shmem_provider_factory.cpp
-    core/dsp/tal/shmem_cmem.cpp
-    core/dsp/tal/shmem_rw_policy_cmem.cpp
+    core/dsp/tal/symbol_address_elf.cpp
+    core/dsp/tal/mbox_factory.cpp
 )
 
 if (K2X_BUILD)
     set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/rm_qmss_res.c)
+    set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/mbox_impl_mpm.cpp)
 endif()
 
 if (K2X_BUILD OR K2G_BUILD)
     set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/devmem_map_policy_mpm.cpp)
+    set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/device_manager_mpm.cpp)
 endif()
 
 if (K2G_BUILD OR AM57_BUILD)
@@ -150,7 +152,24 @@ if (K2G_BUILD OR AM57_BUILD)
 endif()
 
 if (AM57_BUILD)
+    set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/device_manager_remoteproc.cpp)
+endif()
+
+if (AM57_BUILD)
     set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/devmem_map_policy_mmap.cpp)
+endif()
+
+if (C6678_BUILD)
+    set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/shmem_init_policy_pcie.cpp)
+    set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/shmem_rw_policy_pcie.cpp)
+    set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/memory_provider_pcie.cpp)
+    set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/shmem_pcie.cpp)
+    set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/pcie_cmem.cpp)
+else()
+    set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/shmem_init_policy_cmem.cpp)
+    set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/shmem_rw_policy_cmem.cpp)
+    set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/memory_provider_cmem.cpp)
+    set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/shmem_cmem.cpp)
 endif()
 
 add_subdirectory(runtime)
@@ -213,10 +232,10 @@ set (LIBS
 
 # Add non-target dependent libraries
 find_library(FFI_LIB ffi)
-find_library(BFD_LIB bfd)
 find_library(SQLITE3_LIB sqlite3)
+find_library(ELF_LIB elf)
 
-LIST (APPEND LIBS ${FFI_LIB} ${BFD_LIB} ${SQLITE3_LIB})
+LIST (APPEND LIBS ${FFI_LIB} ${SQLITE3_LIB} ${ELF_LIB})
 
 # Add target dependent libraries
 if(K2X_BUILD)

@@ -71,3 +71,10 @@ build.log
 host/clocl/arm
 host/clocl/x86
 llvm33-install-x86
+monitor*/ocl_platforms/evmk2g/.dlls
+monitor*/ocl_platforms/evmk2g/.executables
+monitor*/ocl_platforms/evmk2g/.interfaces
+monitor*/ocl_platforms/evmk2g/.libraries
+monitor*/ocl_platforms/evmk2g/*.mak
+monitor*/ocl_platforms/evmk2g/package
+

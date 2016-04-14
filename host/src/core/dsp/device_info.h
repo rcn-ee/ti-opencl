@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2015, Texas Instruments Incorporated - http://www.ti.com/
+ * Copyright (c) 2013-2014, Texas Instruments Incorporated - http://www.ti.com/
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -15,7 +15,7 @@
  *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  *   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+ *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  *   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
  *   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
  *   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
@@ -25,57 +25,36 @@
  *   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  *   THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
-#pragma once
+#ifndef _DRIVER_H
+#define _DRIVER_H
+#include <cstdint>
+#include <string>
 
-/* package header files */
-#include <ti/ipc/Std.h>
-/* Work around IPC usage of typedef void */
-#define Void void
-#include <ti/ipc/MultiProc.h>
-#include <ti/ipc/MessageQ.h>
-#undef Void
+#include "../tiocl_types.h"
 
-#include "u_locks_pthread.h"
-#include "u_lockable.h"
-#include "device.h"
+#include "symbol_address_interface.h"
 
-#include "mbox_interface.h"
+namespace tiocl {
 
-#include "mbox_msgq_shared.h"
+// Singleton containing device information
+class DeviceInfo {
+public:
+    DeviceInfo();
+    virtual ~DeviceInfo();
 
-using namespace Coal;
+    uint8_t      GetNumDevices() const { return num_devices_; } // was num_dsps
+    std::string  FullyQualifiedPathToDspMonitor() const;
+    uint8_t      GetComputeUnitsPerDevice(int device) const; // was cores_per_dsp(int dsp);
+    DSPDevicePtr GetSymbolAddress(const std::string &name) const;
 
-class MBoxMsgQ : public MBox, public Lockable
-{
-    public:
-        MBoxMsgQ(Coal::DSPDevice *device);
-        ~MBoxMsgQ();
-        void     to   (uint8_t *msg, uint32_t  size, uint8_t id);
-        int32_t  from (uint8_t *msg, uint32_t *size, uint8_t id);
-        bool     query(uint8_t id=0);
+    static const DeviceInfo& Instance();
 
-  private:
-    void     write (uint8_t *buf, uint32_t size, uint32_t trans_id, uint8_t id);
-    uint32_t read  (uint8_t *buf, uint32_t *size, uint8_t id);
-
-  private:
-    MessageQ_Handle    hostQue;   // created by host
-    MessageQ_QueueId   dspQue[Ocl_MaxNumDspMsgQueues]; // created by DSPs
-    UInt16             heapId;    // heap for MessageQ_alloc, 0 on host
-    Coal::DSPDevice   *p_device;
+private:
+    uint8_t num_devices_;
+    uint8_t num_compute_units_;
+    const SymbolAddressLookup* symbol_lookup_;
 };
 
-inline void MBoxMsgQ::to(uint8_t *msg, uint32_t  size, uint8_t id)
-{
-    static unsigned trans_id = TX_ID_START;
-
-    Lock lock(this);
-    write(msg, size, trans_id++, id);
 }
 
-inline int32_t MBoxMsgQ::from (uint8_t *msg, uint32_t *size, uint8_t id)
-{
-    return read(msg, size, id);
-}
-
-
+#endif // _DRIVER_H

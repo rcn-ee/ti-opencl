@@ -28,56 +28,23 @@
 
 #pragma once
 
+#include <cstdint>
+#include <string>
+
+#include "device_manager_interface.h"
+
 namespace tiocl {
 
-// Kinds of error messages reported by the OpenCL runtime.
-// Refer tiocl::ErrorStrings for the corresponding error messages
-enum class ErrorKind
-{
-    PageSizeNotAvailable = 0,
-    RegionAddressNotMultipleOfPageSize,
-    RegionSizeNotMultipleOfPageSize,
-    FailedToOpenFileName,
-    TranslateAddressOutsideMappedAddressRange,
-    UnableToMapDSPAddress,
-    IllegalMemoryRegion,
-    CMEMInitFailed,
-    CMEMMinBlocks,
-    CMEMMapFailed,
-    CMEMAllocFailed,
-    CMEMAllocFromBlockFailed,
-    InvalidPointerToClFree,
-    ELFLibraryInitFailed,
-    ELFBeginFailed,
-    ELFSymbolAddressNotCached,
-    DeviceResetFailed,
-    DeviceLoadFailed,
-    DeviceRunFailed,
-    NumComputeUnitDetectionFailed,
-    DSPMonitorPathNonExistent,
-    TiOclInstallNotSpecified,
-    MailboxCreationFailed,
-    ShouldNotGetHere,
-    PCIeDriverError,
+// With RemoteProc, the DSP binaries are loaded at Device boot time
+// Reset, Load & Run are no-ops
+class DeviceManagerRemoteProc : public DeviceManager {
+public:
+    DeviceManagerRemoteProc() {}
+    ~DeviceManagerRemoteProc() {};
+
+    bool Reset() const override {};
+    bool Load()  const override {};
+    bool Run()   const override {};
 };
 
-// Types of error messages, used to control behavior of ReportError
-enum class ErrorType { Warning, Fatal };
-
-// Report an error to the user. Calls exit for ErrorType::Fatal
-void ReportError(const ErrorType et, const ErrorKind ek, ...);
-
-
-// Trace mechanism for debugging, disabled by default.
-// Zero overhead when disabled.
-//#define TRACE_ENABLED
-#if defined(TRACE_ENABLED)
-void ReportTrace(const char *fmt, ...);
-#else
-#define ReportTrace(...)
-#endif
-
 }
-
-
-

@@ -25,59 +25,23 @@
  *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  *  THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
+#include "core/memory_range.h"
+#include <vector>
 
 #pragma once
 
 namespace tiocl {
 
-// Kinds of error messages reported by the OpenCL runtime.
-// Refer tiocl::ErrorStrings for the corresponding error messages
-enum class ErrorKind
+/****************************************************************************
+ * Policy class implementing CMEM specific initialize and finalize methods
+ * - Discovery of available CMEM blocks.
+ * - Cleanup via call to CMEM_exit in Destroy()
+ ***************************************************************************/
+class InitializationPolicyPCIe
 {
-    PageSizeNotAvailable = 0,
-    RegionAddressNotMultipleOfPageSize,
-    RegionSizeNotMultipleOfPageSize,
-    FailedToOpenFileName,
-    TranslateAddressOutsideMappedAddressRange,
-    UnableToMapDSPAddress,
-    IllegalMemoryRegion,
-    CMEMInitFailed,
-    CMEMMinBlocks,
-    CMEMMapFailed,
-    CMEMAllocFailed,
-    CMEMAllocFromBlockFailed,
-    InvalidPointerToClFree,
-    ELFLibraryInitFailed,
-    ELFBeginFailed,
-    ELFSymbolAddressNotCached,
-    DeviceResetFailed,
-    DeviceLoadFailed,
-    DeviceRunFailed,
-    NumComputeUnitDetectionFailed,
-    DSPMonitorPathNonExistent,
-    TiOclInstallNotSpecified,
-    MailboxCreationFailed,
-    ShouldNotGetHere,
-    PCIeDriverError,
+protected:
+    void DiscoverMemoryRanges(std::vector<MemoryRange>& ranges);
+    void Destroy();
 };
 
-// Types of error messages, used to control behavior of ReportError
-enum class ErrorType { Warning, Fatal };
-
-// Report an error to the user. Calls exit for ErrorType::Fatal
-void ReportError(const ErrorType et, const ErrorKind ek, ...);
-
-
-// Trace mechanism for debugging, disabled by default.
-// Zero overhead when disabled.
-//#define TRACE_ENABLED
-#if defined(TRACE_ENABLED)
-void ReportTrace(const char *fmt, ...);
-#else
-#define ReportTrace(...)
-#endif
-
 }
-
-
-

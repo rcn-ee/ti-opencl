@@ -28,56 +28,34 @@
 
 #pragma once
 
-namespace tiocl {
+#include <cstdint>
+#include <cstdlib>
+#include "memory_provider_factory.h"
 
-// Kinds of error messages reported by the OpenCL runtime.
-// Refer tiocl::ErrorStrings for the corresponding error messages
-enum class ErrorKind
+using tiocl::MemoryProviderFactory;
+
+/****************************************************************************
+ * Policy class implementing CMEM specific read/write and map/unmap
+ * functionality.
+ ***************************************************************************/
+class ReadWritePolicyPCIe
 {
-    PageSizeNotAvailable = 0,
-    RegionAddressNotMultipleOfPageSize,
-    RegionSizeNotMultipleOfPageSize,
-    FailedToOpenFileName,
-    TranslateAddressOutsideMappedAddressRange,
-    UnableToMapDSPAddress,
-    IllegalMemoryRegion,
-    CMEMInitFailed,
-    CMEMMinBlocks,
-    CMEMMapFailed,
-    CMEMAllocFailed,
-    CMEMAllocFromBlockFailed,
-    InvalidPointerToClFree,
-    ELFLibraryInitFailed,
-    ELFBeginFailed,
-    ELFSymbolAddressNotCached,
-    DeviceResetFailed,
-    DeviceLoadFailed,
-    DeviceRunFailed,
-    NumComputeUnitDetectionFailed,
-    DSPMonitorPathNonExistent,
-    TiOclInstallNotSpecified,
-    MailboxCreationFailed,
-    ShouldNotGetHere,
-    PCIeDriverError,
+public:
+    void    Configure(int32_t device_id,
+                      const MemoryProviderFactory* mpFactory);
+
+    int32_t Write(uint64_t dst, uint8_t *src, size_t sz);
+    int32_t Read (uint64_t src, uint8_t *dst, size_t sz);
+
+    void*        Map   (uint64_t addr, size_t sz, bool is_read = false,
+                                  bool allow_fail = false);
+    int32_t      Unmap (void *host_addr, uint64_t buf_addr,
+                                  size_t sz, bool is_write = false);
+
+    bool CacheWbInvAll();
+
+private:
+    int32_t                      device_id_;
+    const MemoryProviderFactory* mp_factory_;
 };
-
-// Types of error messages, used to control behavior of ReportError
-enum class ErrorType { Warning, Fatal };
-
-// Report an error to the user. Calls exit for ErrorType::Fatal
-void ReportError(const ErrorType et, const ErrorKind ek, ...);
-
-
-// Trace mechanism for debugging, disabled by default.
-// Zero overhead when disabled.
-//#define TRACE_ENABLED
-#if defined(TRACE_ENABLED)
-void ReportTrace(const char *fmt, ...);
-#else
-#define ReportTrace(...)
-#endif
-
-}
-
-
 

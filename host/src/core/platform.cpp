@@ -36,7 +36,7 @@
 #include "object.h"
 #include "cpu/device.h"
 #include "dsp/device.h"
-#include "dsp/driver.h"
+#include "dsp/device_info.h"
 
 /*-----------------------------------------------------------------------------
 * For the lock file
@@ -116,7 +116,7 @@ namespace Coal
             p_devices.push_back(desc(device));
         }
 
-        for (int i = 0; i < Driver::instance()->num_dsps(); i++)
+        for (int i = 0; i < tiocl::DeviceInfo::Instance().GetNumDevices(); i++)
         {
             tiocl::SharedMemory* shm = p_shmFactory.CreateSharedMemoryProvider(i);
 	        Coal::DeviceInterface* device = new Coal::DSPDevice(i, shm);

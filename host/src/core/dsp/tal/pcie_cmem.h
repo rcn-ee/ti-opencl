@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2015, Texas Instruments Incorporated - http://www.ti.com/
+ * Copyright (c) 2013-2014, Texas Instruments Incorporated - http://www.ti.com/
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -25,57 +25,40 @@
  *   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  *   THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
-#pragma once
-
-/* package header files */
-#include <ti/ipc/Std.h>
-/* Work around IPC usage of typedef void */
-#define Void void
-#include <ti/ipc/MultiProc.h>
-#include <ti/ipc/MessageQ.h>
-#undef Void
-
-#include "u_locks_pthread.h"
+#ifndef _CMEM_H
+#define _CMEM_H
 #include "u_lockable.h"
-#include "device.h"
 
-#include "mbox_interface.h"
-
-#include "mbox_msgq_shared.h"
-
-using namespace Coal;
-
-class MBoxMsgQ : public MBox, public Lockable
+extern "C"
 {
-    public:
-        MBoxMsgQ(Coal::DSPDevice *device);
-        ~MBoxMsgQ();
-        void     to   (uint8_t *msg, uint32_t  size, uint8_t id);
-        int32_t  from (uint8_t *msg, uint32_t *size, uint8_t id);
-        bool     query(uint8_t id=0);
+    #include "pciedrv.h"
+    #include "cmem_drv.h"
+    #include "bufmgr.h"
+}
+
+#define HOST_CMEM_BUFFER_SIZE       0x400000 // 4M
+#define MAX_NUM_HOST_DSP_BUFFERS    128
+
+class Cmem : public Lockable_off
+{
+  public:
+    ~Cmem() { close(); }
+    static Cmem* instance ();
+
+    void open();
+    void close();
+    void dma_write(int32_t dsp_id, uint32_t addr, uint8_t *buf, uint32_t size);
+    void dma_read (int32_t dsp_id, uint32_t addr, uint8_t *buf, uint32_t size);
 
   private:
-    void     write (uint8_t *buf, uint32_t size, uint32_t trans_id, uint8_t id);
-    uint32_t read  (uint8_t *buf, uint32_t *size, uint8_t id);
+    static Cmem* pInstance;
 
-  private:
-    MessageQ_Handle    hostQue;   // created by host
-    MessageQ_QueueId   dspQue[Ocl_MaxNumDspMsgQueues]; // created by DSPs
-    UInt16             heapId;    // heap for MessageQ_alloc, 0 on host
-    Coal::DSPDevice   *p_device;
+    cmem_host_buf_desc_t buf_desc[MAX_NUM_HOST_DSP_BUFFERS];
+    void *               DmaBufPool;
+
+    Cmem() : DmaBufPool(NULL) { open(); }
+    Cmem(const Cmem&);              // copy ctor disallowed
+    Cmem& operator=(const Cmem&);   // assignment disallowed
 };
 
-inline void MBoxMsgQ::to(uint8_t *msg, uint32_t  size, uint8_t id)
-{
-    static unsigned trans_id = TX_ID_START;
-
-    Lock lock(this);
-    write(msg, size, trans_id++, id);
-}
-
-inline int32_t MBoxMsgQ::from (uint8_t *msg, uint32_t *size, uint8_t id)
-{
-    return read(msg, size, id);
-}
-
-
+#endif // _CMEM_H

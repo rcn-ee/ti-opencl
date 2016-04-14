@@ -25,59 +25,33 @@
  *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  *  THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
+#include "shmem_init_policy_pcie.h"
+#include "device_info.h"
+#include "pcie_cmem.h"
+#include "core/tiocl_types.h"
+#include "core/memory_range.h"
 
-#pragma once
+using namespace tiocl;
 
-namespace tiocl {
-
-// Kinds of error messages reported by the OpenCL runtime.
-// Refer tiocl::ErrorStrings for the corresponding error messages
-enum class ErrorKind
+void InitializationPolicyPCIe::DiscoverMemoryRanges(std::vector<MemoryRange>& ranges)
 {
-    PageSizeNotAvailable = 0,
-    RegionAddressNotMultipleOfPageSize,
-    RegionSizeNotMultipleOfPageSize,
-    FailedToOpenFileName,
-    TranslateAddressOutsideMappedAddressRange,
-    UnableToMapDSPAddress,
-    IllegalMemoryRegion,
-    CMEMInitFailed,
-    CMEMMinBlocks,
-    CMEMMapFailed,
-    CMEMAllocFailed,
-    CMEMAllocFromBlockFailed,
-    InvalidPointerToClFree,
-    ELFLibraryInitFailed,
-    ELFBeginFailed,
-    ELFSymbolAddressNotCached,
-    DeviceResetFailed,
-    DeviceLoadFailed,
-    DeviceRunFailed,
-    NumComputeUnitDetectionFailed,
-    DSPMonitorPathNonExistent,
-    TiOclInstallNotSpecified,
-    MailboxCreationFailed,
-    ShouldNotGetHere,
-    PCIeDriverError,
-};
+    const DeviceInfo& device_info = DeviceInfo::Instance();
 
-// Types of error messages, used to control behavior of ReportError
-enum class ErrorType { Warning, Fatal };
-
-// Report an error to the user. Calls exit for ErrorType::Fatal
-void ReportError(const ErrorType et, const ErrorKind ek, ...);
+    ranges.emplace_back(device_info.GetSymbolAddress("ocl_global_mem_start"),
+                        device_info.GetSymbolAddress("ocl_global_mem_size"),
+                        MemoryRange::Kind::CMEM_PERSISTENT,
+                        MemoryRange::Location::OFFCHIP);
 
 
-// Trace mechanism for debugging, disabled by default.
-// Zero overhead when disabled.
-//#define TRACE_ENABLED
-#if defined(TRACE_ENABLED)
-void ReportTrace(const char *fmt, ...);
-#else
-#define ReportTrace(...)
-#endif
+    ranges.emplace_back(device_info.GetSymbolAddress("ocl_msmc_mem_start"),
+                        device_info.GetSymbolAddress("ocl_msmc_mem_size"),
+                        MemoryRange::Kind::CMEM_PERSISTENT,
+                        MemoryRange::Location::ONCHIP);
 
+    Cmem::instance(); // Prime the setup of cmem
 }
 
+void InitializationPolicyPCIe::Destroy()
+{
 
-
+}

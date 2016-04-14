@@ -28,56 +28,40 @@
 
 #pragma once
 
-namespace tiocl {
+#include <cstdint>
+#include <string>
 
-// Kinds of error messages reported by the OpenCL runtime.
-// Refer tiocl::ErrorStrings for the corresponding error messages
-enum class ErrorKind
+#include "device_manager_interface.h"
+
+extern "C"
 {
-    PageSizeNotAvailable = 0,
-    RegionAddressNotMultipleOfPageSize,
-    RegionSizeNotMultipleOfPageSize,
-    FailedToOpenFileName,
-    TranslateAddressOutsideMappedAddressRange,
-    UnableToMapDSPAddress,
-    IllegalMemoryRegion,
-    CMEMInitFailed,
-    CMEMMinBlocks,
-    CMEMMapFailed,
-    CMEMAllocFailed,
-    CMEMAllocFromBlockFailed,
-    InvalidPointerToClFree,
-    ELFLibraryInitFailed,
-    ELFBeginFailed,
-    ELFSymbolAddressNotCached,
-    DeviceResetFailed,
-    DeviceLoadFailed,
-    DeviceRunFailed,
-    NumComputeUnitDetectionFailed,
-    DSPMonitorPathNonExistent,
-    TiOclInstallNotSpecified,
-    MailboxCreationFailed,
-    ShouldNotGetHere,
-    PCIeDriverError,
-};
-
-// Types of error messages, used to control behavior of ReportError
-enum class ErrorType { Warning, Fatal };
-
-// Report an error to the user. Calls exit for ErrorType::Fatal
-void ReportError(const ErrorType et, const ErrorKind ek, ...);
-
-
-// Trace mechanism for debugging, disabled by default.
-// Zero overhead when disabled.
-//#define TRACE_ENABLED
-#if defined(TRACE_ENABLED)
-void ReportTrace(const char *fmt, ...);
-#else
-#define ReportTrace(...)
-#endif
-
+    #include "pciedrv.h"
+    #include "dnldmgr.h"
+    #include "cmem_drv.h"
+    #include "bufmgr.h"
 }
 
+namespace tiocl {
 
+class DeviceManagerPCIe : public DeviceManager {
+public:
+    DeviceManagerPCIe(uint8_t device_id, uint8_t num_cores, std::string monitor);
+    ~DeviceManagerPCIe();
 
+    bool Reset() const override;
+    bool Load()  const override;
+    bool Run()   const override;
+
+    static void Initialize();
+    static void Finalize();
+
+private:
+    const uint8_t     num_cores_;
+    const std::string monitor_;
+    const uint8_t     device_id_;
+
+    static pciedrv_open_config_t  config;
+    static pciedrv_device_info_t *devices_info;
+};
+
+}

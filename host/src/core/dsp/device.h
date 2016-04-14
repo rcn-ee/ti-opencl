@@ -42,6 +42,7 @@
 #include <list>
 #include "mbox_interface.h"
 #include "../shared_memory_interface.h"
+#include "device_manager_interface.h"
 
 namespace Coal
 {
@@ -53,6 +54,7 @@ class Kernel;
 
 using tiocl::SharedMemory;
 using tiocl::MemoryRange;
+using tiocl::DeviceManager;
 
 class DSPDevice : public DeviceInterface, public Lockable
 {
@@ -122,7 +124,6 @@ class DSPDevice : public DeviceInterface, public Lockable
         MemoryRange::Location ClFlagToLocation(cl_mem_flags flags) const;
 
     protected:
-        virtual void setup_mailbox(void);
         virtual void setup_dsp_mhz(void);
 
     private:
@@ -151,6 +152,7 @@ class DSPDevice : public DeviceInterface, public Lockable
 
         void*              p_mpax_default_res;
         SharedMemory      *p_shmHandler;
+        const DeviceManager     *device_manager_;
 };
 
 }

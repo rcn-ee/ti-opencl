@@ -48,7 +48,7 @@ class CMEM : private MapPolicy, public MemoryProvider
 
     virtual void *MapToHostAddressSpace (DSPDevicePtr64 dsp_addr, size_t size,
                                                  bool is_read) const override;
-    virtual void  UnmapFromHostAddressSpace (void* host_addr, uint32_t size,
+    virtual void  UnmapFromHostAddressSpace (void* host_addr, size_t size,
                                                 bool is_write) const override;
 
     virtual size_t MinAllocationBlockSize() const override;

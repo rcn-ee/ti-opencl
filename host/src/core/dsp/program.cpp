@@ -37,7 +37,6 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <sys/stat.h>
 #include <unistd.h>
 
 #include <elf.h>
@@ -151,29 +150,6 @@ void DSPProgram::createOptimizationPasses(llvm::PassManager *manager,
                                           bool optimize, bool hasBarrier)
 {
 }
-
-
-
-/******************************************************************************
-* Find the OpenCL installation
-******************************************************************************/
-std::string get_ocl_dsp()
-{
-    std::string stdpath("/usr/share/ti/opencl");
-
-    const char *ocl_install = getenv("TARGET_ROOTDIR");
-    if (ocl_install) stdpath = ocl_install + stdpath;
-
-    struct stat st;
-    stat(stdpath.c_str(), &st);
-    if (S_ISDIR(st.st_mode)) return stdpath.c_str();
-
-    std::cout << "The OpenCL DSP directory " << stdpath
-              << " does not exist !"         << std::endl;
-    abort();
-}
-
-
 
 /**
  * Extract llvm bitcode and native binary from MixedBinary

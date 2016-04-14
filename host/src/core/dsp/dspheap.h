@@ -41,6 +41,7 @@
 #include <cstdlib>
 #include "u_lockable.h"
 #include "dspmem.h"
+#include <inttypes.h>
 
 class dspheap : public Lockable
 {
@@ -137,7 +138,7 @@ class dspheap : public Lockable
 
         if (!allow_fail)
         {
-            printf("Malloc failed for size 0x%x from range (0x%08llx, 0x%08llx)\n",
+            printf("Malloc failed for size 0x%x from range (0x%" PRIx64 ", 0x%" PRIx64 ")\n",
                    size, p_start_addr, p_start_addr+p_length-1);
             abort();
         }

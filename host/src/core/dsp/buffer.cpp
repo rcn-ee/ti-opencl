@@ -27,7 +27,6 @@
  *****************************************************************************/
 #include "buffer.h"
 #include "device.h"
-#include "driver.h"
 
 #include "CL/cl_ext.h"
 #include "../memobject.h"

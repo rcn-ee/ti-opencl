@@ -29,11 +29,13 @@
 
 #include "u_locks_pthread.h"
 #include "u_lockable.h"
-#include "driver.h"
+#include "message.h"
+#include "device_info.h"
 
 #include "mbox_interface.h"
 #include "core/memory_range.h"
 #include "memory_provider_factory.h"
+#include "core/error_report.h"
 
 extern "C"
 {
@@ -127,122 +129,9 @@ class MBoxMPM : public MBox, public Lockable
     }
 
   private:
-        void*              p_rx_mbox; // int
+        void*              p_rx_mbox;
         void*              p_tx_mbox;
         #ifndef DSPC868X
         tiocl::MemoryProviderFactory *p_mpf;
         #endif
 };
-
-inline MBoxMPM::MBoxMPM(Coal::DSPDevice *device)
-{
-    Driver *driver = Driver::instance();
-
-    void *hdl = driver->create_image_handle(device->dspID());
-
-    // Storage for MPM mailbox (K2x, DSPC868X)
-    DSPDevicePtr addr_mbox_d2h_phys = driver->get_symbol(hdl, "mbox_d2h_phys");
-    DSPDevicePtr addr_mbox_h2d_phys = driver->get_symbol(hdl, "mbox_h2d_phys");
-    uint32_t     size_mbox_d2h      = driver->get_symbol(hdl, "mbox_d2h_size");
-    uint32_t     size_mbox_h2d      = driver->get_symbol(hdl, "mbox_h2d_size");
-
-    driver->free_image_handle(hdl);
-
-    uint32_t mailboxallocsize     = mpm_mailbox_get_alloc_size();
-
-    p_tx_mbox = (void*)malloc(mailboxallocsize);
-    p_rx_mbox = (void*)malloc(mailboxallocsize);
-
-    mpm_mailbox_config_t mbConfig;
-    mbConfig.mem_size         = size_mbox_h2d;
-    mbConfig.max_payload_size = mbox_payload;
-
-#ifdef DSPC868X    // mailbox location is remote
-    mbConfig.mem_start_addr   = (uint32_t) addr_mbox_h2d_phys;
-    int tx_status = create(p_tx_mbox,
-                     MAILBOX_MAKE_DSP_NODE_ID(device->dspID(), 0),
-                     MAILBOX_LOCATION,
-                     MPM_MAILBOX_DIRECTION_SEND, &mbConfig);
-#else              // mailbox location is local
-    p_mpf = new tiocl::MemoryProviderFactory();
-    p_mpf->CreateMemoryProvider(MemoryRange(addr_mbox_d2h_phys, size_mbox_d2h,
-                                        MemoryRange::Kind::DEVMEM,
-                                        MemoryRange::Location::ONCHIP));
-    p_mpf->CreateMemoryProvider(MemoryRange(addr_mbox_h2d_phys, size_mbox_h2d,
-                                         MemoryRange::Kind::DEVMEM,
-                                         MemoryRange::Location::ONCHIP));
-    const tiocl::MemoryProvider *mp =
-                                p_mpf->GetMemoryProvider (addr_mbox_h2d_phys);
-    mbConfig.mem_start_addr   = (uint32_t)mp->MapToHostAddressSpace(
-                                        addr_mbox_h2d_phys, size_mbox_h2d,
-                                        false);
-    int tx_status = create(p_tx_mbox,
-       		     NULL,
-                     MAILBOX_LOCATION,
-                     MPM_MAILBOX_DIRECTION_SEND, &mbConfig);
-#endif
-
-    mbConfig.mem_size         = size_mbox_d2h;
-
-#ifdef DSPC868X    // mailbox location is remote
-    mbConfig.mem_start_addr   = (uint32_t)addr_mbox_d2h_phys;
-    int rx_status = create(p_rx_mbox,
-                     MAILBOX_MAKE_DSP_NODE_ID(device->dspID(), 0),
-                     MAILBOX_LOCATION,
-                     MPM_MAILBOX_DIRECTION_RECEIVE, &mbConfig);
-#else              // mailbox location is local
-    mp = p_mpf->GetMemoryProvider(addr_mbox_d2h_phys);
-    mbConfig.mem_start_addr   = (uint32_t)mp->MapToHostAddressSpace(
-                                        addr_mbox_d2h_phys, size_mbox_d2h,
-                                        false);
-    int rx_status = create(p_rx_mbox,
-		     NULL,
-                     MAILBOX_LOCATION,
-                     MPM_MAILBOX_DIRECTION_RECEIVE, &mbConfig);
-#endif
-
-    tx_status |= open(p_tx_mbox);
-    rx_status |= open(p_rx_mbox);
-
-    if (tx_status != 0 || rx_status != 0)
-       std::cout << "Could not create mailboxes for dsp "
-                 << device->dspID() << std::endl;
-
-}
-
-
-inline void MBoxMPM::to(uint8_t *msg, uint32_t  size, uint8_t id)
-{
-    static unsigned trans_id = TX_ID_START;
-
-    Lock lock(this);
-    write(p_tx_mbox, msg, size, trans_id++);
-}
-
-inline int32_t MBoxMPM::from (uint8_t *msg, uint32_t *size, uint8_t id)
-{
-    uint32_t trans_id_rx;
-
-    read(p_rx_mbox, msg, size, &trans_id_rx);
-
-    return trans_id_rx;
-}
-
-inline bool MBoxMPM::query(uint8_t id)
-{
-    return query(p_rx_mbox);
-}
-
-inline MBoxMPM::~MBoxMPM()
-{
-    free(p_tx_mbox);
-    free(p_rx_mbox);
-
-    p_tx_mbox = p_rx_mbox = NULL;
-
-    #ifndef DSPC868X
-    p_mpf->DestroyMemoryProviders();
-    delete p_mpf;
-    #endif
-}
-

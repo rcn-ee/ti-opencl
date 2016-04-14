@@ -28,7 +28,6 @@
 #include "device.h"
 #include "buffer.h"
 #include "kernel.h"
-#include "driver.h"
 
 #include "../commandqueue.h"
 #include "../events.h"

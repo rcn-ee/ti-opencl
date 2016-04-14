@@ -75,7 +75,42 @@ static const std::map<const ErrorKind, const std::string> ErrorStrings =
      "Failed to allocate 0x%llx from CMEM block %d, allocated 0x%llx"},
 
     {ErrorKind::InvalidPointerToClFree,
-     "Invalid pointer %p to clFree"}
+     "Invalid pointer %p to clFree"},
+
+    {ErrorKind::ELFLibraryInitFailed,
+     "Failed to initialize DSP binary symbol reader"},
+
+    {ErrorKind::ELFSymbolAddressNotCached,
+     "Internal Error: Symbol %s not found in symbol cache."},
+
+    {ErrorKind::DeviceResetFailed,
+     "Internal Error: Failed to reset device, DSP core %d, error code %d"},
+
+    {ErrorKind::DeviceLoadFailed,
+     "Internal Error: Failed to load monitor %s on DSP core %d, error code %d"},
+
+    {ErrorKind::DeviceRunFailed,
+     "Internal Error: Failed to run monitor on DSP core %d, error code %d"},
+
+    {ErrorKind::NumComputeUnitDetectionFailed,
+     "Internal Error: Failed to determine number of compute units."},
+
+    {ErrorKind::DSPMonitorPathNonExistent,
+     "Internal Error: Path to DSP monitor binary (%s) does not exist"},
+
+    {ErrorKind::TiOclInstallNotSpecified,
+     "Set TI_OCL_INSTALL environment variable to location of OpenCL"
+     " installation. Refer User Guide for details"},
+
+    {ErrorKind::MailboxCreationFailed,
+     "Internal Error: Failed to initialize mailbox"},
+
+    {ErrorKind::ShouldNotGetHere,
+     "Internal Error: %s, %d"},
+
+    {ErrorKind::PCIeDriverError,
+     "Internal Error: Error in PCIe driver"},
+
 };
 
 void tiocl::ReportError(const ErrorType et, const ErrorKind ek, ...)

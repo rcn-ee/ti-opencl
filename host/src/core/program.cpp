@@ -55,21 +55,6 @@
 #include <llvm/Support/Casting.h>
 #include <llvm/Bitcode/ReaderWriter.h>
 #include <llvm/IR/LLVMContext.h>
-#if 0
-#include <llvm/Transforms/IPO.h>
-#include <llvm/IR/Module.h>
-#include <llvm/Linker/Linker.h>
-#include <llvm/PassManager.h>
-#include <llvm/IR/Metadata.h>
-#include <llvm/IR/Function.h>
-#include <llvm/Analysis/Passes.h>
-#include <llvm/Transforms/IPO.h>
-#include <llvm/IR/Instructions.h>
-#include <llvm/IR/InstIterator.h>
-#include <llvm/IR/DiagnosticPrinter.h>
-#include <llvm/Transforms/Scalar.h>
-#include <SimplifyShuffleBIFCall.h>
-#endif
 
 #include <runtime/stdlib.c.bc.embed.h>
 

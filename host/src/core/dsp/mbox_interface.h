@@ -30,6 +30,11 @@
 
 #include <stdint.h>
 
+namespace Coal
+{
+class DSPDevice;
+}
+
 class MBox
 {
     public:
@@ -42,4 +47,9 @@ class MBox
     protected:
         static const uint32_t TX_ID_START = 0xC0DE0000;
 };
+
+namespace MBoxFactory
+{
+MBox* CreateMailbox(Coal::DSPDevice* device);
+}
 

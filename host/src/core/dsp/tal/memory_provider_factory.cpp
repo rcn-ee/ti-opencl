@@ -1,20 +1,27 @@
 #include <cassert>
 #include "dspmem.h"
 #include "memory_provider_factory.h"
-#include "memory_provider_cmem.h"
 #include "../error_report.h"
 
 
 #if defined (DEVICE_K2X) || defined (DEVICE_K2G)
-#define DEVICE_USES_DEVMEM_MPM      (1)
-#define DEVICE_USES_DEVMEM_MMAP     (!(DEVICE_USES_DEVMEM_MPM))
+    #define DEVICE_USES_DEVMEM_MPM      (1)
+    #define DEVICE_USES_DEVMEM_MMAP     (!(DEVICE_USES_DEVMEM_MPM))
 
-#include "memory_provider_devmem_mpm.h"
+    #include "memory_provider_devmem_mpm.h"
+    #include "memory_provider_cmem.h"
 #elif defined (DEVICE_AM57)
-#define DEVICE_USES_DEVMEM_MPM      (0)
-#define DEVICE_USES_DEVMEM_MMAP     (!(DEVICE_USES_DEVMEM_MPM))
+    #define DEVICE_USES_DEVMEM_MPM      (0)
+    #define DEVICE_USES_DEVMEM_MMAP     (!(DEVICE_USES_DEVMEM_MPM))
 
-#include "memory_provider_devmem_mmap.h"
+    #include "memory_provider_devmem_mmap.h"
+    #include "memory_provider_cmem.h"
+#elif defined (DSPC868X)
+    #define DEVICE_USES_DEVMEM_MPM      (0)
+    #define DEVICE_USES_DEVMEM_MMAP     (0)
+    #include "memory_provider_pcie.h"
+#else
+    #error "Device not supported"
 #endif
 
 using namespace tiocl;
@@ -23,14 +30,20 @@ void
 MemoryProviderFactory::CreateMemoryProvider(const MemoryRange &r)
 {
     MemoryProvider *mp = nullptr;
+
+    #if !defined(DSPC868X)
     switch (r.GetKind())
     {
         case MemoryRange::Kind::CMEM_ONDEMAND:
+        {
             mp = new CMEMOnDemand(r);
             break;
+        }
         case MemoryRange::Kind::CMEM_PERSISTENT:
+        {
             mp = new CMEMPersistent(r);
             break;
+        }
         case MemoryRange::Kind::DEVMEM:
         {
             #if DEVICE_USES_DEVMEM_MPM
@@ -44,6 +57,10 @@ MemoryProviderFactory::CreateMemoryProvider(const MemoryRange &r)
             assert(0);
             break;
     }
+    #else
+    assert (r.GetKind() == MemoryRange::Kind::CMEM_PERSISTENT);
+    mp = new MemoryProviderPCIe(r);
+    #endif
 
     assert (mp != nullptr);
 

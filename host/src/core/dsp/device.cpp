@@ -44,12 +44,13 @@
 #include "../program.h"
 #include "../util.h"
 
-#include "driver.h"
+#include "device_info.h"
 
 #if defined(DEVICE_K2X)
 extern "C"
 {
-    #include <ti/runtime/mmap/include/mmap_resource.h>
+    #include <ti/runtime/mmap/include/mmap_resource.h> // For MPAX
+    extern int get_ocl_qmss_res(Msg_t *msg);
     extern void free_ocl_qmss_res();
 }
 #endif
@@ -73,17 +74,8 @@ extern "C" {
 #include <sstream>
 
 using namespace Coal;
+using namespace tiocl;
 
-
-/******************************************************************************
-* On DSPC868X the mailboxes are remote on the device DDR. On Hawking the
-* mailboxes are in shared DDR
-******************************************************************************/
-#ifdef DSPC868X
-#define MAILBOX_LOCATION MPM_MAILBOX_MEMORY_LOCATION_REMOTE
-#else
-#define MAILBOX_LOCATION MPM_MAILBOX_MEMORY_LOCATION_LOCAL
-#endif
 
 /*-----------------------------------------------------------------------------
 * Declare our threaded dsp handler function
@@ -92,14 +84,98 @@ void *dsp_worker_event_dispatch   (void* data);
 void *dsp_worker_event_completion (void* data);
 void HOSTwait   (unsigned char dsp_id);
 
+/******************************************************************************
+* DSPDevice::DSPDevice(unsigned char dsp_id)
+******************************************************************************/
+DSPDevice::DSPDevice(unsigned char dsp_id, SharedMemory* shm)
+    : DeviceInterface       (),
+      p_cores               (0),
+      p_num_events          (0),
+      p_dsp_mhz             (0),
+      p_worker_dispatch     (0),
+      p_worker_completion   (0),
+      p_stop                (false),
+      p_exit_acked          (false),
+      p_initialized         (false),
+      p_dsp_id              (dsp_id),
+      p_complete_pending    (),
+      p_mpax_default_res    (NULL),
+      p_shmHandler          (shm),
+      device_manager_       (nullptr)
+{
+    const DeviceInfo& device_info = DeviceInfo::Instance();
 
-#if defined (DSPC868X) || defined (DEVICE_K2X) || defined(DEVICE_K2G)
-#include "device_keystone.cpp"
-#elif defined (DEVICE_AM57)
-#include "device_am57x.cpp"
-#else
-#error "Device not supported"
+    p_cores = device_info.GetComputeUnitsPerDevice(dsp_id);
+
+    device_manager_ = DeviceManagerFactory::CreateDeviceManager(dsp_id, p_cores,
+                                                    device_info.FullyQualifiedPathToDspMonitor());
+
+    device_manager_->Reset();
+    device_manager_->Load();
+    device_manager_->Run();
+
+    p_addr_kernel_config = device_info.GetSymbolAddress("kernel_config_l2");
+    p_addr_local_mem     = device_info.GetSymbolAddress("ocl_local_mem_start");
+    p_size_local_mem     = device_info.GetSymbolAddress("ocl_local_mem_size");
+
+
+    init_ulm();
+
+    /*-------------------------------------------------------------------------
+    * initialize the mailboxes on the cores, so they can receive an exit cmd
+    *------------------------------------------------------------------------*/
+    p_mb = MBoxFactory::CreateMailbox(this);
+
+#if defined(DEVICE_K2X) && !defined(DEVICE_K2G)
+    /*-------------------------------------------------------------------------
+    * Send monitor configuration
+    *------------------------------------------------------------------------*/
+    Msg_t msg = {CONFIGURE_MONITOR};
+    msg.u.configure_monitor.n_cores = dspCores();
+
+    // Keystone2: get QMSS resources from RM, mail to DSP monitor
+    if (get_ocl_qmss_res(&msg) == 0)
+    {
+        printf("Unable to allocate resource from RM server!\n");
+        exit(-1);
+    }
+
+    mail_to(msg);
 #endif
+
+    /*-------------------------------------------------------------------------
+    * Query DSP frequency; monitor is in message loop task after this point.
+    *------------------------------------------------------------------------*/
+    setup_dsp_mhz();
+}
+
+bool DSPDevice::hostSchedule() const
+{
+#if defined(DEVICE_K2G) || defined(DEVICE_AM57)
+    return true;
+#else
+    return false;
+#endif
+}
+
+void DSPDevice::setup_dsp_mhz(void)
+{
+#ifdef DSPC868X
+    char *ghz1 = getenv("TI_OCL_DSP_1_25GHZ");
+    if (ghz1) p_dsp_mhz = 1250;  // 1.25 GHz
+#else
+    mail_to(frequencyMsg);
+
+    int ret = 0;
+    do
+    {
+        while (!mail_query())  ;
+        ret = mail_from();
+    } while (ret == -1);
+
+    p_dsp_mhz = ret;
+#endif
+}
 
 /*-----------------------------------------------------------------------------
 * If ULM library was not available don't emit ULM trace messages
@@ -205,7 +281,7 @@ DSPDevice::~DSPDevice()
     /*-------------------------------------------------------------------------
     * Only need to close the driver for one of the devices
     *------------------------------------------------------------------------*/
-    if (p_dsp_id == 0) Driver::instance()->close();
+    delete device_manager_;
 
 #if defined(DEVICE_K2X)
     free_ocl_qmss_res();

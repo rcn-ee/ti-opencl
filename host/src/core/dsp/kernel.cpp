@@ -31,7 +31,7 @@
 #include "program.h"
 #include "utils.h"
 #include "u_locks_pthread.h"
-#include "driver.h"
+#include "device_info.h"
 
 #include "../kernel.h"
 #include "../memobject.h"
@@ -643,7 +643,7 @@ static void debug_pause(uint32_t entry, uint32_t dsp_id,
                         const char* outfile, char *name, DSPDevicePtr load_addr,
                         bool is_gdbc6x)
 {
-    Driver *driver = Driver::instance();
+    std::string dsp_monitor = tiocl::DeviceInfo::Instance().FullyQualifiedPathToDspMonitor();
 
     if (is_gdbc6x)
         printf("gdbc6x -q "
@@ -654,7 +654,7 @@ static void debug_pause(uint32_t entry, uint32_t dsp_id,
                "-iex \"b exit\" "
                "-iex \"b %s\" "
                "\n",
-                dsp_id, driver->dsp_monitor(dsp_id).c_str(),
+                dsp_id, dsp_monitor.c_str(),
                 outfile, load_addr, name);
     else
         printf("CCS Suspend dsp core 0\n"
@@ -662,7 +662,7 @@ static void debug_pause(uint32_t entry, uint32_t dsp_id,
                "CCS Add symbols: %s, no code offset\n"
                "CCS Add breakpoint: %s\n"
                "CCS Resume dsp core 0\n",
-               outfile, load_addr, driver->dsp_monitor(dsp_id).c_str(), name);
+               outfile, load_addr, dsp_monitor.c_str(), name);
 
     printf("Press any key, then enter to continue\n");
     do { char t; std::cin >> t; } while(0);

@@ -26,58 +26,71 @@
  *  THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
 
-#pragma once
+#include "device_manager_mpm.h"
+#include "../error_report.h"
 
-namespace tiocl {
-
-// Kinds of error messages reported by the OpenCL runtime.
-// Refer tiocl::ErrorStrings for the corresponding error messages
-enum class ErrorKind
+extern "C"
 {
-    PageSizeNotAvailable = 0,
-    RegionAddressNotMultipleOfPageSize,
-    RegionSizeNotMultipleOfPageSize,
-    FailedToOpenFileName,
-    TranslateAddressOutsideMappedAddressRange,
-    UnableToMapDSPAddress,
-    IllegalMemoryRegion,
-    CMEMInitFailed,
-    CMEMMinBlocks,
-    CMEMMapFailed,
-    CMEMAllocFailed,
-    CMEMAllocFromBlockFailed,
-    InvalidPointerToClFree,
-    ELFLibraryInitFailed,
-    ELFBeginFailed,
-    ELFSymbolAddressNotCached,
-    DeviceResetFailed,
-    DeviceLoadFailed,
-    DeviceRunFailed,
-    NumComputeUnitDetectionFailed,
-    DSPMonitorPathNonExistent,
-    TiOclInstallNotSpecified,
-    MailboxCreationFailed,
-    ShouldNotGetHere,
-    PCIeDriverError,
+   #include "mpmclient.h"
 };
 
-// Types of error messages, used to control behavior of ReportError
-enum class ErrorType { Warning, Fatal };
+using namespace tiocl;
 
-// Report an error to the user. Calls exit for ErrorType::Fatal
-void ReportError(const ErrorType et, const ErrorKind ek, ...);
+bool DeviceManagerMPM::Reset() const
+{
+    for (uint8_t core=0; core < num_cores_; core++)
+    {
+        char curr_core[10];
+        snprintf(curr_core, 5, "dsp%d", core);
 
+        int error_code = 0;
+        int ret = mpm_reset(curr_core, &error_code);
+        if (ret < 0)
+            ReportError(ErrorType::Fatal, ErrorKind::DeviceResetFailed, core, error_code);
+    }
 
-// Trace mechanism for debugging, disabled by default.
-// Zero overhead when disabled.
-//#define TRACE_ENABLED
-#if defined(TRACE_ENABLED)
-void ReportTrace(const char *fmt, ...);
-#else
-#define ReportTrace(...)
-#endif
-
+    return true;
 }
 
 
+bool DeviceManagerMPM::Load() const
+{
+    for (uint8_t core=0; core < num_cores_; core++)
+    {
+        char curr_core[10];
+        snprintf(curr_core, 5,"dsp%d", core);
 
+        int error_code = 0;
+        int ret = mpm_load(curr_core, const_cast<char*>(monitor_.c_str()),
+                       &error_code);
+        if (ret < 0)
+            ReportError(ErrorType::Fatal, ErrorKind::DeviceLoadFailed,
+                        monitor_.c_str(), core, error_code);
+    }
+
+
+}
+
+bool DeviceManagerMPM::Run() const
+{
+    for (uint8_t core=0; core < num_cores_; core++)
+    {
+        char curr_core[10];
+        snprintf(curr_core, 5,"dsp%d", core);
+
+        int error_code = 0;
+        int ret = mpm_run(curr_core, &error_code);
+        if (ret < 0)
+            ReportError(ErrorType::Fatal, ErrorKind::DeviceRunFailed,
+                        core, error_code);
+    }
+
+
+}
+
+const DeviceManager*
+tiocl::DeviceManagerFactory::CreateDeviceManager(uint8_t device_id, uint8_t num_cores,
+                                                 const std::string &binary)
+{
+    return new DeviceManagerMPM(num_cores, binary);
+}

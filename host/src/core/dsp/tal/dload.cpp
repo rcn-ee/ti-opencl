@@ -28,7 +28,6 @@
 
 #include "dload_impl.h"
 #include "device.h"
-#include "driver.h"
 #include "program.h"
 #include "../../shared_memory_interface.h"
 

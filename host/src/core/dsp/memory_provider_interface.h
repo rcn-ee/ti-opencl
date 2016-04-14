@@ -50,7 +50,7 @@ public:
 
     virtual void *MapToHostAddressSpace (DSPDevicePtr64 dsp_addr, size_t size,
                                                  bool is_read) const = 0;
-    virtual void  UnmapFromHostAddressSpace (void* host_addr, uint32_t size,
+    virtual void  UnmapFromHostAddressSpace (void* host_addr, size_t size,
                                                 bool is_write) const = 0;
 
     virtual bool   CacheInv  (void *host_addr, std::size_t size) const = 0;

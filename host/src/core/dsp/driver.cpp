@@ -25,15 +25,10 @@
  *   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  *   THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
-#ifdef DSPC868X
-#include "driver_c6678.cpp"
-#include "cmem.cpp"
-#else
-#include "driver_hawking.cpp"
-#endif
-
-
 #include "../platform.h"
+#include "core/shared_memory_interface.h"
+
+using namespace tiocl;
 
 extern "C" {
 
