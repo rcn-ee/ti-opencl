@@ -84,10 +84,10 @@ endif()
 
 # Find_Package() for LLVM/CLANG defined in CMAKE_MODULE_PATH
 # Do not use system installed versions
+Find_Package(LLVM REQUIRED)
 if (${BUILD_OS} MATCHES "SYS_BIOS")
   MESSAGE(STATUS "Build OS IS SYS BIOS")
 else()
-Find_Package(LLVM REQUIRED)
 Find_Package(Clang REQUIRED)
 endif()
 

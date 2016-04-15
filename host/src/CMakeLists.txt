@@ -271,10 +271,10 @@ endif()
 
 # Dirty platform.cpp to cause re-compile with every build. It contains
 # a compile-time timestamp used as the library build timestamp.
-if (NOT (${BUILD_OS} MATCHES "SYS_BIOS"))
 add_custom_command (TARGET OpenCL PRE_BUILD 
                  COMMAND touch -c ${CMAKE_CURRENT_SOURCE_DIR}/core/platform.cpp)
 
+if (NOT (${BUILD_OS} MATCHES "SYS_BIOS"))
 set (LIBS
         #${CLANG_LIBS}
         #${LLVM_LIBS_CORE}
@@ -288,24 +288,15 @@ set (LIBS
         rt
         dl
 )
-else()
-set (LIBS
-        ${PROJECT_BINARY_DIR}/lib/liboclload.a
-#       ${PROJECT_BINARY_DIR}/lib/Bios_support.a
-)
-endif()
 
 # Add non-target dependent libraries
-if (NOT (${BUILD_OS} MATCHES "SYS_BIOS"))
 find_library(FFI_LIB ffi)
 find_library(SQLITE3_LIB sqlite3)
 find_library(ELF_LIB elf)
 
 LIST (APPEND LIBS ${FFI_LIB} ${SQLITE3_LIB} ${ELF_LIB})
-endif()
 
 # Add target dependent libraries
-if (NOT (${BUILD_OS} MATCHES "SYS_BIOS"))
 if(K2X_BUILD)
    find_library(CMEM_LIB          ticmem)
    find_library(MPMMAIL_LIB       mpmmailbox)
@@ -345,13 +336,23 @@ if(ENABLE_ULM)
   find_library(ULM_LIB  NAMES    libtiulm.a)
   LIST (APPEND LIBS ${ULM_LIB} )
 endif()
-endif()
-
 
 TARGET_LINK_LIBRARIES(OpenCL ${LIBS})
+endif()  # if (NOT (${BUILD_OS} MATCHES "SYS_BIOS"))
+
 if (NOT (${BUILD_OS} MATCHES "SYS_BIOS"))
-install(TARGETS OpenCL LIBRARY DESTINATION /usr/lib ${OCL_FPERMS})
+  install(TARGETS OpenCL LIBRARY DESTINATION /usr/lib ${OCL_FPERMS})
 else()
-install(TARGETS OpenCL ARCHIVE DESTINATION /usr/lib ${OCL_FPERMS})
+  file(WRITE ${PROJECT_BINARY_DIR}/lib/OpenCLAddLib.mri
+    "OPEN ../lib/libOpenCL.a
+    ADDLIB ${ARM_LLVM_DIR}/lib/libLLVMBitReader.a
+    ADDLIB ${ARM_LLVM_DIR}/lib/libLLVMCore.a
+    ADDLIB ${ARM_LLVM_DIR}/lib/libLLVMSupport.a
+    ADDLIB ${PROJECT_BINARY_DIR}/lib/liboclload.a
+    SAVE
+    END")
+  add_custom_command (TARGET OpenCL POST_BUILD
+    COMMAND ${CMAKE_AR} -M < ${PROJECT_BINARY_DIR}/lib/OpenCLAddLib.mri)
+  install(TARGETS OpenCL ARCHIVE DESTINATION /usr/lib ${OCL_FPERMS})
 endif()
 
