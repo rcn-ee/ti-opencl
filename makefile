@@ -4,15 +4,25 @@ include host/Makefile.inc
 CMAKE_DEFINES = -DARM_LLVM_DIR=$(ARM_LLVM_DIR) -DX86_LLVM_DIR=$(X86_LLVM_DIR)
 ifneq ($(BUILD_DSPC),1)
 ifneq (,$(findstring 86, $(shell uname -m)))
-    CMAKE_DEFINES += -DCMAKE_TOOLCHAIN_FILE=../host/cmake/CMakeARMToolChain.txt
+    ifeq ($(BUILD_OS), SYS_BIOS)
+        TOOLCHAIN_FILE=../host/cmake/CMakeBiosARMToolChain.txt
+    else
+        TOOLCHAIN_FILE=../host/cmake/CMakeARMToolChain.txt
+    endif
+    CMAKE_DEFINES += -DCMAKE_TOOLCHAIN_FILE=$(TOOLCHAIN_FILE)
 endif
 endif
 
 ifeq ($(BUILD_AM57),1)
     TARGET=am57
     BUILD_TARGET=ARM_AM57
-    CMAKE_DEFINES += -DLINUX_DEVKIT_ROOT=$(PSDK_LINUX_DEVKIT_ROOT)
-    export PATH:=$(ARM_GCC49_DIR)/bin:$(PATH)
+    ifneq ($(BUILD_OS), SYS_BIOS)
+        CMAKE_DEFINES += -DLINUX_DEVKIT_ROOT=$(PSDK_LINUX_DEVKIT_ROOT)
+        export PATH:=$(ARM_GCC49_DIR)/bin:$(PATH)
+    else
+        CMAKE_DEFINES += -DBUILD_OS=SYS_BIOS
+        export PATH:=$(ARM_GCC48NONE_DIR)/bin:$(PATH)
+    endif
 else ifeq ($(BUILD_K2H),1)
     TARGET=k2h
     BUILD_TARGET=ARM_K2H

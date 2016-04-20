@@ -23,6 +23,7 @@ OCL_FULL_VER=$(OCL_MAJOR_VER).$(OCL_MINOR_VER).$(OCL_RELEASE_VER).$(OCL_PATCH_VE
 
 ifeq (,$(findstring arm, $(UNAME_M)))
     ARM_GCC47_DIR?=/cgnas/gcc-linaro-arm-linux-gnueabihf-4.7-2013.03-20130313_linux
+    ARM_GCC48NONE_DIR?=/cgnas/gcc-arm-none-eabi-4_8-2014q3
     ARM_GCC49_DIR?=/cgnas/gcc-linaro-4.9-2015.05-x86_64_arm-linux-gnueabihf
 endif
 
@@ -37,6 +38,9 @@ endif
 # LLVM
 
 ARM_LLVM_DIR?=/cgnas/llvm-3.6.0-20151119-arm
+ifeq ($(BUILD_OS), SYS_BIOS)
+    ARM_LLVM_DIR=/home/a0323918/cgsandbox/tools/llvm/install.sysbios
+endif
 
 ifeq (,$(findstring x86_64, $(UNAME_M)))
     X86_LLVM_DIR?=/cgnas/llvm-3.6.0-20151119-x86
