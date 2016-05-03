@@ -1,6 +1,12 @@
 #include <stdio.h>     /* for printf */
 #include <stdlib.h>    /* for exit */
+
+#if _MSC_VER
+#include "getopt.h"
+#define strtok_r strtok_s
+#else
 #include <getopt.h>
+#endif
 #include <string.h>
 
 #include <string>

@@ -8,5 +8,6 @@ std::string fs_stem             (std::string path);
 std::string fs_ext              (std::string path);
 std::string fs_path             (std::string path);
 std::string fs_replace_extension(std::string path, std::string ext);
+std::string fs_get_tmp_folder   ();
 
 #endif // _FILE_MANIP_H_

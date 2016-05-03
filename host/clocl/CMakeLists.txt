@@ -1,3 +1,9 @@
+cmake_minimum_required(VERSION 2.6)
+
+if (${CMAKE_SYSTEM_NAME} STREQUAL Windows)
+include(${CMAKE_CURRENT_SOURCE_DIR}/CMakeListsWin.txt)
+else()
+
 if (C6678_BUILD OR CROSS_COMPILE)
   set (CROSS_TARGET arm)
   install(DIRECTORY DESTINATION ${SHARE_PATH}/opencl    ${OCL_DPERMS})
@@ -20,3 +26,5 @@ if (K2X_BUILD OR K2G_BUILD OR AM57_BUILD)
  add_custom_target(arm_clocl  DEPENDS arm/clocl)
  install(PROGRAMS arm/clocl DESTINATION /usr/bin ${OCL_BPERMS})
 endif()
+
+endif ()
