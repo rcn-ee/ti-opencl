@@ -1,18 +1,7 @@
 cmake_minimum_required(VERSION 2.6)
 project(clocl)
 
-if( POLICY CMP0011 )
-  cmake_policy( SET CMP0011 OLD )
-endif()
-
-# LLVM dependencies
-find_package(LLVM REQUIRED CONFIG)
-
-message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
-message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
-
-add_definitions(${LLVM_DEFINITIONS})
-
+# Ensure product version is set
 if (DEFINED _PRODUCT_VERSION)
 message (STATUS "_PRODUCT_VERSION set to ${_PRODUCT_VERSION}")
 add_definitions(-D_PRODUCT_VERSION=${_PRODUCT_VERSION})
@@ -20,6 +9,20 @@ else ()
 message (FATAL_ERROR "_PRODUCT_VERSION is not set")
 endif()
 
+
+#
+# LLVM/Clang setup. Must specify -DLLVM_DIR=<path to LLVM cmake file>
+#
+find_package(LLVM REQUIRED CONFIG)
+
+message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
+message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
+
+# LLVM definitions and libraries
+add_definitions(${LLVM_DEFINITIONS})
+llvm_map_components_to_libnames(llvm_libs all)
+
+# Directory path to find clang libraries
 link_directories(${LLVM_TOOLS_BINARY_DIR}/../lib)
 
 set (clang_libs
@@ -37,7 +40,9 @@ set (clang_libs
   	clangLex
   	clangTooling)
 
-# Boost
+#
+# Boost setup (must specify -DBOOST_ROOT=<path to boost root> on command line
+#
 find_package(Boost REQUIRED)
 include_directories(${Boost_INCLUDE_DIR})
 
@@ -105,7 +110,10 @@ set(SOURCE_FILES
 
 add_executable(clocl ${SOURCE_FILES})
 
-llvm_map_components_to_libnames(llvm_libs all)
-#llvm_map_components_to_libnames(llvm_libs support core irreader option mcparser bitreader bitwriter codegen transformutils ipo objcarcopts)
 target_link_libraries(clocl ${clang_libs} ${llvm_libs})
+
+# See  cmake --help-policy CMP0011 for details
+if (POLICY CMP0011)
+  cmake_policy(SET CMP0011 OLD)
+endif()
 
