@@ -66,27 +66,27 @@
 
 SECTIONS
 {
-    .text: load >> DSP1_PROG
-    .ti.decompress: load > DSP1_PROG
+    .text: load >> DDR3
+    .ti.decompress: load > DDR3
     .stack: load > L2SRAM
-    GROUP: load > DSP1_PROG
+    GROUP: load > DDR3
     {
         .bss:
         .neardata:
         .rodata:
     }
-    .cinit: load > DSP1_PROG
+    .cinit: load > DDR3
     .pinit: load >> L2SRAM
     .init_array: load > L2SRAM
-    .const: load >> DSP1_PROG
+    .const: load >> DDR3
     .data: load >> L2SRAM
-    .switch: load >> DSP1_PROG
+    .switch: load >> DDR3
     .sysmem: load > L2SRAM
     .args: load > L2SRAM align = 0x4, fill = 0 {_argsize = 0x0; }
     .cio: load >> L2SRAM
     .ti.handler_table: load > L2SRAM
     .c6xabi.extab: load >> L2SRAM
-    .ddr: load > DSP1_PROG
+    .ddr: load > DDR3
     .private: load > L2SRAM, fill = 0x0
     .fast_shared_noncached: load > L2SRAM, fill = 0x0
 }
@@ -97,12 +97,12 @@ SECTIONS
     * Needed for MPM on Hawking, which has a 10 bit alignment rqmt for the 
     * entry point.  Can be removed when that reqmt is lifted.
     *------------------------------------------------------------------------*/
-    .text:_c_int00 > DSP1_PROG align(0x400)
+    .text:_c_int00 > DDR3 align(0x400)
 
     .workgroup_config: > L2SRAM  palign(L2_LINE_SIZE)
 
     .mbox_d2h:         > L2SRAM, fill=0
-                          load_start(mbox_d2h_phys) size(mbox_d2h_size)
+		          load_start(mbox_d2h_phys) size(mbox_d2h_size) 
 
     .mbox_h2d:         > L2SRAM, fill=0
 		          load_start(mbox_h2d_phys) size(mbox_h2d_size) 
@@ -114,17 +114,19 @@ SECTIONS
 ocl_l1d_mem_start    = start(L1DSRAM);
 ocl_l1d_mem_size     = size (L1DSRAM);
 
-/***
 ocl_local_mem_start  = start(OCL_LOCAL);
 ocl_local_mem_size   = size (OCL_LOCAL);
 
+/***
 nocache_phys_start   = start(DDR3_NC);
 nocache_virt_start   = start(DDR3_NC);
 nocache_size         = size(DDR3_NC);
+***/
 
+--export ocl_l1d_mem_start
+--export ocl_l1d_mem_size
 --export ocl_local_mem_start
 --export ocl_local_mem_size
-***/
 
 
 /*-----------------------------------------------------------------------------
@@ -153,16 +155,16 @@ SECTIONS
                 "edmamgr.ae66"      (.far)
                 "fcsettings.ae66"   (.far)
                 "rman.ae66"         (.far)
-    } > DSP1_PROG
+    } > DDR3
     .fclocalfarsyms :
     {
                 "nullres.ae66"      (.fardata)
                 "nullres.ae66"      (.far)
     } > L2SRAM
 
-    .fardata: load >> DSP1_PROG
-    .far: load >> DSP1_PROG
-    .gdb_server: >> DSP1_PROG
+    .fardata: load >> DDR3
+    .far: load >> DDR3
+    .gdb_server: load = L2SRAM, type = NOLOAD, fill = 0x0
 }
 
 --symbol_map=acosd=acos
@@ -258,4 +260,3 @@ SECTIONS
 --symbol_map=__ocl_cache_l1d_std=__cache_l1d_all
 --symbol_map=__ocl_cache_l1d_half=__cache_l1d_16k
 --symbol_map=__ocl_cache_l1d_wbinv_all=__cache_l1d_wbinv_all
-

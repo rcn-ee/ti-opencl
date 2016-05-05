@@ -37,7 +37,7 @@ XDAIS_DIR      ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/xdais_*)
 export XDC_DIR
 export BIOS_DIR
 
-PLATFORM  = ti.platforms.evmDRA7XX:dsp1
+PLATFORM  = am57x_rtos
 PROJECT   = monitor
 DEVICE    = DEVICE_AM572x
 SOC       = SOC_AM572x
@@ -57,8 +57,8 @@ INCLUDES += -D$(SOC)
 
 SOURCES = monitor.c util.c dsp_rpc.asm touch.asm builtins.c edma.c \
           edma3_config.c device_am57.c
-HEADERS = edma.h monitor.h util.h trace.h custom_rsc_table_vayu_dsp.h
-LIBS    = monitor_bios.cmd
+HEADERS = edma.h monitor.h util.h trace.h
+LIBS    = monitor.${PLATFORM}.cmd
 #LIBS   += $(ULM_DIR)/libtiulm.ae66
 #LIBS   += $(GDB_SERVER_DIR)/lib/gdb_server.ae66
 OBJS1   = $(patsubst %.c,%.obj,$(SOURCES))
@@ -111,7 +111,7 @@ endef
 all: dsp0
 
 dsp0 : $(LINK_CMD0) dsp0.out dsp0.syms
-#dsp1 : $(LINK_CMD1) dsp1.out dsp1.syms
+dsp1 : $(LINK_CMD1) dsp1.out dsp1.syms
 
 
 #---------------------------------------------------------------------------
@@ -120,8 +120,12 @@ dsp0 : $(LINK_CMD0) dsp0.out dsp0.syms
 dsp0.out: $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD0) $(LIBS)
 	@echo Linking $@
 	@echo $(LINK_CMD0)
-	$(CC) -z --priority -w -x -m$@.map --define=DDR3_FCSECTION=DDR3_FC $^ -I$(TI_OCL_CGT_INSTALL)/lib -llibc.a -o $@
-	@cp dsp0.out dsp1.out
+	$(CC) -z --priority -w -x -m$@.map --define=DDR3=DSP1_PROG $^ -I$(TI_OCL_CGT_INSTALL)/lib -llibc.a -o $@
+
+dsp1.out: $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD1) $(LIBS)
+	@echo Linking $@
+	@echo $(LINK_CMD1)
+	$(CC) -z --priority -w -x -m$@.map --define=DDR3=DSP2_PROG $^ -I$(TI_OCL_CGT_INSTALL)/lib -llibc.a -o $@
 
 %.syms: %.out
 	$(call create_dsp_syms, $^, $@)
@@ -132,11 +136,18 @@ $(LIBM):
 $(BUILTINS): 
 	$(MAKE) -C $(BUILTINS_DIR) -j4 
 
-$(LINK_CMD0): ../cfg/$(PROJECT).cfg
-	$(XDC_DIR)/xs --xdcpath "$(XDCPATH)" xdc.tools.configuro -c $(TI_OCL_CGT_INSTALL) --cb -t $(XDCTARGET) -p $(PLATFORM) -r $(BUILD_TYPE) -DDSPCORE=0 -o $(PROJECT)0 -b "../cfg/config.bld" ../cfg/$(PROJECT).cfg
+ocl_platforms/am57x_rtos/package/package_ocl_platforms.am57x_rtos.c: ocl_platforms/am57x_rtos/Platform.xdc
+	$(MAKE) -C ocl_platforms/am57x_rtos
+
+$(LINK_CMD0): monitor.$(PLATFORM).cfg ocl_platforms/am57x_rtos/package/package_ocl_platforms.am57x_rtos.c
+	$(XDC_DIR)/xs --xdcpath "$(XDCPATH)" xdc.tools.configuro -c $(TI_OCL_CGT_INSTALL) --cb -t $(XDCTARGET) -p ocl_platforms.$(PLATFORM):DSP1 -r $(BUILD_TYPE) -DDSPCORE=0 -Dxdc.platform.custom.check="false" -o $(PROJECT)0 monitor.$(PLATFORM).cfg
 	@sed '/c6xabi\.exidx/d' $(LINK_CMD0) > lnk_tmp0
 	@mv lnk_tmp0 $(LINK_CMD0)
 
+$(LINK_CMD1): monitor.$(PLATFORM).cfg ocl_platforms/am57x_rtos/package/package_ocl_platforms.am57x_rtos.c
+	$(XDC_DIR)/xs --xdcpath "$(XDCPATH)" xdc.tools.configuro -c $(TI_OCL_CGT_INSTALL) --cb -t $(XDCTARGET) -p ocl_platforms.$(PLATFORM):DSP2 -r $(BUILD_TYPE) -DDSPCORE=1 -Dxdc.platform.custom.check="false" -o $(PROJECT)1 monitor.$(PLATFORM).cfg
+	@sed '/c6xabi\.exidx/d' $(LINK_CMD1) > lnk_tmp1
+	@mv lnk_tmp1 $(LINK_CMD1)
 
 #---------------------------------------------------------------------------
 # Default build rules
@@ -153,8 +164,12 @@ $(LINK_CMD0): ../cfg/$(PROJECT).cfg
 clean:
 	@rm -fr *.out *.map *.syms *.obj libm.cmd libm.fcns builtins.cmd builtins.fcns $(PROJECT)0 $(PROJECT)1
 
+.PHONY: cleanplatform
+cleanplatform:
+	@$(MAKE) -C ocl_platforms/$(PLATFORM) clean
+
 .PHONY: realclean
-realclean: clean
+realclean: clean cleanplatform
 	@$(MAKE) -C $(LIBM_DIR) clean
 	@$(MAKE) -C $(BUILTINS_DIR) clean
 

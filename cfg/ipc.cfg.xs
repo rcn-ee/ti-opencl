@@ -60,8 +60,8 @@ var SR0Mem = Program.cpu.memoryMap["SR_0"];
 SharedRegion.setEntryMeta(0,
     new SharedRegion.Entry({
         name:           "SR_0",
-        base:           0x8E000000,
-        len:            0x1000000,
+        base:           SR0Mem.base,
+        len:            SR0Mem.len,
         ownerProcId:    0,
         isValid:        true,
         cacheEnable:    true
