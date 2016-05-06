@@ -80,6 +80,11 @@
 #include <SimplifyShuffleBIFCall.h>
 #include <PrivatizationAliasAnalysis.h>
 
+#if defined(_MSC_VER)
+// MSVC has deprecated POSIX strdup in favor of ISO C++ _strdup
+#define strdup _strdup
+#endif
+
 using namespace std;
 using llvm::Module;
 
@@ -195,24 +200,6 @@ bool run_clang(string filename, string source, Compiler &compiler,
 ******************************************************************************/
 bool llvm_xforms(Module *module, bool optimize)
 {
-    // Get list of kernels to strip other unused functions
-    vector<const char *> api;
-    vector<string> api_s;     // Needed to keep valid data in api
-
-    llvm::NamedMDNode *kern_meta = module->getNamedMetadata("opencl.kernels");
-
-    for (unsigned int i=0; kern_meta && i < kern_meta->getNumOperands(); ++i)
-    {
-        llvm::MDNode *node  = kern_meta->getOperand(i);
-        llvm::Value  *value = dyn_cast<llvm::ValueAsMetadata>(node->getOperand(0))->getValue();
-        if (!llvm::isa<llvm::Function>(value)) continue;
-
-        llvm::Function *f = llvm::cast<llvm::Function>(value);
-        string s = f->getName().str();
-        api_s.push_back(s);
-        api.push_back(s.c_str());
-    }
-
     // determine if module has barrier() function calls
     bool hasBarrier = containsBarrierCall(*module);
 
@@ -230,7 +217,29 @@ bool llvm_xforms(Module *module, bool optimize)
     * Do not run this for lib mode as it will result in all functions
     * being removed if main not found.
     *------------------------------------------------------------------------*/
-    if (!opt_lib) manager->add(llvm::createInternalizePass(api));
+    if (!opt_lib)
+    {
+        // Get list of kernels to strip other unused functions
+        // LLVM createInternalizePass requires vector of const char*
+        vector<const char *> api;
+
+        llvm::NamedMDNode *kern_meta = module->getNamedMetadata("opencl.kernels");
+
+        for (unsigned int i=0; kern_meta && i < kern_meta->getNumOperands(); ++i)
+        {
+            llvm::MDNode *node  = kern_meta->getOperand(i);
+            llvm::Value  *value = dyn_cast<llvm::ValueAsMetadata>(node->getOperand(0))->getValue();
+            if (!llvm::isa<llvm::Function>(value)) continue;
+
+            llvm::Function *f = llvm::cast<llvm::Function>(value);
+            api.push_back(strdup(f->getName().str().c_str()));
+        }
+
+        manager->add(llvm::createInternalizePass(api));
+
+        for (auto ptr : api)
+            free(static_cast<void *>(const_cast<char *>(ptr)));
+    }
 
     manager->add(llvm::createIPSCCPPass());
     manager->add(llvm::createGlobalOptimizerPass());
