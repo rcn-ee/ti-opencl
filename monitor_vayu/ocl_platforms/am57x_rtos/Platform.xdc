@@ -300,7 +300,7 @@ metaonly module Platform inherits xdc.platform.IPlatform
     };
 
     readonly config Any HOST = {
-        externalMemoryMap: [
+        customMemoryMap: [
             [ "HOST_PROG", HOST_PROG ],
             [ "SR_0", SR_0 ],
             [ "OCL_GLOBAL", OCL_GLOBAL ]
@@ -319,10 +319,10 @@ instance:
     override readonly config xdc.platform.IPlatform.Memory
         externalMemoryMap[string] = [
             ["EXT_RAM", {
-                comment: "256 MB External RAM Memory",
+                comment: "2 GB External RAM Memory",
                 name: "EXT_RAM",
-                base: 0x90000000,
-                len:  0xA0000000
+                base: 0x80000000,
+                len:  0x80000000
             }]
         ];
 

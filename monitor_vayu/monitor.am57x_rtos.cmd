@@ -117,11 +117,9 @@ ocl_l1d_mem_size     = size (L1DSRAM);
 ocl_local_mem_start  = start(OCL_LOCAL);
 ocl_local_mem_size   = size (OCL_LOCAL);
 
-/***
-nocache_phys_start   = start(DDR3_NC);
-nocache_virt_start   = start(DDR3_NC);
-nocache_size         = size(DDR3_NC);
-***/
+nocache2_phys_start   = start(SR_0);
+nocache2_virt_start   = start(SR_0);
+nocache2_size         = size(SR_0);
 
 --export ocl_l1d_mem_start
 --export ocl_l1d_mem_size
