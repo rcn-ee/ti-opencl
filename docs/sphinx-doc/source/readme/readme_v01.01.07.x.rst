@@ -41,7 +41,7 @@ Release Notes
     int      __cache_l2_512k   (void);
 
 * These list of supported C6X intrinsics has been greatly expanded. See
-  :doc:`extensions/c66-intrinsics` for the complete list.
+  :doc:`../extensions/c66-intrinsics` for the complete list.
 
 * The OpenCL C builtin function rhadd has been optimized for ucharn and shortn
   data types.

@@ -116,7 +116,7 @@ using local scratch buffers.
 .. c:function:: void     __cache_l2_512k   (void)
 
     Sets the L2 memory to 512K bytes cache and the remainder of SRAM as scratchpad.
-    Only available is total L2 space is >= 1MB.
+    Only available if total L2 space is >= 1MB.
     
 .. Note:: The function __cache_l2_512k is not available on the AM57 platform.
 

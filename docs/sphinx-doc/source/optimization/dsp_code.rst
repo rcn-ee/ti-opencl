@@ -75,8 +75,8 @@ why this can be beneficial:
        could result in incorrect results.
 
 
-Avoid DSP writes to directly to DDR
-===================================
+Avoid DSP writes directly to DDR
+================================
 See the previous two subsections.
 
 Use the reqd_work_group_size attribute on kernels
@@ -122,27 +122,28 @@ barrier(), async...(), wait...()
 
 Use the most efficient data type on the DSP
 ===========================================
-Pick the most efficient data type for an application. E.g., if it is sufficient, prefer the 'char' type to represent a 8-bit data over using a 'float' type. This could have huge impact because:
+Pick the most efficient data type for an application. E.g., if it is sufficient, prefer the 'char'
+type to represent a 8-bit data over using a 'float' type. This could potentially have a significant
+impact because:
 
-  * More data transfer can happen
-  * More compute can happen
+  * It makes more efficient use of available data bandwidth
+  * It improves compute efficiency - on the C66x DSP, the number of SIMD elements operated on by
+    a single SIMD instruction typically tends to be inversely proprotional to element width.
 
-As a rule of thumb, the C66x DSP can do a maximum of
-  * 16 8-bit SIMD
-  * 8 16-bit SIMD
-  * 8 32-bit SIMD etc.,
-
-It is observed that if 8-bit of storage is sufficient for a given application, more parallelism is obtained both in terms of *compute* and *data transfer* using the char vs. float.
+It is observed that if 8-bit storage is sufficient for a given application, more efficient use
+ is made of compute resources and data bandwidth using char vs. float.
 
 Do Not Use Large Vector Types
 =============================
-Do not use vector types where the size of the vector type is > 64 bits. The C66x DSP has limited instruction support for long vector types, so their use is not performance beneficial.
+Do not use vector types where the size of the vector type is > 64 bits. The C66x DSP has limited
+instruction support for wide vector types, so their use is not performance beneficial.
 
 Vector types with total size <= 64 bits may be beneficial, but the benefit is not guaranteed.
 
 Consecutive memory accesses
 ===========================
-Data Access pattern plays a key role in generating efficient codes. Consecutive memory access is the fastest way. Also, the data flow can happen in different data sizes like
+Data Access pattern plays a key role in generating efficient codes. Consecutive memory access is
+the fastest way. Also, the data flow can happen in different data sizes like
  
 1. Single Byte ld/st 
 2. Half Word ld/st
