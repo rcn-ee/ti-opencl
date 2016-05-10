@@ -126,8 +126,8 @@ dsp1.out: custom_rsc_table_vayu_dsp1.obj $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD1
 	@echo $(LINK_CMD1)
 	$(CC) -z --priority -w -x -m$@.map --define=DDR3_FCSECTION=DDR3_FC $^ -I$(TI_OCL_CGT_INSTALL)/lib -llibc.a -o $@
 
-%.syms: %.out
-	$(call create_dsp_syms, $^, $@)
+%.syms: %.out export_syms
+	$(call create_dsp_syms, $<, $@)
 
 $(LIBM): 
 	$(MAKE) -C $(LIBM_DIR) -j4 
@@ -142,13 +142,13 @@ ocl_platforms/am57x/package/package_ocl_platforms.am57x.c: ocl_platforms/am57x/P
 
 $(LINK_CMD0): monitor.$(PLATFORM).cfg ocl_platforms/am57x/package/package_ocl_platforms.am57x.c
 	$(XDC_DIR)/xs --xdcpath "$(XDCPATH)" xdc.tools.configuro -c $(TI_OCL_CGT_INSTALL) --cb -t $(XDCTARGET) -p ocl_platforms.$(PLATFORM) -r $(BUILD_TYPE) -DDSPCORE=0 -o $(PROJECT)0 $(PROJECT).$(PLATFORM).cfg
-	@sed '/c6xabi\.exidx/d' $(LINK_CMD0) > lnk_tmp
-	@mv lnk_tmp $(LINK_CMD0)
+	@sed '/c6xabi\.exidx/d' $(LINK_CMD0) > lnk_tmp0
+	@mv lnk_tmp0 $(LINK_CMD0)
 
 $(LINK_CMD1): monitor.$(PLATFORM).cfg ocl_platforms/am57x/package/package_ocl_platforms.am57x.c
 	$(XDC_DIR)/xs --xdcpath "$(XDCPATH)" xdc.tools.configuro -c $(TI_OCL_CGT_INSTALL) --cb -t $(XDCTARGET) -p ocl_platforms.$(PLATFORM) -r $(BUILD_TYPE) -DDSPCORE=1 -o $(PROJECT)1 $(PROJECT).$(PLATFORM).cfg
-	@sed '/c6xabi\.exidx/d' $(LINK_CMD1) > lnk_tmp
-	@mv lnk_tmp $(LINK_CMD1)
+	@sed '/c6xabi\.exidx/d' $(LINK_CMD1) > lnk_tmp1
+	@mv lnk_tmp1 $(LINK_CMD1)
 
 #---------------------------------------------------------------------------
 # Default build rules
