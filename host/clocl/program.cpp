@@ -107,9 +107,15 @@ std::string get_ocl_dsp()
     string stdpath;
 
     // If TI_OCL_INSTALL is specified, use it as a prefix
-    const char *ocl_install = getenv("TI_OCL_INSTALL");
+    const char *ocl_install    = getenv("TI_OCL_INSTALL");
+    const char *target_rootdir = getenv("TARGET_ROOTDIR");
+
+    // If TI_OCL_INSTALL is specified, use it as a prefix
     if (ocl_install)
         stdpath = ocl_install;
+
+    if (target_rootdir)
+        stdpath = target_rootdir;
 
     #if !defined(_MSC_VER)
     stdpath += "/usr/share/ti/opencl";
