@@ -352,7 +352,6 @@ DSPDevicePtr DSPKernel::locals_in_kernel_extent(uint32_t &ret_size) const
                      (llvm::AttributeSet::FunctionIndex, "_kernel_local_size")
                      .getValueAsString();
 
-    //YUAN if (!KLS_str.empty()) locals_in_kernel_size = std::stoi(KLS_str);
     if (!KLS_str.empty()) locals_in_kernel_size = atoi(KLS_str.c_str());
     ret_size = ROUNDUP(locals_in_kernel_size, MIN_BLOCK_SIZE);
     return addr;
@@ -958,11 +957,7 @@ cl_int DSPKernelEvent::allocate_temp_global(void)
         DSPDevicePtr64 *p_addr64     = &p_hostptr_tmpbufs[i].second.first;
         DSPVirtPtr     *p_arg_word   =  p_hostptr_tmpbufs[i].second.second;
         
-#ifndef _SYS_BIOS
         *p_addr64 = shm->AllocateGlobal(buffer->size(), false);
-#else
-        *p_addr64 = (DSPDevicePtr64)((int64_t)((uint32_t)(buffer->host_ptr())));
-#endif
 
         if (!(*p_addr64))
         {
@@ -978,12 +973,8 @@ cl_int DSPKernelEvent::allocate_temp_global(void)
 
         if (! WRITE_ONLY_BUFFER(buffer))
         {
-#ifndef _SYS_BIOS
             void *mapped_tmpbuf = shm->Map(*p_addr64, buffer->size(), false);
             memcpy(mapped_tmpbuf, buffer->host_ptr(), buffer->size());
-#else
-            void *mapped_tmpbuf = (void*)((uint32_t)*p_addr64);
-#endif
             p_flush_bufs.push_back(DSPMemRange(DSPPtrPair(
                                       *p_addr64, p_arg_word), buffer->size()));
             shm->Unmap(mapped_tmpbuf, *p_addr64, buffer->size(), true);
@@ -1217,17 +1208,11 @@ void DSPKernelEvent::free_tmp_bufs()
 
         if (! READ_ONLY_BUFFER(buffer))
         {
-#ifndef _SYS_BIOS
             void *mapped_tmpbuf = shm->Map(addr64, buffer->size(), true);
             memcpy(buffer->host_ptr(), mapped_tmpbuf, buffer->size());
-#else
-            void *mapped_tmpbuf = (void*)((uint32_t)addr64);
-#endif
             shm->Unmap(mapped_tmpbuf, addr64, buffer->size(), false);
         }
-#ifndef _SYS_BIOS
         shm->FreeGlobal(addr64);
-#endif
     }
 
     /*-------------------------------------------------------------------------

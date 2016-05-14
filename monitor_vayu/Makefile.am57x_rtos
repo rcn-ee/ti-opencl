@@ -108,7 +108,7 @@ endef
 
 
 .PHONY: all dsp0
-all: dsp0
+all: dsp0 dsp1
 
 dsp0 : $(LINK_CMD0) dsp0.out dsp0.syms
 dsp1 : $(LINK_CMD1) dsp1.out dsp1.syms

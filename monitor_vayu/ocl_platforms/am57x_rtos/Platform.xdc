@@ -184,7 +184,7 @@ metaonly module Platform inherits xdc.platform.IPlatform
             [ "L1DSRAM", L1DSRAM ],
             [ "L2SRAM", L2SRAM ],
             [ "OCL_LOCAL", OCL_LOCAL ],
-            [ "DSP2_PROG", DSP1_PROG ],
+            [ "DSP2_PROG", DSP2_PROG ],
             [ "SR_0", SR_0 ]
         ],
         codeMemory:  "DSP2_PROG",

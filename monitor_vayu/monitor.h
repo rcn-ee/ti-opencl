@@ -46,8 +46,7 @@ extern cregister volatile unsigned int DNUM;
 #define RETURN_OK   1
 
 #if defined(DEVICE_AM572x)
-    // #define NUM_CORES 2
-    #define NUM_CORES 1   // YUAN TODO: to use both DSPs
+    #define NUM_CORES 2
 #elif defined(DEVICE_K2G)
     #define NUM_CORES 1
 #else

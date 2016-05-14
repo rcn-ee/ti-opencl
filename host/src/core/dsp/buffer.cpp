@@ -51,7 +51,15 @@ DSPBuffer::DSPBuffer(DSPDevice *device, MemObject *buffer, cl_int *rs)
                                                    &p_data, NULL))
             buffer->set_host_ptr_clMalloced();
         else
+#if defined(_SYS_BIOS)
+        {
+            // In SYS_BIOS mode, treat host ptr as if it is clMalloc-ed
+            buffer->set_host_ptr_clMalloced();
+            p_data = (DSPDevicePtr64) ((DSPDevicePtr) buffer->host_ptr());
+        }
+#else
             p_data = (DSPDevicePtr64) buffer->host_ptr();
+#endif
     }
 }
 

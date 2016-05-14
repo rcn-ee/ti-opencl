@@ -80,6 +80,19 @@ MBoxMsgQ::MBoxMsgQ(Coal::DSPDevice *device)
     assert (status == Ipc_S_SUCCESS || status == Ipc_S_ALREADYSETUP);
 
 #ifdef _SYS_BIOS
+    /* Ipc_attach must be called in ProcSync_PAIR protocol */
+    UInt16 remoteProcId = MultiProc_getId(String("DSP1"));
+    assert(remoteProcId != MultiProc_INVALIDID);
+    do {
+        status = Ipc_attach(remoteProcId);
+    } while ((status < 0) && (status == Ipc_E_NOTREADY));
+
+    remoteProcId = MultiProc_getId(String("DSP2"));
+    assert(remoteProcId != MultiProc_INVALIDID);
+    do {
+        status = Ipc_attach(remoteProcId);
+    } while ((status < 0) && (status == Ipc_E_NOTREADY));
+
     /* get the SR_0 heap handle */
     IHeap_Handle heap = (IHeap_Handle) SharedRegion_getHeap(0);
 
@@ -111,9 +124,6 @@ MBoxMsgQ::MBoxMsgQ(Coal::DSPDevice *device)
             printf("failed to open msgq %s\n", Ocl_DspMsgQueueName[i]);
             exit(1);
         }
-#ifdef _SYS_BIOS
-        if (i == 0)  break;
-#endif
     }
 }
 

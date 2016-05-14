@@ -44,6 +44,7 @@
 *----------------------------------------------------------------------------*/
 #include <ti/ipc/Ipc.h>
 #include <ti/ipc/MessageQ.h>
+#include <ti/ipc/MultiProc.h>
 #if defined(DEVICE_AM572x)
 #include <ti/pm/IpcPower.h>
 #endif
@@ -143,7 +144,7 @@ static int  setup_ndr_chunks      (int dims, uint32_t* limits, uint32_t* offsets
 * Bios Task and helper routines
 ******************************************************************************/
 static void ocl_main(UArg arg0, UArg arg1);
-#ifndef _SYS_BIOS  // YUAN TODO: disbale OpenMP for now
+#ifndef _SYS_BIOS  // YUAN TODO: disable OpenMP for now
 static void ocl_service_omp(UArg arg0, UArg arg1);
 #endif
 static bool create_mqueue(void);
@@ -183,6 +184,10 @@ int main(int argc, char* argv[])
 
 #ifdef _SYS_BIOS       
     int status = Ipc_start();
+    UInt16 remoteProcId = MultiProc_getId("HOST");
+    do {
+        status = Ipc_attach(remoteProcId);
+    } while ((status < 0) && (status == Ipc_E_NOTREADY));
 #endif 
 
     /* Setup non-cacheable memory, etc... */
@@ -747,11 +752,7 @@ static bool create_mqueue()
 
     /* Create DSP message queue (inbound messages from ARM) */
     MessageQ_Params_init(&msgqParams);
-#ifndef _SYS_BIOS
     ocl_queues.dspQue = MessageQ_create(Ocl_DspMsgQueueName[DNUM], &msgqParams);
-#else  // YUAN TODO: see if this is necessary, what about DSP2?
-    ocl_queues.dspQue = MessageQ_create("OCL:DSP1:MsgQ", &msgqParams);
-#endif
 
     if (ocl_queues.dspQue == NULL) 
     {
