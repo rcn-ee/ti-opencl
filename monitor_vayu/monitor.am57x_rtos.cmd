@@ -81,7 +81,7 @@ SECTIONS
     .const: load >> DDR3
     .data: load >> L2SRAM
     .switch: load >> DDR3
-    .sysmem: load > L2SRAM
+    .sysmem: load > DDR3
     .args: load > L2SRAM align = 0x4, fill = 0 {_argsize = 0x0; }
     .cio: load >> L2SRAM
     .ti.handler_table: load > L2SRAM

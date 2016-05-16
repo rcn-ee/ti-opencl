@@ -38,6 +38,9 @@
 #include <xdc/runtime/Log.h>
 #include <xdc/runtime/Registry.h>
 #include <xdc/runtime/System.h>
+#if defined(_SYS_BIOS)
+#include <xdc/runtime/IHeap.h>
+#endif
  
 /*-----------------------------------------------------------------------------
 * IPC header files
@@ -45,6 +48,9 @@
 #include <ti/ipc/Ipc.h>
 #include <ti/ipc/MessageQ.h>
 #include <ti/ipc/MultiProc.h>
+#if defined(_SYS_BIOS)
+#include <ti/ipc/SharedRegion.h>
+#endif
 #if defined(DEVICE_AM572x)
 #include <ti/pm/IpcPower.h>
 #endif
@@ -158,8 +164,10 @@ extern void tomp_dispatch_finish(void);
 extern bool tomp_dispatch_is_finished(void);
 #endif
 
+#ifdef _SYS_BIOS
 // Prevent RTS versions of malloc etc. from getting pulled into link
-//void _minit(void) { }
+void _minit(void) { }
+#endif
 
 /*******************************************************************************
 * MASTER_THREAD : One core acts as a master.  This macro identifies that thread
@@ -188,6 +196,11 @@ int main(int argc, char* argv[])
     do {
         status = Ipc_attach(remoteProcId);
     } while ((status < 0) && (status == Ipc_E_NOTREADY));
+
+    /* get the SR_0 heap handle */
+    IHeap_Handle heap = (IHeap_Handle) SharedRegion_getHeap(0);
+    /* Register this heap with MessageQ */
+    status = MessageQ_registerHeap(heap, 0);
 #endif 
 
     /* Setup non-cacheable memory, etc... */
