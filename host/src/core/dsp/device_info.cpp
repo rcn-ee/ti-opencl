@@ -31,6 +31,8 @@
 #include <dirent.h>
 #endif
 #include <string>
+#include <iostream>
+#include <sstream>
 
 #include "../tiocl_thread.h"
 #ifdef _SYS_BIOS
@@ -70,32 +72,78 @@ DeviceInfo::DeviceInfo()
     symbol_lookup_ = CreateSymbolAddressLookup(FullyQualifiedPathToDspMonitor());
     #endif
 
-    #if defined (DEVICE_AM57)
-    num_compute_units_ = 2;
-    #elif defined (DSPC868X)
-    num_compute_units_ = 8;
-    #else
-    num_compute_units_ = 0;
-    DIR *dir = opendir("/dev");
-    if(!dir)
-        ReportError(ErrorType::Fatal, ErrorKind::NumComputeUnitDetectionFailed);
+    ComputeUnitsAvailable();
 
-    while(dirent *entry = readdir(dir))
-    {
-        if(entry->d_name[0] && entry->d_name[0] == 'd' &&
-           entry->d_name[1] && entry->d_name[1] == 's' &&
-           entry->d_name[2] && entry->d_name[2] == 'p' &&
-           entry->d_name[3] && isdigit(entry->d_name[3]))
-            ++num_compute_units_;
-    }
-
-    closedir(dir);
-    #endif
 }
 
 DeviceInfo::~DeviceInfo()
 {
     delete symbol_lookup_;
+}
+
+extern "C" {
+const char* ti_opencl_getComputeUnitList();
+}
+
+// Device and OS specific approach to determining the number of compute units
+// available to the OpenCL runtime.
+void DeviceInfo::ComputeUnitsAvailable()
+{
+    const char* comp_unit = nullptr;
+
+    #if !defined (_SYS_BIOS)
+    // TI_OCL_COMPUTE_UNIT_LIST is set to a comma separated list of
+    // compute units available. E.g. "0,1" => cores 0 and 1 are available
+    comp_unit = getenv("TI_OCL_COMPUTE_UNIT_LIST");
+    #else
+    // OpenCL over RTOS, get compute unit list from RTSC configuration file
+    comp_unit = ti_opencl_getComputeUnitList();
+    #endif
+
+    if (!comp_unit)
+    {
+        #if defined (DEVICE_AM57)
+        num_compute_units_ = 2;
+        #elif defined (DSPC868X)
+        num_compute_units_ = 8;
+        #else
+        num_compute_units_ = 0;
+        DIR *dir = opendir("/dev");
+        if (!dir)
+            ReportError(ErrorType::Fatal, ErrorKind::NumComputeUnitDetectionFailed);
+
+        while (dirent * entry = readdir(dir))
+        {
+            if (entry->d_name[0] && entry->d_name[0] == 'd' &&
+                entry->d_name[1] && entry->d_name[1] == 's' &&
+                entry->d_name[2] && entry->d_name[2] == 'p' &&
+                entry->d_name[3] && isdigit(entry->d_name[3]))
+                ++num_compute_units_;
+        }
+
+        closedir(dir);
+        #endif
+
+        for (int x = 0; x < num_compute_units_; x++)
+            available_compute_units_.insert(x);
+    }
+    else
+    {
+        // Parse the comma separated string to determine the compute units available
+        const std::string cu = comp_unit;
+        std::stringstream ss(cu);
+        num_compute_units_ = 0;
+
+        int i;
+        while (ss >> i)
+        {
+            available_compute_units_.insert(i);
+            num_compute_units_++;
+
+            if (ss.peek() == ',')
+                ss.ignore();
+        }
+    }
 }
 
 #include <sys/stat.h>

@@ -137,22 +137,24 @@ DSPDevice::DSPDevice(unsigned char dsp_id, SharedMemory* shm)
     *------------------------------------------------------------------------*/
     p_mb = MBoxFactory::CreateMailbox(this);
 
-#if defined(DEVICE_K2X) && !defined(DEVICE_K2G)
     /*-------------------------------------------------------------------------
-    * Send monitor configuration
-    *------------------------------------------------------------------------*/
+     * Send monitor configuration
+     * On AM57, the monitor is configured based on the number of cores in the
+     * configuration message
+     *------------------------------------------------------------------------*/
     Msg_t msg = {CONFIGURE_MONITOR};
     msg.u.configure_monitor.n_cores = dspCores();
 
+#if defined(DEVICE_K2X) && !defined(DEVICE_K2G)
     // Keystone2: get QMSS resources from RM, mail to DSP monitor
     if (get_ocl_qmss_res(&msg) == 0)
     {
         printf("Unable to allocate resource from RM server!\n");
         exit(-1);
     }
+#endif
 
     mail_to(msg);
-#endif
 
     /*-------------------------------------------------------------------------
     * Query DSP frequency; monitor is in message loop task after this point.
@@ -507,7 +509,7 @@ bool DSPDevice::isInClMallocedRegion(void *ptr)
 int DSPDevice::numHostMails(Msg_t &msg) const
 {
     if (hostSchedule() && (msg.command == EXIT || msg.command == CACHEINV ||
-                           msg.command == SETUP_DEBUG ||
+                           msg.command == SETUP_DEBUG || msg.command == CONFIGURE_MONITOR ||
                            (msg.command == NDRKERNEL && !IS_DEBUG_MODE(msg))))
         return dspCores();
     return 1;
@@ -527,6 +529,7 @@ void DSPDevice::mail_to(Msg_t &msg, unsigned int core)
             case CACHEINV:
             case NDRKERNEL:
             case SETUP_DEBUG:
+            case CONFIGURE_MONITOR:
             {
                 for (int i = 0; i < numHostMails(msg); i++)
                     p_mb->to((uint8_t*)&msg, sizeof(Msg_t), i);

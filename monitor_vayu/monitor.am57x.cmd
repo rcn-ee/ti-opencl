@@ -129,6 +129,9 @@ nocache2_phys_start   = start(DDR3_NC2);
 nocache2_virt_start   = start(DDR3_NC2);
 nocache2_size         = size(DDR3_NC2);
 
+service_stack_start   = start(DDR3_STACK);
+service_stack_size    = size(DDR3_STACK);
+
 --export ocl_l1d_mem_start
 --export ocl_l1d_mem_size
 --export ocl_local_mem_start

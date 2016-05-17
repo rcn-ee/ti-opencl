@@ -59,6 +59,7 @@ enum class ErrorKind
     MailboxCreationFailed,
     ShouldNotGetHere,
     PCIeDriverError,
+    MessageQueueCountMismatch,
 };
 
 // Types of error messages, used to control behavior of ReportError

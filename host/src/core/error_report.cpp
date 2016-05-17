@@ -113,6 +113,9 @@ static const std::map<const ErrorKind, const std::string> ErrorStrings =
     {ErrorKind::PCIeDriverError,
      "Internal Error: Error in PCIe driver"},
 
+    {ErrorKind::MessageQueueCountMismatch,
+     "Internal Error: Number of message queues (%d) does not match number of compute units (%d)"}
+
 };
 
 void tiocl::ReportError(const ErrorType et, const ErrorKind ek, ...)

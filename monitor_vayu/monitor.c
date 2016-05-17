@@ -100,8 +100,10 @@ typedef struct
 
 DDR (Registry_Desc, Registry_CURDESC);
 
-PRIVATE (bool,              enable_printf) = false;
-PRIVATE (OCL_MessageQueues, ocl_queues);
+PRIVATE (bool,              enable_printf)       = false;
+PRIVATE (bool,              edmamgr_initialized) = false;
+PRIVATE (OCL_MessageQueues,  ocl_queues);
+PRIVATE (int,               n_cores);
 
 extern Semaphore_Handle higherSem;
 
@@ -140,9 +142,9 @@ static void process_cache_command (int pkt_id, ocl_msgq_message_t *msgq_pkt);
 static void process_exit_command  (ocl_msgq_message_t* msgq_msg);
 static void process_setup_debug_command(ocl_msgq_message_t* msgq_pkt);
 static void service_workgroup     (Msg_t* msg);
-static int  setup_ndr_chunks      (int dims, uint32_t* limits, uint32_t* offsets, 
+static bool setup_ndr_chunks      (int dims, uint32_t* limits, uint32_t* offsets,
                                    uint32_t *gsz, uint32_t* lsz);
-
+static void process_configuration_message(ocl_msgq_message_t* msgq_pkt);
 
 
 /* BIOS_TASKS */
@@ -150,19 +152,17 @@ static int  setup_ndr_chunks      (int dims, uint32_t* limits, uint32_t* offsets
 * Bios Task and helper routines
 ******************************************************************************/
 static void ocl_main(UArg arg0, UArg arg1);
-#ifndef _SYS_BIOS  // YUAN TODO: disable OpenMP for now
-static void ocl_service_omp(UArg arg0, UArg arg1);
+#ifndef _SYS_BIOS  // TODO: disable OpenMP for now
+static void ocl_service_omp();
 #endif
 static bool create_mqueue(void);
 static void ocl_monitor();
 
-#ifndef _SYS_BIOS
-extern tomp_initOpenMPforOpenCL(void);
+extern tomp_initOpenMPforOpenCLPerApp(int master_core, int num_cores);
 extern tomp_exitOpenMPforOpenCL(void);
 extern void tomp_dispatch_once(void);
 extern void tomp_dispatch_finish(void);
 extern bool tomp_dispatch_is_finished(void);
-#endif
 
 #ifdef _SYS_BIOS
 // Prevent RTS versions of malloc etc. from getting pulled into link
@@ -170,9 +170,9 @@ void _minit(void) { }
 #endif
 
 /*******************************************************************************
-* MASTER_THREAD : One core acts as a master.  This macro identifies that thread
+* MASTER_CORE : One core acts as a master.  This macro identifies that thread
 *******************************************************************************/
-#define MASTER_THREAD (DNUM == 0)
+#define MASTER_CORE (DNUM == 0 || n_cores == 1)
 
 #define LISTEN_STACK_SIZE 0x2800
 #define SERVICE_STACK_SIZE 0x10000
@@ -182,7 +182,9 @@ PRIVATE_1D(char, lstack, LISTEN_STACK_SIZE);
 * main
 ******************************************************************************/
 int main(int argc, char* argv[])
-{    
+{
+    edmamgr_initialized = false;
+
     /* register with xdc.runtime to get a diags mask */
     Registry_Result result = Registry_addModule(&Registry_CURDESC, MODULE_NAME);
     assert(result == Registry_SUCCESS);
@@ -206,13 +208,6 @@ int main(int argc, char* argv[])
     } while ((status < 0) && (status == Ipc_E_NOTREADY));
 #endif
 
-#if !defined(_SYS_BIOS)
-    /* Do this early since the heap is initialized by OpenMP */
-    if (tomp_initOpenMPforOpenCL() < 0)
-        System_abort("main: tomp_initOpenMPforOpenCL() failed");
-#endif
-
-    initialize_edmamgr();
 #if !defined(DEVICE_AM572x)
     initialize_gdbserver();
 #endif
@@ -238,21 +233,25 @@ int main(int argc, char* argv[])
         System_abort("main: failed to create ocl_main thread");
     }
 
-#ifndef _SYS_BIOS
+    #ifndef _SYS_BIOS
     /* Create a task to service OpenMP kernels */
+    extern uint32_t service_stack_start;
+    uint32_t stack_start = (uint32_t) &service_stack_start;
+
     Error_init(&eb);
     Task_Params_init(&taskParams);
     taskParams.instance->name = "ocl_service_omp";
-    taskParams.arg0 = (UArg)argc;
-    taskParams.arg1 = (UArg)argv;
     taskParams.priority = 5; // HIGHER_PRIORITY
     taskParams.stackSize = SERVICE_STACK_SIZE;
-    taskParams.stack = (xdc_Ptr)malloc(SERVICE_STACK_SIZE); // ddr shared
+    taskParams.stack = (xdc_Ptr) (stack_start + DNUM * SERVICE_STACK_SIZE);
     Task_create(ocl_service_omp, &taskParams, &eb);
-    if (Error_check(&eb)) {
+    if (Error_check(&eb))
+    {
         System_abort("main: failed to create ocl_service_omp thread");
     }
-#endif
+
+    Log_print0(Diags_ENTRY | Diags_INFO, "main: created omp task");
+    #endif
 
     /* Start scheduler, this never returns */
     BIOS_start();
@@ -269,22 +268,33 @@ void ocl_main(UArg arg0, UArg arg1)
 {
     Log_print0(Diags_ENTRY | Diags_INFO, "--> ocl_main:");
 
+    /* create the dsp queue */
+    if (!create_mqueue())
+        System_abort("main: create_mqueue() failed");
+
+#if !defined(DEVICE_AM572x)
+    initialize_gdbserver();
+#else
+    #if !defined(_SYS_BIOS)
+    // On AM57x, indicate that heaps must be initialized. It's ok to set this on both
+    // DSP cores because there is a barrier hit before the heap is initialized.
+    extern int need_mem_init;
+    need_mem_init = 1;
+    #endif
+#endif
+
     /* printfs are enabled ony for the duration of an OpenCL kernel */
     enable_printf = false;
 
-    /* create the dsp queue */
-    if (create_mqueue())
+    /* OpenCL monitor loop - does not return */
+    ocl_monitor();
+
+    /* delete the message queue */
+    int status = MessageQ_delete(&ocl_queues.dspQue);
+
+    if (status < 0)
     {
-        /* OpenCL monitor loop - does not return */
-        ocl_monitor();
-
-        /* delete the message queue */
-        int status = MessageQ_delete(&ocl_queues.dspQue);
-
-        if (status < 0) 
-        {
-            Log_error1("Server_finish: error=0x%x", (IArg)status);
-        }
+        Log_error1("Server_finish: error=0x%x", (IArg)status);
     }
 
     return;
@@ -354,7 +364,12 @@ void ocl_monitor()
                 respond_to_host(msgq_pkt, dsp_speed());
                 break;
 
-            default:    
+            case CONFIGURE_MONITOR:
+                Log_print0(Diags_INFO, "CONFIGURE_MONITOR\n");
+                process_configuration_message(msgq_pkt);
+                break;
+
+            default:
                 Log_print1(Diags_INFO, "OTHER (%d)\n", ocl_msg->command);
                 break;
         }
@@ -437,7 +452,7 @@ static void process_task_command(ocl_msgq_message_t* msgq_pkt)
 /******************************************************************************
 * ocl_service_omp - This is it's own task to switch the stack to DDR.
 ******************************************************************************/
-void ocl_service_omp(UArg arg0, UArg arg1)
+void ocl_service_omp()
 {
     Log_print0(Diags_ENTRY | Diags_INFO, "--> ocl_service_omp:");
 
@@ -455,7 +470,7 @@ void ocl_service_omp(UArg arg0, UArg arg1)
           uint32_t more_args_size = Msg->u.k.kernel.args_on_stack_size;
           void* more_args = (void *) Msg->u.k.kernel.args_on_stack_addr;
 
-          if (MASTER_THREAD)
+          if (MASTER_CORE)
           {
              TRACE(ULM_OCL_IOT_KERNEL_START, kernel_id, 0);
              dsp_rpc(&((kernel_msg_t *)&Msg->u.k.kernel)->entry_point,
@@ -512,16 +527,18 @@ static void process_kernel_command(ocl_msgq_message_t *msgq_pkt)
     bool is_debug_mode = (cfg->WG_gid_start[0] == DEBUG_MODE_WG_GID_START);
     if (is_debug_mode)
     {
-        if (DNUM != 0) return;
+        if (!(MASTER_CORE)) return;
     }
     else
     {
-        int any_work = setup_ndr_chunks(cfg->num_dims, limits, offsets,
+        bool any_work = setup_ndr_chunks(cfg->num_dims, limits, offsets,
                                         cfg->global_size, cfg->local_size);
         if (!any_work) return;
     }
 
-    workgroup = DNUM * (limits[0] * limits[1] * limits[2]) /
+    int factor = (n_cores > 1) ? DNUM : 0;
+
+    workgroup = factor * (limits[0] * limits[1] * limits[2]) /
                 (cfg->local_size[0] * cfg->local_size[1] * cfg->local_size[2]);
     /*---------------------------------------------------------
     * Iterate over each Work Group
@@ -547,11 +564,16 @@ static void process_kernel_command(ocl_msgq_message_t *msgq_pkt)
 * setup_ndr_chunks
 ******************************************************************************/
 #define IS_MULTIPLE(x, y)       ((y) % (x) == 0)
-static int setup_ndr_chunks(int dims, uint32_t* limits, uint32_t* offsets, 
+static bool setup_ndr_chunks(int dims, uint32_t* limits, uint32_t* offsets,
                                       uint32_t *gsz, uint32_t* lsz)
 {
-    int num_chunks = NUM_CORES;
+    // Degenrate case - only one core available
+    if (n_cores == 1)
+        return true;
 
+    // Try to split across cores along the first dimension where global and local sz is
+    // a multiple of chunk size
+    int num_chunks = n_cores;
     while (--dims >= 0)
         if (IS_MULTIPLE(num_chunks, gsz[dims]) && IS_MULTIPLE(lsz[dims], gsz[dims] / num_chunks))
         {
@@ -560,7 +582,8 @@ static int setup_ndr_chunks(int dims, uint32_t* limits, uint32_t* offsets,
             return true;
         }
 
-    return (DNUM == 0);
+    // If we failed to split, execute on one of the cores
+    return (MASTER_CORE);
 }
 
 
@@ -598,6 +621,10 @@ static void process_cache_command (int pkt_id, ocl_msgq_message_t *msgq_pkt)
 ******************************************************************************/
 static void process_exit_command(ocl_msgq_message_t *msg_pkt)
 {
+#if !defined( _SYS_BIOS)
+    tomp_exitOpenMPforOpenCL();
+#endif
+
 #ifdef DEVICE_K2G
     respond_to_host(msg_pkt, -1);
     Log_print0(Diags_INFO, "ocl_monitor: EXIT");
@@ -647,7 +674,8 @@ static void initialize_gdbserver()
 #if defined(DEVICE_AM572x) && !defined(_SYS_BIOS)
 void ocl_suspend_call(Int event, Ptr data)
 {
-    free_edma_channel_pool();
+    if (edmamgr_initialized)
+        free_edma_channel_pool();
 }
 
 void ocl_resume_call(Int event, Ptr data)
@@ -788,10 +816,38 @@ static bool create_mqueue()
     return true;
 }
 
-#ifdef _SYS_BIOS
+#if defined(_SYS_BIOS)
 void mainDsp1TimerTick(UArg arg)
 {
     Clock_tick();
 }
 #endif
 
+
+static void process_configuration_message(ocl_msgq_message_t* msgq_pkt)
+{
+    /* Get a pointer to the OpenCL payload in the message */
+    Msg_t *ocl_msg = &(msgq_pkt->message);
+
+    n_cores = ocl_msg->u.configure_monitor.n_cores;
+
+    MessageQ_free((MessageQ_Msg)msgq_pkt);
+
+    /* Do this early since the heap is initialized by OpenMP */
+    int master_core = (n_cores > 1) ? 0 : DNUM;
+
+    Log_print2(Diags_INFO,"Configuring OpenMP (%d, %d)\n", master_core, n_cores);
+
+#if !defined(_SYS_BIOS)
+    if (tomp_initOpenMPforOpenCLPerApp(master_core, n_cores) < 0)
+        System_abort("main: tomp_initOpenMPforOpenCL() failed");
+#endif
+
+    if (!edmamgr_initialized)
+    {
+        initialize_edmamgr();
+        edmamgr_initialized = true;
+    }
+
+    Log_print1(Diags_INFO, "\t (%d cores)\n", n_cores);
+}

@@ -16,7 +16,6 @@
  * *  Neither the name of Texas Instruments Incorporated nor the names of
  *    its contributors may be used to endorse or promote products derived
  *    from this software without specific prior written permission.
- *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
  * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
@@ -47,12 +46,12 @@ import xdc.runtime.Types;
 module OpenCL
 {
     /*!
-     *  ======== numDspCores ========
-     *  Number of participating DSP cores.
+     *  ======== computeUnitList ========
+     *  List of cores/compute units available to the runtime
+     *  On AM57, defaults to both cores. Override with "0" or "1" for DSP0 or DSP1 only
      *
-     *  Can be fewer than number of cores available on device.
      */
-    config UInt8    numDspCores            = 2;
+    config String   computeUnitList        = "0, 1";
 
     /*!
      *  ======== OCL_GLOBAL_customized ========

@@ -35,7 +35,9 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "device_info.h"
 #include "mbox_impl_msgq.h"
+#include "core/error_report.h"
 
 #ifndef _SYS_BIOS
 /* Work around IPC usage of typedef void */
@@ -66,6 +68,7 @@
 #define HostMsgQueString    "OCL:MsgQ:%d"
 
 using namespace Coal;
+using namespace tiocl;
 
 MBoxMsgQ::MBoxMsgQ(Coal::DSPDevice *device)
     : heapId(0), p_device(device)
@@ -112,19 +115,24 @@ MBoxMsgQ::MBoxMsgQ(Coal::DSPDevice *device)
 
     /* Open the DSP message queues (outbound messages to DSPs) */
     assert(p_device->dspCores() <= Ocl_MaxNumDspMsgQueues);
-    for(int i = 0; i < p_device->dspCores(); ++i)
-    {
-        do {
-            status = MessageQ_open(
-                const_cast<char *>(Ocl_DspMsgQueueName[i]), &dspQue[i]);
-        } while (status == MessageQ_E_NOTFOUND);
 
-        if(status != MessageQ_S_SUCCESS)
-        {
-            printf("failed to open msgq %s\n", Ocl_DspMsgQueueName[i]);
-            exit(1);
-        }
+    const tiocl::DeviceInfo& device_info = tiocl::DeviceInfo::Instance();
+    const std::set<uint8_t>& compute_units = device_info.GetComputeUnits();
+    int j = 0;
+    for(int i : compute_units)
+    {
+        assert(i < Ocl_MaxNumDspMsgQueues);
+
+        MessageQ_QueueId queue;
+        status = MessageQ_open(const_cast<char *>(Ocl_DspMsgQueueName[i]), &queue);
+
+        if(status == MessageQ_S_SUCCESS)
+            dspQue[j++] = queue;
     }
+
+    if (j != p_device->dspCores())
+        ReportError(ErrorType::Fatal, ErrorKind::MessageQueueCountMismatch,
+                    j, p_device->dspCores());
 }
 
 void MBoxMsgQ::write (uint8_t *buf, uint32_t size, uint32_t trans_id, 
