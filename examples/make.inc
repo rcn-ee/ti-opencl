@@ -1,6 +1,7 @@
 DSP_INCLUDE  = -I$(TI_OCL_CGT_INSTALL)/include 
-DSP_INCLUDE += -I$(TARGET_ROOTDIR)/usr/share/ti/cgt-c6x/include
+DSP_INCLUDE += -I$(TI_OCL_INSTALL)/usr/share/ti/opencl
 DSP_INCLUDE += -I$(TARGET_ROOTDIR)/usr/share/ti/opencl
+DSP_INCLUDE += -I$(TARGET_ROOTDIR)/usr/share/ti/cgt-c6x/include
 
 CPP   = g++ 
 CL6X  = cl6x -mv6600 --abi=eabi $(DSP_INCLUDE)
