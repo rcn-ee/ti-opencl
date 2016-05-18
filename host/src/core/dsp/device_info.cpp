@@ -89,9 +89,11 @@ static std::string get_ocl_dsp()
 {
     std::string stdpath("/usr/share/ti/opencl");
 
-    const char *ocl_install = getenv("TI_OCL_INSTALL");
-    if (ocl_install)
-        stdpath = ocl_install + stdpath;
+    const char *ocl_install    = getenv("TI_OCL_INSTALL");
+    const char *target_rootdir = getenv("TARGET_ROOTDIR");
+
+    if (ocl_install)         stdpath = ocl_install    + stdpath;
+    else if (target_rootdir) stdpath = target_rootdir + stdpath;
 
     #if defined (DSPC868X)
     // DSPC868x requires TI_OCL_INSTALL to be specified
