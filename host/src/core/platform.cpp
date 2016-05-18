@@ -60,6 +60,7 @@ using namespace Coal;
 static_assert(std::is_standard_layout<Platform>::value,
               "Class Platform must be of C++ standard layout type.");
 
+#ifndef _SYS_BIOS
 /******************************************************************************
 * begin_file_lock_crit_section
 ******************************************************************************/
@@ -75,7 +76,6 @@ static int begin_file_lock_crit_section(const char* fname)
 
     std::string str_fname(fname);
 
-#ifndef _SYS_BIOS
     if (lock_fd < 0) 
     {
         std::cout << "Can not open lock file " << str_fname << ", Aborting !" << std::endl;
@@ -102,11 +102,11 @@ static int begin_file_lock_crit_section(const char* fname)
            exit(-1);
        }
     }
-#endif
 
     return lock_fd;
 
 }
+#endif
  
 namespace Coal
 {
@@ -119,7 +119,7 @@ namespace Coal
 	    // asserted that we want to enable it (eg. the ooo example)
 	    if (getenv("TI_OCL_CPU_DEVICE_ENABLE") != NULL)
         {
-	        Coal::DeviceInterface * device = new Coal::CPUDevice;
+            Coal::DeviceInterface * device = new Coal::CPUDevice;
             p_devices.push_back(desc(device));
         }
 #endif
@@ -127,7 +127,7 @@ namespace Coal
         for (int i = 0; i < tiocl::DeviceInfo::Instance().GetNumDevices(); i++)
         {
             tiocl::SharedMemory* shm = p_shmFactory.CreateSharedMemoryProvider(i);
-	        Coal::DeviceInterface* device = new Coal::DSPDevice(i, shm);
+            Coal::DeviceInterface* device = new Coal::DSPDevice(i, shm);
             p_devices.push_back(desc(device));
         }
 

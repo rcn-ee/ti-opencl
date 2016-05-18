@@ -10,7 +10,8 @@ namespace tiocl {
 class MemoryRange
 {
 public:
-    enum class Kind { CMEM_PERSISTENT, CMEM_ONDEMAND, DEVMEM, RTOS_SHMEM };
+    enum class Kind { CMEM_PERSISTENT, CMEM_ONDEMAND, DEVMEM, RTOS_SHMEM,
+                      RTOS_HOSTMEM };
     enum class Location {ONCHIP, OFFCHIP};
 
     MemoryRange(DSPDevicePtr64 a, uint64_t sz, Kind k, Location l):

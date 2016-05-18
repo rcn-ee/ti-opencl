@@ -27,7 +27,9 @@
  *****************************************************************************/
 #include <cstring>
 #include <cstdlib>
+#ifndef _SYS_BIOS
 #include <dirent.h>
+#endif
 #include <string>
 
 #include <pthread.h>
@@ -39,8 +41,13 @@
 
 using namespace tiocl;
 
+#ifndef _SYS_BIOS
 typedef Loki::SingletonHolder <tiocl::DeviceInfo, Loki::CreateUsingNew,
 Loki::DefaultLifetime, Loki::ClassLevelLockable> SingleDeviceInfo;
+#else
+typedef Loki::SingletonHolder <tiocl::DeviceInfo, Loki::CreateUsingNew,
+Loki::DefaultLifetime, Loki::SingleThreaded> SingleDeviceInfo;
+#endif
 
 /******************************************************************************
 * Thread safe instance function for singleton behavior
@@ -51,10 +58,13 @@ const DeviceInfo& DeviceInfo::Instance ()
 }
 
 DeviceInfo::DeviceInfo()
+:symbol_lookup_(nullptr)
 {
     num_devices_ = 1;
 
+    #if !defined(_SYS_BIOS)
     symbol_lookup_ = CreateSymbolAddressLookup(FullyQualifiedPathToDspMonitor());
+    #endif
 
     #if defined (DEVICE_AM57)
     num_compute_units_ = 2;

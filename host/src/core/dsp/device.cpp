@@ -107,10 +107,9 @@ DSPDevice::DSPDevice(unsigned char dsp_id, SharedMemory* shm)
 
     p_cores = device_info.GetComputeUnitsPerDevice(dsp_id);
 
+#if !defined(_SYS_BIOS)
     device_manager_ = DeviceManagerFactory::CreateDeviceManager(dsp_id, p_cores,
                                                     device_info.FullyQualifiedPathToDspMonitor());
-
-    core_scheduler_ = new CoreScheduler(p_cores, 4);
 
     device_manager_->Reset();
     device_manager_->Load();
@@ -119,7 +118,12 @@ DSPDevice::DSPDevice(unsigned char dsp_id, SharedMemory* shm)
     p_addr_kernel_config = device_info.GetSymbolAddress("kernel_config_l2");
     p_addr_local_mem     = device_info.GetSymbolAddress("ocl_local_mem_start");
     p_size_local_mem     = device_info.GetSymbolAddress("ocl_local_mem_size");
+#else
+//YUAN TODO: get address of p_addr/size_local_mem from platform config global vars
+// p_addr_kernel_config is not used by anybody, may remove
+#endif
 
+    core_scheduler_ = new CoreScheduler(p_cores, 4);
 
     init_ulm();
 
@@ -283,7 +287,7 @@ DSPDevice::~DSPDevice()
     /*-------------------------------------------------------------------------
     * Only need to close the driver for one of the devices
     *------------------------------------------------------------------------*/
-    delete device_manager_;
+    if (device_manager_ != nullptr) delete device_manager_;
     delete core_scheduler_;
 
 #if defined(DEVICE_K2X)

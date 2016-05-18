@@ -38,15 +38,20 @@ SharedMemoryProvider(uint8_t device_id) : device_id_(device_id)
         }
         else if (r.GetLocation() == MemoryRange::Location::OFFCHIP)
         {
-            if (r.GetKind() == MemoryRange::Kind::CMEM_PERSISTENT)
+            if (r.GetKind() == MemoryRange::Kind::CMEM_PERSISTENT ||
+                r.GetKind() == MemoryRange::Kind::RTOS_SHMEM)
             {
                 ddr_heap1_.configure(r.GetBase(),  r.GetSize());
                 ulm_put_mem(ULM_MEM_EX_CODE_AND_DATA, r.GetSize() >> 16, 1.0f);
             }
-            else
+            else if (r.GetKind() == MemoryRange::Kind::CMEM_ONDEMAND)
             {
                 ddr_heap2_.configure(r.GetBase(), r.GetSize(), true);
                 ulm_put_mem(ULM_MEM_EX_DATA_ONLY, r.GetSize() >> 16, 1.0f);
+            }
+            else
+            {
+                // DO NOT manage this memory range in heaps, e.g. RTOS_HOSTMEM
             }
         }
     }

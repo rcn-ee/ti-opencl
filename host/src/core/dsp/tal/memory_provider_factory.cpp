@@ -11,11 +11,15 @@
     #include "memory_provider_devmem_mpm.h"
     #include "memory_provider_cmem.h"
 #elif defined (DEVICE_AM57)
+  #if !defined(_SYS_BIOS)
     #define DEVICE_USES_DEVMEM_MPM      (0)
     #define DEVICE_USES_DEVMEM_MMAP     (!(DEVICE_USES_DEVMEM_MPM))
 
     #include "memory_provider_devmem_mmap.h"
     #include "memory_provider_cmem.h"
+  #else
+    #include "memory_provider_rtos.h"
+  #endif
 #elif defined (DSPC868X)
     #define DEVICE_USES_DEVMEM_MPM      (0)
     #define DEVICE_USES_DEVMEM_MMAP     (0)
@@ -34,6 +38,7 @@ MemoryProviderFactory::CreateMemoryProvider(const MemoryRange &r)
     #if !defined(DSPC868X)
     switch (r.GetKind())
     {
+        #if !defined(_SYS_BIOS)
         case MemoryRange::Kind::CMEM_ONDEMAND:
         {
             mp = new CMEMOnDemand(r);
@@ -53,6 +58,14 @@ MemoryProviderFactory::CreateMemoryProvider(const MemoryRange &r)
             #endif
             break;
         }
+        #else
+        case MemoryRange::Kind::RTOS_SHMEM:
+        case MemoryRange::Kind::RTOS_HOSTMEM:
+        {
+            mp = new RTOSMemPersistent(r);
+            break;
+        }
+        #endif
         default:
             assert(0);
             break;

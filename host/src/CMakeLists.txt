@@ -109,8 +109,8 @@ set(COAL_SRC_FILES
     core/platform.cpp
     core/icd.cpp
     core/util.cpp
+    core/error_report.cpp
 
-    core/dsp/mbox_impl_msgq.cpp
     core/dsp/program.cpp
     core/dsp/driver.cpp
     core/dsp/buffer.cpp
@@ -118,7 +118,13 @@ set(COAL_SRC_FILES
     core/dsp/kernel.cpp
     core/dsp/worker.cpp
     core/dsp/mmap_resource.cpp
-    core/dsp/dload.cpp
+    core/dsp/device_info.cpp
+
+    core/dsp/tal/dload.cpp
+    core/dsp/tal/memory_provider_factory.cpp
+    core/dsp/tal/shared_memory_provider.cpp
+    core/dsp/tal/rtos_shmem_provider_factory.cpp
+    core/dsp/tal/mbox_factory.cpp
 )
 else()
 set(COAL_SRC_FILES
@@ -202,7 +208,7 @@ if (AM57_BUILD)
     set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/device_manager_remoteproc.cpp)
 endif()
 
-if (AM57_BUILD)
+if (AM57_BUILD AND (NOT (${BUILD_OS} MATCHES "SYS_BIOS")))
     set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/devmem_map_policy_mmap.cpp)
 endif()
 
@@ -213,10 +219,17 @@ if (C6678_BUILD)
     set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/shmem_pcie.cpp)
     set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/pcie_cmem.cpp)
 else()
+  if (NOT (${BUILD_OS} MATCHES "SYS_BIOS"))
     set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/shmem_init_policy_cmem.cpp)
     set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/shmem_rw_policy_cmem.cpp)
     set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/memory_provider_cmem.cpp)
     set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/shmem_cmem.cpp)
+  else()
+    set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/shmem_init_policy_rtos.cpp)
+    set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/shmem_rw_policy_rtos.cpp)
+    set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/memory_provider_rtos.cpp)
+    set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/shmem_rtos.cpp)
+  endif()
 endif()
 
 add_subdirectory(runtime)
