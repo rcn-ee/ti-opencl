@@ -664,7 +664,8 @@ static int incVec(unsigned dims, unsigned *vec, unsigned *inc, unsigned *maxs)
 static void respond_to_host(ocl_msgq_message_t *msgq_pkt, uint32_t msgId)
 {
     msgq_pkt->message.trans_id = msgId;
-    MessageQ_put(ocl_queues.hostQue, (MessageQ_Msg)msgq_pkt);
+    MessageQ_setReplyQueue(ocl_queues.dspQue,  (MessageQ_Msg)msgq_pkt);
+    MessageQ_put          (ocl_queues.hostQue, (MessageQ_Msg)msgq_pkt);
 }
 
 /******************************************************************************
@@ -703,6 +704,7 @@ _CODE_ACCESS void __TI_writemsg(               unsigned char  command,
     memcpy(printMsg->u.message+1, data, msgLen);
     printMsg->u.message[msgLen+1] = '\0';
 
+    MessageQ_setReplyQueue(ocl_queues.dspQue,     (MessageQ_Msg)msg);
     int status = MessageQ_put(ocl_queues.hostQue, (MessageQ_Msg)msg);
     if (status != MessageQ_S_SUCCESS)
         Log_print0(Diags_INFO, "__TI_writemsg: Message put failed");
