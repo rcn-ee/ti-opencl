@@ -230,11 +230,17 @@ size_t DSPKernel::workGroupSize()  const
     if (wi_alloca_size == 0) return wgsize;
 
     /*-------------------------------------------------------------------------
-    * else use the smaller of the device limit or up to 16M of wi_alloca
-    * space per kernel.  Recall that an area is reserved for each core,
-    * so we divide 2M rather than 16M.
+    * Subtract any local buffer space from the total L2 available space
+    *------------------------------------------------------------------------*/
+    cl_ulong  local_mem_size;
+    p_device->info(CL_DEVICE_LOCAL_MEM_SIZE, sizeof(local_mem_size),&local_mem_size,NULL);
+    local_mem_size -= localMemSize();
+ 
+    /*-------------------------------------------------------------------------
+    * Use the smaller of the device limit or up to available L2 mem of wi_alloca
+    * space per kernel.   
     *-------------------------------------------------------------------------*/
-    else return MIN(wgsize, (2<<20) / next_power_of_two(wi_alloca_size));
+    return MIN(wgsize, local_mem_size / wi_alloca_size);
 }
  
 /******************************************************************************
