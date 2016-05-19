@@ -43,6 +43,7 @@
 #include "mbox_interface.h"
 #include "../shared_memory_interface.h"
 #include "device_manager_interface.h"
+#include "core_scheduler.h"
 
 namespace Coal
 {
@@ -152,7 +153,9 @@ class DSPDevice : public DeviceInterface, public Lockable
 
         void*              p_mpax_default_res;
         SharedMemory      *p_shmHandler;
-        const DeviceManager     *device_manager_;
+
+        const DeviceManager *device_manager_;
+        class CoreScheduler *core_scheduler_;
 };
 
 }

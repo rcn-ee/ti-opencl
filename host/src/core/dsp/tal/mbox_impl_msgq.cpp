@@ -109,11 +109,22 @@ void MBoxMsgQ::write (uint8_t *buf, uint32_t size, uint32_t trans_id,
     return;
 }
 
-uint32_t MBoxMsgQ::read (uint8_t *buf, uint32_t *size, uint8_t id)
+uint32_t MBoxMsgQ::read (uint8_t *buf, uint32_t *size, uint8_t* id)
 { 
     ocl_msgq_message_t *msg = NULL;
 
     int status = MessageQ_get(hostQue, (MessageQ_Msg *)&msg, MessageQ_FOREVER);
+
+    /*-------------------------------------------------------------------------
+    * if a ptr to an id is passed in, return the core of the sender in it
+    *------------------------------------------------------------------------*/
+    if (id != 0)
+    {
+        MessageQ_QueueId dspQueId = MessageQ_getReplyQueue(msg);
+        auto     it   = std::find(dspQue, dspQue + p_device->dspCores(), dspQueId);
+        uint32_t core = std::distance(dspQue, it);
+        *id = core;
+    }
 
     if (status == MessageQ_E_UNBLOCKED)
         return 0;

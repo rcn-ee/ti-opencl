@@ -116,11 +116,16 @@ void MBoxMPM::to(uint8_t *msg, uint32_t  size, uint8_t id)
     write(p_tx_mbox, msg, size, trans_id++);
 }
 
-int32_t MBoxMPM::from (uint8_t *msg, uint32_t *size, uint8_t id)
+int32_t MBoxMPM::from (uint8_t *msg, uint32_t *size, uint8_t *id)
 {
     uint32_t trans_id_rx;
 
     read(p_rx_mbox, msg, size, &trans_id_rx);
+
+    /*-------------------------------------------------------------------------
+    * We do not currently need a return core from the MPM mailbox, 
+    *------------------------------------------------------------------------*/
+    if (id != 0) *id = -1;
 
     return trans_id_rx;
 }

@@ -40,8 +40,8 @@ class MBox
     public:
         MBox() {}
         virtual ~MBox() {}
-        virtual void     to   (uint8_t *msg, uint32_t  size, uint8_t id=0)  =0;
-        virtual int32_t  from (uint8_t *msg, uint32_t *size, uint8_t id=0)  =0;
+        virtual void     to   (uint8_t *msg, uint32_t  size, uint8_t  id=0) =0;
+        virtual int32_t  from (uint8_t *msg, uint32_t *size, uint8_t* id=0) =0;
         virtual bool     query(uint8_t id=0)                                =0;
 
     protected:

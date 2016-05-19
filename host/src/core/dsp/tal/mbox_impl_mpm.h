@@ -72,8 +72,8 @@ class MBoxMPM : public MBox, public Lockable
     public:
         MBoxMPM(Coal::DSPDevice *device);
         ~MBoxMPM();
-        void     to   (uint8_t *msg, uint32_t  size, uint8_t id=0);
-        int32_t  from (uint8_t *msg, uint32_t *size, uint8_t id=0);
+        void     to   (uint8_t *msg, uint32_t  size, uint8_t  id=0);
+        int32_t  from (uint8_t *msg, uint32_t *size, uint8_t* id=0);
         bool     query(uint8_t id=0);
 
   private:

@@ -50,13 +50,13 @@ class MBoxMsgQ : public MBox, public Lockable
     public:
         MBoxMsgQ(Coal::DSPDevice *device);
         ~MBoxMsgQ();
-        void     to   (uint8_t *msg, uint32_t  size, uint8_t id);
-        int32_t  from (uint8_t *msg, uint32_t *size, uint8_t id);
+        void     to   (uint8_t *msg, uint32_t  size, uint8_t  id=0);
+        int32_t  from (uint8_t *msg, uint32_t *size, uint8_t* id=0);
         bool     query(uint8_t id=0);
 
   private:
-    void     write (uint8_t *buf, uint32_t size, uint32_t trans_id, uint8_t id);
-    uint32_t read  (uint8_t *buf, uint32_t *size, uint8_t id);
+    void     write (uint8_t *buf, uint32_t size, uint32_t trans_id, uint8_t id=0);
+    uint32_t read  (uint8_t *buf, uint32_t *size, uint8_t *id=0);
 
   private:
     MessageQ_Handle    hostQue;   // created by host
@@ -73,7 +73,7 @@ inline void MBoxMsgQ::to(uint8_t *msg, uint32_t  size, uint8_t id)
     write(msg, size, trans_id++, id);
 }
 
-inline int32_t MBoxMsgQ::from (uint8_t *msg, uint32_t *size, uint8_t id)
+inline int32_t MBoxMsgQ::from (uint8_t *msg, uint32_t *size, uint8_t *id)
 {
     return read(msg, size, id);
 }

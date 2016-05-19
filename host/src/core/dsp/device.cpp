@@ -110,6 +110,8 @@ DSPDevice::DSPDevice(unsigned char dsp_id, SharedMemory* shm)
     device_manager_ = DeviceManagerFactory::CreateDeviceManager(dsp_id, p_cores,
                                                     device_info.FullyQualifiedPathToDspMonitor());
 
+    core_scheduler_ = new CoreScheduler(p_cores, 4);
+
     device_manager_->Reset();
     device_manager_->Load();
     device_manager_->Run();
@@ -282,6 +284,7 @@ DSPDevice::~DSPDevice()
     * Only need to close the driver for one of the devices
     *------------------------------------------------------------------------*/
     delete device_manager_;
+    delete core_scheduler_;
 
 #if defined(DEVICE_K2X)
     free_ocl_qmss_res();
@@ -530,8 +533,7 @@ void DSPDevice::mail_to(Msg_t &msg, unsigned int core)
             {
                 if (IS_OOO_TASK(msg))
                 {
-                    static int counter = 0;
-                    int dsp_id = counter++ % dspCores();
+                    int dsp_id = core_scheduler_->allocate();
                     p_mb->to((uint8_t*)&msg, sizeof(Msg_t), dsp_id);
                 }
                 else
@@ -576,8 +578,9 @@ int DSPDevice::mail_from()
     uint32_t size_rx;
     int32_t  trans_id_rx;
     Msg_t    rxmsg;
+    uint8_t  core;
 
-    trans_id_rx = p_mb->from((uint8_t*)&rxmsg, &size_rx);
+    trans_id_rx = p_mb->from((uint8_t*)&rxmsg, &size_rx, &core);
 
     if (rxmsg.command == ERROR)
     {
@@ -595,6 +598,11 @@ int DSPDevice::mail_from()
     {
         p_exit_acked = true;
         return -1;
+    }
+
+    if (hostSchedule() && rxmsg.command == TASK && IS_OOO_TASK(rxmsg))
+    {
+        if (core < p_cores) core_scheduler_->free(core);
     }
 
     return trans_id_rx;
