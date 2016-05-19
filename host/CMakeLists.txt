@@ -27,21 +27,16 @@ endif()
 
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/modules)
 
-# project version
-# The linux shared library versioning convention uses x.y.z format,
-# with no leading zeros. For debian packaging versioning we use xx.yy.zz.ww
-# formatting with leading zero's.  Opencl/clocl platform and version queries
-# will report in this format.  The 'ww' represents the PATCH_VERSION of a
-# particular release.  This number will not be reflected in the library
-# .so name, only in the packaging.
-# NOTE!!!!!! The packaging version numbers need to match what is specified in 
-# debian/changelog!!!
-SET(OCL_SPEC_MAJOR_VERSION 1)
-SET(OCL_SPEC_MINOR_VERSION 1)
-SET(RELEASE_VERSION 9)
-# use 2-digits to specify patch version as there is no need to convert
-# to library versioning
-SET(PATCH_VERSION   00)
+# OCL_VERSION defined in Makefile.inc
+if (OCL_VERSION)
+    string(REPLACE "." ";" OCL_PROJECT_VERSION ${OCL_VERSION})
+    list(GET OCL_PROJECT_VERSION 0 OCL_SPEC_MAJOR_VERSION)
+    list(GET OCL_PROJECT_VERSION 1 OCL_SPEC_MINOR_VERSION)
+    list(GET OCL_PROJECT_VERSION 2 RELEASE_VERSION)
+    list(GET OCL_PROJECT_VERSION 3 PATCH_VERSION)
+else()
+    message(ERROR "cmake variable OCL_VERSION not specified")
+endif()
 
 # Create the packaging version numbers which need leading zeros if single digit.
 if("${OCL_SPEC_MAJOR_VERSION}" MATCHES "^[0-9]$")
