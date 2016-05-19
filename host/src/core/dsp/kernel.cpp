@@ -214,7 +214,6 @@ T next_power_of_two(T k)
 ******************************************************************************/
 size_t DSPKernel::workGroupSize()  const 
 { 
-    size_t wgsize = 0;
 
     int wi_alloca_size = p_kernel->get_wi_alloca_size();
 
@@ -222,25 +221,54 @@ size_t DSPKernel::workGroupSize()  const
     * Get the device max limit size, which can change if the environment
     * variable TI_OCL_WG_SIZE_LIMIT is used 
     *-------------------------------------------------------------------------*/
+    size_t wgsize = 0;
     p_device->info(CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(wgsize),&wgsize,NULL);
+
+    /*-------------------------------------------------------------------------
+    * Get the total L2 available from device
+    *------------------------------------------------------------------------*/
+    cl_ulong  local_mem_size = 0;
+    p_device->info(CL_DEVICE_LOCAL_MEM_SIZE, sizeof(local_mem_size),&local_mem_size,NULL);
 
     /*-------------------------------------------------------------------------
     * if no wi_alloca, use the work group size limit specified by the device
     *-------------------------------------------------------------------------*/
-    if (wi_alloca_size == 0) return wgsize;
+    if (wi_alloca_size)
+    {
+        /*-------------------------------------------------------------------------
+        * Subtract any local buffer space from the total L2 available space
+        *------------------------------------------------------------------------*/
+        local_mem_size -= localMemSize();
+     
+        /*-------------------------------------------------------------------------
+        * Use the smaller of the device limit or up to available L2 mem of wi_alloca
+        * space per kernel.   
+        *-------------------------------------------------------------------------*/
+        return MIN(wgsize, local_mem_size / wi_alloca_size);
+    }
 
     /*-------------------------------------------------------------------------
-    * Subtract any local buffer space from the total L2 available space
+    * If the kernel has any local buffer arguments, then restrict wgsize to 
+    * the amount of L2 left after static locals are accounted for.  This does 
+    * not call localMemSize, becuase it can vary based on whether it is called 
+    * before or after local buffer arguments are set.
     *------------------------------------------------------------------------*/
-    cl_ulong  local_mem_size;
-    p_device->info(CL_DEVICE_LOCAL_MEM_SIZE, sizeof(local_mem_size),&local_mem_size,NULL);
-    local_mem_size -= localMemSize();
- 
-    /*-------------------------------------------------------------------------
-    * Use the smaller of the device limit or up to available L2 mem of wi_alloca
-    * space per kernel.   
-    *-------------------------------------------------------------------------*/
-    return MIN(wgsize, local_mem_size / wi_alloca_size);
+    else if (p_kernel->hasLocals())
+    {
+        uint32_t     size;
+
+        DSPDevicePtr end_allocated_l2 = locals_in_kernel_extent(size);
+        end_allocated_l2  += size;
+
+        Program*     p      = (Program *)p_kernel->parent();
+        uint32_t     L2size;
+        DSPDevicePtr L2addr = p_device->get_L2_extent(L2size);
+        uint32_t     L2used = end_allocated_l2 - L2addr;
+
+        return MIN(wgsize, L2size - L2used);
+    }
+
+    else return wgsize;
 }
  
 /******************************************************************************

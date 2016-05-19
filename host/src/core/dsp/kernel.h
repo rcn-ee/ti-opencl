@@ -70,7 +70,7 @@ class DSPKernel : public DeviceKernel
         
         cl_ulong     localMemSize()           const ;
         cl_ulong     privateMemSize()         const { return p_kernel->get_wi_alloca_size(); }
-        size_t       preferredWorkGroupSizeMultiple() const { return 8; }
+        size_t       preferredWorkGroupSizeMultiple() const { return 128; }
 
         size_t       guessWorkGroupSize(cl_uint num_dims, cl_uint dim,
                                         size_t global_work_size) const;
