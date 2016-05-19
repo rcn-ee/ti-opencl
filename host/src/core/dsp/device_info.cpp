@@ -32,7 +32,11 @@
 #endif
 #include <string>
 
+#ifdef _SYS_BIOS
+#include <ti/sysbios/posix/pthread.h>
+#else
 #include <pthread.h>
+#endif
 #define  LOKI_PTHREAD_H
 #include <loki/Singleton.h>
 
