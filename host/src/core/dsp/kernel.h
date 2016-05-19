@@ -42,6 +42,9 @@
 #include <pthread.h>
 #include <stdint.h>
 
+inline uint32_t xlog2(uint32_t val) { return sizeof(val)*8 - 1 - __builtin_clz(val); }
+inline uint32_t round_down_power2(uint32_t val) { return 1 << xlog2(val); }
+
 namespace llvm
 {
     class Function;
@@ -70,7 +73,7 @@ class DSPKernel : public DeviceKernel
         
         cl_ulong     localMemSize()           const ;
         cl_ulong     privateMemSize()         const { return p_kernel->get_wi_alloca_size(); }
-        size_t       preferredWorkGroupSizeMultiple() const { return 128; }
+        size_t       preferredWorkGroupSizeMultiple() const ;
 
         size_t       guessWorkGroupSize(cl_uint num_dims, cl_uint dim,
                                         size_t global_work_size) const;

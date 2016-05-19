@@ -270,6 +270,13 @@ size_t DSPKernel::workGroupSize()  const
 
     else return wgsize;
 }
+
+size_t DSPKernel::preferredWorkGroupSizeMultiple() const
+{ 
+    uint32_t wgsz = workGroupSize();
+    return MIN(128, round_down_power2(wgsz)); 
+}
+
  
 /******************************************************************************
 * localMemSize() 
