@@ -39,7 +39,7 @@ endif
 
 ARM_LLVM_DIR?=/cgnas/llvm-3.6.0-20151119-arm
 ifeq ($(BUILD_OS), SYS_BIOS)
-    ARM_LLVM_DIR=/home/a0323918/cgsandbox/tools/llvm/install.sysbios
+    ARM_LLVM_DIR=/cgnas/llvm-3.6.0-arm-rtos
 endif
 
 ifeq (,$(findstring x86_64, $(UNAME_M)))
