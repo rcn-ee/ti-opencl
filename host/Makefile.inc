@@ -1,11 +1,23 @@
 UNAME_M:=$(shell uname -m)
 
+# project version
+# The linux shared library versioning convention uses x.y.z format,
+# with no leading zeros. For debian packaging versioning we use xx.yy.zz.ww
+# formatting with leading zero's.  Opencl/clocl platform and version queries
+# will report in this format.  The 'ww' represents the PATCH_VERSION of a
+# particular release.  This number will not be reflected in the library
+# .so name, only in the packaging.
+# NOTE!!!!!! The packaging version numbers need to match what is specified in 
+# debian/changelog!!!
 OCL_MAJOR_VER=1
 OCL_MINOR_VER=1
-OCL_PATCH_VER=9
-OCL_VER=$(OCL_MAJOR_VER).$(OCL_MINOR_VER).$(OCL_PATCH_VER)
+OCL_RELEASE_VER=9
+OCL_PATCH_VER=00
+OCL_VER=$(OCL_MAJOR_VER).$(OCL_MINOR_VER).$(OCL_RELEASE_VER)
 OCL_DPKG_NAME=ti-opencl
 OCL_VERSIONED_NAME=$(OCL_DPKG_NAME)_$(OCL_VER)
+
+OCL_FULL_VER=$(OCL_MAJOR_VER).$(OCL_MINOR_VER).$(OCL_RELEASE_VER).$(OCL_PATCH_VER)
 
 # ARM GCC
 
