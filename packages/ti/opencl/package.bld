@@ -1,0 +1,9 @@
+/* explicit references to global objects */
+var Build = xdc.useModule('xdc.bld.BuildEnvironment');
+var Pkg = xdc.useModule('xdc.bld.PackageContents');
+
+Pkg.attrs.profile = 'release';
+
+for each (var targ in Build.targets) {
+    Pkg.addLibrary("lib/" + Pkg.name, targ).addObjects(["configuration.c"]);
+}

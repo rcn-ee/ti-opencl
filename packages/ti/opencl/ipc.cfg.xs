@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013, Texas Instruments Incorporated
+ * Copyright (c) 2016, Texas Instruments Incorporated
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -70,12 +70,12 @@ SharedRegion.setEntryMeta(0,
 //YUAN var GateMP = xdc.useModule('ti.sdo.ipc.GateMP');
 //YUAN GateMP.maxRuntimeEntries = 2;
 //YUAN GateMP.RemoteCustom1Proxy = xdc.useModule('ti.sdo.ipc.gates.GateMPSupportNull');
-//YUAN 
+//YUAN
 //YUAN /* reduce data memory usage */
 //YUAN var Notify = xdc.useModule('ti.sdo.ipc.Notify');
 //YUAN Notify.numEvents = 8;
-//YUAN 
-//YUAN 
+//YUAN
+//YUAN
 //YUAN var NotifySetup = xdc.useModule('ti.sdo.ipc.family.vayu.NotifySetup');
 //YUAN if (procName == "HOST")
 //YUAN {
