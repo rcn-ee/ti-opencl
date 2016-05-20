@@ -51,7 +51,7 @@ function module$meta$init()
  */
 function module$use()
 {
-    var ipc_cfg = xdc.loadCapsule("ipc.cfg.xs");
+    var ipc_cfg = xdc.loadCapsule("ti/opencl/ipc.cfg.xs");
 }
 
 

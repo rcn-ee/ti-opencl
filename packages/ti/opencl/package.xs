@@ -52,13 +52,13 @@ function getLibs(prog)
 
     if( String(Program.cpu.deviceName).search("DRA7XX") != -1)
     {
-        var ocl_lib = "ti/opencl/usr/lib/libOpenCL.a";
+        var ocl_lib = "usr/lib/libOpenCL.a";
 
         /* If library exists, return it. If not, throw exception */
         if (java.io.File(this.packageBase + ocl_lib).exists())
             lib += ocl_lib;
         else
-            throw new Error("Library not found: " + lib);
+            throw new Error("Library not found: " + ocl_lib);
     }
     else
     {
@@ -66,7 +66,7 @@ function getLibs(prog)
                           " not supported", this);
     }
 
-    configuration_lib = pkg.$name + ".a" + suffix;
+    configuration_lib = "lib/" + pkg.$name + ".a" + suffix;
     if (java.io.File(this.packageBase + configuration_lib).exists())
         lib += ";" + configuration_lib;
     else
