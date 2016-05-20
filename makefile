@@ -77,6 +77,7 @@ install: $(OCL_BUILD_DIR) $(DESTDIR)
 bios_install: install
 	echo $(DESTDIR)
 	make ECLIPSE_INSTALL_DIR=$(PACKAGE_ROOT_DIR) -C eclipse;
+	cp -r ./packages/ti/opencl/* $(DESTDIR)/
 
 build: $(OCL_BUILD_DIR)
 	cd $(OCL_BUILD_DIR) && cmake $(CMAKE_DEFINES) ../../host && $(MAKE)
