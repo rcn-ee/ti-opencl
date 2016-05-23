@@ -35,30 +35,25 @@
 
 using namespace tiocl;
 
+extern "C" {
+extern uint32_t ti_opencl_get_OCL_GLOBAL_base();
+extern uint32_t ti_opencl_get_OCL_GLOBAL_len();
+extern uint32_t ti_opencl_get_OCL_HOSTMEM_base();
+extern uint32_t ti_opencl_get_OCL_HOSTMEM_len();
+}
+
 void
 InitializationPolicyRTOS::DiscoverMemoryRanges(std::vector<MemoryRange>& ranges)
 {
-    // YUAN TODO: hard code for now, will get from platform/package config vars
-    ranges.emplace_back(0xA0000000, 0x60000000,
+    ranges.emplace_back(ti_opencl_get_OCL_GLOBAL_base(),
+                        ti_opencl_get_OCL_GLOBAL_len(),
                         MemoryRange::Kind::RTOS_SHMEM,
                         MemoryRange::Location::OFFCHIP);
 
-    ranges.emplace_back(0x8B000000, 0x01000000,
+    ranges.emplace_back(ti_opencl_get_OCL_HOSTMEM_base(),
+                        ti_opencl_get_OCL_HOSTMEM_len(),
                         MemoryRange::Kind::RTOS_HOSTMEM,
                         MemoryRange::Location::OFFCHIP);
-#if 0
-    ranges.emplace_back(addr1, size1,
-                        MemoryRange::Kind::CMEM_PERSISTENT,
-                        MemoryRange::Location::OFFCHIP);
-
-    ranges.emplace_back(addr2, size2,
-                        MemoryRange::Kind::CMEM_ONDEMAND,
-                        MemoryRange::Location::OFFCHIP);
-
-    ranges.emplace_back(onchip_shared_addr, onchip_shared_size,
-                        MemoryRange::Kind::CMEM_PERSISTENT,
-                        MemoryRange::Location::ONCHIP);
-#endif
 }
 
 void

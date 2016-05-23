@@ -62,6 +62,11 @@ extern "C" {
 #if defined (ULM_ENABLED)
    #include "tiulm.h"
 #endif
+
+#if defined(_SYS_BIOS)
+    extern uint32_t ti_opencl_get_OCL_LOCAL_base();
+    extern uint32_t ti_opencl_get_OCL_LOCAL_len();
+#endif
 }
 
 #include <cstring>
@@ -119,8 +124,8 @@ DSPDevice::DSPDevice(unsigned char dsp_id, SharedMemory* shm)
     p_addr_local_mem     = device_info.GetSymbolAddress("ocl_local_mem_start");
     p_size_local_mem     = device_info.GetSymbolAddress("ocl_local_mem_size");
 #else
-//YUAN TODO: get address of p_addr/size_local_mem from platform config global vars
-// p_addr_kernel_config is not used by anybody, may remove
+    p_addr_local_mem     = ti_opencl_get_OCL_LOCAL_base();
+    p_size_local_mem     = ti_opencl_get_OCL_LOCAL_len();
 #endif
 
     core_scheduler_ = new CoreScheduler(p_cores, 4);

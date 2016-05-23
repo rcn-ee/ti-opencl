@@ -30,8 +30,9 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-import xdc.runtime.Types;
+package ti.opencl;
 
+import xdc.runtime.Types;
 
 /*!
  *  ======== OpenCL ========
@@ -42,11 +43,51 @@ import xdc.runtime.Types;
  *  runtime.
  *
  */
+
 module OpenCL
 {
-    /*! Number of participating DSP cores.
+    /*!
+     *  ======== numDspCores ========
+     *  Number of participating DSP cores.
      *
      *  Can be fewer than number of cores available on device.
      */
     config UInt8    numDspCores            = 2;
+
+    /*!
+     *  ======== OCL_GLOBAL_customized ========
+     *  ======== OCL_GLOBAL_base ========
+     *  ======== OCL_GLOBAL_len ========
+     *
+     *  Can be curstomized.  If customized is set to true, then base and len
+     *  must be given valid values, otherwise, default platform values are used.
+     */
+    config Bool     OCL_GLOBAL_customized  = false;
+    config UInt32   OCL_GLOBAL_base        = 0;
+    config UInt32   OCL_GLOBAL_len         = 0;
+
+internal:
+
+    /*!
+     *  ======== OCL_HOSTPROG_base ========
+     *  ======== OCL_HOSTPROG_len ========
+     *
+     *  Can NOT be curstomized for now.
+     *  If customizable, we are essentially relocating where HOST_PROG is
+     *  from the platform file (code, data, stack).  TODO: We may need to
+     *  program Host's MMU accordingly.
+     */
+    config UInt32   OCL_HOSTPROG_base        = 0;
+    config UInt32   OCL_HOSTPROG_len         = 0;
+
+    /*!
+     *  ======== OCL_LOCAL_base ========
+     *  ======== OCL_LOCAL_len ========
+     *
+     *  Can NOT be curstomized.  Must be modified in the platform file because
+     *  it needs to be in sync with the DSP monitor build.
+     */
+    config UInt32   OCL_LOCAL_base        = 0;
+    config UInt32   OCL_LOCAL_len         = 0;
 }
+
