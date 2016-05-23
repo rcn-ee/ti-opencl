@@ -41,11 +41,7 @@
 #include <string>
 
 #include <ucontext.h>
-#ifdef _SYS_BIOS
-#include <ti/sysbios/posix/pthread.h>
-#else
-#include <pthread.h>
-#endif
+#include "../tiocl_thread.h"
 #include <stdint.h>
 
 namespace llvm

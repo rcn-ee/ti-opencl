@@ -39,11 +39,7 @@
 
 #include <vector>
 #include <string>
-#ifdef _SYS_BIOS
-#include <ti/sysbios/posix/pthread.h>
-#else
-#include <pthread.h>
-#endif
+#include "../tiocl_thread.h"
 #include <stdint.h>
 
 inline uint32_t xlog2(uint32_t val) { return sizeof(val)*8 - 1 - __builtin_clz(val); }

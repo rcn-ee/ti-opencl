@@ -57,14 +57,6 @@
 #else
 #define MIN(X, Y)  ((X) < (Y) ? (X) : (Y))
 #define MAN(X, Y)  ((X) > (Y) ? (X) : (Y))
-
-int __sync_fetch_and_add(int* p, int inc)
-{
-  int tmp = *p;
-  tmp += inc;
-  *p = tmp;
-  return tmp;
-}
 #endif
 #include <sys/param.h>
 

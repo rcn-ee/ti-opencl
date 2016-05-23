@@ -190,21 +190,21 @@ int main(int argc, char* argv[])
     /* enable ENTRY/EXIT/INFO log events */
     Diags_setMask(MODULE_NAME"-EXF");
 
-#ifdef _SYS_BIOS       
+    /* Setup non-cacheable memory, etc... */
+    initialize_memory();
+
+#ifdef _SYS_BIOS
+    /*------------------------------------------------------------------------
+    * SYSBIOS mode: Ipc_start() needs to be called explicitly.
+    * SYNC_PAIR protocol: need to attach peer core explicitly. Also gives
+    *     the host freedom to choose involved DSPs, compared to SYNC_ALL.
+    *------------------------------------------------------------------------*/
     int status = Ipc_start();
     UInt16 remoteProcId = MultiProc_getId("HOST");
     do {
         status = Ipc_attach(remoteProcId);
     } while ((status < 0) && (status == Ipc_E_NOTREADY));
-
-    /* get the SR_0 heap handle */
-    IHeap_Handle heap = (IHeap_Handle) SharedRegion_getHeap(0);
-    /* Register this heap with MessageQ */
-    status = MessageQ_registerHeap(heap, 0);
-#endif 
-
-    /* Setup non-cacheable memory, etc... */
-    initialize_memory();
+#endif
 
 #if !defined(_SYS_BIOS)
     /* Do this early since the heap is initialized by OpenMP */
@@ -777,6 +777,13 @@ static bool create_mqueue()
     ocl_queues.hostQue = MessageQ_INVALIDMESSAGEQ;
 
     Log_print1(Diags_INFO,"create_mqueue: %s ready", Ocl_DspMsgQueueName[DNUM]);
+
+#if defined(_SYS_BIOS)
+    /* get the SR_0 heap handle */
+    IHeap_Handle heap = (IHeap_Handle) SharedRegion_getHeap(0);
+    /* Register this heap with MessageQ */
+    int status = MessageQ_registerHeap(heap, 0);
+#endif
 
     return true;
 }

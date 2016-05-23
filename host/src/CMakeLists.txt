@@ -52,8 +52,8 @@ endif()
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DPACKAGE=${PROJECT_NAME} -DPACKAGE_VERSION=${${PROJECT_NAME}_PKG_VERSION}")
 
 # Toggle below if wanting to build with debug
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -fno-inline -g")
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -fno-inline -g")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
 
 if (C6678_BUILD)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDSPC868X")
@@ -81,7 +81,6 @@ endif()
 
 configure_file(core/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/core/config.h)
 
-if (${BUILD_OS} MATCHES "SYS_BIOS")
 set(COAL_SRC_FILES
     api/api_command.cpp
     api/api_device.cpp
@@ -121,38 +120,18 @@ set(COAL_SRC_FILES
     core/dsp/tal/dload.cpp
     core/dsp/tal/memory_provider_factory.cpp
     core/dsp/tal/shared_memory_provider.cpp
-    core/dsp/tal/rtos_shmem_provider_factory.cpp
     core/dsp/tal/mbox_factory.cpp
 )
+
+if (${BUILD_OS} MATCHES "SYS_BIOS")
+set(COAL_SRC_FILES ${COAL_SRC_FILES}
+    core/dsp/tal/rtos_shmem_provider_factory.cpp
+)
 else()
-set(COAL_SRC_FILES
-    api/api_command.cpp
-    api/api_device.cpp
-    api/api_event.cpp
-    api/api_kernel.cpp
-    api/api_platform.cpp
-    api/api_program.cpp
-    api/api_context.cpp
-    api/api_enqueue.cpp
-    api/api_flush.cpp
-    api/api_memory.cpp
-    api/api_profiling.cpp
-    api/api_sampler.cpp
+set(COAL_SRC_FILES ${COAL_SRC_FILES}
     api/api_gl.cpp
 
-    core/context.cpp
-    core/commandqueue.cpp
-    core/memobject.cpp
-    core/events.cpp
-    core/program.cpp
     core/compiler.cpp
-    core/kernel.cpp
-    core/sampler.cpp
-    core/object.cpp
-    core/platform.cpp
-    core/icd.cpp
-    core/util.cpp
-    core/error_report.cpp
 
     core/cpu/buffer.cpp
     core/cpu/device.cpp
@@ -170,21 +149,9 @@ set(COAL_SRC_FILES
     ${CMAKE_CURRENT_BINARY_DIR}/runtime/stdlib_def.h
 
     core/dsp/genfile_cache.cpp
-    core/dsp/program.cpp
-    core/dsp/driver.cpp
-    core/dsp/buffer.cpp
-    core/dsp/device.cpp
-    core/dsp/kernel.cpp
-    core/dsp/worker.cpp
-    core/dsp/mmap_resource.cpp
-    core/dsp/device_info.cpp
 
-    core/dsp/tal/dload.cpp
-    core/dsp/tal/memory_provider_factory.cpp
-    core/dsp/tal/shared_memory_provider.cpp
     core/dsp/tal/shmem_provider_factory.cpp
     core/dsp/tal/symbol_address_elf.cpp
-    core/dsp/tal/mbox_factory.cpp
 )
 endif()
 

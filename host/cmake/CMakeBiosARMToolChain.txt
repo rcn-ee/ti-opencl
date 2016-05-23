@@ -5,21 +5,21 @@ CMAKE_FORCE_C_COMPILER   (arm-none-eabi-gcc GNU)
 CMAKE_FORCE_CXX_COMPILER (arm-none-eabi-g++ GNU)
 
 # Linux build pathes
-# TODO: use DEFAULT_PSDK_RTOS variable set in host/Makefile.inc instead
-SET(XDC_INSTALL_PATH /cgnas/ti-processor-sdk-rtos-am57xx-evm-02.00.01.07-release/xdctools_3_31_02_38_core/packages)
-SET(BIOS_INSTALL_PATH /cgnas/ti-processor-sdk-rtos-am57xx-evm-02.00.01.07-release/bios_6_45_00_19/packages)
-SET(IPC_PATH /cgnas/ti-processor-sdk-rtos-am57xx-evm-02.00.01.07-release/ipc_3_41_00_08/packages)
-SET(LLVM_PATH ${ARM_LLVM_DIR}/include)
-SET(LOKI_INCLUDE_PATH /cgnas/loki-0.1.5/include)
-SET(TOOL_ROOT /opt/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_8-2014q3/arm-none-eabi)
-# use DESTDIR instead
-#SET(CMAKE_INSTALL_PREFIX /home/a0323918/am57_backup/am57_bios_llvm36/ti-opencl/installbios)
+FILE(GLOB XDC_INSTALL_PATH  ${PSDK_RTOS}/xdctools_*)
+FILE(GLOB BIOS_INSTALL_PATH ${PSDK_RTOS}/bios_*)
+FILE(GLOB IPC_PATH          ${PSDK_RTOS}/ipc_*)
+SET(XDC_INSTALL_PATH        ${XDC_INSTALL_PATH}/packages)
+SET(BIOS_INSTALL_PATH       ${BIOS_INSTALL_PATH}/packages)
+SET(IPC_PATH                ${IPC_PATH}/packages)
+SET(LLVM_PATH               ${ARM_LLVM_DIR}/include)
+SET(LOKI_INCLUDE_PATH       /usr/include/loki)
+SET(TOOL_ROOT               ${ARM_GCC_DIR}/arm-none-eabi)
 
 # Windows build pathes
 # SET(XDC_INSTALL_PATH C:/ti/xdctools_3_25_06_96/packages)
 # SET(BIOS_INSTALL_PATH C:/ti/bios_6_45_00_03_eng/packages)
-# SET(LLVM_PATH D:/OpenCL/LLVM/ti-llvm/install/include)
 # SET(IPC_PATH C:/ti/ipc_3_22_01_08/packages)
+# SET(LLVM_PATH D:/OpenCL/LLVM/ti-llvm/install/include)
 # SET(LOKI_INCLUDE_PATH D:/OpenCL/loki-0.1.5/include)
 # SET(TOOL_ROOT C:/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_8-2014q3/arm-none-eabi)
 # SET(CMAKE_INSTALL_PREFIX D:/OpenCL/osal_dev/bin)

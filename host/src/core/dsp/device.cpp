@@ -292,7 +292,7 @@ DSPDevice::~DSPDevice()
     /*-------------------------------------------------------------------------
     * Only need to close the driver for one of the devices
     *------------------------------------------------------------------------*/
-    if (device_manager_ != nullptr) delete device_manager_;
+    delete device_manager_;
     delete core_scheduler_;
 
 #if defined(DEVICE_K2X)

@@ -38,11 +38,7 @@
 #include "icd.h"
 
 #include <CL/cl.h>
-#ifdef _SYS_BIOS
-#include <ti/sysbios/posix/pthread.h>
-#else
-#include <pthread.h>
-#endif
+#include "tiocl_thread.h"
 
 #include <map>
 #include <list>

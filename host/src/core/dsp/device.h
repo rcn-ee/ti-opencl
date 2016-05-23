@@ -37,11 +37,7 @@
 #include "u_lockable.h"
 #include "u_concurrent_map.h"
 #include "kernel.h"
-#ifdef _SYS_BIOS
-#include <ti/sysbios/posix/pthread.h>
-#else
-#include <pthread.h>
-#endif
+#include "../tiocl_thread.h"
 #include <string>
 #include <list>
 #include "mbox_interface.h"

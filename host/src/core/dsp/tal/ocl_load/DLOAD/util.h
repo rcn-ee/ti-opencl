@@ -42,7 +42,7 @@
 
 #include <ctype.h>
 
-#if !defined(__linux) && !defined(_SYS_BIOS)
+#if defined(_MSC_VER)
 
 /*****************************************************************************/
 /* STRCASECMP() - Case-insensitive strcmp.                                   */

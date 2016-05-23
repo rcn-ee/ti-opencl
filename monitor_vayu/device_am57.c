@@ -48,6 +48,8 @@ void initialize_memory(void)
     extern uint32_t nocache2_size;
 
 #ifndef _SYS_BIOS
+    /*** SYSBIOS does not support OpenMP yet, hence no need for this
+         non-cached shared OpenMP heap ***/
     uint32_t nc_virt = (uint32_t) &nocache_virt_start;
     uint32_t nc_size = (uint32_t) &nocache_size;
 #endif

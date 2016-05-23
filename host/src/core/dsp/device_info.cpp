@@ -32,13 +32,13 @@
 #endif
 #include <string>
 
+#include "../tiocl_thread.h"
 #ifdef _SYS_BIOS
-#include <ti/sysbios/posix/pthread.h>
+#include <Singleton.h>
 #else
-#include <pthread.h>
-#endif
 #define  LOKI_PTHREAD_H
 #include <loki/Singleton.h>
+#endif
 
 #include "../error_report.h"
 #include "device_info.h"

@@ -29,14 +29,6 @@
 #ifndef  _monitor_h_
 #define  _monitor_h_
 
-#ifdef _SYS_BIOS
-#include <xdc/std.h>
-#include <xdc/runtime/Diags.h>
-#include <xdc/runtime/Error.h>
-#include <xdc/runtime/Log.h>
-#include <xdc/runtime/Registry.h>
-#include <xdc/runtime/System.h>
-#endif
 #include <stdint.h>
 #include <ti/csl/csl_cacheAux.h>
 

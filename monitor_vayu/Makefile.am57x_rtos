@@ -1,7 +1,5 @@
 include ../host/Makefile.inc
 
-DEFAULT_DEV_INSTALL_DIR = /cgnas/ti-processor-sdk-rtos-am57xx-evm-02.00.01.07-release
-
 # If not specified, assume the opencl source directory is at same location as
 # monitor
 OPENCL_SRC_DIR ?= ../host
@@ -58,7 +56,7 @@ INCLUDES += -D$(SOC)
 SOURCES = monitor.c util.c dsp_rpc.asm touch.asm builtins.c edma.c \
           edma3_config.c device_am57.c
 HEADERS = edma.h monitor.h util.h trace.h
-LIBS    = monitor.${PLATFORM}.cmd
+LIBS    = monitor.$(PLATFORM).cmd
 #LIBS   += $(ULM_DIR)/libtiulm.ae66
 #LIBS   += $(GDB_SERVER_DIR)/lib/gdb_server.ae66
 OBJS1   = $(patsubst %.c,%.obj,$(SOURCES))
@@ -107,7 +105,7 @@ endef
 
 
 
-.PHONY: all dsp0
+.PHONY: all dsp0 dsp1
 all: dsp0 dsp1
 
 dsp0 : $(LINK_CMD0) dsp0.out dsp0.syms
@@ -127,8 +125,8 @@ dsp1.out: $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD1) $(LIBS)
 	@echo $(LINK_CMD1)
 	$(CC) -z --priority -w -x -m$@.map --define=DDR3=DSP2_PROG $^ -I$(TI_OCL_CGT_INSTALL)/lib -llibc.a -o $@
 
-%.syms: %.out
-	$(call create_dsp_syms, $^, $@)
+%.syms: %.out export_syms
+	$(call create_dsp_syms, $<, $@)
 
 $(LIBM):
 	$(MAKE) -C $(LIBM_DIR) -j4
@@ -166,7 +164,7 @@ clean:
 
 .PHONY: cleanplatform
 cleanplatform:
-	@$(MAKE) -C ocl_platforms/$(PLATFORM) clean
+	@$(MAKE) -C ../packages/ti/opencl/platforms/$(PLATFORM) clean
 
 .PHONY: realclean
 realclean: clean cleanplatform

@@ -35,7 +35,7 @@ using namespace tiocl;
 
 SharedMemory* SharedMemoryProviderFactory::CreateSharedMemoryProvider(uint8_t device_id)
 {
-    // Create a CMEM based shared memory implementation
+    // Create a RTOS based shared memory implementation
     SharedMemory* shm =
         new SharedMemoryProvider<InitializationPolicyRTOS, ReadWritePolicyRTOS>
             (device_id);
