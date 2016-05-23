@@ -1,5 +1,3 @@
-### YUAN TODO: archive LLVM libraries in as well
-
 if (C6678_BUILD)
   SET (TARGET_INCLUDES
     ${PROJECT_SOURCE_DIR}/init
