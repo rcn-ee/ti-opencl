@@ -34,7 +34,9 @@
 #include "platform.h"
 #include "propertylist.h"
 #include "object.h"
+#ifndef _SYS_BIOS
 #include "cpu/device.h"
+#endif
 #include "dsp/device.h"
 #include "dsp/device_info.h"
 
@@ -47,7 +49,9 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
+#ifndef _SYS_BIOS
 #include <signal.h>
+#endif
 
 using namespace Coal;
 
@@ -56,6 +60,7 @@ using namespace Coal;
 static_assert(std::is_standard_layout<Platform>::value,
               "Class Platform must be of C++ standard layout type.");
 
+#ifndef _SYS_BIOS
 /******************************************************************************
 * begin_file_lock_crit_section
 ******************************************************************************/
@@ -101,37 +106,44 @@ static int begin_file_lock_crit_section(const char* fname)
     return lock_fd;
 
 }
+#endif
  
 namespace Coal
 {
     Platform::Platform() : dispatch(&dispatch_table)
     {
+#ifndef _SYS_BIOS
         p_lock_fd = begin_file_lock_crit_section("/var/lock/opencl");
 
 	    // For now, don't add the CPU device on K2X platforms unless it is
 	    // asserted that we want to enable it (eg. the ooo example)
 	    if (getenv("TI_OCL_CPU_DEVICE_ENABLE") != NULL)
         {
-	        Coal::DeviceInterface * device = new Coal::CPUDevice;
+            Coal::DeviceInterface * device = new Coal::CPUDevice;
             p_devices.push_back(desc(device));
         }
+#endif
 
         for (int i = 0; i < tiocl::DeviceInfo::Instance().GetNumDevices(); i++)
         {
             tiocl::SharedMemory* shm = p_shmFactory.CreateSharedMemoryProvider(i);
-	        Coal::DeviceInterface* device = new Coal::DSPDevice(i, shm);
+            Coal::DeviceInterface* device = new Coal::DSPDevice(i, shm);
             p_devices.push_back(desc(device));
         }
 
+#ifndef _SYS_BIOS
         signal(SIGINT,  exit);
         signal(SIGABRT, exit);
         signal(SIGTERM, exit);
+#endif
     }
 
     Platform::~Platform()
     {
+#ifndef _SYS_BIOS
         flock(p_lock_fd, LOCK_UN);
         close(p_lock_fd);
+#endif
 
         for (int i = 0; i < p_devices.size(); i++)
 	        delete pobj(p_devices[i]);

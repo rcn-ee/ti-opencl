@@ -38,12 +38,19 @@
 #include <xdc/runtime/Log.h>
 #include <xdc/runtime/Registry.h>
 #include <xdc/runtime/System.h>
+#if defined(_SYS_BIOS)
+#include <xdc/runtime/IHeap.h>
+#endif
  
 /*-----------------------------------------------------------------------------
 * IPC header files
 *----------------------------------------------------------------------------*/
 #include <ti/ipc/Ipc.h>
 #include <ti/ipc/MessageQ.h>
+#include <ti/ipc/MultiProc.h>
+#if defined(_SYS_BIOS)
+#include <ti/ipc/SharedRegion.h>
+#endif
 #if defined(DEVICE_AM572x)
 #include <ti/pm/IpcPower.h>
 #endif
@@ -54,6 +61,7 @@
 #include <ti/sysbios/BIOS.h>
 #include <ti/sysbios/knl/Task.h>
 #include <ti/sysbios/knl/Semaphore.h>
+#include <ti/sysbios/knl/Clock.h>
 
 /*-----------------------------------------------------------------------------
 * C standard library
@@ -108,7 +116,7 @@ EXPORT kernel_config_t kernel_config_l2;
 * Initialization Routines
 ******************************************************************************/
 static void initialize_gdbserver     ();
-#if defined(DEVICE_AM572x)
+#if defined(DEVICE_AM572x) && !defined(_SYS_BIOS)
 static void initialize_ipcpower_callbacks();
 static void enable_ipcpower_suspend();
 static void disable_ipcpower_suspend();
@@ -142,19 +150,24 @@ static int  setup_ndr_chunks      (int dims, uint32_t* limits, uint32_t* offsets
 * Bios Task and helper routines
 ******************************************************************************/
 static void ocl_main(UArg arg0, UArg arg1);
+#ifndef _SYS_BIOS  // YUAN TODO: disable OpenMP for now
 static void ocl_service_omp(UArg arg0, UArg arg1);
+#endif
 static bool create_mqueue(void);
 static void ocl_monitor();
 
+#ifndef _SYS_BIOS
 extern tomp_initOpenMPforOpenCL(void);
 extern tomp_exitOpenMPforOpenCL(void);
 extern void tomp_dispatch_once(void);
 extern void tomp_dispatch_finish(void);
-extern void tomp_dispatch_finish(void);
 extern bool tomp_dispatch_is_finished(void);
+#endif
 
+#ifdef _SYS_BIOS
 // Prevent RTS versions of malloc etc. from getting pulled into link
-//void _minit(void) { }
+void _minit(void) { }
+#endif
 
 /*******************************************************************************
 * MASTER_THREAD : One core acts as a master.  This macro identifies that thread
@@ -180,15 +193,30 @@ int main(int argc, char* argv[])
     /* Setup non-cacheable memory, etc... */
     initialize_memory();
 
+#ifdef _SYS_BIOS
+    /*------------------------------------------------------------------------
+    * SYSBIOS mode: Ipc_start() needs to be called explicitly.
+    * SYNC_PAIR protocol: need to attach peer core explicitly. Also gives
+    *     the host freedom to choose involved DSPs, compared to SYNC_ALL.
+    *------------------------------------------------------------------------*/
+    int status = Ipc_start();
+    UInt16 remoteProcId = MultiProc_getId("HOST");
+    do {
+        status = Ipc_attach(remoteProcId);
+    } while ((status < 0) && (status == Ipc_E_NOTREADY));
+#endif
+
+#if !defined(_SYS_BIOS)
     /* Do this early since the heap is initialized by OpenMP */
     if (tomp_initOpenMPforOpenCL() < 0)
         System_abort("main: tomp_initOpenMPforOpenCL() failed");
+#endif
 
     initialize_edmamgr();
 #if !defined(DEVICE_AM572x)
     initialize_gdbserver();
 #endif
-#if defined(DEVICE_AM572x)
+#if defined(DEVICE_AM572x) && !defined(_SYS_BIOS)
     initialize_ipcpower_callbacks();
 #endif
 
@@ -210,6 +238,7 @@ int main(int argc, char* argv[])
         System_abort("main: failed to create ocl_main thread");
     }
 
+#ifndef _SYS_BIOS
     /* Create a task to service OpenMP kernels */
     Error_init(&eb);
     Task_Params_init(&taskParams);
@@ -223,6 +252,7 @@ int main(int argc, char* argv[])
     if (Error_check(&eb)) {
         System_abort("main: failed to create ocl_service_omp thread");
     }
+#endif
 
     /* Start scheduler, this never returns */
     BIOS_start();
@@ -376,6 +406,7 @@ static void process_task_command(ocl_msgq_message_t* msgq_pkt)
     uint32_t more_args_size = Msg->u.k.kernel.args_on_stack_size;
     void *   more_args      = (void *) Msg->u.k.kernel.args_on_stack_addr;
 
+#ifndef _SYS_BIOS
     if (is_inorder)
     {
        omp_msgq_pkt = msgq_pkt;
@@ -385,6 +416,7 @@ static void process_task_command(ocl_msgq_message_t* msgq_pkt)
           /* Error */; 
     }
     else
+#endif
     {
        TRACE(ULM_OCL_OOT_KERNEL_START, kernel_id, 0);
        dsp_rpc(&((kernel_msg_t *)&Msg->u.k.kernel)->entry_point,
@@ -401,6 +433,7 @@ static void process_task_command(ocl_msgq_message_t* msgq_pkt)
     return;
 }
 
+#ifndef _SYS_BIOS
 /******************************************************************************
 * ocl_service_omp - This is it's own task to switch the stack to DDR.
 ******************************************************************************/
@@ -456,6 +489,7 @@ void ocl_service_omp(UArg arg0, UArg arg1)
        }
     } /* while (true) */
 }
+#endif
 
 
 /******************************************************************************
@@ -573,7 +607,9 @@ static void process_exit_command(ocl_msgq_message_t *msg_pkt)
     /* Not sending a response to host, delete the msg */
     MessageQ_free((MessageQ_Msg)msg_pkt);
     Log_print0(Diags_INFO, "ocl_monitor: EXIT, no response");
+#if !defined(_SYS_BIOS)
     enable_ipcpower_suspend();
+#endif
     cacheWbInvAllL2();
 #endif
 }
@@ -584,10 +620,10 @@ static void process_exit_command(ocl_msgq_message_t *msg_pkt)
 static void process_setup_debug_command(ocl_msgq_message_t* msg_pkt)
 {
     MessageQ_free((MessageQ_Msg)msg_pkt);
-#ifdef DEVICE_K2G
-#else
+#if defined(DEVICE_AM572x) && !defined(_SYS_BIOS)
     disable_ipcpower_suspend();
     initialize_gdbserver();
+#else
 #endif
 }
 
@@ -608,7 +644,7 @@ static void initialize_gdbserver()
    return;
 }
 
-#if defined(DEVICE_AM572x)
+#if defined(DEVICE_AM572x) && !defined(_SYS_BIOS)
 void ocl_suspend_call(Int event, Ptr data)
 {
     free_edma_channel_pool();
@@ -742,5 +778,20 @@ static bool create_mqueue()
 
     Log_print1(Diags_INFO,"create_mqueue: %s ready", Ocl_DspMsgQueueName[DNUM]);
 
+#if defined(_SYS_BIOS)
+    /* get the SR_0 heap handle */
+    IHeap_Handle heap = (IHeap_Handle) SharedRegion_getHeap(0);
+    /* Register this heap with MessageQ */
+    int status = MessageQ_registerHeap(heap, 0);
+#endif
+
     return true;
 }
+
+#ifdef _SYS_BIOS
+void mainDsp1TimerTick(UArg arg)
+{
+    Clock_tick();
+}
+#endif
+

@@ -60,7 +60,9 @@ namespace Coal
 {
 
 class Context;
+#ifndef _SYS_BIOS
 class Compiler;
+#endif
 class DeviceInterface;
 class DeviceProgram;
 class Kernel;
@@ -230,7 +232,9 @@ class Program : public _cl_program, public Object
             bool              is_native_binary; // llvm kernel bitcode vs final native binary
             char            * native_binary_filename;  // if file exist already
             llvm::Module    * linked_module;
+#ifndef _SYS_BIOS
             Compiler        * compiler;
+#endif
         };
 
         std::vector<DeviceDependent> p_device_dependent;

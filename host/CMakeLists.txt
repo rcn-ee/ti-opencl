@@ -72,7 +72,11 @@ if (CROSS_COMPILE)
   set(CMAKE_SKIP_RPATH TRUE)
 endif()
 
+if (${BUILD_OS} MATCHES "SYS_BIOS")
+OPTION(BUILD_SHARED_LIBS "Set to OFF to build static libraries" OFF)
+else()
 OPTION(BUILD_SHARED_LIBS "Set to OFF to build static libraries" ON)
+endif()
 
 #ADD_DEFINITIONS("-DLOCK")
 
@@ -81,7 +85,11 @@ OPTION(BUILD_SHARED_LIBS "Set to OFF to build static libraries" ON)
 # Find_Package() for LLVM/CLANG defined in CMAKE_MODULE_PATH
 # Do not use system installed versions
 Find_Package(LLVM REQUIRED)
+if (${BUILD_OS} MATCHES "SYS_BIOS")
+  MESSAGE(STATUS "Build OS IS SYS BIOS")
+else()
 Find_Package(Clang REQUIRED)
+endif()
 
 # OpenCL requires boost headers. If boost is installed to some directory
 # other than /usr/include then define BOOST_INCLUDEDIR as below:
@@ -143,7 +151,11 @@ if(NOT DEFINED ENABLE_ULM)
   elseif(C6678_BUILD)
     set(ENABLE_ULM off)
   elseif(AM57_BUILD)
+if (NOT (${BUILD_OS} MATCHES "SYS_BIOS"))
     set(ENABLE_ULM on)
+else()
+    set(ENABLE_ULM off)
+endif()
   endif()
 endif()
 
@@ -157,7 +169,9 @@ endif()
 
 if (${BUILD_OUTPUT} STREQUAL "all" OR ${BUILD_OUTPUT} STREQUAL "lib")
   add_subdirectory(src)
+  if (NOT (${BUILD_OS} MATCHES "SYS_BIOS"))
   add_subdirectory(util)
+  endif()
   add_subdirectory(${OCL_BUILTINS_DIR} ${CMAKE_CURRENT_BINARY_DIR}/builtins)
 
   install(DIRECTORY DESTINATION /usr/share/doc/ti-opencl         ${OCL_DPERMS})
@@ -173,6 +187,7 @@ if (${BUILD_OUTPUT} STREQUAL "all" OR ${BUILD_OUTPUT} STREQUAL "lib")
   endif()
 endif()
 
+if (NOT (${BUILD_OS} MATCHES "SYS_BIOS"))
 if (BUILD_OUTPUT STREQUAL "all" OR BUILD_OUTPUT STREQUAL "examples")
   add_subdirectory(${OCL_EXAMPLES_DIR} ${CMAKE_CURRENT_BINARY_DIR}/examples)
 endif()
@@ -189,12 +204,12 @@ if (BUILD_OUTPUT STREQUAL "all" OR BUILD_OUTPUT STREQUAL "clocl")
   endif()
 endif()
 
-
 IF (BUILD_TESTS)
     ENABLE_TESTING()
     Find_Package(Check REQUIRED)
     add_subdirectory(tests)
 ENDIF (BUILD_TESTS)
+endif(NOT (${BUILD_OS} MATCHES "SYS_BIOS"))
 
 set (CPACK_GENERATOR "DEB")
 set (CPACK_DEBIAN_PACKAGE_MAINTAINER "TI")

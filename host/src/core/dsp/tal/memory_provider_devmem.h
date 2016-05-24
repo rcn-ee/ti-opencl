@@ -50,7 +50,7 @@ public:
 
     virtual void *MapToHostAddressSpace (DSPDevicePtr64 dsp_addr, size_t size,
                                                  bool is_read) const override;
-    virtual void  UnmapFromHostAddressSpace (void* host_addr, uint32_t size,
+    virtual void  UnmapFromHostAddressSpace (void* host_addr, size_t size,
                                                 bool is_write) const override;
 
     virtual size_t MinAllocationBlockSize() const override;
@@ -113,15 +113,15 @@ void  DevMem<MapPolicy>::UnmapFromHostAddressSpace (void* host_addr,
 // Access via /dev/mem is not cached on the host side. No need for
 // cache operations
 template<typename MapPolicy>
-bool DevMem<MapPolicy>::CacheInv(void *host_addr, uint32_t size) const
+bool DevMem<MapPolicy>::CacheInv(void *host_addr, std::size_t size) const
 { return true; }
 
 template<typename MapPolicy>
-bool DevMem<MapPolicy>::CacheWb(void *host_addr, uint32_t size) const
+bool DevMem<MapPolicy>::CacheWb(void *host_addr, std::size_t size) const
 { return true; }
 
 template<typename MapPolicy>
-bool DevMem<MapPolicy>::CacheWbInv(void *host_addr, uint32_t size) const
+bool DevMem<MapPolicy>::CacheWbInv(void *host_addr, std::size_t size) const
 { return true; }
 
 template<typename MapPolicy>

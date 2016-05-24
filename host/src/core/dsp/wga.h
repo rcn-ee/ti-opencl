@@ -32,7 +32,6 @@
 #include <set>
 #include <vector>
 #include <list>
-#include "boost/tuple/tuple.hpp"
 #include <llvm/Pass.h>
 #include <llvm/IR/Instruction.h>
 

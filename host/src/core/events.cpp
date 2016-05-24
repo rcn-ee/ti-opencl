@@ -726,12 +726,12 @@ KernelEvent::KernelEvent(CommandQueue *parent,
 
     // Populate work_offset, work_size and local_work_size
     size_t work_group_size = 1;
-    boost::tuple <uint,uint,uint> reqd_work_group_size(
-                kernel->reqdWorkGroupSize(kernel->deviceDependentModule(device)));
+    cl_uint dims[3];
+    kernel->reqdWorkGroupSize(kernel->deviceDependentModule(device), dims);
 
-    uint reqd_x = reqd_work_group_size.get<0>();
-    uint reqd_y = reqd_work_group_size.get<1>();
-    uint reqd_z = reqd_work_group_size.get<2>();
+    uint reqd_x = dims[0];
+    uint reqd_y = dims[1];
+    uint reqd_z = dims[2];
     bool reqd_any = reqd_x > 0 || reqd_y > 0 || reqd_z > 0;
 
     if (reqd_any)

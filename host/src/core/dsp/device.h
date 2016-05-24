@@ -37,7 +37,7 @@
 #include "u_lockable.h"
 #include "u_concurrent_map.h"
 #include "kernel.h"
-#include <pthread.h>
+#include "../tiocl_thread.h"
 #include <string>
 #include <list>
 #include "mbox_interface.h"

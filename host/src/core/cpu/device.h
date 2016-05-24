@@ -35,7 +35,7 @@
 
 #include "../deviceinterface.h"
 
-#include <pthread.h>
+#include "../tiocl_thread.h"
 #include <list>
 #include <string>
 

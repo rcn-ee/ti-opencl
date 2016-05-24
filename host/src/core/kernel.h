@@ -42,7 +42,6 @@
 
 #include <vector>
 #include <string>
-#include <boost/tuple/tuple.hpp>
 
 namespace Coal
 {
@@ -300,7 +299,7 @@ class Kernel : public _cl_kernel, public Object
                              void *param_value,
                              size_t *param_value_size_ret) const;
 
-        boost::tuple<uint,uint,uint> reqdWorkGroupSize(llvm::Module *module) const;
+        void reqdWorkGroupSize(llvm::Module *module, cl_uint dims[3]) const;
 
         int get_wi_alloca_size() { return wi_alloca_size; }
 

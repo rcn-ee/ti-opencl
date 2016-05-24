@@ -40,11 +40,20 @@
 
 #include <unistd.h>
 #include <sys/resource.h>
+#ifndef _SYS_BIOS
 #include <sys/syscall.h>
+#endif
 #include <sched.h>
 #include <errno.h>
 
 #include "u_locks_pthread.h"
+
+#ifdef _SYS_BIOS
+#include <xdc/std.h>
+#include <ti/sysbios/BIOS.h>
+#include <ti/sysbios/knl/Task.h>
+#define  usleep   Task_sleep
+#endif
 
 using namespace Coal;
 
@@ -580,9 +589,11 @@ void *dsp_worker_event_dispatch(void *data)
     char *str_sleep = getenv("TI_OCL_WORKER_SLEEP");
     int   env_nice  = (str_nice)  ? atoi(str_nice)  : 4;
     int   env_sleep = (str_sleep) ? atoi(str_sleep) : -1;
+#ifndef _SYS_BIOS
     pid_t tid       = syscall(SYS_gettid);
 
     setpriority(PRIO_PROCESS, tid, env_nice);
+#endif
     DSPDevice *device = (DSPDevice *)data;
 
     while (true)
@@ -613,9 +624,11 @@ void *dsp_worker_event_completion(void *data)
     char *str_sleep = getenv("TI_OCL_WORKER_SLEEP");
     int   env_nice  = (str_nice)  ? atoi(str_nice)  : 4;
     int   env_sleep = (str_sleep) ? atoi(str_sleep) : -1;
+#ifndef _SYS_BIOS
     pid_t tid       = syscall(SYS_gettid);
 
     setpriority(PRIO_PROCESS, tid, env_nice);
+#endif
     DSPDevice *device = (DSPDevice *)data;
 
     while (true)

@@ -47,8 +47,12 @@ void initialize_memory(void)
     extern uint32_t nocache2_virt_start;
     extern uint32_t nocache2_size;
 
+#ifndef _SYS_BIOS
+    /*** SYSBIOS does not support OpenMP yet, hence no need for this
+         non-cached shared OpenMP heap ***/
     uint32_t nc_virt = (uint32_t) &nocache_virt_start;
     uint32_t nc_size = (uint32_t) &nocache_size;
+#endif
     uint32_t nc2_virt = (uint32_t) &nocache2_virt_start;
     uint32_t nc2_size = (uint32_t) &nocache2_size;
 
@@ -58,7 +62,9 @@ void initialize_memory(void)
 
     enableCache (0x40, 0x40); // enable write through for OCMC
     enableCache (0x80, 0xFF);
+#ifndef _SYS_BIOS
     disableCache(nc_virt >> 24, (nc_virt+nc_size-1) >> 24);
+#endif
     disableCache(nc2_virt >> 24, (nc2_virt+nc2_size-1) >> 24);
 
     _restore_interrupts(mask);

@@ -39,22 +39,32 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+#ifndef _SYS_BIOS
 #include <elf.h>
+#else
+#include <elf32.h>
+#define ELFMAG0         0x7f            /* EI_MAG */
+#define ELFMAG1         'E'
+#define ELFMAG2         'L'
+#define ELFMAG3         'F'
+#define ELFMAG          "\177ELF"
+#define SELFMAG         4
+#endif
 
+#ifndef _SYS_BIOS
 #include "genfile_cache.h"
+genfile_cache * genfile_cache::pInstance = 0;
+#endif
 
 #include "tal/dload_impl.h"
 
 
 using tiocl::DLOAD;
 
-genfile_cache * genfile_cache::pInstance = 0;
-
-
 using namespace Coal;
 
 DSPProgram::DSPProgram(DSPDevice *device, Program *program)
-: DeviceProgram(), p_device(device), p_program(program),
+: DeviceProgram(), p_device(device), p_program(program), p_nativebin(nullptr),
   p_loaded(false), p_keep_files(false), p_cache_kernels(false), p_debug(false),
   p_info(false), p_ocl_local_overlay_start(0), p_dl(nullptr)
 {
@@ -84,7 +94,11 @@ DSPProgram::~DSPProgram()
 
 bool DSPProgram::load()
 {
+#ifndef _SYS_BIOS
     if (!p_dl->LoadProgram(p_outfile))
+#else
+    if (!p_dl->LoadProgram(*p_nativebin))
+#endif
         return false;
 
     p_loaded = true;
@@ -201,6 +215,7 @@ void DSPProgram::WriteNativeOut(const std::string &native)
 {
     assert (native.empty() == false);
 
+#ifndef _SYS_BIOS
     try
     {
         char name_out[] = "/tmp/openclXXXXXX";
@@ -215,6 +230,10 @@ void DSPProgram::WriteNativeOut(const std::string &native)
         unlink(name_out);
     }
     catch(...) { std::cout << "ERROR: Binary write out failure" << std::endl; }
+#else
+    // SYSBIOS mode: p_nativebin contains DSP binary, to be loaded form String
+    p_nativebin = const_cast<std::string *>(&native);
+#endif
 }
 
 

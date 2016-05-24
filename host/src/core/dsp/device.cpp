@@ -62,6 +62,11 @@ extern "C" {
 #if defined (ULM_ENABLED)
    #include "tiulm.h"
 #endif
+
+#if defined(_SYS_BIOS)
+    extern uint32_t ti_opencl_get_OCL_LOCAL_base();
+    extern uint32_t ti_opencl_get_OCL_LOCAL_len();
+#endif
 }
 
 #include <cstring>
@@ -107,10 +112,9 @@ DSPDevice::DSPDevice(unsigned char dsp_id, SharedMemory* shm)
 
     p_cores = device_info.GetComputeUnitsPerDevice(dsp_id);
 
+#if !defined(_SYS_BIOS)
     device_manager_ = DeviceManagerFactory::CreateDeviceManager(dsp_id, p_cores,
                                                     device_info.FullyQualifiedPathToDspMonitor());
-
-    core_scheduler_ = new CoreScheduler(p_cores, 4);
 
     device_manager_->Reset();
     device_manager_->Load();
@@ -119,7 +123,12 @@ DSPDevice::DSPDevice(unsigned char dsp_id, SharedMemory* shm)
     p_addr_kernel_config = device_info.GetSymbolAddress("kernel_config_l2");
     p_addr_local_mem     = device_info.GetSymbolAddress("ocl_local_mem_start");
     p_size_local_mem     = device_info.GetSymbolAddress("ocl_local_mem_size");
+#else
+    p_addr_local_mem     = ti_opencl_get_OCL_LOCAL_base();
+    p_size_local_mem     = ti_opencl_get_OCL_LOCAL_len();
+#endif
 
+    core_scheduler_ = new CoreScheduler(p_cores, 4);
 
     init_ulm();
 

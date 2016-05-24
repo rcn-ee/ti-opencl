@@ -38,7 +38,7 @@
 #include "icd.h"
 
 #include <CL/cl.h>
-#include <pthread.h>
+#include "tiocl_thread.h"
 
 #include <map>
 #include <list>

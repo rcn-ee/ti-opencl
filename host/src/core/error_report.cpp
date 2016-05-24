@@ -27,6 +27,8 @@
  *****************************************************************************/
 
 #include "error_report.h"
+#include <cstdio>
+#include <cstdlib>
 #include <cstdarg>
 #include <string>
 #include <map>

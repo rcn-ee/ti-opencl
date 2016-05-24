@@ -37,11 +37,31 @@
 
 #include "mbox_impl_msgq.h"
 
+#ifndef _SYS_BIOS
 /* Work around IPC usage of typedef void */
 #define Void void
 #include <ti/ipc/Ipc.h>
 #include <ti/ipc/transports/TransportRpmsg.h>
 #undef Void
+#else
+#include <xdc/std.h>
+#include <xdc/runtime/Assert.h>
+#include <xdc/runtime/Diags.h>
+#include <xdc/runtime/Error.h>
+#include <xdc/runtime/IHeap.h>
+#include <xdc/runtime/Log.h>
+#include <xdc/runtime/Memory.h>
+#include <xdc/runtime/Registry.h>
+#include <xdc/runtime/System.h>
+#include <ti/ipc/Ipc.h>
+#include <ti/ipc/MultiProc.h>
+#include <ti/ipc/MessageQ.h>
+#include <ti/ipc/SharedRegion.h>
+#include <ti/sysbios/BIOS.h>
+#include <ti/sysbios/knl/Task.h>
+#define snprintf(a,b,c, ...)  sprintf(a,c,__VA_ARGS__)
+#define getpid() 2016
+#endif
 
 #define HostMsgQueString    "OCL:MsgQ:%d"
 
@@ -50,12 +70,35 @@ using namespace Coal;
 MBoxMsgQ::MBoxMsgQ(Coal::DSPDevice *device)
     : heapId(0), p_device(device)
 {
+#ifndef _SYS_BIOS
     /* Configure the transport factory */
     Ipc_transportConfig(&TransportRpmsg_Factory);
+#endif
 
     /* Ipc_start must be called before any Message queue operations */
     int status = Ipc_start();
     assert (status == Ipc_S_SUCCESS || status == Ipc_S_ALREADYSETUP);
+
+#ifdef _SYS_BIOS
+    /* Ipc_attach must be called in ProcSync_PAIR protocol */
+    UInt16 remoteProcId = MultiProc_getId(String("DSP1"));
+    assert(remoteProcId != MultiProc_INVALIDID);
+    do {
+        status = Ipc_attach(remoteProcId);
+    } while ((status < 0) && (status == Ipc_E_NOTREADY));
+
+    remoteProcId = MultiProc_getId(String("DSP2"));
+    assert(remoteProcId != MultiProc_INVALIDID);
+    do {
+        status = Ipc_attach(remoteProcId);
+    } while ((status < 0) && (status == Ipc_E_NOTREADY));
+
+    /* get the SR_0 heap handle */
+    IHeap_Handle heap = (IHeap_Handle) SharedRegion_getHeap(0);
+
+    /* Register this heap with MessageQ */
+    status = MessageQ_registerHeap(heap, heapId);
+#endif
 
     /* Create the host message queue (inbound messages from DSPs) */
     MessageQ_Params     msgqParams;

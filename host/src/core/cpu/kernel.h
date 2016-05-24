@@ -41,7 +41,7 @@
 #include <string>
 
 #include <ucontext.h>
-#include <pthread.h>
+#include "../tiocl_thread.h"
 #include <stdint.h>
 
 namespace llvm

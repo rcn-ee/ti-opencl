@@ -57,7 +57,22 @@ extern int debugging_on;
 /* supports virtual memory, this may need to be updated to facilitate the    */
 /* use of mmap().                                                            */
 /*****************************************************************************/
+#ifndef _SYS_BIOS
 typedef FILE LOADER_FILE_DESC;
+#else
+struct FILE_DESC
+{
+    int8_t mode;
+    int8_t *binary;
+    int8_t *orig;
+    int8_t *cur;
+    uint32_t size;
+    uint32_t read_size;
+    size_t length;
+    FILE *fp;
+};
+typedef struct FILE_DESC LOADER_FILE_DESC;
+#endif
 
 static const int LOADER_SEEK_SET = SEEK_SET;
 static const int LOADER_SEEK_CUR = SEEK_CUR;
@@ -129,7 +144,7 @@ void     DLOAD_finalize(DLOAD_HANDLE handle);
 /*    External symbols will be made available for global symbol linkage.     */
 /*                                                                           */
 /*---------------------------------------------------------------------------*/
-BOOL     DLOAD_load_symbols(DLOAD_HANDLE handle, LOADER_FILE_DESC* fp);
+int32_t  DLOAD_load_symbols(DLOAD_HANDLE handle, LOADER_FILE_DESC* fp);
 
 /*---------------------------------------------------------------------------*/
 /* DLOAD_load()                                                              */
@@ -141,7 +156,7 @@ BOOL     DLOAD_load_symbols(DLOAD_HANDLE handle, LOADER_FILE_DESC* fp);
 /*    The core loader must have read access to the file pointed by fp.       */
 /*                                                                           */
 /*---------------------------------------------------------------------------*/
-int      DLOAD_load(DLOAD_HANDLE handle, LOADER_FILE_DESC* fp);
+int32_t  DLOAD_load(DLOAD_HANDLE handle, LOADER_FILE_DESC* fp);
 
 /*---------------------------------------------------------------------------*/
 /* DLOAD_unload()                                                            */
@@ -289,7 +304,7 @@ size_t   DLIF_fread(void *ptr, size_t size, size_t nmemb,
 /*    client has exclusive access to the file system.                        */
 /*                                                                           */
 /*---------------------------------------------------------------------------*/
-int      DLIF_fclose(LOADER_FILE_DESC *fd);
+int32_t  DLIF_fclose(LOADER_FILE_DESC *fd);
 
 /*---------------------------------------------------------------------------*/
 /* Host Memory Management                                                    */
