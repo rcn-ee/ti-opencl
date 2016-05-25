@@ -117,7 +117,7 @@ bool BufferEvent::isSubBufferAligned(const MemObject *buffer,
     cl_uint align;
     cl_int rs;
 
-    if (buffer->type() != MemObject::SubBuffer)
+    if (buffer == nullptr || buffer->type() != MemObject::SubBuffer)
         return true;
 
     rs = device->info(CL_DEVICE_MEM_BASE_ADDR_ALIGN, sizeof(uint),
