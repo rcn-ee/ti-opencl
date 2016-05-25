@@ -349,24 +349,24 @@ bool cl6x(string& bc_file, string &binary_str)
     const char *name = bc_file_full.c_str();
     if (!opt_keep)
     {
-        unlink(name);
+        fs_remove_file(name);
 
         if (!opt_lib)
         {
             name = fs_replace_extension(bc_file_full, ".obj").c_str();
-            unlink(name);
+            fs_remove_file(name);
         }
     }
     else
     {
         name = fs_replace_extension(bc_file_full, ".objc").c_str();
-        unlink(name);
+        fs_remove_file(name);
 
         string bitasm_name = fs_stem(bc_file_full);
         if (opt_tmpdir) bitasm_name = fs_get_tmp_folder() + bitasm_name;
         bitasm_name += "_bc.objc";
         name = bitasm_name.c_str();
-        unlink(name);
+        fs_remove_file(name);
     }
 
     string bitasm_name(fs_stem(bc_file_full));
@@ -375,14 +375,14 @@ bool cl6x(string& bc_file, string &binary_str)
         if (opt_tmpdir) bitasm_name = fs_get_tmp_folder() + bitasm_name;
         bitasm_name += "_bc.asm";
         name = bitasm_name.c_str();
-        unlink(name);
+        fs_remove_file(name);
     }
 
     bitasm_name = fs_stem(bc_file_full);
     if (opt_tmpdir) bitasm_name = fs_get_tmp_folder() + bitasm_name;
     bitasm_name += "_bc.obj";
     name = bitasm_name.c_str();
-    unlink(name);
+    fs_remove_file(name);
 
     return true;
 }

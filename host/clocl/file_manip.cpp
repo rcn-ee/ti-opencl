@@ -1,6 +1,8 @@
 #include "file_manip.h"
 #if defined(_MSC_VER)
 #include <windows.h>
+#include <stdio.h>      // For _unlink, unlink deprecated in MSVC 2015
+#define unlink _unlink
 #else
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -94,6 +96,13 @@ std::string fs_get_tmp_folder()
     return std::string("/tmp/");
 #endif
 }
+
+
+void fs_remove_file (const std::string& filename)
+{
+    unlink(filename.c_str());
+}
+
 
 #ifdef TEST
 #include <iostream>
