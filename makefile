@@ -66,8 +66,8 @@ endif
 
 CMAKE_DEFINES += -DBUILD_TARGET=$(BUILD_TARGET)
 CMAKE_DEFINES += -DOCL_VERSION=$(OCL_FULL_VER)
-OCL_BUILD_DIR = build/$(TARGET)
-OCL_INSTALL_DIR = install/$(TARGET)
+OCL_BUILD_DIR = build/$(TARGET)$(BUILD_OS)
+OCL_INSTALL_DIR = install/$(TARGET)$(BUILD_OS)
 export DESTDIR?=$(CURDIR)/$(OCL_INSTALL_DIR)
 
 CLEAN_DIRS = monitor monitor_vayu builtins examples libm host/clocl

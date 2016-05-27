@@ -6,16 +6,9 @@ OPENCL_SRC_DIR ?= ../host
 
 # If not specified, pick a default location for TI dependent packages
 DEFAULT_DEV_INSTALL_DIR ?= $(DEFAULT_PSDK_RTOS)
-LINUX_DEVKIT_ROOT       ?= $(PSDK_LINUX_DEVKIT_ROOT)
 
 # And for the devkit, when doing an x86 build ...
 UNAME_M :=$(shell uname -m)
-
-ifneq (,$(findstring 86, $(UNAME_M)))
-    ifeq ($(LINUX_DEVKIT_ROOT),)
-      $(error Monitor requires LINUX_DEVKIT_ROOT to point to AM57 linux-devkit root)
-    endif
-endif
 
 ifeq ($(TI_OCL_CGT_INSTALL),)
   $(error Monitor requires TI_OCL_CGT_INSTALL to point to C6000 Codegen tools)
