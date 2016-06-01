@@ -51,6 +51,7 @@ Ipc.sr0MemorySetup = true;
 
 /* shared region configuration */
 var SharedRegion = xdc.useModule('ti.sdo.ipc.SharedRegion');
+SharedRegion.translate = false;
 
 /* configure SharedRegion #0 (IPC) */
 var SR0Mem = Program.cpu.memoryMap["SR_0"];
@@ -60,47 +61,43 @@ SharedRegion.setEntryMeta(0,
         name:           "SR_0",
         base:           SR0Mem.base,
         len:            SR0Mem.len,
-        ownerProcId:    0,
+        cacheLineSize:  128,
+        ownerProcId:    MultiProc.getIdMeta("HOST"),
         isValid:        true,
+        createHeap:     true,
         cacheEnable:    xdc.global.SR0_cacheEnable
     })
 );
 
-//YUAN /* reduce data memory usage */
-//YUAN var GateMP = xdc.useModule('ti.sdo.ipc.GateMP');
-//YUAN GateMP.maxRuntimeEntries = 2;
-//YUAN GateMP.RemoteCustom1Proxy = xdc.useModule('ti.sdo.ipc.gates.GateMPSupportNull');
-//YUAN
-//YUAN /* reduce data memory usage */
-//YUAN var Notify = xdc.useModule('ti.sdo.ipc.Notify');
-//YUAN Notify.numEvents = 8;
-//YUAN
-//YUAN
-//YUAN var NotifySetup = xdc.useModule('ti.sdo.ipc.family.vayu.NotifySetup');
-//YUAN if (procName == "HOST")
-//YUAN {
-//YUAN     NotifySetup.connections.$add(
-//YUAN           new NotifySetup.Connection({
-//YUAN               driver: NotifySetup.Driver_SHAREDMEMORY,
-//YUAN               procName: "DSP1"
-//YUAN           })
-//YUAN     );
-//YUAN /****
-//YUAN     NotifySetup.connections.$add(
-//YUAN           new NotifySetup.Connection({
-//YUAN               driver: NotifySetup.Driver_SHAREDMEMORY,
-//YUAN               procName: "DSP2"
-//YUAN           })
-//YUAN     );
-//YUAN ****/
-//YUAN }
-//YUAN if (procName == "DSP1" || procName == "DSP2")
-//YUAN {
-//YUAN     NotifySetup.connections.$add(
-//YUAN           new NotifySetup.Connection({
-//YUAN               driver: NotifySetup.Driver_SHAREDMEMORY,
-//YUAN               procName: "HOST"
-//YUAN           })
-//YUAN );
-//YUAN }
-//YUAN var NotifyDriverMbx = xdc.useModule('ti.sdo.ipc.family.vayu.NotifyDriverMbx');
+var GateMP = xdc.useModule('ti.sdo.ipc.GateMP');
+GateMP.maxRuntimeEntries = 9;
+var Notify = xdc.useModule('ti.sdo.ipc.Notify');
+Notify.numEvents = 8;
+
+var NotifySetup = xdc.useModule('ti.sdo.ipc.family.vayu.NotifySetup');
+if (procName == "HOST")
+{
+    NotifySetup.connections.$add(
+          new NotifySetup.Connection({
+              driver: NotifySetup.Driver_SHAREDMEMORY,
+              procName: "DSP1"
+          })
+    );
+    NotifySetup.connections.$add(
+          new NotifySetup.Connection({
+              driver: NotifySetup.Driver_SHAREDMEMORY,
+              procName: "DSP2"
+          })
+    );
+}
+if (procName == "DSP1" || procName == "DSP2")
+{
+    NotifySetup.connections.$add(
+          new NotifySetup.Connection({
+              driver: NotifySetup.Driver_SHAREDMEMORY,
+              procName: "HOST"
+          })
+    );
+}
+
+var NotifyDriverMbx = xdc.useModule('ti.sdo.ipc.family.vayu.NotifyDriverMbx');
