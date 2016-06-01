@@ -48,11 +48,7 @@
 #ifdef _SYS_BIOS
 #include <xdc/runtime/Memory.h>
 #include <ti/sysbios/heaps/HeapMem.h>
-
-//#include <list>
-//#include <queue>
-//uint32_t ARM_CCNT_Enable();
-//uint32_t ARM_CCNT_Read();
+#include <ti/sysbios/family/arm/a15/TimestampProvider.h>
 #endif
 
 using namespace Coal;
@@ -83,12 +79,18 @@ CommandQueue::CommandQueue(Context *ctx,
         return;
     }
     p_device->init();
-#ifdef _SYS_BIOS
-    /*PMU Clock counter reset*/
-    //ARM_CCNT_Enable();
-#endif
 
     *errcode_ret = checkProperties();
+
+#if defined(_SYS_BIOS)
+    p_freq = 1000000000;
+    if (p_properties & CL_QUEUE_PROFILING_ENABLE)
+    {
+        xdc_runtime_Types_FreqHz freq;
+        TimestampProvider_getFreq(&freq);
+        p_freq = (((cl_ulong) freq.hi) << 32) | freq.lo;
+    }
+#endif
 }
 
 /******************************************************************************
@@ -869,21 +871,21 @@ void Event::updateTiming(Timing timing)
         return;
     }
 
-#ifndef _SYS_BIOS
-    struct timespec tp;
     cl_ulong rs;
 
+#if !defined(_SYS_BIOS)
+    struct timespec tp;
     if (clock_gettime(CLOCK_MONOTONIC, &tp) != 0)
         clock_gettime(CLOCK_REALTIME, &tp);
 
     rs = tp.tv_nsec / 1e3;  // convert to microseconds
     rs += tp.tv_sec * 1e6;  // convert to microseconds
 #else
-    cl_ulong rs;
-    uint32_t count = 0;
-    //count = ARM_CCNT_Read();
-    /*convert to nano sec*/  // YUAN TODO: make sure conversion is consistent
-    rs = count*64;
+    xdc_runtime_Types_Timestamp64 ts;
+    TimestampProvider_get64(&ts);
+    cl_ulong freq = 1000000000;
+    if (parent() != NULL) freq = ((CommandQueue *) parent())->getFreq();
+    rs = ((((cl_ulong) ts.hi) << 32) | ts.lo) * 1e6 / freq;  // to microseconds
 #endif
 
     p_timing[timing] = rs;
