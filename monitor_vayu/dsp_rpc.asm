@@ -110,11 +110,15 @@ _dsp_rpc:
 
          ; copy additional argument onto stack
    [!B0] BNOP 	__MAKE_CALL, 5
+
+         MV     SP, A3
+||       SUB    SP, B0, SP
+
 __COPY_MORE_ARGS:                 ; copy from back to front
          LDNDW  *--B2, A1:A0      ; copy from more args in memory
 ||       SUB    B0, 8, B0
    [ B0] BNOP   __COPY_MORE_ARGS, 4
-         STNDW  A1:A0, *--SP      ; copy onto stack frame for child call
+         STNDW  A1:A0, *--A3      ; copy onto stack frame for child call
 
 __MAKE_CALL:
          CALL   A2
