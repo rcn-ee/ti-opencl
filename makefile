@@ -22,8 +22,6 @@ ifeq ($(BUILD_AM57),1)
     else
 	export DESTDIR?=$(CURDIR)/install/ti-opencl-rtos-$(TARGET)-$(OCL_FULL_VER)/packages/ti/opencl
         CMAKE_DEFINES += -DBUILD_OS=SYS_BIOS -DPSDK_RTOS=$(DEFAULT_PSDK_RTOS)
-        CMAKE_DEFINES += -DARM_GCC_DIR=$(ARM_GCC48NONE_DIR)
-        export PATH:=$(ARM_GCC48NONE_DIR)/bin:$(PATH)
     endif
 else ifeq ($(BUILD_K2H),1)
     TARGET=k2h

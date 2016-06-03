@@ -1,5 +1,5 @@
 var A15 = xdc.useModule('gnu.targets.arm.A15F');
-A15.rootDir = "/opt/ti/ccsv61/ccsv6/tools/compiler/gcc-arm-none-eabi-4_8-2014q3"
+A15.rootDir = "" + java.lang.System.getenv("GCC_ARM_NONE_TOOLCHAIN")
 Build.targets = [
     A15,
 ];
