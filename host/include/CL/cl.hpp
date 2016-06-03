@@ -177,7 +177,7 @@
 #include <string>
 #endif 
 
-#if defined(linux) || defined(__APPLE__) || defined(__MACOSX)
+#if defined(linux) || defined(__APPLE__) || defined(__MACOSX)||defined(_TI_RTOS)
 # include <alloca.h>
 #endif // linux
 

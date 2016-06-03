@@ -169,9 +169,7 @@ endif()
 
 if (${BUILD_OUTPUT} STREQUAL "all" OR ${BUILD_OUTPUT} STREQUAL "lib")
   add_subdirectory(src)
-  if (NOT (${BUILD_OS} MATCHES "SYS_BIOS"))
   add_subdirectory(util)
-  endif()
   add_subdirectory(${OCL_BUILTINS_DIR} ${CMAKE_CURRENT_BINARY_DIR}/builtins)
 
   install(DIRECTORY DESTINATION /usr/share/doc/ti-opencl         ${OCL_DPERMS})

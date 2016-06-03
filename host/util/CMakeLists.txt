@@ -4,7 +4,7 @@ if (CROSS_COMPILE)
    include_directories( ${CMAKE_FIND_ROOT_PATH} ${HOST_USR_INCLUDE_PATH} )
 endif()
 
-set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -O3 -fPIC")
+set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -O3 -fPIC -fpermissive")
 
 set(util_src report_timing.cpp decode_error.cpp read_binary.cpp)
 
