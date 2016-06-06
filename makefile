@@ -5,6 +5,7 @@ CMAKE_DEFINES = -DARM_LLVM_DIR=$(ARM_LLVM_DIR) -DX86_LLVM_DIR=$(X86_LLVM_DIR)
 ifneq ($(BUILD_DSPC),1)
 ifneq (,$(findstring 86, $(shell uname -m)))
     ifeq ($(BUILD_OS), SYS_BIOS)
+        export GCC_ARM_NONE_TOOLCHAIN:=$(GCC_ARM_NONE_TOOLCHAIN)
         TOOLCHAIN_FILE=../host/cmake/CMakeBiosARMToolChain.txt
     else
         TOOLCHAIN_FILE=../host/cmake/CMakeARMToolChain.txt
