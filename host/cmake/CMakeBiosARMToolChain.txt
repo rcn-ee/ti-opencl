@@ -5,19 +5,29 @@ CMAKE_FORCE_C_COMPILER   ($ENV{GCC_ARM_NONE_TOOLCHAIN}/bin/arm-none-eabi-gcc GNU
 CMAKE_FORCE_CXX_COMPILER ($ENV{GCC_ARM_NONE_TOOLCHAIN}/bin/arm-none-eabi-g++ GNU)
 
 # Linux build paths
+
+IF (NOT DEFINED XDC_INSTALL_PATH)
 FILE(GLOB XDC_INSTALL_PATH  ${PSDK_RTOS}/xdctools_*)
-FILE(GLOB BIOS_INSTALL_PATH ${PSDK_RTOS}/bios_*)
-FILE(GLOB IPC_PATH          ${PSDK_RTOS}/ipc_*)
 SET(XDC_INSTALL_PATH        ${XDC_INSTALL_PATH}/packages)
+ENDIF()
+
+IF (NOT DEFINED BIOS_INSTALL_PATH)
+FILE(GLOB BIOS_INSTALL_PATH ${PSDK_RTOS}/bios_*)
 SET(BIOS_INSTALL_PATH       ${BIOS_INSTALL_PATH}/packages)
-SET(IPC_PATH                ${IPC_PATH}/packages)
+ENDIF()
+
+IF (NOT DEFINED IPC_INSTALL_PATH)
+FILE(GLOB IPC_INSTALL_PATH          ${PSDK_RTOS}/ipc_*)
+SET(IPC_INSTALL_PATH                ${IPC_INSTALL_PATH}/packages)
+ENDIF()
+
 SET(LLVM_PATH               ${ARM_LLVM_DIR}/include)
 SET(LOKI_INCLUDE_PATH       /usr/include/loki)
 
 # Windows build pathes
 # SET(XDC_INSTALL_PATH C:/ti/xdctools_3_25_06_96/packages)
 # SET(BIOS_INSTALL_PATH C:/ti/bios_6_45_00_03_eng/packages)
-# SET(IPC_PATH C:/ti/ipc_3_22_01_08/packages)
+# SET(IPC_INSTALL_PATH C:/ti/ipc_3_22_01_08/packages)
 # SET(LLVM_PATH D:/OpenCL/LLVM/ti-llvm/install/include)
 # SET(LOKI_INCLUDE_PATH D:/OpenCL/loki-0.1.5/include)
 # SET(TOOL_ROOT C:/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_8-2014q3/arm-none-eabi)
@@ -46,4 +56,4 @@ SET(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
 SET(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH true)
 
-set(HOST_USR_INCLUDE_PATH ${LLVM_PATH} ${IPC_PATH} ../include )
+set(HOST_USR_INCLUDE_PATH ${LLVM_PATH} ${IPC_INSTALL_PATH} ../include )
