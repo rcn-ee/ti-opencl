@@ -19,12 +19,14 @@ if (C6678_BUILD OR CROSS_COMPILE)
 endif()
 
 if (K2X_BUILD OR K2G_BUILD OR AM57_BUILD)
- add_custom_command(OUTPUT arm/clocl COMMAND make -j4 ${CROSS_TARGET}
-                    _PRODUCT_VERSION=${${PROJECT_NAME}_PKG_VERSION}
-                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+ if (NOT (${BUILD_OS} MATCHES "SYS_BIOS"))
+     add_custom_command(OUTPUT arm/clocl COMMAND make -j4 ${CROSS_TARGET}
+                        _PRODUCT_VERSION=${${PROJECT_NAME}_PKG_VERSION}
+                        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
- add_custom_target(arm_clocl  DEPENDS arm/clocl)
- install(PROGRAMS arm/clocl DESTINATION /usr/bin ${OCL_BPERMS})
+     add_custom_target(arm_clocl  DEPENDS arm/clocl)
+     install(PROGRAMS arm/clocl DESTINATION /usr/bin ${OCL_BPERMS})
+ endif()
 endif()
 
 endif ()
