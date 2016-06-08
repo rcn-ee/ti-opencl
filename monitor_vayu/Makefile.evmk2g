@@ -30,7 +30,6 @@ SDK_DIR        ?= $(DEFAULT_DLSDK)
 #$(warning $(FC_DIR))
 #$(error x)
 
-export XDC = $(XDC_DIR)
 export XDC_DIR
 export BIOS_DIR
 

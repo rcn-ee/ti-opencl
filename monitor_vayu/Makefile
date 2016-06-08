@@ -1,173 +1,42 @@
-include ../host/Makefile.inc
+##
+##  Copyright (c) 2016, Texas Instruments Incorporated
+##
+##  Redistribution and use in source and binary forms, with or without
+##  modification, are permitted provided that the following conditions
+##  are met:
+##
+##  *  Redistributions of source code must retain the above copyright
+##     notice, this list of conditions and the following disclaimer.
+##
+##  *  Redistributions in binary form must reproduce the above copyright
+##     notice, this list of conditions and the following disclaimer in the
+##     documentation and/or other materials provided with the distribution.
+##
+##  *  Neither the name of Texas Instruments Incorporated nor the names of
+##     its contributors may be used to endorse or promote products derived
+##     from this software without specific prior written permission.
+##
+##  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+##  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+##  THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+##  PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+##  CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+##  EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+##  PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+##  OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+##  WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+##  OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+##  EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+##
 
-# If not specified, assume the opencl source directory is at same location as
-# monitor
-OPENCL_SRC_DIR ?= ../host
-
-# If not specified, pick a default location for TI dependent packages
-DEFAULT_DEV_INSTALL_DIR ?= $(DEFAULT_PSDK_RTOS)
-LINUX_DEVKIT_ROOT       ?= $(PSDK_LINUX_DEVKIT_ROOT)
-
-# And for the devkit, when doing an x86 build ...
-UNAME_M :=$(shell uname -m)
-
-ifneq (,$(findstring 86, $(UNAME_M)))
-    ifeq ($(LINUX_DEVKIT_ROOT),)
-      $(error Monitor requires LINUX_DEVKIT_ROOT to point to AM57 linux-devkit root)
+ifeq ($(BUILD_TARGET), ARM_AM57)
+    ifeq ($(BUILD_OS), SYSBIOS)
+    	include Makefile.am57x_rtos
+    else
+    	include Makefile.am57x
     endif
+else ifeq ($(BUILD_TARGET), ARM_K2G)
+    include Makefile.evmk2g
+else
+    $(error BUILD_TARGET $(BUILD_TARGET) not supported)
 endif
-
-ifeq ($(TI_OCL_CGT_INSTALL),)
-  $(error Monitor requires TI_OCL_CGT_INSTALL to point to C6000 Codegen tools)
-endif
-
-AM57_PDK_DIR   ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/pdk_am57xx_*)
-IPC_DIR        ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/ipc_*)
-XDC_DIR        ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/xdctools_*)
-BIOS_DIR       ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/bios_*)
-OMP_DIR        ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/openmp_dsp_*)
-FC_DIR         ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/framework_components*)
-EDMA3LLD_DIR   ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/edma3_lld_*)
-XDAIS_DIR      ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/xdais_*)
-ULM_DIR        ?= $(LINUX_DEVKIT_ROOT)/usr/share/ti/ulm
-GDB_SERVER_DIR ?= $(LINUX_DEVKIT_ROOT)/usr/share/ti/gdbc6x
-
-export XDC_DIR
-export BIOS_DIR
-
-PLATFORM  = am57x
-PROJECT   = monitor
-DEVICE    = DEVICE_AM572x
-SOC       = SOC_AM572x
-
-## !Need -O* to inline CACHE_* functions!
-CC= $(TI_OCL_CGT_INSTALL)/bin/cl6x -o3 -mv6600 --abi=eabi --gcc --mem_model:const=data --mem_model:data=far
-
-INCLUDES  = -i. -i $(OPENCL_SRC_DIR)/src/core/dsp
-INCLUDES += -i $(AM57_PDK_DIR)/packages -i $(TI_OCL_CGT_INSTALL)/include \
-	    -i $(IPC_DIR)/packages -i $(XDC_DIR)/packages           \
-	    -i $(BIOS_DIR)/packages -i $(EDMA3LLD_DIR)/packages     \
-	    -i $(FC_DIR)/packages -i $(XDAIS_DIR)/packages
-INCLUDES += -D$(DEVICE)
-INCLUDES += -D$(SOC)
-INCLUDES += -i $(ULM_DIR) -DULM_ENABLED
-INCLUDES += -i $(GDB_SERVER_DIR)/include -DGDB_ENABLED
-
-SOURCES = monitor.c util.c dsp_rpc.asm touch.asm builtins.c edma.c \
-          edma3_config.c device_am57.c
-HEADERS = edma.h monitor.h util.h trace.h custom_rsc_table_vayu_dsp.h
-LIBS    = monitor.$(PLATFORM).cmd
-LIBS   += $(ULM_DIR)/libtiulm.ae66
-LIBS   += $(GDB_SERVER_DIR)/lib/gdb_server.ae66
-OBJS1   = $(patsubst %.c,%.obj,$(SOURCES))
-OBJS    = $(patsubst %.asm,%.obj,$(OBJS1))
-
-LINK_CMD0 = $(PROJECT)0/linker.cmd
-LINK_CMD1 = $(PROJECT)1/linker.cmd
-
-
-#----------------------------------------------------------------------------
-# XDC stuff
-#----------------------------------------------------------------------------
-XDCPATH = ./;$(IPC_DIR)/packages;$(BIOS_DIR)/packages;$(EDMA3LLD_DIR)/packages;$(FC_DIR)/packages;$(XDAIS_DIR)/packages;$(OMP_DIR)/packages;$(AM57_PDK_DIR)/packages;
-
-XDCTARGET = ti.targets.elf.C66
-
-COMP_OPTS  = $(PROJECT)/compiler.opt
-BUILD_TYPE = release
-
-
-#----------------------------------------------------------------------------
-# LIBM
-#----------------------------------------------------------------------------
-LIBM_DIR=../libm
-LIBM=$(LIBM_DIR)/libm.lib
-
-
-#----------------------------------------------------------------------------
-# BUILTINS
-#----------------------------------------------------------------------------
-BUILTINS_DIR=../builtins
-BUILTINS=$(BUILTINS_DIR)/dsp.lib
-
-
-#---------------------------------------------------------------------------
-# Function to create the dsp symbols database
-#----------------------------------------------------------------------------
-define create_dsp_syms
-	@echo Creating $(2)
-	@$(TI_OCL_CGT_INSTALL)/bin/nm6x -l $(1) | grep PROT | awk -F\| '{ print "\t.weak "$$8"\n"$$8"\t.set "$$2 };' >  $(2).asm
-	@$(TI_OCL_CGT_INSTALL)/bin/nm6x -l $(1) | grep FUNC | grep -fexport_syms | awk -F\| '{ print "\t.weak "$$8"\n"$$8"\t.set "$$2 };' >> $(2).asm
-	@$(CC) $(2).asm
-	@cp dsp_link_commands.$(PLATFORM) $(2)
-	@rm -f $(1).syms.tmp* $(2).asm
-endef
-
-
-
-.PHONY: all dsp0 dsp1
-all: dsp0 dsp1
-	@diff -q dsp0.syms dsp1.syms
-
-dsp0 : $(LINK_CMD0) dsp0.out dsp0.syms
-dsp1 : $(LINK_CMD1) dsp1.out dsp1.syms
-
-
-#---------------------------------------------------------------------------
-# Build monitors
-#----------------------------------------------------------------------------
-dsp0.out: custom_rsc_table_vayu_dsp0.obj $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD0) $(LIBS)
-	@echo Linking $@
-	@echo $(LINK_CMD0)
-	$(CC) -z --priority -w -x -m$@.map --define=DDR3_FCSECTION=DDR3_FC $^ -I$(TI_OCL_CGT_INSTALL)/lib -llibc.a -o $@
-
-dsp1.out: custom_rsc_table_vayu_dsp1.obj $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD1) $(LIBS)
-	@echo Linking $@
-	@echo $(LINK_CMD1)
-	$(CC) -z --priority -w -x -m$@.map --define=DDR3_FCSECTION=DDR3_FC $^ -I$(TI_OCL_CGT_INSTALL)/lib -llibc.a -o $@
-
-%.syms: %.out export_syms
-	$(call create_dsp_syms, $<, $@)
-
-$(LIBM): 
-	$(MAKE) -C $(LIBM_DIR) -j4 
-
-$(BUILTINS): 
-	$(MAKE) -C $(BUILTINS_DIR) -j4 
-
-
-ocl_platforms/am57x/package/package_ocl_platforms.am57x.c: ocl_platforms/am57x/Platform.xdc
-	 $(MAKE) -C ocl_platforms/am57x
-
-
-$(LINK_CMD0): monitor.$(PLATFORM).cfg ocl_platforms/am57x/package/package_ocl_platforms.am57x.c
-	$(XDC_DIR)/xs --xdcpath "$(XDCPATH)" xdc.tools.configuro -c $(TI_OCL_CGT_INSTALL) --cb -t $(XDCTARGET) -p ocl_platforms.$(PLATFORM) -r $(BUILD_TYPE) -DDSPCORE=0 -o $(PROJECT)0 $(PROJECT).$(PLATFORM).cfg
-	@sed '/c6xabi\.exidx/d' $(LINK_CMD0) > lnk_tmp0
-	@mv lnk_tmp0 $(LINK_CMD0)
-
-$(LINK_CMD1): monitor.$(PLATFORM).cfg ocl_platforms/am57x/package/package_ocl_platforms.am57x.c
-	$(XDC_DIR)/xs --xdcpath "$(XDCPATH)" xdc.tools.configuro -c $(TI_OCL_CGT_INSTALL) --cb -t $(XDCTARGET) -p ocl_platforms.$(PLATFORM) -r $(BUILD_TYPE) -DDSPCORE=1 -o $(PROJECT)1 $(PROJECT).$(PLATFORM).cfg
-	@sed '/c6xabi\.exidx/d' $(LINK_CMD1) > lnk_tmp1
-	@mv lnk_tmp1 $(LINK_CMD1)
-
-#---------------------------------------------------------------------------
-# Default build rules
-#----------------------------------------------------------------------------
-%.obj : %.c $(HEADERS)
-	@echo Compiling $<
-	$(CC) $(INCLUDES) -c $< 
-
-%.obj : %.asm 
-	@echo Compiling $<
-	$(CC) $(INCLUDES) -c $< 
-
-.PHONY: clean
-clean:
-	@$(MAKE) -f Makefile.evmk2g clean
-	@rm -fr *.out *.map *.syms *.obj libm.cmd libm.fcns builtins.cmd builtins.fcns $(PROJECT)0 $(PROJECT)1
-
-.PHONY: realclean
-realclean: clean
-	@$(MAKE) -C $(LIBM_DIR) clean
-	@$(MAKE) -C $(BUILTINS_DIR) clean
-
