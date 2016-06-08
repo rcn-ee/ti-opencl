@@ -39,12 +39,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_FILE_OFFSET_BITS=64")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_PRODUCT_VERSION=${${PROJECT_NAME}_PKG_VERSION}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 
-if (${BUILD_OS} MATCHES "SYS_BIOS")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I${XDC_INSTALL_PATH} -I${BIOS_INSTALL_PATH} -I${LOKI_INCLUDE_PATH}")
-endif()
-
-
 # bfd.h has a check to ensure that config.h is included
 # We don't require config.h (autotools) so we bypass this check by defining
 # PACKAGE, and PACKAGE_VERSION 
