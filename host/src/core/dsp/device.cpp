@@ -235,8 +235,24 @@ void DSPDevice::init()
     pthread_mutex_init(&p_events_mutex, 0);
     pthread_cond_init(&p_worker_cond, 0);
     pthread_mutex_init(&p_worker_mutex, 0);
+#if !defined(_SYS_BIOS)
     pthread_create(&p_worker_dispatch,   0, &dsp_worker_event_dispatch,   this);
     pthread_create(&p_worker_completion, 0, &dsp_worker_event_completion, this);
+#else
+    pthread_attr_t attr_dispatch, attr_completion;
+    pthread_attr_init(&attr_dispatch);
+    pthread_attr_init(&attr_completion);
+    // Give dispatch thread +1 priority so that work can be dispatch to devices
+    // immediately when available, give completion thread +2 priority so that
+    // completion message from devices can be processed immediately.
+    int pri = Task_getPri(Task_self());
+    attr_dispatch.priority   = (pri >= 15-2) ? pri : pri + 1;
+    attr_completion.priority = (pri >= 15-2) ? pri : pri + 2;
+    pthread_create(&p_worker_dispatch,   &attr_dispatch,
+                   &dsp_worker_event_dispatch,   this);
+    pthread_create(&p_worker_completion, &attr_completion,
+                   &dsp_worker_event_completion, this);
+#endif
 
     p_initialized = true;
 }
