@@ -28,22 +28,35 @@
 #define __CL_ENABLE_EXCEPTIONS
 #include <CL/cl.hpp>
 #include <iostream>
+#include <fstream>
 #include <cstdlib>
 #include <cassert>
 #include <signal.h>
-using namespace cl;
+#include "ocl_util.h"
 
-const char * kernStr = "kernel void devset(global char* buf) \n"
-                       "{\n"
-                       "  buf[get_global_id(0)] = 'x'; \n"
-                       "}\n";
+#ifdef _TI_RTOS
+#include "kernel.dsp_h"
+#include "../rtos_main.c"
+#endif
+
+using namespace cl;
+using namespace std;
 
 const int size   = 1 << 23; 
 const int wgsize = 1 << 14;
-cl_char ary [size];
 
+#ifdef _TI_RTOS
+void ocl_main(UArg arg0, UArg arg1)
+{
+   int    argc = (int)     arg0;
+   char **argv = (char **) arg1;
+   cl_char *ary = (cl_char *) __malloc_ddr(size);
+   assert(ary != nullptr);
+#else
+cl_char ary [size];
 int main(int argc, char *argv[])
 {
+#endif
    /*-------------------------------------------------------------------------
    * Catch ctrl-c so we ensure that we call dtors and the dsp is reset properly
    *------------------------------------------------------------------------*/
@@ -56,8 +69,18 @@ int main(int argc, char *argv[])
      Context             context(CL_DEVICE_TYPE_ACCELERATOR); 
      std::vector<Device> devices = context.getInfo<CL_CONTEXT_DEVICES>();
      Buffer              buf (context, CL_MEM_WRITE_ONLY, size);
-     Program::Sources    source(1, std::make_pair(kernStr, strlen(kernStr)));
+
+#ifndef _TI_RTOS
+     ifstream t("kernel.cl");
+     std::string         kSrc((istreambuf_iterator<char>(t)),
+                               istreambuf_iterator<char>());
+     Program::Sources    source(1, make_pair(kSrc.c_str(), kSrc.length()));
      Program             program = Program(context, source);
+#else
+     Program::Binaries   binary(1, make_pair(kernel_dsp_bin,
+                                             sizeof(kernel_dsp_bin)));
+     Program             program = Program(context, devices, binary);
+#endif
      program.build(devices); 
 
      CommandQueue  Q (context, devices[0]);
@@ -69,8 +92,15 @@ int main(int argc, char *argv[])
      Q.enqueueReadBuffer(buf, CL_TRUE, 0, size, ary);
    }
    catch (Error err) 
-   { std::cerr <<"ERROR: " <<err.what() <<"(" <<err.err() <<")" <<std::endl; }
+   {
+     cerr << "ERROR: " << err.what() << "(" << err.err() << ", "
+          << ocl_decode_error(err.err()) << ")" << endl;
+     exit(-1);
+   }
 
    for (int i = 0; i < size; ++i) assert(ary[i] == 'x');
+#ifdef _TI_RTOS
+   __free_ddr(ary);
+#endif
    std::cout << "Done!" << std::endl;
 }

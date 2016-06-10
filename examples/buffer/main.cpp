@@ -29,6 +29,11 @@
 #include <CL/cl.hpp>
 #include <iostream>
 #include <cstdlib>
+#include "ocl_util.h"
+
+#ifdef _TI_RTOS
+#include "../rtos_main.c"
+#endif
 
 using namespace cl;
 using std::cout;
@@ -40,8 +45,17 @@ const int NumElements = 32;
 cl_int src  [NumElements];
 cl_int dst  [NumElements];
 
+#ifdef _TI_RTOS
+#define RETURN(x) return
+void ocl_main(UArg arg0, UArg arg1)
+{
+   int    argc = (int)     arg0;
+   char **argv = (char **) arg1;
+#else
+#define RETURN(x) return x
 int main(int argc, char *argv[])
 {
+#endif
    cl_int err     = CL_SUCCESS;
    int    bufsize = sizeof(src);
 
@@ -59,8 +73,12 @@ int main(int argc, char *argv[])
      Q.enqueueReadBuffer (buf, CL_TRUE, 0, bufsize, dst);
    }
    catch (Error err) 
-   { cerr << "ERROR: " << err.what() << "(" << err.err() << ")" << endl; }
+   {
+     cerr << "ERROR: " << err.what() << "(" << err.err() << ", "
+          << ocl_decode_error(err.err()) << ")" << endl;
+   }
 
-   if (memcmp(dst, src, bufsize) != 0) { cout << "Failed!" << endl; return -1; }
+   if (memcmp(dst, src, bufsize) != 0) { cout << "Failed!" << endl;
+                                         RETURN(-1); }
    else                                cout << "Passed!" << endl; 
 }

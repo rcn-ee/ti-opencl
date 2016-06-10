@@ -1,0 +1,12 @@
+EXE  = float_compute
+srcs = main.cpp
+CL6X_FLAGS= -o3
+CLOCL_FLAGS=
+
+PROFILE=release
+
+include ../make_rtos.inc
+
+bin/$(PROFILE)/main.oa15fg: dsp_compute.dsp_h
+
+

@@ -83,7 +83,7 @@ CommandQueue::CommandQueue(Context *ctx,
     *errcode_ret = checkProperties();
 
 #if defined(_SYS_BIOS)
-    p_freq = 1000000000;
+    p_freq = 1500000000;
     if (p_properties & CL_QUEUE_PROFILING_ENABLE)
     {
         xdc_runtime_Types_FreqHz freq;
@@ -883,7 +883,7 @@ void Event::updateTiming(Timing timing)
 #else
     xdc_runtime_Types_Timestamp64 ts;
     TimestampProvider_get64(&ts);
-    cl_ulong freq = 1000000000;
+    cl_ulong freq = 1500000000;   // defaults to 1.5GHz on AM572
     if (parent() != NULL) freq = ((CommandQueue *) parent())->getFreq();
     rs = ((((cl_ulong) ts.hi) << 32) | ts.lo) * 1e6 / freq;  // to microseconds
 #endif

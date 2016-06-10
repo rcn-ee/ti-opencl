@@ -39,13 +39,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_FILE_OFFSET_BITS=64")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_PRODUCT_VERSION=${${PROJECT_NAME}_PKG_VERSION}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 
-if (${BUILD_OS} MATCHES "SYS_BIOS")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mcpu=cortex-a15 -mtune=cortex-a15 -mfloat-abi=hard -Dxdc_target_types__=${BIOS_INSTALL_PATH}/gnu/targets/arm/std.h -Dxdc_target_name__=A15F")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDEVICE_AM57 -D_SYS_BIOS -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS -mcpu=cortex-a15 -mtune=cortex-a15 -mfloat-abi=hard")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I${XDC_INSTALL_PATH} -I${BIOS_INSTALL_PATH} -I${LOKI_INCLUDE_PATH}")
-endif()
-
-
 # bfd.h has a check to ensure that config.h is included
 # We don't require config.h (autotools) so we bypass this check by defining
 # PACKAGE, and PACKAGE_VERSION 
@@ -57,22 +50,19 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
 
 if (C6678_BUILD)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDSPC868X")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DDSPC868X")
+    set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -DDSPC868X")
 endif()
 
 if (K2X_BUILD)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDEVICE_K2X")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
 endif()
 
 if (K2G_BUILD)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDEVICE_K2G")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
 endif()
 
 if (AM57_BUILD)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDEVICE_AM57")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
 endif()
 
 if (ENABLE_ULM)

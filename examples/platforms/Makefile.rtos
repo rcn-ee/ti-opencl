@@ -1,0 +1,5 @@
+EXE  = platform
+srcs = main.cpp
+
+include ../make_rtos.inc
+

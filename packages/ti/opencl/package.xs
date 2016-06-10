@@ -59,6 +59,12 @@ function getLibs(prog)
             lib += ocl_lib;
         else
             throw new Error("Library not found: " + ocl_lib);
+
+        var ocl_util_lib = "usr/lib/libocl_util.a";
+        if (java.io.File(this.packageBase + ocl_util_lib).exists())
+            lib += ";" + ocl_util_lib;
+        else
+            throw new Error("Library not found: " + ocl_lib);
     }
     else
     {

@@ -31,6 +31,11 @@
 #include <iomanip>
 #include <signal.h>
 #include <cstdlib>
+#include "ocl_util.h"
+
+#ifdef _TI_RTOS
+#include "../rtos_main.c"
+#endif
 
 using namespace cl;
 using namespace std;
@@ -53,8 +58,16 @@ const char *devtype(cl_device_type x)
 * main
 ******************************************************************************/
 char ary[1<<20];
+
+#ifdef _TI_RTOS
+void ocl_main(UArg arg0, UArg arg1)
+{
+   int    argc = (int)     arg0;
+   char **argv = (char **) arg1;
+#else
 int main(int argc, char *argv[])
 {
+#endif
     /*-------------------------------------------------------------------------
     * Catch ctrl-c so we ensure that we call dtors and the dsp is reset properly
     *------------------------------------------------------------------------*/
@@ -145,6 +158,9 @@ int main(int argc, char *argv[])
     * Let exception handling deal with any OpenCL error cases
     *------------------------------------------------------------------------*/
     catch (Error err) 
-    { cerr << "ERROR: " << err.what() << "(" << err.err() << ")" << endl; }
+    {
+        cerr << "ERROR: " << err.what() << "(" << err.err() << ", "
+             << ocl_decode_error(err.err()) << ")" << endl;
+    }
 }
 

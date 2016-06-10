@@ -1,0 +1,9 @@
+EXE  = simple
+srcs = simple.cpp
+CL6X_FLAGS= -o3
+CLOCL_FLAGS=
+
+include ../make_rtos.inc
+
+bin/$(PROFILE)/simple.oa15fg: kernel.dsp_h
+
