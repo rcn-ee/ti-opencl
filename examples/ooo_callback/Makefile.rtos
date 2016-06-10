@@ -1,0 +1,7 @@
+EXE  = ooo_callback
+srcs = ooo_callback.cpp
+
+include ../make_rtos.inc
+
+bin/$(PROFILE)/ooo_callback.oa15fg: kernel.dsp_h
+

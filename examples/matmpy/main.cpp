@@ -34,12 +34,22 @@
 #include <cstdio>
 #include <signal.h>
 #include "ocl_util.h"
+#ifndef _TI_RTOS
 #include "omp.h"
+#endif
+
+#ifdef _TI_RTOS
+#include <ti/sysbios/posix/_time.h>
+#include "kernel.dsp_h"
+#include <assert.h>
+#include "../rtos_main.c"
+#endif
 
 /******************************************************************************
 * C[N][M] = A[N][K] * B[K][M];
 ******************************************************************************/
 using namespace cl;
+using namespace std;
 using std::cout;
 using std::cerr;
 using std::endl;
@@ -49,10 +59,12 @@ const int mat_N     = DIM;
 const int mat_K     = DIM;     
 const int mat_M     = DIM;     
 
+#ifndef _TI_RTOS
 float A       [mat_N * mat_K];
 float B       [mat_K * mat_M];
 float C       [mat_N * mat_M];
 float Golden  [mat_N * mat_M];
+#endif
 
 static double clock_diff (struct timespec *t1, struct timespec *t2);
 static void   print_mat(float *mat, int rows, int cols);
@@ -64,8 +76,17 @@ static void   cpu_mat_mpy(const float *A, const float *B, float *C,
 /******************************************************************************
 * main
 ******************************************************************************/
+#ifdef _TI_RTOS
+#define RETURN(x) return
+void ocl_main(UArg arg0, UArg arg1)
+{
+   int    argc = (int)     arg0;
+   char **argv = (char **) arg1;
+#else
+#define RETURN(x) return x
 int main(int argc, char *argv[])
 {
+#endif
    /*-------------------------------------------------------------------------
    * Catch ctrl-c so we ensure that we call dtors and the dsp is reset properly
    *------------------------------------------------------------------------*/
@@ -76,6 +97,15 @@ int main(int argc, char *argv[])
 
    printf("float C[%d][%d] = float A[%d][%d] x float B[%d][%d]\n",
            mat_N, mat_M, mat_N, mat_K, mat_K, mat_M);
+
+   int mat_size = DIM * DIM * sizeof(cl_float);
+#ifdef _TI_RTOS
+   float *A      = (float *) __malloc_ddr(mat_size);
+   float *B      = (float *) __malloc_ddr(mat_size);
+   float *C      = (float *) __malloc_ddr(mat_size);
+   float *Golden = (float *) __malloc_ddr(mat_size);
+   assert(A != nullptr && B != nullptr && C != nullptr && Golden != nullptr);
+#endif
 
    /*--------------------------------------------------------------------------
    * Initialize the input matrices to random data
@@ -94,6 +124,7 @@ int main(int argc, char *argv[])
      /*---------------------------------------------------------------------
      * Compile the Kernel Source for the devices
      *--------------------------------------------------------------------*/
+#ifndef _TI_RTOS
      char *bin;
      int bin_length = ocl_read_binary("kernel.out", bin);
 
@@ -102,9 +133,15 @@ int main(int argc, char *argv[])
      program.build(devices);
 
      delete [] bin;
+#else
+     Program::Binaries   binary(1, make_pair(kernel_dsp_bin,
+                                             sizeof(kernel_dsp_bin)));
+     Program             program = Program(context, devices, binary);
+     program.build(devices);
+#endif
  
-     Buffer bufB   (context, CL_MEM_READ_ONLY,  sizeof(B));
-     Buffer bufGold(context, CL_MEM_READ_ONLY,  sizeof(Golden));
+     Buffer bufB   (context, CL_MEM_READ_ONLY,  mat_size);
+     Buffer bufGold(context, CL_MEM_READ_ONLY,  mat_size);
      Kernel kernel (program, "ocl_matmpy");
 
      kernel.setArg(1, bufB);
@@ -112,8 +149,8 @@ int main(int argc, char *argv[])
      kernel.setArg(4, mat_K);
      kernel.setArg(5, mat_N);
 
-     unsigned AChunk = sizeof(A) / nDev;
-     unsigned CChunk = sizeof(C) / nDev;
+     unsigned AChunk = mat_size / nDev;
+     unsigned CChunk = mat_size / nDev;
 
      std::vector<CommandQueue*> Q (nDev);
 
@@ -144,7 +181,7 @@ int main(int argc, char *argv[])
          Q[d]->enqueueWriteBuffer(bufA[d], CL_FALSE, 0, AChunk, 
                                   &A[d*AChunk/sizeof(float)]);
 
-         Q[d]->enqueueWriteBuffer(bufB, CL_FALSE, 0, sizeof(B), B);
+         Q[d]->enqueueWriteBuffer(bufB, CL_FALSE, 0, mat_size, B);
 
          /*--------------------------------------------------------------------
          * One work item per cell in result matrix
@@ -171,9 +208,10 @@ int main(int argc, char *argv[])
    }
 
    catch (Error err) 
-   { 
-       cerr << "ERROR: " << err.what() << "(" << err.err() << ")" << endl; 
-       exit(-1);
+   {
+     cerr << "ERROR: " << err.what() << "(" << err.err() << ", "
+          << ocl_decode_error(err.err()) << ")" << endl;
+     exit(-1);
    }
 
    clock_gettime(CLOCK_MONOTONIC, &tp_start);
@@ -181,7 +219,11 @@ int main(int argc, char *argv[])
    clock_gettime(CLOCK_MONOTONIC, &tp_end);
 
    double elapsed = clock_diff (&tp_start, &tp_end);
+#ifndef _TI_RTOS
    printf("OpenMP dispatching to 4 CPU(S): %6.4f secs\n", elapsed);
+#else
+   printf("Host dispatching to 1 CPU(S): %6.4f secs\n", elapsed);
+#endif
 
    print_mat(A,      mat_N, mat_K);
    print_mat(B,      mat_K, mat_M);
@@ -199,8 +241,15 @@ int main(int argc, char *argv[])
            std::cout << "Error at [" << x << "][" << y << "] : " 
                      << Golden[i] << " != " 
                      << C[i] << std::endl;
-           return -1;
+           RETURN(-1);
        }
+
+#ifdef _TI_RTOS
+   __free_ddr(A);
+   __free_ddr(B);
+   __free_ddr(C);
+   __free_ddr(Golden);
+#endif
 
    std::cout << "Passed!" << std::endl;
 }

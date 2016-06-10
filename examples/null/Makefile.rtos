@@ -1,0 +1,7 @@
+EXE  = null
+srcs = main.cpp
+
+include ../make_rtos.inc
+
+bin/$(PROFILE)/main.oa15fg: kernel.dsp_h
+

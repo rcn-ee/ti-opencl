@@ -32,6 +32,12 @@
 #include <signal.h>
 #include <cassert>
 #include <cstdlib>
+#include "ocl_util.h"
+
+#ifdef _TI_RTOS
+#include "oclwrapper.dsp_h"
+#include "../rtos_main.c"
+#endif
 
 using namespace cl;
 using namespace std;
@@ -43,8 +49,15 @@ char    data [1 << 20];
 /******************************************************************************
 * main
 ******************************************************************************/
+#ifdef _TI_RTOS
+void ocl_main(UArg arg0, UArg arg1)
+{
+   int    argc = (int)     arg0;
+   char **argv = (char **) arg1;
+#else
 int main(int argc, char *argv[])
 {
+#endif
     /*-------------------------------------------------------------------------
     * Catch ctrl-c so we ensure that we call dtors and the dsp is reset properly
     *------------------------------------------------------------------------*/
@@ -65,6 +78,7 @@ int main(int argc, char *argv[])
         CommandQueue Q(context, devices[0]);
         Buffer       buffer (context, CL_MEM_READ_WRITE, sizeof(data));
 
+#ifndef _TI_RTOS
         /*---------------------------------------------------------------------
         * Compile the Kernel Source for the devices
         *--------------------------------------------------------------------*/
@@ -79,6 +93,12 @@ int main(int argc, char *argv[])
         * object file.
         *--------------------------------------------------------------------*/
         program.build(devices, "ccode.obj"); 
+#else
+        Program::Binaries binary(1, make_pair(oclwrapper_dsp_bin,
+                                              sizeof(oclwrapper_dsp_bin)));
+        Program           program = Program(context, devices, binary);
+        program.build(devices);
+#endif
 
         /*---------------------------------------------------------------------
         * Call the first kernel -> c code function.
@@ -117,7 +137,10 @@ int main(int argc, char *argv[])
     * Let exception handling deal with any OpenCL error cases
     *------------------------------------------------------------------------*/
     catch (Error err) 
-    { cerr << "ERROR: " << err.what() << "(" << err.err() << ")" << endl; }
+    {
+        cerr << "ERROR: " << err.what() << "(" << err.err() << ", "
+             << ocl_decode_error(err.err()) << ")" << endl; 
+    }
 
     /*-------------------------------------------------------------------------
     * Check the buffer for all elements == 0x80
