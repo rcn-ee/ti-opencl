@@ -47,6 +47,7 @@ HOSTCONFIG             ?= $(OCL_INSTALL_DIR)/packages/ti/opencl/Host.cfg
 
 export TI_OCL_INSTALL
 export TI_OCL_CGT_INSTALL
+export PATH:=$(TI_OCL_CGT_INSTALL)/bin:$(PATH)
 
 
 CC                = $(GCC_ARM_NONE_TOOLCHAIN)/bin/arm-none-eabi-gcc
