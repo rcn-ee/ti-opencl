@@ -38,6 +38,11 @@
 #include <ocl_util.h>
 #include "kernel.dsp_h"
 
+#ifdef _TI_RTOS
+#include <ti/sysbios/posix/_time.h>
+#include "../rtos_main.c"
+#endif
+
 extern "C" {
 #include "cblas.h"
 }
@@ -64,7 +69,11 @@ int  CheckForErrors(const float *Mat, const float *Golden, int M, int N, int K,
 float alpha                         = 1.0f;
 float beta                          = 0.0f;
 enum CBLAS_ORDER order              = CblasColMajor;
+#ifndef _TI_RTOS
 bool check                          = true;
+#else
+bool check                          = false;
+#endif
 bool random_in                      = false;
 bool calc_check                     = false;
 
@@ -87,8 +96,17 @@ bool SetSgemmParams(Device& device);
 /* ======================================================================== */
 /*  MAIN                                                                    */
 /* ======================================================================== */
-int main(int argc, char* argv[])
+#ifdef _TI_RTOS
+#define RETURN(x) return
+void ocl_main(UArg arg0, UArg arg1)
 {
+   int    argc = (int)     arg0;
+   char **argv = (char **) arg1;
+#else
+#define RETURN(x) return x
+int main(int argc, char *argv[])
+{
+#endif
    /*-------------------------------------------------------------------------
    * Catch ctrl-c so we ensure that we call dtors and the dsp is reset properly
    *------------------------------------------------------------------------*/
@@ -112,7 +130,7 @@ int main(int argc, char* argv[])
        * Determine platform, set sgemm blocking/tiling parameters
        *--------------------------------------------------------------------*/
        SetSgemmParams(devices[0]);
-       if (NUMCOMPUNITS == 0)  return -1;
+       if (NUMCOMPUNITS == 0)  RETURN(-1);
 
        int VALRANGE = 17;
        if (random_in) 
@@ -174,7 +192,11 @@ int main(int argc, char* argv[])
 
        if (check)
        {
+#ifndef _TI_RTOS
            if ((gold = (float*) malloc(M*N*sizeof(float))) == NULL)
+#else
+           if ((gold = (float*) __malloc_ddr(M*N*sizeof(float))) == NULL)
+#endif
            {
                printf("Unable to allocate memory to verify results\n");
                exit(-1);
@@ -259,6 +281,11 @@ int main(int argc, char* argv[])
            Q.enqueueUnmapMemObject(bufB, B);
 	   PrintMatrix(gold,M,N,order); 
 	   errs = CheckForErrors(C, gold, M, N, K, order);
+#ifndef _TI_RTOS
+           free(gold);
+#else
+           __free_ddr(gold);
+#endif
        }
 
        PrintMatrix(C,M,N,order); 
@@ -266,11 +293,12 @@ int main(int argc, char* argv[])
    }
    catch (Error err)
    {
-       cerr << "ERROR: " << err.what() << "(" << err.err() << ")" << endl;
+       cerr << "ERROR: " << err.what() << "(" << err.err() << ", "
+            << ocl_decode_error(err.err()) << ")" << endl;
        exit(-1);
    }
 
-   return errs;
+   RETURN(errs);
 }
 
 /******************************************************************************
@@ -368,6 +396,7 @@ void MatmulHost_ATLAS(enum CBLAS_ORDER mem_order,
                 const float*A, const float *B, float *C, int M, int N, int K,
                 float alpha, float beta)
 {
+#ifndef _TI_RTOS
     if (mem_order == CblasRowMajor)
     {
         cblas_sgemm(mem_order, CblasNoTrans, CblasNoTrans,
@@ -386,7 +415,7 @@ void MatmulHost_ATLAS(enum CBLAS_ORDER mem_order,
                     C, /* ldc = */ M
                    );
     }
-    
+#endif
 }
 
 static ulong roundDownPower2(ulong value)
@@ -419,7 +448,12 @@ bool SetSgemmParams(Device& device)
    * How big of a square matrix can we use.  Need 3 BTW
    *---------------------------------------------------------------------*/
    if (!M && !N && !K)
+   {
        M = N = K = roundDownPower2(sqrt(global_mem / 3 / sizeof(float)));
+#ifdef _TI_RTOS
+       if (M >= 2048) M = N = K = 2048;
+#endif
+   }
 
    NUMAPANELS    = L2_BUF_SIZE / 2 / APanelSz;
    NUMBPANELS    = L2_BUF_SIZE / 4 / BPanelSz;

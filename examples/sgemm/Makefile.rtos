@@ -1,0 +1,15 @@
+ATLAS_INSTALL=libcblas_atlas_arm
+ATLAS_LIB    = $(ATLAS_INSTALL)/libcblas.a $(ATLAS_INSTALL)/libatlas.a
+## LDLIBS       = $(ATLAS_LIB)
+
+EXE  = sgemm
+srcs = main.cpp
+CL6X_FLAGS= -o3
+CLOCL_FLAGS=
+
+include ../make_rtos.inc
+
+bin/$(PROFILE)/main.oa15fg: kernel.dsp_h
+
+kernel.dsp_h: sgemm.obj sgemm_kernel.obj data_move.obj
+

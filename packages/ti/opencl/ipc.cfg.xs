@@ -42,7 +42,7 @@ var procNameAry = ["HOST",
                    "DSP1","DSP2","EVE1","EVE2","EVE3","EVE4","IPU1","IPU2"];
 
 var MultiProc = xdc.useModule('ti.sdo.utils.MultiProc');
-MultiProc.setConfig(xdc.global.procName, procNameAry);
+MultiProc.setConfig(xdc.global.oclProcName, procNameAry);
 
 /* ipc configuration */
 var Ipc = xdc.useModule('ti.sdo.ipc.Ipc');
@@ -75,7 +75,7 @@ var Notify = xdc.useModule('ti.sdo.ipc.Notify');
 Notify.numEvents = 8;
 
 var NotifySetup = xdc.useModule('ti.sdo.ipc.family.vayu.NotifySetup');
-if (procName == "HOST")
+if (xdc.global.oclProcName == "HOST")
 {
     NotifySetup.connections.$add(
           new NotifySetup.Connection({
@@ -90,7 +90,7 @@ if (procName == "HOST")
           })
     );
 }
-if (procName == "DSP1" || procName == "DSP2")
+if (xdc.global.oclProcName == "DSP1" || xdc.global.oclProcName == "DSP2")
 {
     NotifySetup.connections.$add(
           new NotifySetup.Connection({

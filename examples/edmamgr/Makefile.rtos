@@ -1,0 +1,9 @@
+EXE  = edmamgr
+srcs = main.cpp
+CL6X_FLAGS= -o3
+CLOCL_FLAGS= -g
+
+include ../make_rtos.inc
+
+bin/$(PROFILE)/main.oa15fg: kernel.dsp_h
+

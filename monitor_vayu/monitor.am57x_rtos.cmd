@@ -66,7 +66,12 @@
 
 SECTIONS
 {
-    .text: load >> DDR3
+    .text:
+    {
+        *(.text:ti_sysbios_family_shared_vayu_Mmu_initTableBuf__I)
+        . = align(0x800);
+        *(.text)
+    } load > DDR3
     .ti.decompress: load > DDR3
     .stack: load > L2SRAM
     GROUP: load > DDR3

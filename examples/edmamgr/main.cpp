@@ -28,9 +28,14 @@
 #define __CL_ENABLE_EXCEPTIONS
 #include <CL/cl.hpp>
 #include <iostream>
+#include <cstdio>
 #include <cstdlib>
 #include "ocl_util.h"
 #include "kernel.dsp_h"
+
+#ifdef _TI_RTOS
+#include "../rtos_main.c"
+#endif
 
 using namespace cl;
 using namespace std;
@@ -42,8 +47,17 @@ const int bytes      = num_chunks * chunk_size;
 cl_uchar src   [bytes];
 cl_uchar dst   [bytes];
 
+#ifdef _TI_RTOS
+#define RETURN(x) return
+void ocl_main(UArg arg0, UArg arg1)
+{
+   int    argc = (int)     arg0;
+   char **argv = (char **) arg1;
+#else
+#define RETURN(x) return x
 int main(int argc, char *argv[])
 {
+#endif
    cl_int err     = CL_SUCCESS;
    int    bufsize = sizeof(src);
 
@@ -73,11 +87,14 @@ int main(int argc, char *argv[])
      Q.enqueueReadBuffer (bufDst, CL_TRUE, 0, bufsize, dst);
    }
    catch (Error err) 
-   { cerr << "ERROR: " << err.what() << "(" << err.err() << ")" << endl; }
+   {
+     cerr << "ERROR: " << err.what() << "(" << err.err() << ", "
+          << ocl_decode_error(err.err()) << ")" << endl;
+   }
 
    for (int i=0; i < bytes; ++i)
        if (dst[i] != 0x000000AB) 
-           { cout << "Failed at Element " << i << endl; return -1; }
+           { cout << "Failed at Element " << i << endl; RETURN(-1); }
 
    cout << "Success!" << endl; 
 }
