@@ -23,7 +23,7 @@ ifeq ($(BUILD_AM57),1)
         CMAKE_DEFINES += -DLINUX_DEVKIT_ROOT=$(PSDK_LINUX_DEVKIT_ROOT)
         export PATH:=$(ARM_GCC49_DIR)/bin:$(PATH)
     else
-	export DESTDIR?=$(CURDIR)/install/ti-opencl-rtos-$(TARGET)-$(OCL_FULL_VER)/packages/ti/opencl
+	export DESTDIR?=$(CURDIR)/install/ti_opencl_rtos_$(TARGET)xx_$(OCL_FULL_VER)/packages/ti/opencl
 	export GCC_ARM_NONE_TOOLCHAIN
         CMAKE_DEFINES += -DBUILD_OS=SYS_BIOS -DPSDK_RTOS=$(DEFAULT_PSDK_RTOS)
     endif
