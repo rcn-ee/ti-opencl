@@ -25,7 +25,7 @@ SDOMC_SHARED?=/cgnas
 
 ifeq (,$(findstring arm, $(UNAME_M)))
     ARM_GCC_DIR?=$(SDOMC_SHARED)/gcc-linaro-5.3-2016.02-x86_64_arm-linux-gnueabihf
-    GCC_ARM_NONE_TOOLCHAIN?=$(SDOMC_SHARED)/gcc-arm-none-eabi-4_8-2014q3
+    GCC_ARM_NONE_TOOLCHAIN?=$(SDOMC_SHARED)/gcc-arm-none-eabi-4_9-2015q3
 endif
 
 # TI C6x CGT
