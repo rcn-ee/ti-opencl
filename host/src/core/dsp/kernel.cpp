@@ -767,6 +767,12 @@ cl_int DSPKernelEvent::run(Event::Type evtype)
     if (err != CL_SUCCESS) return err;
 
     /*-------------------------------------------------------------------------
+    * Flush ARM's cache for device execution
+    *------------------------------------------------------------------------*/
+    SharedMemory *shm = p_device->GetSHMHandler();
+    shm->CacheWbInvAll();
+
+    /*-------------------------------------------------------------------------
     * Feedback to user for debug
     *------------------------------------------------------------------------*/
     int ret = debug_kernel_dispatch();
@@ -983,6 +989,7 @@ cl_int DSPKernelEvent::flush_special_use_host_ptr_buffers(void)
 {
     SharedMemory *shm = p_device->GetSHMHandler();
 
+#if 0
     int total_buf_size = 0;
     for (int i = 0; i < p_hostptr_clMalloced_bufs.size(); ++i)
     {
@@ -1012,6 +1019,32 @@ cl_int DSPKernelEvent::flush_special_use_host_ptr_buffers(void)
                 shm->CacheWb(data, buffer->host_ptr(), buffer->size());
         }
     }
+#else
+    /*-------------------------------------------------------------------------
+    * PSDK3.0 has new Linux kernel 4.4.12 and new CMEM 4.11 kernel module.  It
+    * impacts how we handle cache operations in OpenCL host runtime.  In the
+    * new CMEM kernel module, CMEM_cache{Wb,Inv,WbInv} that we call from
+    * OpenCL host runtime in turn call dma_sync_single_for_{device,cpu}, which
+    * in turn lets Linux kernel know the ownership of the buffer.  After
+    * dma_sync_single_for_device() call, which is called by CMEM_cacheWb,
+    * Linux kernel knows that the buffer is owned by device, while after
+    * dma_sync_single_for_cpu() by CMEM_cacheInv, Linux kernel knows that the
+    * buffer is owned by cpu.  We should refrain from calling CMEM_cacheWbInv,
+    * because after which Linux kernel still thinks that cpu owns the buffer.
+    * Hence we need to change from previous code to this sequence to
+    * be explicit about buffer ownership.
+    *------------------------------------------------------------------------*/
+    for (int i = 0; i < p_hostptr_clMalloced_bufs.size(); ++i)
+    {
+        MemObject *buffer = p_hostptr_clMalloced_bufs[i];
+        DSPBuffer *dspbuf = (DSPBuffer *) buffer->deviceBuffer(p_device);
+        DSPDevicePtr64 data = (DSPDevicePtr64)dspbuf->data();
+
+        // Linux 4.4.12 / CMEM 4.11: CacheWb -> transfer ownership to device
+        if (! HOST_NO_ACCESS(buffer))
+            shm->CacheWb(data, buffer->host_ptr(), buffer->size());
+    }
+#endif
 
     return CL_SUCCESS;
 }
@@ -1213,6 +1246,7 @@ void DSPKernelEvent::free_tmp_bufs()
     * CHANGE AGAIN: On AM57, we see (7 out of 8000) failures that 1 or 2
     *               previously invalidated cache line got back into cache,
     *               so we inv again here
+    * Linux 4.4.12 / CMEM 4.11: CacheInv -> transfer ownership back to cpu
     *------------------------------------------------------------------------*/
     // /***
     for (int i = 0; i < p_hostptr_clMalloced_bufs.size(); ++i)
