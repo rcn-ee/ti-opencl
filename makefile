@@ -6,6 +6,7 @@ ifneq ($(BUILD_DSPC),1)
 ifneq (,$(findstring 86, $(shell uname -m)))
     ifeq ($(BUILD_OS), SYS_BIOS)
         export GCC_ARM_NONE_TOOLCHAIN:=$(GCC_ARM_NONE_TOOLCHAIN)
+        export TI_OCL_CGT_INSTALL:=$(TI_OCL_CGT_INSTALL)
         TOOLCHAIN_FILE=../host/cmake/CMakeBiosARMToolChain.txt
     else
         TOOLCHAIN_FILE=../host/cmake/CMakeARMToolChain.txt

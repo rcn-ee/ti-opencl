@@ -35,6 +35,8 @@
  */
 function getSects()
 {
+    if (String(xdc.global.oclProcName).search("DSP") != -1)
+        return "ti/opencl/linkcmd_dsp.xdt";
 }
 
 /*
@@ -50,7 +52,8 @@ function getLibs(prog)
 
     var lib = "";
 
-    if( String(Program.cpu.deviceName).search("DRA7XX") != -1)
+    if (String(Program.cpu.deviceName).search("DRA7XX") != -1 &&
+        String(xdc.global.oclProcName).search("HOST") != -1)
     {
         var ocl_lib = "usr/lib/libOpenCL.a";
 
@@ -66,9 +69,40 @@ function getLibs(prog)
         else
             throw new Error("Library not found: " + ocl_lib);
     }
+    else if (String(Program.cpu.deviceName).search("DRA7XX") != -1 &&
+             String(xdc.global.oclProcName).search("DSP") != -1)
+    {
+        var dsp_monitor_lib = "usr/share/ti/opencl/libDSPMonitor.ae66";
+        var dsp_monitor_lib_build = "../../../monitor_vayu/libDSPMonitor.ae66";
+        if (java.io.File(this.packageBase + dsp_monitor_lib).exists())
+            lib += dsp_monitor_lib;
+        else if (java.io.File(this.packageBase+dsp_monitor_lib_build).exists())
+            lib += dsp_monitor_lib_build;
+        else
+            throw new Error("Library not found: " + dsp_monitor_lib);
+
+        var builtins_lib = "usr/share/ti/opencl/dsp.lib";
+        var builtins_lib_build = "../../../builtins/dsp.lib";
+        if (java.io.File(this.packageBase + builtins_lib).exists())
+            lib += ";" + builtins_lib;
+        else if (java.io.File(this.packageBase + builtins_lib_build).exists())
+            lib += ";" + builtins_lib_build;
+        else
+            throw new Error("Library not found: " + builtins_lib);
+
+        var libm_lib = "usr/share/ti/opencl/libm.lib";
+        var libm_lib_build = "../../../libm/libm.lib";
+        if (java.io.File(this.packageBase + libm_lib).exists())
+            lib += ";" + libm_lib;
+        else if (java.io.File(this.packageBase + libm_lib_build).exists())
+            lib += ";" + libm_lib_build;
+        else
+            throw new Error("Library not found: " + libm_lib);
+    }
     else
     {
         Program.$logError("Device:" + Program.cpu.deviceName +
+                          " oclProcName:" + xdc.global.oclProcName +
                           " not supported", this);
     }
 

@@ -50,6 +50,7 @@
 #include <ti/ipc/MultiProc.h>
 #if defined(_SYS_BIOS)
 #include <ti/ipc/SharedRegion.h>
+#include <ti/opencl/configuration_dsp.h>
 #endif
 #if defined(DEVICE_AM572x)
 #include <ti/pm/IpcPower.h>
@@ -181,7 +182,11 @@ PRIVATE_1D(char, lstack, LISTEN_STACK_SIZE);
 /******************************************************************************
 * main
 ******************************************************************************/
+#if !defined(_SYS_BIOS)
 int main(int argc, char* argv[])
+#else
+int rtos_init_ocl_dsp_monitor(int argc, char* argv[])
+#endif
 {
     edmamgr_initialized = false;
 
@@ -225,7 +230,11 @@ int main(int argc, char* argv[])
     taskParams.instance->name = "ocl_main";
     taskParams.arg0 = (UArg)argc;
     taskParams.arg1 = (UArg)argv;
+#if !defined(_SYS_BIOS)
     taskParams.priority = 3; // LOWER_PRIORITY
+#else
+    taskParams.priority = ti_opencl_get_OCL_monitor_priority();
+#endif
     taskParams.stackSize = LISTEN_STACK_SIZE;
     taskParams.stack = (xdc_Ptr)lstack; // L2 private
     Task_create(ocl_main, &taskParams, &eb);
@@ -253,11 +262,13 @@ int main(int argc, char* argv[])
     Log_print0(Diags_ENTRY | Diags_INFO, "main: created omp task");
     #endif
 
+#if !defined(_SYS_BIOS)
     /* Start scheduler, this never returns */
     BIOS_start();
 
     /* Should never get here */
     Log_print0(Diags_EXIT, "<-- main:");
+#endif
     return (0);
 }
 

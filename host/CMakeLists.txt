@@ -163,6 +163,11 @@ if (NOT BUILD_OUTPUT)
   set(BUILD_OUTPUT all)
 endif()
 
+if (${BUILD_OS} MATCHES "SYS_BIOS")
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../eclipse ${CMAKE_CURRENT_BINARY_DIR}/eclipse)
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../packages ${CMAKE_CURRENT_BINARY_DIR}/packages)
+endif(${BUILD_OS} MATCHES "SYS_BIOS")
+
 if (${BUILD_OUTPUT} STREQUAL "all")
   add_subdirectory(${OCL_MONITOR_DIR} ${CMAKE_CURRENT_BINARY_DIR}/monitor)
 endif()
@@ -208,11 +213,6 @@ IF (BUILD_TESTS)
     Find_Package(Check REQUIRED)
     add_subdirectory(tests)
 endif (BUILD_TESTS)
-
-if (${BUILD_OS} MATCHES "SYS_BIOS")
-    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../eclipse ${CMAKE_CURRENT_BINARY_DIR}/eclipse)
-    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../packages ${CMAKE_CURRENT_BINARY_DIR}/packages)
-endif(${BUILD_OS} MATCHES "SYS_BIOS")
 
 set (CPACK_GENERATOR "DEB")
 set (CPACK_DEBIAN_PACKAGE_MAINTAINER "TI")

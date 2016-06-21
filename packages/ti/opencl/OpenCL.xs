@@ -51,20 +51,21 @@ function module$meta$init()
  */
 function module$use()
 {
-    var ipc_cfg = xdc.loadCapsule("ti/opencl/ipc.cfg.xs");
-    var Program = xdc.useModule("xdc.cfg.Program");
-
-    if (OpenCL.OCL_GLOBAL_customized == false ||
-        OpenCL.OCL_GLOBAL_base == 0 || OpenCL.OCL_GLOBAL_len == 0)
+    if (OpenCL.OCL_ipc_customized == false)
     {
-        OpenCL.OCL_GLOBAL_base = Program.cpu.memoryMap["OCL_GLOBAL"].base;
-        OpenCL.OCL_GLOBAL_len  = Program.cpu.memoryMap["OCL_GLOBAL"].len;
+        var ipc_cfg = xdc.loadCapsule("ti/opencl/ipc.cfg.xs");
     }
 
-    OpenCL.OCL_HOSTPROG_base = Program.cpu.memoryMap["HOST_PROG"].base;
-    OpenCL.OCL_HOSTPROG_len  = Program.cpu.memoryMap["HOST_PROG"].len;
-    OpenCL.OCL_LOCAL_base = Program.platform.$module["OCL_LOCAL"].base;
-    OpenCL.OCL_LOCAL_len  = Program.platform.$module["OCL_LOCAL"].len;
+    if (OpenCL.OCL_memory_customized == false)
+    {
+        var Program = xdc.useModule("xdc.cfg.Program");
+        OpenCL.OCL_HOSTPROG_base = Program.cpu.memoryMap["HOST_PROG"].base;
+        OpenCL.OCL_HOSTPROG_len  = Program.cpu.memoryMap["HOST_PROG"].len;
+        OpenCL.OCL_GLOBAL_base   = Program.cpu.memoryMap["OCL_GLOBAL"].base;
+        OpenCL.OCL_GLOBAL_len    = Program.cpu.memoryMap["OCL_GLOBAL"].len;
+        OpenCL.OCL_LOCAL_base    = Program.platform.$module["OCL_LOCAL"].base;
+        OpenCL.OCL_LOCAL_len     = Program.platform.$module["OCL_LOCAL"].len;
+    }
 }
 
 

@@ -34,25 +34,23 @@ package ti.opencl;
 import xdc.runtime.Types;
 
 /*!
- *  ======== OpenCL ========
- *  OpenCL RTSC Configuration Module
+ *  ======== DSPMonitor ========
+ *  DSPMonitor RTSC Configuration Module
  *
- *  This module must be used (via xdc.useModule) by all OpenCL RTSC
+ *  This module must be used (via xdc.useModule) by all DSPMonitor RTSC
  *  applications. This module is used to setup a configuration for the
  *  runtime.
  *
  */
 
-module OpenCL
+module DSPMonitor
 {
     /*!
-     *  ======== computeUnitList ========
+     *  ======== OCL_monitor_priority ========
      *
-     *  List of cores/compute units available to the runtime.
-     *  On AM57, defaults to both cores. Override with "0" or "1" for DSP0
-     *  or DSP1 only.
+     *  Priority of OpenCL DSP monitor task.
      */
-    config String   computeUnitList        = "0, 1";
+    config UInt32   OCL_monitor_priority   = 3;
 
     /*!
      *  ======== OCL_ipc_customized ========
@@ -67,35 +65,8 @@ module OpenCL
      *
      *  Flag for memory customization.  If set to true, then the memory
      *  sections below must be given valid values, otherwise, default
-     *  platform values are used.
+     *  platform values are used.  memory sections: TBD
      */
     config Bool     OCL_memory_customized  = false;
-
-    /*!
-     *  ======== OCL_HOSTPROG_base ========
-     *  ======== OCL_HOSTPROG_len ========
-     *
-     *  Host program memory (code, data, stack).
-     */
-    config UInt32   OCL_HOSTPROG_base      = 0;
-    config UInt32   OCL_HOSTPROG_len       = 0;
-
-    /*!
-     *  ======== OCL_GLOBAL_base ========
-     *  ======== OCL_GLOBAL_len ========
-     *
-     *  OpenCL global memory.
-     */
-    config UInt32   OCL_GLOBAL_base        = 0;
-    config UInt32   OCL_GLOBAL_len         = 0;
-
-    /*!
-     *  ======== OCL_LOCAL_base ========
-     *  ======== OCL_LOCAL_len ========
-     *
-     *  OpenCL local memory.  Must be in sync with the DSP monitor build.
-     */
-    config UInt32   OCL_LOCAL_base         = 0;
-    config UInt32   OCL_LOCAL_len          = 0;
 }
 
