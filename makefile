@@ -24,10 +24,11 @@ ifeq ($(BUILD_AM57),1)
         CMAKE_DEFINES += -DLINUX_DEVKIT_ROOT=$(PSDK_LINUX_DEVKIT_ROOT)
         export PATH:=$(ARM_GCC_DIR)/bin:$(PATH)
     else
-    RTOS_PACKAGE_VER=$(shell echo $(OCL_FULL_VER) | sed 's/\<[0-9]\>/0&/g' | sed 's/\./_/g')
+        RTOS_PACKAGE_VER=$(shell echo $(OCL_FULL_VER) | sed 's/\<[0-9]\>/0&/g' | sed 's/\./_/g')
 	export DESTDIR?=$(CURDIR)/install/ti_opencl_rtos_$(TARGET)xx_$(RTOS_PACKAGE_VER)/packages/ti/opencl
 	export GCC_ARM_NONE_TOOLCHAIN
         CMAKE_DEFINES += -DBUILD_OS=SYS_BIOS -DPSDK_RTOS=$(DEFAULT_PSDK_RTOS)
+        CLEAN_DIRS += packages/ti/opencl
     endif
     CLEAN_DIRS += monitor_vayu
 else ifeq ($(BUILD_K2H),1)
