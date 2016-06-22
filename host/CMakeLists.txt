@@ -177,10 +177,17 @@ if (${BUILD_OUTPUT} STREQUAL "all" OR ${BUILD_OUTPUT} STREQUAL "lib")
   add_subdirectory(util)
   add_subdirectory(${OCL_BUILTINS_DIR} ${CMAKE_CURRENT_BINARY_DIR}/builtins)
 
-  install(DIRECTORY DESTINATION /usr/share/doc/ti-opencl         ${OCL_DPERMS})
-  install(DIRECTORY DESTINATION /usr/include/CL                  ${OCL_DPERMS})
-  install(FILES opencl-manifest.html  DESTINATION /usr/share/doc/ti-opencl 
+  if (NOT ${BUILD_OS} MATCHES "SYS_BIOS")
+    install(DIRECTORY DESTINATION /usr/share/doc/ti-opencl ${OCL_DPERMS})
+    install(FILES opencl-manifest.html  DESTINATION /usr/share/doc/ti-opencl 
                                                                  ${OCL_FPERMS})
+  else()
+    install(DIRECTORY DESTINATION ${DESTDIR}/../../../doc  ${OCL_DPERMS})
+    install(FILES opencl-manifest.html  DESTINATION ${DESTDIR}/../../../doc
+                                                                 ${OCL_FPERMS})
+  endif()
+
+  install(DIRECTORY DESTINATION /usr/include/CL                  ${OCL_DPERMS})
   install(FILES     util/ocl_util.h  DESTINATION /usr/include    ${OCL_FPERMS})
   install(DIRECTORY include/CL       DESTINATION /usr/include    ${OCL_DPERMS})
 
