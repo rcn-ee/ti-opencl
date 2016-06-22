@@ -137,6 +137,10 @@ $(BUILTINS):
 platform_files:
 	$(MAKE) -C ../packages/ti/opencl/platforms/am57x_rtos
 
+.PHONY: $(MONITOR_CONFIG)
+$(MONITOR_CONFIG):
+	$(MAKE) -C ../packages/ti/opencl
+
 $(LINK_CMD0): $(OCLLIB) $(MONITOR_CONFIG) platform_files
 	$(XDC_DIR)/xs --xdcpath "$(XDCPATH)" xdc.tools.configuro -c $(TI_OCL_CGT_INSTALL) --cb -t $(XDCTARGET) -p ti.opencl.platforms.$(PLATFORM):DSP1 -r $(BUILD_TYPE) -DDSPCORE=0 -Dxdc.platform.custom.check="false" -o $(PROJECT)0 $(MONITOR_CONFIG)
 	@sed '/c6xabi\.exidx/d' $(LINK_CMD0) > lnk_tmp0
