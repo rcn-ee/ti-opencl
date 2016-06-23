@@ -397,7 +397,7 @@ void write_text(string filename)
     string hfile  (fs_replace_extension(filename, ".dsp_h"));
 
     stringstream bufss;
-    bufss << ifstream(outfile.c_str()).rdbuf();
+    bufss << ifstream(outfile.c_str(), std::ifstream::binary).rdbuf();
 
     string buf(bufss.str());
 
