@@ -45,7 +45,7 @@ DEFAULT_PSDK_RTOS      ?= /cgnas/ti-processor-sdk-rtos-am57xx-evm-03.00.00.02-20
 GCC_ARM_NONE_TOOLCHAIN ?= /cgnas/gcc-arm-none-eabi-4_9-2015q3
 
 TI_OCL_CGT_INSTALL     ?= /cgnas/ti-cgt-c6000-8.1.0-release-linux
-TI_OCL_INSTALL         ?= /cgnas/opencl_rtos_am57xx_01_01_09_01-20160622/packages/ti/opencl
+TI_OCL_INSTALL         ?= /cgnas/opencl_rtos_am57xx_01_01_09_01-20160624/packages/ti/opencl
 endif
 
 BIOS_INSTALL_DIR       ?= $(wildcard $(DEFAULT_PSDK_RTOS)/bios_*)
@@ -100,6 +100,8 @@ bin/$(PROFILE)/$(EXE).xa15fg: $(objs) $(CONFIG)/linker.cmd
 	@$(ECHO) "#"
 	@$(ECHO) "# Making $@ ..."
 	$(LD) $(LDFLAGS) -Wl,-Map,"$(EXE).map" -o $@ $(objs) $(libs) $(LDLIBS)
+	$(RM) *.map
+	$(RMDIR) $(CONFIG)
 
 bin/$(PROFILE)/%.oa15fg: %.cpp $(CONFIG)/compiler.opt
 	@$(ECHO) "#"
