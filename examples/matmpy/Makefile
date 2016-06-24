@@ -6,6 +6,6 @@ CLOCL_FLAGS =
 include ../make.inc
 
 $(EXE): main.o kernel.out
-	@$(CPP) $(CPP_FLAGS) main.o $(LD_FLAGS) $(LIBS) -lrt -lgomp -o $@
+	@$(CPP) $(CPP_FLAGS) main.o $(LD_FLAGS) $(LIBS) -lrt -ldl -lgomp -o $@
 
 kernel.out: ccode.obj 
