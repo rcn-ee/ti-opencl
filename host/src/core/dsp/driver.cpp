@@ -15,7 +15,7 @@
  *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  *   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+ *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  *   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
  *   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
  *   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
@@ -25,27 +25,33 @@
  *   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  *   THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
-#ifdef DSPC868X
-#include "driver_c6678.cpp"
-#include "cmem.cpp"
-#else
-#include "driver_hawking.cpp"
-#include "shmem.cpp"
-#endif
+#include "../platform.h"
+#include "core/shared_memory_interface.h"
 
+using namespace tiocl;
 
 extern "C" {
 
-int32_t __device_write(int32_t dsp, DSPDevicePtr64 addr, 
+int32_t __device_write(int32_t dsp, DSPDevicePtr64 addr,
                        uint8_t *buf, uint32_t sz)
 {
-    return Driver::instance()->write(dsp, addr, buf, sz);
+    const SharedMemoryProviderFactory &shmFactory =
+        the_platform::Instance().GetSharedMemoryProviderFactory();
+    SharedMemory* shm = shmFactory.GetSharedMemoryProvider(dsp);
+    assert (shm != nullptr);
+
+    return shm->WriteToShmem(addr, buf, sz);
 }
 
-int32_t __device_read (int32_t dsp, DSPDevicePtr64 addr, 
+int32_t __device_read (int32_t dsp, DSPDevicePtr64 addr,
                        uint8_t *buf, uint32_t sz)
 {
-    return Driver::instance()->read(dsp, addr, buf, sz);
+    const SharedMemoryProviderFactory &shmFactory =
+        the_platform::Instance().GetSharedMemoryProviderFactory();
+    SharedMemory* shm = shmFactory.GetSharedMemoryProvider(dsp);
+    assert (shm != nullptr);
+
+    return shm->ReadFromShmem(addr, buf, sz);
 }
 
 }

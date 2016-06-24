@@ -189,7 +189,7 @@ of the example code.
 Line 6 creates a Program:Binaries object.  It requires a pair consisting of a
 pointer to the binary data and a length of the data.  This example illustrates
 one device and one binary, but it is possible to specify multiple devices and
-multiple binaries. Line 6 creates a Program object from the binaries.  Note
+multiple binaries. Line 7 creates a Program object from the binaries.  Note
 that creating a program from binaries requires an additional argument, a vector
 of devices.  This allows the application to create a program for a subset of
 devices.  Perhaps an OpenCL context contains 3 devices, but the application

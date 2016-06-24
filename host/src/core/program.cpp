@@ -33,7 +33,9 @@
 
 #include "program.h"
 #include "context.h"
+#ifndef _SYS_BIOS
 #include "compiler.h"
+#endif
 #include "kernel.h"
 #include "propertylist.h"
 #include "deviceinterface.h"
@@ -54,24 +56,14 @@
 #include <llvm/Support/raw_ostream.h>
 #include <llvm/Support/Casting.h>
 #include <llvm/Bitcode/ReaderWriter.h>
-#include <llvm/Transforms/IPO.h>
 #include <llvm/IR/LLVMContext.h>
-#include <llvm/IR/Module.h>
-#include <llvm/Linker/Linker.h>
-#include <llvm/PassManager.h>
-#include <llvm/IR/Metadata.h>
-#include <llvm/IR/Function.h>
-#include <llvm/Analysis/Passes.h>
-#include <llvm/Transforms/IPO.h>
-#include <llvm/IR/Instructions.h>
-#include <llvm/IR/InstIterator.h>
-#include <llvm/IR/DiagnosticPrinter.h>
-#include <llvm/Transforms/Scalar.h>
-#include <SimplifyShuffleBIFCall.h>
 
+#ifndef _SYS_BIOS
 #include <runtime/stdlib.c.bc.embed.h>
- 
+
 #include "dsp/genfile_cache.h"
+#endif
+ 
 
 /*-----------------------------------------------------------------------------
 * temporary for source file cacheing, remove from product releases
@@ -81,15 +73,19 @@
 
 using namespace Coal;
 
-static llvm::Module *BitcodeToLLVMModule(const string &bitcode,
+static llvm::Module *BitcodeToLLVMModule(const std::string &bitcode,
                                          llvm::LLVMContext &llvmcontext);
+#ifndef _SYS_BIOS
 static bool ReadBinaryIntoString(const std::string &outfile,
                                        std::string &binary_str);
+#endif
 
 Program::Program(Context *ctx)
 : Object(Object::T_Program, ctx), p_type(Invalid), p_state(Empty)
 {
+#ifndef _SYS_BIOS
     p_null_device_dependent.compiler = 0;
+#endif
     p_null_device_dependent.device = 0;
     p_null_device_dependent.linked_module = 0;
     p_null_device_dependent.program = 0;
@@ -108,7 +104,9 @@ void Program::resetDeviceDependent()
     {
         DeviceDependent &dep = p_device_dependent.back();
 
+#ifndef _SYS_BIOS
         delete dep.compiler;
+#endif
         delete dep.program;
         delete dep.linked_module;
         dep.unlinked_binary.clear();
@@ -132,7 +130,9 @@ void Program::setDevices(cl_uint num_devices, DeviceInterface * const*devices)
         dep.is_native_binary       = false;
         dep.native_binary_filename = NULL;
         dep.linked_module          = 0;
+#ifndef _SYS_BIOS
         dep.compiler               = new Compiler(dep.device);
+#endif
     }
 }
 
@@ -173,14 +173,18 @@ std::string Program::deviceDependentCompilerOptions(DeviceInterface *device) con
 {
     const DeviceDependent &dep = deviceDependent(device);
 
+#ifndef _SYS_BIOS
     return dep.compiler->options();
+#else
+    return "error";
+#endif
 }
 
 std::vector<llvm::Function *> Program::kernelFunctions(DeviceDependent &dep)
 {
     std::vector<llvm::Function *> rs;
 
-    llvm::NamedMDNode *kernels = 
+    llvm::NamedMDNode *kernels =
                dep.linked_module->getNamedMetadata("opencl.kernels");
 
     if (!kernels) return rs;
@@ -197,7 +201,7 @@ std::vector<llvm::Function *> Program::kernelFunctions(DeviceDependent &dep)
         /*---------------------------------------------------------------------
         * Bug somewhere, don't crash
         *--------------------------------------------------------------------*/
-        if (!llvm::isa<llvm::Function>(value)) continue;       
+        if (!llvm::isa<llvm::Function>(value)) continue;
 
         llvm::Function *f = llvm::cast<llvm::Function>(value);
         rs.push_back(f);
@@ -232,7 +236,7 @@ Kernel *Program::createKernel(const std::string &name, cl_int *errcode_ret)
             if (func->getName().str() == name)
             {
                 found = true;
-                *errcode_ret = rs->addFunction(dep.device, func, 
+                *errcode_ret = rs->addFunction(dep.device, func,
                                                dep.linked_module);
                 if (*errcode_ret != CL_SUCCESS) return rs;
                 break;
@@ -345,7 +349,7 @@ cl_int Program::loadBinaries(const unsigned char **data, const size_t *lengths,
         *                  or     LLVM bitcode itself
         *--------------------------------------------------------------------*/
         std::string bitcode;
-        if (!dep.program->ExtractMixedBinary(dep.unlinked_binary, bitcode)) 
+        if (!dep.program->ExtractMixedBinary(dep.unlinked_binary, bitcode))
         {
             bitcode = dep.unlinked_binary;
             dep.is_native_binary = false;
@@ -392,6 +396,7 @@ cl_int Program::build(const char *options,
     {
         DeviceDependent &dep = deviceDependent(device_list[i]);
 
+#ifndef _SYS_BIOS
         // Do we need to compile the source for each device ?
         if (p_type == Source)
         {
@@ -405,10 +410,10 @@ cl_int Program::build(const char *options,
 
             dep.native_binary_filename = new char[outfile.size()+1];
             strcpy(dep.native_binary_filename, outfile.c_str());
-            
+
             dep.is_native_binary = true;
-            
-            // Extract LLVM bitcode from char array 
+
+            // Extract LLVM bitcode from char array
             std::string bitcode;
             dep.program->ExtractMixedBinary(dep.unlinked_binary, bitcode);
 
@@ -418,6 +423,7 @@ cl_int Program::build(const char *options,
             if (dep.linked_module == nullptr)
                 return CL_BUILD_PROGRAM_FAILURE;
         }
+#endif
 
 
         // Now that the LLVM module is built, build the device-specific
@@ -599,13 +605,17 @@ cl_int Program::buildInfo(DeviceInterface *device,
             break;
 
         case CL_PROGRAM_BUILD_OPTIONS:
+#ifndef _SYS_BIOS
             value = dep.compiler->options().c_str();
             value_length = dep.compiler->options().size() + 1;
+#endif
             break;
 
         case CL_PROGRAM_BUILD_LOG:
+#ifndef _SYS_BIOS
             value = dep.compiler->log().c_str();
             value_length = dep.compiler->log().size() + 1;
+#endif
             break;
 
         default:
@@ -624,6 +634,7 @@ cl_int Program::buildInfo(DeviceInterface *device,
     return CL_SUCCESS;
 }
 
+#ifndef _SYS_BIOS
 static bool ReadBinaryIntoString(const std::string &outfile,
                                        std::string &binary_str)
 {
@@ -653,9 +664,10 @@ static bool ReadBinaryIntoString(const std::string &outfile,
 
     return success;
 }
+#endif
 
 
-static llvm::Module *BitcodeToLLVMModule(const string &bitcode,
+static llvm::Module *BitcodeToLLVMModule(const std::string &bitcode,
                                          llvm::LLVMContext &llvmcontext)
 {
     const llvm::StringRef s_data(bitcode);
@@ -669,7 +681,7 @@ static llvm::Module *BitcodeToLLVMModule(const string &bitcode,
 
     // Make a module of it
     llvm::ErrorOr<llvm::Module *> ModuleOrErr =
-                                    parseBitcodeFile(buffer->getMemBufferRef(), 
+                                    parseBitcodeFile(buffer->getMemBufferRef(),
                                                      llvmcontext);
 
     if (std::error_code ec = ModuleOrErr.getError())

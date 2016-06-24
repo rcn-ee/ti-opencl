@@ -28,31 +28,51 @@
 #define __CL_ENABLE_EXCEPTIONS
 #include <CL/cl.hpp>
 #include <iostream>
+#include <fstream>
 #include <cstdlib>
 #include <cstdio>
 #include "ocl_util.h"
 
+#ifdef _TI_RTOS
+#include <ti/sysbios/posix/_time.h>
+#include "kernel.dsp_h"
+#include "../rtos_main.c"
+#endif
+
 using namespace cl;
 using namespace std;
-
-const char * kernelStr = "kernel void Null()\n"
-                         "{\n"
-                         "}\n";
 
 static unsigned us_diff (struct timespec &t1, struct timespec &t2)
 { return (t2.tv_sec - t1.tv_sec) * 1e6 + (t2.tv_nsec - t1.tv_nsec) / 1e3; }
 
+#ifdef _TI_RTOS
+void ocl_main(UArg arg0, UArg arg1)
+{
+   int    argc = (int)     arg0;
+   char **argv = (char **) arg1;
+#else
 int main(int argc, char *argv[])
 {
+#endif
    struct timespec t0, t1;
 
    try 
    {
      Context             context (CL_DEVICE_TYPE_ACCELERATOR);
      std::vector<Device> devices = context.getInfo<CL_CONTEXT_DEVICES>();
-     CommandQueue        Q       (context, devices[0]);
-     Program::Sources    source(1, std::make_pair(kernelStr,strlen(kernelStr)));
+     CommandQueue        Q(context, devices[0], CL_QUEUE_PROFILING_ENABLE);
+
+#ifndef _TI_RTOS
+     ifstream t("kernel.cl");
+     std::string         kSrc((istreambuf_iterator<char>(t)),
+                               istreambuf_iterator<char>());
+     Program::Sources    source(1, make_pair(kSrc.c_str(), kSrc.length()));
      Program             program = Program(context, source);
+#else
+     Program::Binaries   binary(1, make_pair(kernel_dsp_bin,
+                                             sizeof(kernel_dsp_bin)));
+     Program             program = Program(context, devices, binary);
+#endif
      program.build(devices); 
 
      Kernel kernel(program, "Null");
@@ -72,13 +92,18 @@ int main(int argc, char *argv[])
      for (int i = 0; i < 5; ++i)
      {
          clock_gettime(CLOCK_MONOTONIC, &t0);
-         null().wait();
+         Event ev = null();
+         ev.wait();
          clock_gettime(CLOCK_MONOTONIC, &t1);
          printf("Elapsed (w/o  Load): %d usecs\n", us_diff(t0, t1));
+         ocl_event_times(ev, "Null Kernel Exec");
      }
    }
    catch (Error err) 
-   { cerr << "ERROR: " << err.what() << "(" << err.err() << ")" << endl; }
+   {
+     cerr << "ERROR: " << err.what() << "(" << err.err() << ", "
+          << ocl_decode_error(err.err()) << ")" << endl;
+   }
 
    cout << "Done!" << endl; 
 }

@@ -37,13 +37,7 @@ extern cregister volatile unsigned int DNUM;
 #define RETURN_FAIL 0
 #define RETURN_OK   1
 
-#if defined(DEVICE_AM572x)
-    #define NUM_CORES 2
-#elif defined(DEVICE_K2G)
-    #define NUM_CORES 1
-#else
-    #error Unknown device
-#endif
+#define MAX_NUM_CORES 2
 
 #define ROUNDUP(val, pow2)   (((val) + (pow2) - 1) & ~((pow2) - 1))
 

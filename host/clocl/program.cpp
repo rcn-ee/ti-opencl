@@ -15,7 +15,7 @@
  *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  *   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+ *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  *   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
  *   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
  *   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
@@ -44,13 +44,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <vector>
-#include <sys/types.h>
-#include <sys/time.h>
-#include <sys/wait.h>
-#include <sys/stat.h>
-#include <unistd.h>
 
-#include <elf.h>
 
 using namespace std;
 
@@ -61,10 +55,31 @@ using namespace std;
 
 const char *get_cgt_install()
 {
+    // First, check if TI_OCL_CGT_INSTALL is set (must be set on windows)
     const char *install = getenv("TI_OCL_CGT_INSTALL");
-    if (install) return install;
+    if (install)
+    {
+        if (fs_exists(install))
+            return install;
+        else
+        {
+            std::cout << "\n The C6000 compiler installation specified by TI_OCL_CGT_INSTALL"
+                         " does not exist: " << install << std::endl;
+            exit(EXIT_FAILURE);
+        }
+    }
+    else
+    {
+        #if defined(_MSC_VER)
+        std::cout << "\n TI_OCL_CGT_INSTALL must point to a C6000 compiler installation."
+                  << std::endl;
+        exit(EXIT_FAILURE);
+        #endif
+    }
 
-    bool def_install = access(DEFAULT_TI_CGT_INSTALL_PATH, F_OK|R_OK) != -1;
+    #if !defined(_MSC_VER)
+
+    bool def_install = fs_exists(DEFAULT_TI_CGT_INSTALL_PATH);
 
     if (!def_install)
     {
@@ -73,11 +88,14 @@ const char *get_cgt_install()
        "location (/usr/share/ti/cgt-c6x).\n"
        "Use the environment variable TI_OCL_CGT_INSTALL to specify an alternate\n"
        "installation path.\n"  << std::endl;
- 
-       abort();
+
+       exit(EXIT_FAILURE);
     }
-    else 
+    else
        install = const_cast<char*>(DEFAULT_TI_CGT_INSTALL_PATH);
+
+    #endif
+
     return install;
 }
 
@@ -86,21 +104,28 @@ const char *get_cgt_install()
 ******************************************************************************/
 std::string get_ocl_dsp()
 {
-    std::string stdpath("/usr/share/ti/opencl");
+    string stdpath;
 
+    // If TI_OCL_INSTALL is specified, use it as a prefix
+    const char *ocl_install    = getenv("TI_OCL_INSTALL");
     const char *target_rootdir = getenv("TARGET_ROOTDIR");
-    if (target_rootdir) stdpath = target_rootdir + stdpath;
 
-    const char *ocl_install = getenv("TI_OCL_INSTALL");
-    if (ocl_install) { stdpath = ocl_install; stdpath += "/usr/share/ti/opencl"; }
+    // If TI_OCL_INSTALL is specified, use it as a prefix
+    if (ocl_install)         stdpath = ocl_install;
+    else if (target_rootdir) stdpath = target_rootdir;
 
-    struct stat st;
-    stat(stdpath.c_str(), &st);
-    if (S_ISDIR(st.st_mode)) return stdpath.c_str();
+    #if !defined(_MSC_VER)
+    stdpath += "/usr/share/ti/opencl";
+    #else
+    stdpath += "\\usr\\share\\ti\\opencl";
+    #endif
+
+    if (fs_exists(stdpath)) return stdpath;
 
     std::cout << "The OpenCL DSP directory " << stdpath
               << " does not exist !"         << std::endl;
-    abort();
+
+    exit(EXIT_FAILURE);
 }
 
 /******************************************************************************
@@ -111,7 +136,13 @@ int run_cl6x(string filename, string *llvm_bitcode, string addl_files)
     string command("cl6x --f -q --abi=eabi --use_g3 -mv6600 -mo ");
 
     if (!opt_alias) command += "-mt ";
-    if (opt_tmpdir) command += "-ft=/tmp -fs=/tmp -fr=/tmp ";
+    if (opt_tmpdir)
+    {
+        command += "-ft=";
+        command += fs_get_tmp_folder() + " -fs=";
+        command += fs_get_tmp_folder() + " -fr=";
+        command += fs_get_tmp_folder() + " ";
+    }
     if (opt_keep)   command += "-mw -k --z ";
 
     command += "--disable:sploop ";
@@ -126,7 +157,7 @@ int run_cl6x(string filename, string *llvm_bitcode, string addl_files)
    command += "-I"; command += cgt_install; command += "/lib ";
    command += "-I"; command += get_ocl_dsp().c_str(); command += " ";
 
-    command += "--bc_file="; command += filename; command += " "; 
+    command += "--bc_file="; command += filename; command += " ";
 
     /*-------------------------------------------------------------------------
     * Encode LLVM bitcode as bytes in the .llvmir section of the .asm file
@@ -135,7 +166,7 @@ int run_cl6x(string filename, string *llvm_bitcode, string addl_files)
     {
         string bitasm_name(fs_stem(filename));
         bitasm_name += "_bc.asm";
-        if (opt_tmpdir) bitasm_name = "/tmp/" + bitasm_name;
+        if (opt_tmpdir) bitasm_name = fs_get_tmp_folder() + bitasm_name;
 
         ofstream outasmfile(bitasm_name.c_str(), ios::out);
         outasmfile << "\t.sect \".llvmir\"\n" << "\t.retain";
@@ -161,21 +192,21 @@ int run_cl6x(string filename, string *llvm_bitcode, string addl_files)
     string outfile(fs_replace_extension(filename, ".out"));
 
     command += "-z ";
-    command += "-o "; 
+    command += "-o ";
     command += outfile;
-    command += " "; 
+    command += " ";
 
-    if (opt_keep) 
-    { 
-        command += "-m "; 
+    if (opt_keep)
+    {
+        command += "-m ";
         command += fs_replace_extension(filename, ".map");
-        command += " "; 
+        command += " ";
     }
 
     /*-------------------------------------------------------------------------
     * Any libraries or object files need to go last to resolve references
     *------------------------------------------------------------------------*/
-    command += addl_files; 
+    command += addl_files;
     command += " -ldsp.syms ";
 
     if (opt_verbose) cout << command << endl;

@@ -29,7 +29,7 @@
 #pragma once
 
 #include <string>
-#include "tiocl_types.h"
+#include "../tiocl_types.h"
 
 namespace tiocl {
 

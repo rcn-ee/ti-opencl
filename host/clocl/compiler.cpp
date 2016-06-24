@@ -14,8 +14,8 @@
  *       names of its contributors may be used to endorse or promote products
  *       derived from this software without specific prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  * ARE DISCLAIMED. IN NO EVENT SHALL THE CONTRIBUTORS BE LIABLE FOR ANY
  * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
@@ -33,12 +33,13 @@
 
 #include "compiler.h"
 #include "options.h"
+#include "file_manip.h"
 
 #include <cstring>
 #include <string>
 #include <sstream>
 #include <iostream>
-#include <unistd.h>
+
 #include <clang/Frontend/CompilerInvocation.h>
 #include <clang/Frontend/TextDiagnosticPrinter.h>
 #include <clang/Frontend/LangStandard.h>
@@ -67,7 +68,7 @@ bool Compiler::compile(const std::string &options,
                                 llvm::MemoryBuffer *source,
                                 std::string filename)
 {
-    bool use_pch = access("/usr/share/ti/opencl/clc.h.pch", F_OK) != -1;
+    bool use_pch = fs_exists("/usr/share/ti/opencl/clc.h.pch");
 
     /* Set options */
     p_options = options;
@@ -91,8 +92,8 @@ bool Compiler::compile(const std::string &options,
         use_pch    = false;
         lang_opts.Optimize  = false;
     }
-    else 
-    { 
+    else
+    {
         codegen_opts.setDebugInfo(clang::CodeGenOptions::NoDebugInfo);
         codegen_opts.OptimizationLevel = 2;
         lang_opts.Optimize  = true;
@@ -276,7 +277,7 @@ bool Compiler::compile(const std::string &options,
     p_module = act->takeModule().release();
 
     // uncomment to debug the llvm IR
-    // p_module->dump();  
+    // p_module->dump();
 
     // Cleanup
     //prep_opts.eraseRemappedFile(prep_opts.remapped_file_buffer_end());

@@ -271,4 +271,4 @@ of these intrinsic functions.
     int           _xpnd4          (int x);
 
 
-.. _C6000 Compiler User's Guide: http://www.ti.com/lit/ug/spru187u/spru187u.pdf
+.. _C6000 Compiler User's Guide: http://downloads.ti.com/docs/esd/SPRUI04/

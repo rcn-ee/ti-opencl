@@ -32,6 +32,10 @@
 #include "ocl_util.h"
 #include "vadd.dsp_h"
 
+#ifdef _TI_RTOS
+#include "../rtos_main.c"
+#endif
+
 using namespace cl;
 using namespace std;
 
@@ -41,15 +45,32 @@ const int VectorElements  = 4;
 const int NumVecElements  = NumElements / VectorElements;
 const int WorkGroupSize   = NumVecElements / NumWorkGroups;
 
+#ifndef _TI_RTOS
 cl_short srcA  [NumElements];
 cl_short srcB  [NumElements];
 cl_short dst   [NumElements];
 cl_short Golden[NumElements];
+#endif
 
+#ifdef _TI_RTOS
+#define RETURN(x) return
+void ocl_main(UArg arg0, UArg arg1)
+{
+   int    argc = (int)     arg0;
+   char **argv = (char **) arg1;
+#else
+#define RETURN(x) return x
 int main(int argc, char *argv[])
 {
-   cl_int err     = CL_SUCCESS;
-   int    bufsize = sizeof(srcA);
+#endif
+
+   int    bufsize = NumElements * sizeof(cl_short);
+#ifdef _TI_RTOS
+   cl_short *srcA   = (cl_short*) __malloc_ddr(bufsize);
+   cl_short *srcB   = (cl_short*) __malloc_ddr(bufsize);
+   cl_short *dst    = (cl_short*) __malloc_ddr(bufsize);
+   cl_short *Golden = (cl_short*) __malloc_ddr(bufsize);
+#endif
 
    for (int i=0; i < NumElements; ++i) 
    { 
@@ -93,11 +114,21 @@ int main(int argc, char *argv[])
      ocl_event_times(ev4, "Read BufDst");
    }
    catch (Error err) 
-   { cerr << "ERROR: " << err.what() << "(" << err.err() << ")" << endl; }
+   {
+     cerr << "ERROR: " << err.what() << "(" << err.err() << ", "
+          << ocl_decode_error(err.err()) << ")" << endl;
+   }
 
    for (int i=0; i < NumElements; ++i)
        if (Golden[i] != dst[i]) 
-           { cout << "Failed at Element " << i << endl; return -1; }
+           { cout << "Failed at Element " << i << endl; RETURN(-1); }
+
+#ifdef _TI_RTOS
+   __free_ddr(srcA);
+   __free_ddr(srcB);
+   __free_ddr(dst);
+   __free_ddr(Golden);
+#endif
 
    cout << "Success!" << endl; 
 }

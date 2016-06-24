@@ -1,0 +1,11 @@
+EXE  = dsplib_fft
+srcs = fft_ocl.cpp
+CL6X_FLAGS= -o3
+CLOCL_FLAGS=
+
+include ../make_rtos.inc
+
+bin/$(PROFILE)/fft_ocl.oa15fg: kernel.dsp_h
+
+kernel.dsp_h: kernel.cl dsplib.ae66
+

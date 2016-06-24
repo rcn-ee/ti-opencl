@@ -27,7 +27,6 @@
  *****************************************************************************/
 #include "buffer.h"
 #include "device.h"
-#include "driver.h"
 
 #include "CL/cl_ext.h"
 #include "../memobject.h"
@@ -48,10 +47,19 @@ DSPBuffer::DSPBuffer(DSPDevice *device, MemObject *buffer, cl_int *rs)
         /*---------------------------------------------------------------------
         * We use the host ptr, we are already allocated
         *--------------------------------------------------------------------*/
-        if (device->clMallocQuery(buffer->host_ptr(), &p_data, NULL))
+        if (device->GetSHMHandler()->clMallocQuery(buffer->host_ptr(),
+                                                   &p_data, NULL))
             buffer->set_host_ptr_clMalloced();
         else
+#if defined(_SYS_BIOS)
+        {
+            // In SYS_BIOS mode, treat host ptr as if it is clMalloc-ed
+            buffer->set_host_ptr_clMalloced();
+            p_data = (DSPDevicePtr64) ((DSPDevicePtr) buffer->host_ptr());
+        }
+#else
             p_data = (DSPDevicePtr64) buffer->host_ptr();
+#endif
     }
 }
 
@@ -60,8 +68,8 @@ DSPBuffer::~DSPBuffer()
     if (p_data_malloced)
     {
         if (p_buffer->flags() & CL_MEM_USE_MSMC_TI)
-             p_device->free_msmc  (p_data);
-        else p_device->free_global(p_data);
+             p_device->GetSHMHandler()->FreeMSMC(p_data);
+        else p_device->GetSHMHandler()->FreeGlobal(p_data);
     }
 }
 
@@ -124,8 +132,9 @@ bool DSPBuffer::allocate()
     if (!p_data)
     {
         if (p_buffer->flags() & CL_MEM_USE_MSMC_TI)
-             p_data = (DSPDevicePtr64) p_device->malloc_msmc(buf_size);
-        else p_data = (DSPDevicePtr64) p_device->malloc_global(buf_size, false);
+            p_data = p_device->GetSHMHandler()->AllocateMSMC(buf_size);
+        else
+            p_data = p_device->GetSHMHandler()->AllocateGlobal(buf_size, false);
 
         if (!p_data) return false;
 
@@ -134,7 +143,7 @@ bool DSPBuffer::allocate()
 
     if (p_buffer->type() != MemObject::SubBuffer &&
         p_buffer->flags() & CL_MEM_COPY_HOST_PTR)
-        Driver::instance()->write(p_device->dspID(), p_data, 
+        p_device->GetSHMHandler()->WriteToShmem(p_data,
                                 (uint8_t*)p_buffer->host_ptr(), buf_size);
 
     // Say to the memobject that we are allocated

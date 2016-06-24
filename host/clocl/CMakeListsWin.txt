@@ -1,0 +1,130 @@
+cmake_minimum_required(VERSION 2.6)
+project(clocl)
+
+# Ensure product version is set
+if (DEFINED _PRODUCT_VERSION)
+message (STATUS "_PRODUCT_VERSION set to ${_PRODUCT_VERSION}")
+add_definitions(-D_PRODUCT_VERSION=${_PRODUCT_VERSION})
+else ()
+message (FATAL_ERROR "_PRODUCT_VERSION is not set")
+endif()
+
+
+#
+# LLVM/Clang setup. Must specify -DLLVM_DIR=<path to LLVM cmake file>
+#
+find_package(LLVM REQUIRED CONFIG)
+
+message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
+message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
+
+# LLVM definitions and libraries
+add_definitions(${LLVM_DEFINITIONS})
+llvm_map_components_to_libnames(llvm_libs all)
+
+# Directory path to find clang libraries
+link_directories(${LLVM_TOOLS_BINARY_DIR}/../lib)
+
+set (clang_libs
+	clangFrontend
+	clangFrontendTool
+  	clangSerialization
+  	clangDriver
+  	clangParse
+  	clangCodegen
+  	clangSema
+  	clangAnalysis
+  	clangAST
+  	clangBasic
+  	clangEdit
+  	clangLex
+  	clangTooling)
+
+#
+# Boost setup (must specify -DBOOST_ROOT=<path to boost root> on command line
+#
+find_package(Boost REQUIRED)
+include_directories(${Boost_INCLUDE_DIR})
+
+
+set(CMAKE_INSTALL_PREFIX ${PROJECT_SRC_DIR}/pc)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+
+#
+# Use /MT multithreaded static runtime
+#
+foreach(flag_var
+        CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELEASE
+        CMAKE_CXX_FLAGS_MINSIZEREL CMAKE_CXX_FLAGS_RELWITHDEBINFO)
+   if(${flag_var} MATCHES "/MD")
+      string(REGEX REPLACE "/MD" "/MT" ${flag_var} "${${flag_var}}")
+   endif(${flag_var} MATCHES "/MD")
+endforeach(flag_var)
+
+set(UTIL_SOURCE_DIR ../src/core)
+set(WGA_SOURCE_DIR ../src/core/dsp)
+set(POCL_SOURCE_DIR ../src/llvmopencl)
+
+include_directories(${LLVM_INCLUDE_DIRS} ${UTIL_SOURCE_DIR} ${WGA_SOURCE_DIR}
+                    ${POCL_SOURCE_DIR})
+
+set(UTIL_SOURCE_FILES
+    ${UTIL_SOURCE_DIR}/util.cpp)
+
+set(WGA_SOURCE_FILES
+    ${WGA_SOURCE_DIR}/wga.cpp)
+
+set(POCL_SOURCE_FILES
+    ${POCL_SOURCE_DIR}/AllocasToEntry.cc
+    ${POCL_SOURCE_DIR}/AllocasToEntry.cc
+    ${POCL_SOURCE_DIR}/BarrierBlock.cc
+    ${POCL_SOURCE_DIR}/BarrierTailReplication.cc
+    ${POCL_SOURCE_DIR}/BreakConstantGEPs.cpp
+    ${POCL_SOURCE_DIR}/CanonicalizeBarriers.cc
+    ${POCL_SOURCE_DIR}/DebugHelpers.cc
+    ${POCL_SOURCE_DIR}/Flatten.cc
+    ${POCL_SOURCE_DIR}/GenerateHeader.cc
+    ${POCL_SOURCE_DIR}/ImplicitLoopBarriers.cc
+    ${POCL_SOURCE_DIR}/ImplicitConditionalBarriers.cc
+    ${POCL_SOURCE_DIR}/IsolateRegions.cc
+    ${POCL_SOURCE_DIR}/Kernel.cc
+    ${POCL_SOURCE_DIR}/LLVMUtils.cc
+    ${POCL_SOURCE_DIR}/LoopBarriers.cc
+    ${POCL_SOURCE_DIR}/ParallelRegion.cc
+    ${POCL_SOURCE_DIR}/PHIsToAllocas.cc
+    ${POCL_SOURCE_DIR}/TargetAddressSpaces.cc
+    ${POCL_SOURCE_DIR}/VariableUniformityAnalysis.cc
+    ${POCL_SOURCE_DIR}/WIVectorize.cc
+    ${POCL_SOURCE_DIR}/Workgroup.cc
+    ${POCL_SOURCE_DIR}/WorkItemAliasAnalysis.cc
+    ${POCL_SOURCE_DIR}/WorkitemHandler.cc
+    ${POCL_SOURCE_DIR}/WorkitemHandlerChooser.cc
+    ${POCL_SOURCE_DIR}/WorkitemLoops.cc
+    ${POCL_SOURCE_DIR}/WorkitemReplication.cc
+    ${POCL_SOURCE_DIR}/SimplifyShuffleBIFCall.cpp
+    ${POCL_SOURCE_DIR}/PrivatizationAliasAnalysis.cpp)
+
+set(SOURCE_FILES
+    compiler.cpp
+    compiler.h
+    file_manip.cpp
+    file_manip.h
+    getopt_long.c
+    getopt.h
+    main.cpp
+    options.cpp
+    options.h
+    program.cpp
+    ${WGA_SOURCE_FILES}
+    ${POCL_SOURCE_FILES}
+    ${UTIL_SOURCE_FILES})
+
+add_executable(clocl ${SOURCE_FILES})
+
+target_link_libraries(clocl ${clang_libs} ${llvm_libs})
+
+# See  cmake --help-policy CMP0011 for details
+if (POLICY CMP0011)
+  cmake_policy(SET CMP0011 OLD)
+endif()
+

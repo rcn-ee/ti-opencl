@@ -28,7 +28,6 @@
 #include "device.h"
 #include "buffer.h"
 #include "kernel.h"
-#include "driver.h"
 
 #include "../commandqueue.h"
 #include "../events.h"
@@ -41,11 +40,20 @@
 
 #include <unistd.h>
 #include <sys/resource.h>
+#ifndef _SYS_BIOS
 #include <sys/syscall.h>
+#endif
 #include <sched.h>
 #include <errno.h>
 
 #include "u_locks_pthread.h"
+
+#ifdef _SYS_BIOS
+#include <xdc/std.h>
+#include <ti/sysbios/BIOS.h>
+#include <ti/sysbios/knl/Task.h>
+#define  usleep   Task_sleep
+#endif
 
 using namespace Coal;
 
@@ -212,6 +220,8 @@ bool handle_event_dispatch(DSPDevice *device)
     if (queue_props & CL_QUEUE_PROFILING_ENABLE)
         event->updateTiming(Event::Start);
 
+    SharedMemory *shm = device->GetSHMHandler();
+
     /*---------------------------------------------------------------------
     * Execute the action
     *--------------------------------------------------------------------*/
@@ -234,12 +244,9 @@ bool handle_event_dispatch(DSPDevice *device)
             DSPDevicePtr64 data = (DSPDevicePtr64)buf->data() + e->offset();
 
             if (t == Event::ReadBuffer)
-                 Driver::instance()->read(device->dspID(), data, 
-					  (uint8_t*)e->ptr(), e->cb());
-
-            else 
-                 Driver::instance()->write(device->dspID(), data, 
-                                  (uint8_t*)e->ptr(), e->cb());
+                 shm->ReadFromShmem(data, (uint8_t*)e->ptr(), e->cb());
+            else
+                 shm->WriteToShmem(data, (uint8_t*)e->ptr(), e->cb());
 
             break;
         }
@@ -260,7 +267,7 @@ bool handle_event_dispatch(DSPDevice *device)
             {
                 DSPBuffer *src = (DSPBuffer*)e->source()->deviceBuffer(device);
                 src_addr = (DSPDevicePtr64)src->data() + e->src_offset();
-                psrc = Driver::instance()->map(device, src_addr, e->cb(), true);
+                psrc = shm->Map(src_addr, e->cb(), true);
             }
 
             if (e->destination()->flags() & CL_MEM_USE_HOST_PTR)
@@ -269,16 +276,16 @@ bool handle_event_dispatch(DSPDevice *device)
             {
                 DSPBuffer *dst = (DSPBuffer*)e->destination()->deviceBuffer(device);
                 dst_addr = (DSPDevicePtr64)dst->data() + e->dst_offset();
-                pdst = Driver::instance()->map(device, dst_addr, e->cb(), false);
+                pdst = shm->Map(dst_addr, e->cb(), false);
             }
 
             memcpy(pdst, psrc, e->cb());
 
             if (!(e->source()->flags() & CL_MEM_USE_HOST_PTR))
-                Driver::instance()->unmap(device, psrc, src_addr, e->cb(), false);
+                shm->Unmap(psrc, src_addr, e->cb(), false);
 
             if (!(e->destination()->flags() & CL_MEM_USE_HOST_PTR))
-                Driver::instance()->unmap(device, pdst, dst_addr, e->cb(), true);
+                shm->Unmap(pdst, dst_addr, e->cb(), true);
             break;
         }
 
@@ -360,11 +367,9 @@ bool handle_event_dispatch(DSPDevice *device)
 		 else
 		 {
 		    if (t == Event::ReadBufferRect)
-		       Driver::instance()->read(device->dspID(), 
-				src_cur_row, (uint8_t *)dst_cur_row, xdim);
+		        shm->ReadFromShmem(src_cur_row, (uint8_t *)dst_cur_row, xdim);
 		    else
-		       Driver::instance()->write(device->dspID(), 
-				dst_cur_row, (uint8_t *)src_cur_row, xdim);
+		        shm->WriteToShmem( dst_cur_row, (uint8_t *)src_cur_row, xdim);
 		    }
 		    
 		    // Proceed to next row
@@ -438,12 +443,12 @@ bool handle_event_dispatch(DSPDevice *device)
 
 	      // If necessary, memory map a slice of buffer
 	      if (!(e->source()->flags() & CL_MEM_USE_HOST_PTR))
-		 src_cur_row = src_cur_mslice = (uint8_t *)
-		   Driver::instance()->map(device, src_cur_slice, src_slice_size,true);
+		    src_cur_row = src_cur_mslice = (uint8_t *)
+		        shm->Map(src_cur_slice, src_slice_size,true);
 		
 	      if (!(e->destination()->flags() & CL_MEM_USE_HOST_PTR))
-		 dst_cur_row = dst_cur_mslice = (uint8_t *)
-		   Driver::instance()->map(device, dst_cur_slice, dst_slice_size,false);
+		    dst_cur_row = dst_cur_mslice = (uint8_t *)
+		        shm->Map(dst_cur_slice, dst_slice_size,false);
 
 	      // The inner loop handles each row of the current slice
 	      for(cl_ulong y = 0; y < ydim; y++)
@@ -458,12 +463,10 @@ bool handle_event_dispatch(DSPDevice *device)
 		
 	      // If necessary, unmap the current slice
 	      if (!(e->source()->flags() & CL_MEM_USE_HOST_PTR))
-		 Driver::instance()->unmap(device, src_cur_mslice,
-                                         src_cur_slice, src_slice_size, false);
+		    shm->Unmap(src_cur_mslice, src_cur_slice, src_slice_size, false);
 
 	      if (!(e->destination()->flags() & CL_MEM_USE_HOST_PTR))
-		 Driver::instance()->unmap(device, dst_cur_mslice,
-                                         dst_cur_slice, dst_slice_size, true);
+		    shm->Unmap(dst_cur_mslice, dst_cur_slice, dst_slice_size, true);
 
 	      // Proceed to next slice
 	      src_cur_slice += e->src_slice_pitch();
@@ -500,10 +503,9 @@ bool handle_event_dispatch(DSPDevice *device)
                 DSPBuffer *buf = (DSPBuffer *)e->buffer()->deviceBuffer(device);
                 DSPDevicePtr64 data = (DSPDevicePtr64)buf->data() + e->offset();
 #ifdef DSPC868X
-                Driver::instance()->read((int32_t)device->dspID(), data,
-                                         (uint8_t *)e->ptr(), e->cb());
+                shm->ReadFromShmem(data, (uint8_t *)e->ptr(), e->cb());
 #else
-                Driver::instance()->cacheInv(data, e->ptr(), e->cb());
+                shm->CacheInv(data, e->ptr(), e->cb());
 #endif
             }
             break;
@@ -529,7 +531,7 @@ bool handle_event_dispatch(DSPDevice *device)
             DSPBuffer *buf = (DSPBuffer *)e->buffer()->deviceBuffer(device);
             DSPDevicePtr64 map_dsp_addr = (DSPDevicePtr64)buf->data()
                                           + mbe->offset();
-            Driver::instance()->unmap(device, e->mapping(), map_dsp_addr,
+            shm->Unmap(e->mapping(), map_dsp_addr,
                               mbe->cb(), ((mbe->flags() & CL_MAP_WRITE) != 0));
 
             if (queue) queue->releaseEvent(mbe); 
@@ -587,9 +589,11 @@ void *dsp_worker_event_dispatch(void *data)
     char *str_sleep = getenv("TI_OCL_WORKER_SLEEP");
     int   env_nice  = (str_nice)  ? atoi(str_nice)  : 4;
     int   env_sleep = (str_sleep) ? atoi(str_sleep) : -1;
+#ifndef _SYS_BIOS
     pid_t tid       = syscall(SYS_gettid);
 
     setpriority(PRIO_PROCESS, tid, env_nice);
+#endif
     DSPDevice *device = (DSPDevice *)data;
 
     while (true)
@@ -620,9 +624,11 @@ void *dsp_worker_event_completion(void *data)
     char *str_sleep = getenv("TI_OCL_WORKER_SLEEP");
     int   env_nice  = (str_nice)  ? atoi(str_nice)  : 4;
     int   env_sleep = (str_sleep) ? atoi(str_sleep) : -1;
+#ifndef _SYS_BIOS
     pid_t tid       = syscall(SYS_gettid);
 
     setpriority(PRIO_PROCESS, tid, env_nice);
+#endif
     DSPDevice *device = (DSPDevice *)data;
 
     while (true)

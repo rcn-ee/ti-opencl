@@ -38,7 +38,7 @@
 #include "icd.h"
 
 #include <CL/cl.h>
-#include <pthread.h>
+#include "tiocl_thread.h"
 
 #include <map>
 #include <list>
@@ -213,6 +213,13 @@ class CommandQueue : public _cl_command_queue, public Object
         Event **events(unsigned int &count,
                        bool include_completed_events = true);
 
+#if defined(_SYS_BIOS)
+        /**
+         * \brief Return host frequency
+         */
+        cl_ulong getFreq() { return p_freq; }
+#endif
+
     private:
         DeviceInterface *p_device;
         cl_int p_num_events_in_queue;
@@ -225,6 +232,9 @@ class CommandQueue : public _cl_command_queue, public Object
         pthread_mutex_t p_event_list_mutex;
         pthread_cond_t p_event_list_cond;
         bool p_flushed;
+#if defined(_SYS_BIOS)
+        cl_ulong p_freq;  // in Hz
+#endif
 };
 
 /**

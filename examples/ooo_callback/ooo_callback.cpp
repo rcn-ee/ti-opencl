@@ -28,12 +28,19 @@
 #define __CL_ENABLE_EXCEPTIONS
 #include <CL/cl.hpp>
 #include <iostream>
+#include <fstream>
 #include <cstdlib>
 #include <cstdio>
 #include <cassert>
 #include <signal.h>
 #include <memory>
 #include "ocl_util.h"
+
+#ifdef _TI_RTOS
+#include <ti/sysbios/posix/_time.h>
+#include "kernel.dsp_h"
+#include "../rtos_main.c"
+#endif
 
 using namespace std;
 using namespace cl;
@@ -51,13 +58,6 @@ typedef enum   { PRD, WRT, CMP, RD, CNS, STAGES }       stage;
 typedef struct { int *ptr; unsigned elms; int val; int iter; }  arguments_t;
 
 const char *stage_names[] = {"PRODUCE","WRITE  ","COMPUTE","READ   ","CONSUME"};
-
-const char * kernStr = 
-"kernel void compute(global int* buf, int size) \n"
-"{\n"
-"  for (int i = 0; i< size; ++i) \n"
-"    buf[i] += 1; \n"
-"}\n";
 
 const int tasks    = 2048;
 const int inflight = 32;
@@ -123,8 +123,17 @@ void cpu_consume_callback(cl_event e, cl_int e_status, void *user_data)
 /******************************************************************************
 * main
 ******************************************************************************/
+#ifdef _TI_RTOS
+#define RETURN(x) return
+void ocl_main(UArg arg0, UArg arg1)
+{
+   int    argc = (int)     arg0;
+   char **argv = (char **) arg1;
+#else
+#define RETURN(x) return x
 int main(int argc, char *argv[])
 {
+#endif
    /*-------------------------------------------------------------------------
    * Catch ctrl-c so we ensure that we call dtors and the dsp is reset properly
    *------------------------------------------------------------------------*/
@@ -160,10 +169,19 @@ int main(int argc, char *argv[])
 
      assert(QdspOO != NULL && QdspIO != NULL);
 
-     Program::Sources    source (1, std::make_pair(kernStr, strlen(kernStr)));
+#ifndef _TI_RTOS
+     ifstream t("kernel.cl");
+     std::string         kSrc((istreambuf_iterator<char>(t)),
+                               istreambuf_iterator<char>());
+     Program::Sources    source(1, make_pair(kSrc.c_str(), kSrc.length()));
      Program             program(Program(context, source));
-
+#else
+     Program::Binaries   binary(1, make_pair(kernel_dsp_bin,
+                                             sizeof(kernel_dsp_bin)));
+     Program             program = Program(context, dspDevices, binary);
+#endif
      program.build(dspDevices);
+
      Kernel K(program, "compute");
 
      /*------------------------------------------------------------------------
@@ -298,13 +316,12 @@ int main(int argc, char *argv[])
    }
    catch (Error err)
    {
-       cerr << "ERROR: " << err.what() << "("
-            << ocl_decode_error(err.err()) << ")"
-            << endl;
+       cerr << "ERROR: " << err.what() << "(" << err.err() << ", "
+            << ocl_decode_error(err.err()) << ")" << endl;
        incorrect_results = true;
    }
 
-   if (incorrect_results) return -1;
+   if (incorrect_results) RETURN(-1);
 
 
 

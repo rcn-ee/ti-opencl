@@ -46,6 +46,7 @@
 
 using namespace llvm;
 
+#if !defined (_MSC_VER) && !defined(_SYS_BIOS)
 /******************************************************************************
 * Parse first line in a file, read integer immediately following a string
 ******************************************************************************/
@@ -73,6 +74,7 @@ uint32_t parse_file_line_value(const char *fname, const char *sname,
     if (line != NULL) free(line);
     return val;
 }
+#endif
 
 /******************************************************************************
 * Converting ocl error number to ocl error string, for more meaningful report
@@ -203,6 +205,7 @@ bool isReqdWGSize111(llvm::Function &F)
 ******************************************************************************/
 llvm::MDNode* getDebugInfo(llvm::Function &F, unsigned int &scope_line_num)
 {
+#ifndef _SYS_BIOS
     /*-------------------------------------------------------------------------
     * Obtain Debug Information (func scope line number) (when debug is on)
     *------------------------------------------------------------------------*/
@@ -216,6 +219,7 @@ llvm::MDNode* getDebugInfo(llvm::Function &F, unsigned int &scope_line_num)
             return ((MDNode *) sub);
         }
     }
+#endif
     scope_line_num = 0;
     return NULL;
 }

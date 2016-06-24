@@ -13,7 +13,7 @@ The following device components are relevant to the memory discussion for
 OpenCL.
 
 ================================= =========== =========== =========== =========== =======
-Attribute                         66AK2H      66AK2L      66AK2E      66AK2G      AM57 
+Attribute                         66AK2H      66AK2L      66AK2E      66AK2G      AM572x
 ================================= =========== =========== =========== =========== =======
 ARM A15 CPU cores                 4           2           4           1           2
 C66 DSP cores                     8           4           1           1           2
@@ -22,7 +22,7 @@ L1D per C66 core                  32KB        32KB        32KB        32KB      
 L2 cache shared across ARM cores  4MB         1MB         4MB         512KB       2MB
 L2 memory per C66 core            1MB         1MB         512KB       1MB         288KB
 DDR3 available                    up to 8GB   up to 8GB   up to 8GB   2GB         2GB
-On-chip shared memory             6MB         2MB         2MB         1MB         N/A
+On-chip shared memory             6MB         2MB         2MB         1MB         1MB
 ================================= =========== =========== =========== =========== =======
 
 The L1 and L2 memory areas in the C66x cores can be configured as all cache, all
@@ -30,7 +30,7 @@ scratchpad or partitioned with both. For OpenCL applications, this partition def
 to the following values for each C66x core:
 
 ====================================== ======= ======= ======= ======= ========
-Attribute                              66AK2H  66AK2L  66AK2E  66AK2G  AM57
+Attribute                              66AK2H  66AK2L  66AK2E  66AK2G  AM57x
 ====================================== ======= ======= ======= ======= ========
 L1P cache                              32KB    32KB    32KB    32KB    32KB
 L1D cache                              32KB    32KB    32KB    32KB    32KB

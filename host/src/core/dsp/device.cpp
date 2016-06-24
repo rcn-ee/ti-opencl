@@ -44,15 +44,30 @@
 #include "../program.h"
 #include "../util.h"
 
-#include "driver.h"
+#include "device_info.h"
 
 #if defined(DEVICE_K2X)
 extern "C"
 {
-    #include <ti/runtime/mmap/include/mmap_resource.h>
+    #include <ti/runtime/mmap/include/mmap_resource.h> // For MPAX
+    extern int get_ocl_qmss_res(Msg_t *msg);
     extern void free_ocl_qmss_res();
 }
 #endif
+
+extern "C" {
+/*-----------------------------------------------------------------------------
+* Add ULM memory state messages if ULM library is available
+*----------------------------------------------------------------------------*/
+#if defined (ULM_ENABLED)
+   #include "tiulm.h"
+#endif
+
+#if defined(_SYS_BIOS)
+    extern uint32_t ti_opencl_get_OCL_LOCAL_base();
+    extern uint32_t ti_opencl_get_OCL_LOCAL_len();
+#endif
+}
 
 #include <cstring>
 #include <cstdlib>
@@ -64,47 +79,8 @@ extern "C"
 #include <sstream>
 
 using namespace Coal;
+using namespace tiocl;
 
-
-/******************************************************************************
-* On DSPC868X the mailboxes are remote on the device DDR. On Hawking the 
-* mailboxes are in shared DDR
-******************************************************************************/
-#ifdef DSPC868X
-#define MAILBOX_LOCATION MPM_MAILBOX_MEMORY_LOCATION_REMOTE 
-#else
-#define MAILBOX_LOCATION MPM_MAILBOX_MEMORY_LOCATION_LOCAL 
-
-#include "shmem.h"
-unsigned dsp_speed()
-{
-    const unsigned DSP_PLL = 122880000;
-    const unsigned pagesize = 0x1000;
-
-    shmem_persistent bootcfg_page;
-    shmem_persistent clock_page;
-
-    bootcfg_page.configure(0x02620000, pagesize);
-    clock_page.configure(0x02310000, pagesize);
-
-    char *BOOTCFG_BASE_ADDR = (char*)bootcfg_page.map(0x02620000, pagesize);
-    char *CLOCK_BASE_ADDR   = (char*)clock_page.map(0x02310000, pagesize);
-
-    int MAINPLLCTL0 = (*(int*)(BOOTCFG_BASE_ADDR + 0x350));
-    int MULT        = (*(int*)(CLOCK_BASE_ADDR + 0x110));
-    int OUTDIV      = (*(int*)(CLOCK_BASE_ADDR + 0x108));
-
-    unsigned mult = 1 + ((MULT & 0x3F) | ((MAINPLLCTL0 & 0x7F000) >> 6));
-    unsigned prediv = 1 + (MAINPLLCTL0 & 0x3F);
-    unsigned output_div = 1 + ((OUTDIV >> 19) & 0xF);
-    unsigned speed = DSP_PLL * mult / prediv / output_div;
-
-    bootcfg_page.unmap(BOOTCFG_BASE_ADDR, pagesize);
-    clock_page.unmap(CLOCK_BASE_ADDR, pagesize);
-
-    return speed / 1000000;
-}
-#endif
 
 /*-----------------------------------------------------------------------------
 * Declare our threaded dsp handler function
@@ -113,14 +89,106 @@ void *dsp_worker_event_dispatch   (void* data);
 void *dsp_worker_event_completion (void* data);
 void HOSTwait   (unsigned char dsp_id);
 
+/******************************************************************************
+* DSPDevice::DSPDevice(unsigned char dsp_id)
+******************************************************************************/
+DSPDevice::DSPDevice(unsigned char dsp_id, SharedMemory* shm)
+    : DeviceInterface       (),
+      p_cores               (0),
+      p_num_events          (0),
+      p_dsp_mhz             (0),
+      p_worker_dispatch     (0),
+      p_worker_completion   (0),
+      p_stop                (false),
+      p_exit_acked          (false),
+      p_initialized         (false),
+      p_dsp_id              (dsp_id),
+      p_complete_pending    (),
+      p_mpax_default_res    (NULL),
+      p_shmHandler          (shm),
+      device_manager_       (nullptr)
+{
+    const DeviceInfo& device_info = DeviceInfo::Instance();
 
-#if defined (DSPC868X) || defined (DEVICE_K2X) || defined(DEVICE_K2G)
-#include "device_keystone.cpp"
-#elif defined (DEVICE_AM57)
-#include "device_am57x.cpp"
+    p_cores = device_info.GetComputeUnitsPerDevice(dsp_id);
+
+#if !defined(_SYS_BIOS)
+    device_manager_ = DeviceManagerFactory::CreateDeviceManager(dsp_id, p_cores,
+                                                    device_info.FullyQualifiedPathToDspMonitor());
+
+    device_manager_->Reset();
+    device_manager_->Load();
+    device_manager_->Run();
+
+    p_addr_kernel_config = device_info.GetSymbolAddress("kernel_config_l2");
+    p_addr_local_mem     = device_info.GetSymbolAddress("ocl_local_mem_start");
+    p_size_local_mem     = device_info.GetSymbolAddress("ocl_local_mem_size");
 #else
-#error "Device not supported"
+    p_addr_local_mem     = ti_opencl_get_OCL_LOCAL_base();
+    p_size_local_mem     = ti_opencl_get_OCL_LOCAL_len();
 #endif
+
+    core_scheduler_ = new CoreScheduler(p_cores, 4);
+
+    init_ulm();
+
+    /*-------------------------------------------------------------------------
+    * initialize the mailboxes on the cores, so they can receive an exit cmd
+    *------------------------------------------------------------------------*/
+    p_mb = MBoxFactory::CreateMailbox(this);
+
+    /*-------------------------------------------------------------------------
+     * Send monitor configuration
+     * On AM57, the monitor is configured based on the number of cores in the
+     * configuration message
+     *------------------------------------------------------------------------*/
+    Msg_t msg = {CONFIGURE_MONITOR};
+    msg.u.configure_monitor.n_cores = dspCores();
+
+#if defined(DEVICE_K2X) && !defined(DEVICE_K2G)
+    // Keystone2: get QMSS resources from RM, mail to DSP monitor
+    if (get_ocl_qmss_res(&msg) == 0)
+    {
+        printf("Unable to allocate resource from RM server!\n");
+        exit(-1);
+    }
+#endif
+
+    mail_to(msg);
+
+    /*-------------------------------------------------------------------------
+    * Query DSP frequency; monitor is in message loop task after this point.
+    *------------------------------------------------------------------------*/
+    setup_dsp_mhz();
+}
+
+bool DSPDevice::hostSchedule() const
+{
+#if defined(DEVICE_K2G) || defined(DEVICE_AM57)
+    return true;
+#else
+    return false;
+#endif
+}
+
+void DSPDevice::setup_dsp_mhz(void)
+{
+#ifdef DSPC868X
+    char *ghz1 = getenv("TI_OCL_DSP_1_25GHZ");
+    if (ghz1) p_dsp_mhz = 1250;  // 1.25 GHz
+#else
+    mail_to(frequencyMsg);
+
+    int ret = 0;
+    do
+    {
+        while (!mail_query())  ;
+        ret = mail_from();
+    } while (ret == -1);
+
+    p_dsp_mhz = ret;
+#endif
+}
 
 /*-----------------------------------------------------------------------------
 * If ULM library was not available don't emit ULM trace messages
@@ -130,46 +198,25 @@ void HOSTwait   (unsigned char dsp_id);
 #define ulm_config()
 #define ulm_term()
 #endif
-void DSPDevice::init_ulm(uint64_t gsize1, uint64_t gsize2, uint64_t gsize3)
+void DSPDevice::init_ulm()
 {
     ulm_config();
-    ulm_put_mem(ULM_MEM_IN_DATA_ONLY,     p_size_msmc_mem >> 16  , 1.0f);
-    ulm_put_mem(ULM_MEM_EX_DATA_ONLY,     (gsize2 + gsize3) >> 16, 1.0f);
-    ulm_put_mem(ULM_MEM_EX_CODE_AND_DATA, gsize1 >> 16           , 1.0f);
-}
 
+    uint64_t cmem_persistent_sz =
+        GetSHMHandler()->HeapSize(MemoryRange::Kind::CMEM_PERSISTENT,
+                                  MemoryRange::Location::OFFCHIP);
 
-void DSPDevice::setup_memory(DSPDevicePtr64 &global1, DSPDevicePtr64 &global2,
-                             DSPDevicePtr64 &global3,
-                             uint64_t &gsize1, uint64_t &gsize2,
-                             uint64_t &gsize3)
-{
-    Driver *driver = Driver::instance();
+    uint64_t cmem_ondemand_sz =
+        GetSHMHandler()->HeapSize(MemoryRange::Kind::CMEM_ONDEMAND,
+                                  MemoryRange::Location::OFFCHIP);
 
-    driver->split_ddr_memory(p_addr64_global_mem, p_size64_global_mem,
-                             global1, gsize1, global2, gsize2, gsize3);
+    uint64_t msmc_mem_size =
+        GetSHMHandler()->HeapSize(MemoryRange::Kind::CMEM_PERSISTENT,
+                                  MemoryRange::Location::ONCHIP);
 
-    driver->shmem_configure(global1,              gsize1, 0);
-    if (gsize2 > 0) driver->shmem_configure(global2, gsize2, 0);
-    if (gsize3 > 0) driver->shmem_configure(global3, gsize3, 0);
-    driver->shmem_configure(p_addr_msmc_mem,      p_size_msmc_mem, 1);
-
-    // Moved to mbox_impl_mph.h
-    // driver->shmem_configure(p_addr_mbox_d2h_phys, p_size_mbox_d2h);
-    // driver->shmem_configure(p_addr_mbox_h2d_phys, p_size_mbox_h2d);
-
-    for (int core=0; core < dspCores(); core++)
-        driver->shmem_configure(((0x10 + core) << 24) + p_addr_local_mem,    
-                                p_size_local_mem);
-
-
-    /*-------------------------------------------------------------------------
-    * Setup the DSP heaps for memory allocation
-    *------------------------------------------------------------------------*/
-    p_device_ddr_heap1.configure(global1,          gsize1);
-    p_device_ddr_heap2.configure(global2,          gsize2, true);
-    p_device_ddr_heap3.configure(global3,          gsize3, true);
-    p_device_msmc_heap.configure(p_addr_msmc_mem,  p_size_msmc_mem);
+    ulm_put_mem(ULM_MEM_IN_DATA_ONLY,     msmc_mem_size >> 16  , 1.0f);
+    ulm_put_mem(ULM_MEM_EX_DATA_ONLY,     cmem_ondemand_sz >> 16, 1.0f);
+    ulm_put_mem(ULM_MEM_EX_CODE_AND_DATA, cmem_persistent_sz >> 16, 1.0f);
 }
 
 
@@ -188,8 +235,24 @@ void DSPDevice::init()
     pthread_mutex_init(&p_events_mutex, 0);
     pthread_cond_init(&p_worker_cond, 0);
     pthread_mutex_init(&p_worker_mutex, 0);
+#if !defined(_SYS_BIOS)
     pthread_create(&p_worker_dispatch,   0, &dsp_worker_event_dispatch,   this);
     pthread_create(&p_worker_completion, 0, &dsp_worker_event_completion, this);
+#else
+    pthread_attr_t attr_dispatch, attr_completion;
+    pthread_attr_init(&attr_dispatch);
+    pthread_attr_init(&attr_completion);
+    // Give dispatch thread +1 priority so that work can be dispatch to devices
+    // immediately when available, give completion thread +2 priority so that
+    // completion message from devices can be processed immediately.
+    int pri = Task_getPri(Task_self());
+    attr_dispatch.priority   = (pri >= 15-2) ? pri : pri + 1;
+    attr_completion.priority = (pri >= 15-2) ? pri : pri + 2;
+    pthread_create(&p_worker_dispatch,   &attr_dispatch,
+                   &dsp_worker_event_dispatch,   this);
+    pthread_create(&p_worker_completion, &attr_completion,
+                   &dsp_worker_event_completion, this);
+#endif
 
     p_initialized = true;
 }
@@ -199,10 +262,6 @@ void DSPDevice::init()
 ******************************************************************************/
 DSPDevice::~DSPDevice()
 {
-    /*-------------------------------------------------------------------------
-    * Inform the cores on the device to stop listening for commands
-    *------------------------------------------------------------------------*/
-    mail_to(exitMsg);
 
     if (p_initialized)
     {
@@ -224,6 +283,20 @@ DSPDevice::~DSPDevice()
         pthread_mutex_destroy(&p_worker_mutex);
         pthread_cond_destroy(&p_worker_cond);
     }
+
+    /*-------------------------------------------------------------------------
+     * Inform the cores on the device to stop listening for commands
+     * Send exit message after worker threads terminate to avoid a race condition
+     * on p_exit_acked. The race condition is caused by a worker thread receiving
+     * the exit response and setting p_exit_acked to true. It's possible that the
+     * master thread can read p_exit_acked before the write from the worker thread
+     * lands and enter the while loop. It then is stuck at the mail_query() while
+     * loop because the worker has already read the message.
+     *
+     * Sending the exit message after the worker threads terminate eliminates
+     * the race condition.
+     *------------------------------------------------------------------------*/
+    mail_to(exitMsg);
 
 #if defined(DEVICE_K2X) || defined(DEVICE_K2G) || defined(DSPC868X)
     /*-------------------------------------------------------------------------
@@ -247,7 +320,8 @@ DSPDevice::~DSPDevice()
     /*-------------------------------------------------------------------------
     * Only need to close the driver for one of the devices
     *------------------------------------------------------------------------*/
-    if (p_dsp_id == 0) Driver::instance()->close(); 
+    delete device_manager_;
+    delete core_scheduler_;
 
 #if defined(DEVICE_K2X)
     free_ocl_qmss_res();
@@ -297,7 +371,7 @@ cl_int DSPDevice::initEventDeviceData(Event *event)
 
             // DO NOT INVALIDATE! Here only initializes host_addr, it cannot
             // be used before MapBuffer event is scheduled and processed!
-            void* host_addr = Driver::instance()->map(this, data, e->cb(),
+            void* host_addr = GetSHMHandler()->Map(data, e->cb(),
                                                       false, true);
             e->setPtr(host_addr);
 
@@ -318,9 +392,9 @@ cl_int DSPDevice::initEventDeviceData(Event *event)
             DSPProgram  *prog = (DSPProgram *)p->deviceDependentProgram(this);
 
             /*-----------------------------------------------------------------
-            * Just in time loading 
+            * Just in time loading
             *----------------------------------------------------------------*/
-            if (!prog->is_loaded() && !prog->load()) 
+            if (!prog->is_loaded() && !prog->load())
                 return CL_MEM_OBJECT_ALLOCATION_FAILURE;
 
             DSPKernel *dspkernel = (DSPKernel*)e->deviceKernel();
@@ -409,7 +483,7 @@ Event *DSPDevice::getEvent(bool &stop)
     return event;
 }
 
-void DSPDevice::push_complete_pending(uint32_t idx, Event* const data, 
+void DSPDevice::push_complete_pending(uint32_t idx, Event* const data,
                                       unsigned int cnt)
     { p_complete_pending.push(idx, data, cnt); }
 
@@ -440,187 +514,28 @@ unsigned char DSPDevice::dspID()        const { return p_dsp_id;  }
 
 
 DSPDevicePtr DSPDevice::get_L2_extent(uint32_t &size)
-{ 
+{
     size       = (uint32_t) p_size_local_mem;
     return (DSPDevicePtr) p_addr_local_mem;
 }
 
-DSPDevicePtr DSPDevice::malloc_msmc(size_t size)  
-{ 
-    DSPDevicePtr ret = p_device_msmc_heap.malloc(size,true); 
-    if (ret) dsptop_msmc();
-    return ret;
-}
 
-void DSPDevice::free_msmc(DSPDevicePtr addr)       
-{ 
-    p_device_msmc_heap.free(addr); 
-    dsptop_msmc();
-}
-
-// TODO: examine the flag, the logic, etc
-#define FRACTION_PERSISTENT_FOR_BUFFER	8
-DSPDevicePtr64 DSPDevice::malloc_global(size_t size, bool prefer_32bit)  
-{ 
-    if (prefer_32bit) 
-    {
-        DSPDevicePtr64 ret = p_device_ddr_heap1.malloc(size, true);
-        if (ret) dsptop_ddr_fixed();
-        return ret;
-    }
-
-    DSPDevicePtr64 addr = 0;
-    uint64_t size64 = 0;
-    uint32_t block_size;
-
-    p_device_ddr_heap1.max_block_size(size64, block_size);
-
-    if (size64 / size > FRACTION_PERSISTENT_FOR_BUFFER)
-    {
-        addr = p_device_ddr_heap1.malloc(size, true);
-        if (addr) dsptop_ddr_fixed();
-    }
-    if (!addr)
-    {
-        // addr = Driver::instance()->cmem_ondemand_malloc(size);
-        addr = p_device_ddr_heap2.malloc(size, true);
-        if (addr) dsptop_ddr_extended();
-    }
-    if (!addr)
-    {
-        addr = p_device_ddr_heap3.malloc(size, true);
-        if (addr) dsptop_ddr_extended();
-    }
-    if (!addr)
-    {
-        addr = p_device_ddr_heap1.malloc(size, true); // give it another chance
-        if (addr) dsptop_ddr_fixed();
-    }
-
-    return addr;
-}
-
-void DSPDevice::free_global(DSPDevicePtr64 addr)       
+MemoryRange::Location DSPDevice::ClFlagToLocation(cl_mem_flags flags) const
 {
-    if (addr < DSP_36BIT_ADDR)
-    {
-        p_device_ddr_heap1.free(addr); 
-        dsptop_ddr_fixed();
-    }
-    else 
-    {
-        // Driver::instance()->cmem_ondemand_free(addr);
-        if (p_device_ddr_heap2.free(addr) == -1)
-            p_device_ddr_heap3.free(addr);
-        dsptop_ddr_extended();
-    }
-}
-
-void DSPDevice::dsptop_msmc()
-{
-    uint64_t k64block_size = p_device_msmc_heap.size() >> 16;
-    float    pctfree  =  p_device_msmc_heap.available(); 
-             pctfree /=  p_device_msmc_heap.size();
-
-    ulm_put_mem(ULM_MEM_IN_DATA_ONLY, k64block_size, pctfree);
-}
-
-void DSPDevice::dsptop_ddr_fixed()
-{
-    uint64_t k64block_size = p_device_ddr_heap1.size() >> 16;
-    float    pctfree  =  p_device_ddr_heap1.available(); 
-             pctfree /=  p_device_ddr_heap1.size();
-
-    ulm_put_mem(ULM_MEM_EX_CODE_AND_DATA, k64block_size, pctfree);
-}
-
-void DSPDevice::dsptop_ddr_extended()
-{
-    uint64_t ext_size = p_device_ddr_heap2.size() + p_device_ddr_heap3.size();
-    uint64_t k64block_size = ext_size >> 16;
-    float    pctfree  =  p_device_ddr_heap2.available() + p_device_ddr_heap3.available();
-
-    if (ext_size != 0) pctfree /= ext_size;
-    else               pctfree  = 0.0f;
-
-    ulm_put_mem(ULM_MEM_EX_DATA_ONLY, k64block_size, pctfree);
-}
-
-
-void* DSPDevice::clMalloc(size_t size, cl_mem_flags flags)
-{
-    DSPDevicePtr64 phys_addr = 0;
-    void          *host_addr = NULL;
-    bool           use_msmc  = ((flags & CL_MEM_USE_MSMC_TI) != 0);
-
-    if (use_msmc)  phys_addr =   malloc_msmc(size);
-    else           phys_addr = malloc_global(size, false);
-
-    if (phys_addr != 0)
-    {
-        host_addr = Driver::instance()->map(this, phys_addr, size, false, true);
-        if (host_addr)
-        {
-            Lock lock(this);
-            p_clMalloc_mapping[host_addr] = PhysAddrSizeFlagsTriple(
-                           PhysAddrSizePair(phys_addr, size), flags);
-        }
-        else
-        {
-            if (use_msmc)   free_msmc(phys_addr);
-            else          free_global(phys_addr);
-        }
-    }
-    return host_addr;
-}
-
-void DSPDevice::clFree(void* ptr)
-{
-    Lock lock(this);
-    clMallocMapping::iterator it = p_clMalloc_mapping.find(ptr);
-    if (it != p_clMalloc_mapping.end())
-    {
-        PhysAddrSizeFlagsTriple phys_a_s_f = (*it).second;
-        DSPDevicePtr64 phys_addr = phys_a_s_f.first.first;
-        size_t         size      = phys_a_s_f.first.second;
-        cl_mem_flags   flags     = phys_a_s_f.second;
-        p_clMalloc_mapping.erase(it);
-        Driver::instance()->unmap(this, ptr, phys_addr, size, false);
-        if (flags & CL_MEM_USE_MSMC_TI)  free_msmc(phys_addr);
-        else                           free_global(phys_addr);
-    }
-    else printf("clFree invalid pointer\n");
-}
-
-// Support query of host ptr in the middle of a clMalloced region
-bool DSPDevice::clMallocQuery(void* ptr, DSPDevicePtr64* p_addr, size_t* p_size)
-{
-    Lock lock(this);
-    if (p_clMalloc_mapping.empty())  return false;
-
-    clMallocMapping::iterator it = p_clMalloc_mapping.upper_bound(ptr);
-    if (it == p_clMalloc_mapping.begin())  return false;
-
-    // map has bidirectional iterator, so --it is defined, even at end()
-    PhysAddrSizeFlagsTriple phys_a_s_f = (*--it).second;
-    // (ptr >= (*it).first) must hold because of upper_bound() call
-    if (ptr >= (char*)(*it).first + phys_a_s_f.first.second)  return false;
-
-    ptrdiff_t offset = ((char *) ptr) - ((char *) (*it).first);
-    if (p_addr)  *p_addr = phys_a_s_f.first.first + offset;
-    if (p_size)  *p_size = phys_a_s_f.first.second - offset;
-    return true;
+    return ((flags & CL_MEM_USE_MSMC_TI) != 0) ?
+                                    MemoryRange::Location::ONCHIP :
+                                    MemoryRange::Location::OFFCHIP;
 }
 
 bool DSPDevice::isInClMallocedRegion(void *ptr)
 {
-    return clMallocQuery(ptr, NULL, NULL);
+    return GetSHMHandler()->clMallocQuery(ptr, NULL, NULL);
 }
 
 int DSPDevice::numHostMails(Msg_t &msg) const
 {
     if (hostSchedule() && (msg.command == EXIT || msg.command == CACHEINV ||
-                           msg.command == SETUP_DEBUG ||
+                           msg.command == SETUP_DEBUG || msg.command == CONFIGURE_MONITOR ||
                            (msg.command == NDRKERNEL && !IS_DEBUG_MODE(msg))))
         return dspCores();
     return 1;
@@ -640,6 +555,7 @@ void DSPDevice::mail_to(Msg_t &msg, unsigned int core)
             case CACHEINV:
             case NDRKERNEL:
             case SETUP_DEBUG:
+            case CONFIGURE_MONITOR:
             {
                 for (int i = 0; i < numHostMails(msg); i++)
                     p_mb->to((uint8_t*)&msg, sizeof(Msg_t), i);
@@ -655,8 +571,7 @@ void DSPDevice::mail_to(Msg_t &msg, unsigned int core)
             {
                 if (IS_OOO_TASK(msg))
                 {
-                    static int counter = 0;
-                    int dsp_id = counter++ % dspCores();
+                    int dsp_id = core_scheduler_->allocate();
                     p_mb->to((uint8_t*)&msg, sizeof(Msg_t), dsp_id);
                 }
                 else
@@ -698,11 +613,13 @@ bool DSPDevice::mail_query()
 
 int DSPDevice::mail_from()
 {
-    uint32_t size_rx, trans_id_rx;
+    uint32_t size_rx;
+    int32_t  trans_id_rx;
     Msg_t    rxmsg;
+    uint8_t  core;
 
-    trans_id_rx = p_mb->from((uint8_t*)&rxmsg, &size_rx);
-    
+    trans_id_rx = p_mb->from((uint8_t*)&rxmsg, &size_rx, &core);
+
     if (rxmsg.command == ERROR)
     {
         printf("%s", rxmsg.u.message);
@@ -719,6 +636,11 @@ int DSPDevice::mail_from()
     {
         p_exit_acked = true;
         return -1;
+    }
+
+    if (hostSchedule() && rxmsg.command == TASK && IS_OOO_TASK(rxmsg))
+    {
+        if (core < p_cores) core_scheduler_->free(core);
     }
 
     return trans_id_rx;
@@ -765,7 +687,7 @@ cl_int DSPDevice::info(cl_device_info param_name,
     void *value = 0;
     size_t value_length = 0;
 
-    union 
+    union
     {
         cl_device_type cl_device_type_var;
         cl_uint cl_uint_var;
@@ -780,9 +702,6 @@ cl_int DSPDevice::info(cl_device_info param_name,
         cl_platform_id cl_platform_id_var;
         size_t work_dims[MAX_WORK_DIMS];
     };
-
-    uint64_t  maxblock;
-    uint32_t  dummy;
 
     switch (param_name)
     {
@@ -811,7 +730,7 @@ cl_int DSPDevice::info(cl_device_info param_name,
 	       if (env_wgsize > 0 && env_wgsize < 0x40000000)
 		  wgsize = env_wgsize;
 	    }
-            SIMPLE_ASSIGN(size_t, wgsize); 
+            SIMPLE_ASSIGN(size_t, wgsize);
             break;                           }
 
         case CL_DEVICE_MAX_WORK_ITEM_SIZES:
@@ -861,7 +780,7 @@ cl_int DSPDevice::info(cl_device_info param_name,
             break;
 
         /*---------------------------------------------------------------------
-        * Capped at 1GB, primarily because that is the max buffer that can be 
+        * Capped at 1GB, primarily because that is the max buffer that can be
         * mapped into DSP addr space using mpax.  If there are no extended
         * memory available, reserve 16MB for loading OCL program code.
         *--------------------------------------------------------------------*/
@@ -887,12 +806,17 @@ cl_int DSPDevice::info(cl_device_info param_name,
                 }
             }
 
-            if (p_device_ddr_heap2.size() + p_device_ddr_heap3.size() > 0)
+            uint64_t heap1_size =
+               GetSHMHandler()->HeapSize(MemoryRange::Kind::CMEM_PERSISTENT,
+                                         MemoryRange::Location::OFFCHIP);
+
+            if (GetSHMHandler()->HeapSize(MemoryRange::Kind::CMEM_ONDEMAND,
+                                     MemoryRange::Location::OFFCHIP) > 0)
                 SIMPLE_ASSIGN(cl_ulong,
-                    std::min(p_device_ddr_heap1.size(), cap))
+                    std::min(heap1_size, cap))
             else
                 SIMPLE_ASSIGN(cl_ulong,
-                    std::min(p_device_ddr_heap1.size() - (1<<24), cap))
+                    std::min(heap1_size - (1<<24), cap))
 
             break;
         }
@@ -938,7 +862,7 @@ cl_int DSPDevice::info(cl_device_info param_name,
             break;
 
         case CL_DEVICE_SINGLE_FP_CONFIG:
-           SIMPLE_ASSIGN(cl_device_fp_config, 
+           SIMPLE_ASSIGN(cl_device_fp_config,
                     CL_FP_ROUND_TO_NEAREST | CL_FP_ROUND_TO_ZERO |
                     CL_FP_ROUND_TO_INF | CL_FP_INF_NAN );
             break;
@@ -962,39 +886,54 @@ cl_int DSPDevice::info(cl_device_info param_name,
             break;
 
         case CL_DEVICE_GLOBAL_MEM_SIZE:
-            SIMPLE_ASSIGN(cl_ulong, p_device_ddr_heap1.size());
+            SIMPLE_ASSIGN(cl_ulong,
+                          GetSHMHandler()->HeapSize(
+                                            MemoryRange::Kind::CMEM_PERSISTENT,
+                                            MemoryRange::Location::OFFCHIP));
+
             break;
-            
+
         case CL_DEVICE_GLOBAL_EXT1_MEM_SIZE_TI:
-            SIMPLE_ASSIGN(cl_ulong, p_device_ddr_heap2.size());
+            SIMPLE_ASSIGN(cl_ulong,
+                          GetSHMHandler()->HeapSize(
+                                            MemoryRange::Kind::CMEM_ONDEMAND,
+                                            MemoryRange::Location::OFFCHIP));
             break;
 
         case CL_DEVICE_GLOBAL_EXT2_MEM_SIZE_TI:
-            SIMPLE_ASSIGN(cl_ulong, p_device_ddr_heap3.size());
+            SIMPLE_ASSIGN(cl_ulong, 0);
             break;
 
         case CL_DEVICE_MSMC_MEM_SIZE_TI:
-            SIMPLE_ASSIGN(cl_ulong, p_device_msmc_heap.size());
+            SIMPLE_ASSIGN(cl_ulong,
+                          GetSHMHandler()->HeapSize(
+                                            MemoryRange::Kind::CMEM_PERSISTENT,
+                                            MemoryRange::Location::ONCHIP));
             break;
 
         case CL_DEVICE_GLOBAL_MEM_MAX_ALLOC_TI:
-            p_device_ddr_heap1.max_block_size(maxblock, dummy);
-            SIMPLE_ASSIGN(cl_ulong, maxblock);
+            SIMPLE_ASSIGN(cl_ulong,
+                          GetSHMHandler()->HeapMaxAllocSize(
+                                            MemoryRange::Kind::CMEM_PERSISTENT,
+                                            MemoryRange::Location::OFFCHIP));
             break;
 
         case CL_DEVICE_GLOBAL_EXT1_MEM_MAX_ALLOC_TI:
-            p_device_ddr_heap2.max_block_size(maxblock, dummy);
-            SIMPLE_ASSIGN(cl_ulong, maxblock);
+            SIMPLE_ASSIGN(cl_ulong,
+                          GetSHMHandler()->HeapMaxAllocSize(
+                                            MemoryRange::Kind::CMEM_ONDEMAND,
+                                            MemoryRange::Location::OFFCHIP));
             break;
 
         case CL_DEVICE_GLOBAL_EXT2_MEM_MAX_ALLOC_TI:
-            p_device_ddr_heap3.max_block_size(maxblock, dummy);
-            SIMPLE_ASSIGN(cl_ulong, maxblock);
+            SIMPLE_ASSIGN(cl_ulong, 0);
             break;
 
         case CL_DEVICE_MSMC_MEM_MAX_ALLOC_TI:
-            p_device_msmc_heap.max_block_size(maxblock, dummy);
-            SIMPLE_ASSIGN(cl_ulong, maxblock);
+            SIMPLE_ASSIGN(cl_ulong,
+                          GetSHMHandler()->HeapMaxAllocSize(
+                                            MemoryRange::Kind::CMEM_PERSISTENT,
+                                            MemoryRange::Location::ONCHIP));
             break;
 
         case CL_DEVICE_LOCAL_MEM_MAX_ALLOC_TI:
@@ -1156,7 +1095,7 @@ cl_int DSPDevice::info(cl_device_info param_name,
 bool DSPDevice::addr_is_l2  (DSPDevicePtr addr)const { return (addr >> 20 == 0x008); }
 
 // TODO: Fix msmc address for AM57
-bool DSPDevice::addr_is_msmc(DSPDevicePtr addr)const { return (addr >> 20 == 0x0C0); }
+bool DSPDevice::addr_is_msmc(DSPDevicePtr addr)const { return (addr >> 24 == 0x0C); }
 
 void dump_hex(char *addr, int bytes)
 {

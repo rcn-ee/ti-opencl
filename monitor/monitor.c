@@ -197,7 +197,7 @@ typedef struct {
 ******************************************************************************/
 extern unsigned dsp_speed();
 extern void*    dsp_rpc(void* p, void *stk_args, uint32_t stk_args_size);
-extern int      tomp_initOpenMPforOpenCL(void);
+extern int      tomp_initOpenMPforOpenCLPerApp(int master_core, int num_cores);
 extern void     tomp_exitOpenMPforOpenCL(void);
 
 /******************************************************************************
@@ -238,7 +238,7 @@ int main(void)
     if (!initialize_cores())            ERROR("Could not init Cores");
     if (!initialize_qmss())             ERROR("Could not init QMSS");
     if (!initialize_bios_tasks())       ERROR("Could not init BIOS tasks");
-    if (tomp_initOpenMPforOpenCL() < 0) ERROR("Could not init OpenMP");
+    if (tomp_initOpenMPforOpenCLPerApp(0, 8) < 0) ERROR("Could not init OpenMP");
 #ifdef TI_66AK2X
     if (!initialize_edmamgr())          ERROR("Could not init EdmaMgr"); 
 #endif

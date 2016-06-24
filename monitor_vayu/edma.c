@@ -39,7 +39,7 @@
 // Edma stride/pitch field is signed 16-bits
 #define EDMA_PITCH_LIMIT            (32767)
 
-DDR_2D  (copy_event, edma_channel_pool, NUM_CORES, EDMA_MGR_MAX_NUM_CHANNELS);
+DDR_2D  (copy_event, edma_channel_pool, MAX_NUM_CORES, EDMA_MGR_MAX_NUM_CHANNELS);
 PRIVATE (copy_event *, available_edma_channel) = NULL;
 DDR     (copy_event,   memcpy_event) = { EV_MEMCPY, NULL };
 

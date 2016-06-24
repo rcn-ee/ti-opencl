@@ -44,7 +44,6 @@
 #include <cstring>
 #include <cstdio>
 #include <cstdlib>
-#include <boost/tuple/tuple.hpp>
 
 #include <llvm/Support/Casting.h>
 #include <llvm/IR/Attributes.h>
@@ -118,7 +117,8 @@ cl_int Kernel::addFunction(DeviceInterface *device, llvm::Function *function,
                          (llvm::AttributeSet::FunctionIndex, "_wi_alloca_size")
                                              .getValueAsString();
 
-    if (!WAS_str.empty()) wi_alloca_size = std::stoi(WAS_str);
+    //YUAN if (!WAS_str.empty()) wi_alloca_size = std::stoi(WAS_str);
+    if (!WAS_str.empty()) wi_alloca_size = atoi(WAS_str.c_str());
 
     /*-------------------------------------------------------------------------
     * Add a device dependent
@@ -430,14 +430,14 @@ cl_int Kernel::info(cl_kernel_info param_name,
     return CL_SUCCESS;
 }
 
-boost::tuple<uint,uint,uint> Kernel::reqdWorkGroupSize(llvm::Module *module) const
+void Kernel::reqdWorkGroupSize(llvm::Module *module, cl_uint dims[3]) const
 {
     llvm::NamedMDNode *kernels = module->getNamedMetadata("opencl.kernels");
     llvm::MDNode *kernel = NULL;
 
-    boost::tuple<uint,uint,uint> zeros(0,0,0);
+    dims[0] = dims[1] = dims[2] = 0;
 
-    if (!kernels) return zeros;
+    if (!kernels) return;
    
     for (unsigned int i = 0, e = kernels->getNumOperands(); i != e; ++i){
        llvm::MDNode *kernel_iter = kernels->getOperand(i);
@@ -459,27 +459,26 @@ boost::tuple<uint,uint,uint> Kernel::reqdWorkGroupSize(llvm::Module *module) con
     {
         llvm::MDNode *meta = llvm::cast<llvm::MDNode>(kernel->getOperand(i));
 
-        if (meta->getNumOperands() <= 1) return zeros;
+        if (meta->getNumOperands() <= 1) return;
 
         std::string meta_name = llvm::cast<llvm::MDString>(
               meta->getOperand(0))->getString().str();
         if ((meta->getNumOperands() == 4) && 
             (meta_name == "reqd_work_group_size"))
         {
-	    uint x = (llvm::cast<llvm::ConstantInt>(
+	    dims[0] = (llvm::cast<llvm::ConstantInt>(
                llvm::dyn_cast<llvm::ConstantAsMetadata>(
                   meta->getOperand(1))->getValue()))->getLimitedValue();
-	    uint y = (llvm::cast<llvm::ConstantInt>(
+	    dims[1] = (llvm::cast<llvm::ConstantInt>(
                llvm::dyn_cast<llvm::ConstantAsMetadata>(
                   meta->getOperand(2))->getValue()))->getLimitedValue();
-	    uint z = (llvm::cast<llvm::ConstantInt>(
+	    dims[2] = (llvm::cast<llvm::ConstantInt>(
                llvm::dyn_cast<llvm::ConstantAsMetadata>(
                   meta->getOperand(3))->getValue()))->getLimitedValue();
 
-            return boost::tuple<uint,uint,uint> (x,y,z);
+            return;
         }
     }
-    return zeros;
 }
 
 
@@ -508,10 +507,11 @@ cl_int Kernel::workGroupInfo(DeviceInterface *device,
 
         case CL_KERNEL_COMPILE_WORK_GROUP_SIZE:
             {
-            boost::tuple<uint,uint,uint> res(reqdWorkGroupSize(dep.module));
-            three_size_t[0] = res.get<0>();
-            three_size_t[1] = res.get<1>();
-            three_size_t[2] = res.get<2>();
+            cl_uint dims[3];
+            reqdWorkGroupSize(dep.module, dims);
+            three_size_t[0] = dims[0];
+            three_size_t[1] = dims[1];
+            three_size_t[2] = dims[2];
             value = &three_size_t;
             value_length = sizeof(three_size_t);
             }

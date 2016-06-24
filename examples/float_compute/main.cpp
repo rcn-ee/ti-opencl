@@ -35,6 +35,12 @@
 #include "ocl_util.h"
 #include "assert.h"
 
+#ifdef _TI_RTOS
+#include <ti/sysbios/posix/_time.h>
+#include "dsp_compute.dsp_h"
+#include "../rtos_main.c"
+#endif
+
 using namespace cl;
 using namespace std;
 
@@ -49,7 +55,11 @@ const int NUM_TRIES = 5;
 const float C       = 42.0;
 const float EPSILON = 0.000001;
 
+#ifdef _TI_RTOS
+float *y_Golden;
+#else
 float y_Golden[NumElements];
+#endif
 
 static void compute_on_arm(float * __restrict__ in1,
                            float * __restrict__ in2,
@@ -63,8 +73,17 @@ static void   print_results(double *arm_time, double *dsp_time, int count);
 static void   print_header();
 static void   print_footer();
 
+#ifdef _TI_RTOS
+#define RETURN(x) return
+void ocl_main(UArg arg0, UArg arg1)
+{
+   int    argc = (int)     arg0;
+   char **argv = (char **) arg1;
+#else
+#define RETURN(x) return x
 int main(int argc, char *argv[])
 {
+#endif
     print_header();
 
     // OpenCL APIs in a try-catch block to detect errors
@@ -74,6 +93,7 @@ int main(int argc, char *argv[])
     Context context(CL_DEVICE_TYPE_ACCELERATOR);
     std::vector<Device> devices = context.getInfo<CL_CONTEXT_DEVICES>();
      
+#ifndef _TI_RTOS
     // Create the OpenCL program using the DSP binary
     char *bin;
     int bin_length = ocl_read_binary("dsp_compute.out", bin);
@@ -83,6 +103,12 @@ int main(int argc, char *argv[])
     program.build(devices);
 
     delete [] bin;
+#else
+    Program::Binaries   binary(1, make_pair(dsp_compute_dsp_bin,
+                                            sizeof(dsp_compute_dsp_bin)));
+    Program             program = Program(context, devices, binary);
+    program.build(devices);
+#endif
          
     // Create an OpenCL command queue
     CommandQueue Q(context, devices[0]);
@@ -93,6 +119,9 @@ int main(int argc, char *argv[])
     cl_float *M = (cl_float *)__malloc_ddr(sizeof(float) * NumElements);
     cl_float *x = (cl_float *)__malloc_ddr(sizeof(float) * NumElements);
     cl_float *y = (cl_float *)__malloc_ddr(sizeof(float) * NumElements);
+#ifdef _TI_RTOS
+    cl_float *y_Golden = (cl_float *)__malloc_ddr(sizeof(float) * NumElements);
+#endif
 
     assert (M != NULL);
     assert (x != NULL);
@@ -159,7 +188,7 @@ int main(int argc, char *argv[])
        // Check results
        for (int i=0; i < NumElements; ++i)
            if (fabs(y_Golden[i] - y[i]) > EPSILON) 
-               { cout << "Failed at Element " << i << endl; return -1; }
+               { cout << "Failed at Element " << i << endl; RETURN(-1); }
     }
 
     print_results (arm_time, dsp_time, NUM_TRIES);
@@ -169,15 +198,19 @@ int main(int argc, char *argv[])
     __free_ddr(M);
     __free_ddr(x);
     __free_ddr(y);
+#ifdef _TI_RTOS
+    __free_ddr(y_Golden);
+#endif
 
     } // end try
     catch (Error err) 
     { 
-        cerr << "ERROR:" << err.what() << "(" << err.err() << ")" << endl; 
+        cerr << "ERROR: " << err.what() << "(" << err.err() << ", "
+             << ocl_decode_error(err.err()) << ")" << endl;
         exit(1);
     }
 
-    return 0;
+    RETURN(0);
 }
 
 static void compute_on_arm(float * __restrict__ in1,
@@ -215,8 +248,13 @@ static void print_results(double *arm_time, double *dsp_time, int count)
 
     cout << endl;
     cout << endl << "Average across " << NUM_TRIES << " runs: " << endl;
+#ifndef _TI_RTOS
     cout << "ARM (2 OpenMP threads)         : " << 
+#else
+    cout << "ARM                            : " <<
+#endif
                             fixed << arm_ave << " secs" << endl;
+
     cout << "DSP (OpenCL NDRange kernel)    : " << 
                             fixed << dsp_ave << " secs" << endl;
     cout << "OpenCL-DSP speedup             : " << 

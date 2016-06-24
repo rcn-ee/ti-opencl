@@ -5,8 +5,8 @@ include ../host/Makefile.inc
 OPENCL_SRC_DIR ?= ../host
 
 # If not specified, pick a default location for TI dependent packages
-DEFAULT_DEV_INSTALL_DIR ?= $(DEFAULT_PSDK_RTOS_K2X)
-LINUX_DEVKIT_ROOT ?= $(PSDK_LINUX_DEVKIT_ROOT_K2X)
+DEFAULT_DEV_INSTALL_DIR ?= $(DEFAULT_PSDK_RTOS)
+LINUX_DEVKIT_ROOT ?= $(PSDK_LINUX_DEVKIT_ROOT)
 
 ifeq ($(TI_OCL_CGT_INSTALL),)
   $(error Monitor requires TI_OCL_CGT_INSTALL to point to C6000 Codegen tools)
@@ -67,11 +67,14 @@ ifneq ($(MAKECMDGOALS),clean)
    ifeq (,$(wildcard $(XDC_DIR)/.))
       $(error Path specified for XDC_DIR(=$(XDC_DIR)) is not valid)
    endif
+
+   ifneq ($(BUILD_TARGET),DSPC868x)
    ifeq (,$(wildcard $(ULM_DIR)/.))
       $(error Path specified for ULM_DIR(=$(ULM_DIR)) is not valid)
    endif
    ifeq (,$(wildcard $(GDB_SERVER_DIR)/.))
      $(error Path specified for GDB_SERVER_DIR(=$(GDB_SERVER_DIR)) is not valid)
+   endif
    endif
 endif
 

@@ -15,7 +15,7 @@
  *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  *   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+ *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  *   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
  *   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
  *   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
@@ -89,7 +89,7 @@ using namespace std;
 using llvm::Module;
 
 bool    prepend_headers(string filename, string& source);
-bool    run_clang      (string filename, string source, Compiler &compiler, 
+bool    run_clang      (string filename, string source, Compiler &compiler,
                         Module **module);
 bool    llvm_xforms    (Module *module, bool optimize);
 bool    cl6x           (string& filename, string &binary_str);
@@ -102,11 +102,11 @@ void    write_text     (string filename);
 string bc_filename(string filename)
 {
    string bc_file = fs_replace_extension(fs_filename(filename), ".bc");
-   if (opt_tmpdir) bc_file = "/tmp/" + bc_file;
+   if (opt_tmpdir) bc_file = fs_get_tmp_folder() + bc_file;
 
    return bc_file;
 }
-      
+
 
 void write_bitcode(string bc_file, Module* module)
 {
@@ -175,7 +175,7 @@ bool prepend_headers(string filename, string& source)
 /******************************************************************************
 * run_clang
 ******************************************************************************/
-bool run_clang(string filename, string source, Compiler &compiler, 
+bool run_clang(string filename, string source, Compiler &compiler,
            Module **module)
 {
     using llvm::MemoryBuffer;
@@ -187,7 +187,7 @@ bool run_clang(string filename, string source, Compiler &compiler,
     std::unique_ptr<MemoryBuffer> buffer = MemoryBuffer::getMemBuffer(s_data, s_name);
 
     if (opt_verbose) cout << "clang options: " << cl_options << endl;
-    if (!compiler.compile(cl_options, buffer.get(), filename)) 
+    if (!compiler.compile(cl_options, buffer.get(), filename))
         return false;
 
     *module = compiler.module();
@@ -311,7 +311,7 @@ bool llvm_xforms(Module *module, bool optimize)
     /*-------------------------------------------------------------------------
     * Builtins will not have workitem functions and do not need wga
     *------------------------------------------------------------------------*/
-    if (!opt_builtin) 
+    if (!opt_builtin)
     {
         manager->add(llvm::createUnifyFunctionExitNodesPass());
         manager->add(llvm::createTIOpenclWorkGroupAggregationPass(hasBarrier));
@@ -344,45 +344,41 @@ bool cl6x(string& bc_file, string &binary_str)
     run_cl6x(bc_file_full, &binary_str, files_other);
 
     /*-------------------------------------------------------------------------
-    * Clean up temporary files 
+    * Clean up temporary files
     *------------------------------------------------------------------------*/
-    const char *name = bc_file_full.c_str();
     if (!opt_keep)
     {
-        unlink(name);
+        fs_remove_file(bc_file_full);
 
         if (!opt_lib)
         {
-            name = fs_replace_extension(bc_file_full, ".obj").c_str();
-            unlink(name);
+            string name = fs_replace_extension(bc_file_full, ".obj");
+            fs_remove_file(name);
         }
     }
     else
     {
-        name = fs_replace_extension(bc_file_full, ".objc").c_str();
-        unlink(name);
+        string name = fs_replace_extension(bc_file_full, ".objc");
+        fs_remove_file(name);
 
         string bitasm_name = fs_stem(bc_file_full);
-        if (opt_tmpdir) bitasm_name = "/tmp/" + bitasm_name;
+        if (opt_tmpdir) bitasm_name = fs_get_tmp_folder() + bitasm_name;
         bitasm_name += "_bc.objc";
-        name = bitasm_name.c_str();
-        unlink(name);
+        fs_remove_file(bitasm_name);
     }
 
     string bitasm_name(fs_stem(bc_file_full));
     if (!opt_keep)
     {
-        if (opt_tmpdir) bitasm_name = "/tmp/" + bitasm_name;
+        if (opt_tmpdir) bitasm_name = fs_get_tmp_folder() + bitasm_name;
         bitasm_name += "_bc.asm";
-        name = bitasm_name.c_str();
-        unlink(name);
+        fs_remove_file(bitasm_name);
     }
 
     bitasm_name = fs_stem(bc_file_full);
-    if (opt_tmpdir) bitasm_name = "/tmp/" + bitasm_name;
+    if (opt_tmpdir) bitasm_name = fs_get_tmp_folder() + bitasm_name;
     bitasm_name += "_bc.obj";
-    name = bitasm_name.c_str();
-    unlink(name);
+    fs_remove_file(bitasm_name);
 
     return true;
 }
@@ -397,14 +393,14 @@ void write_text(string filename)
     string hfile  (fs_replace_extension(filename, ".dsp_h"));
 
     stringstream bufss;
-    bufss << ifstream(outfile.c_str()).rdbuf();
+    bufss << ifstream(outfile.c_str(), std::ifstream::binary).rdbuf();
 
     string buf(bufss.str());
 
     ofstream header(hfile.c_str(), ios::out);
-    
+
     header << "unsigned int " << fs_stem(filename)
-           << "_dsp_bin_len = " << buf.length() << ";" 
+           << "_dsp_bin_len = " << buf.length() << ";"
            << endl;
 
     header << "char " << fs_stem(filename) << "_dsp_bin[] = { ";
@@ -416,7 +412,7 @@ void write_text(string filename)
     {
         val = buf[i] & 0xff;
         header << ", 0x"<< hex << setfill('0') << setw(2) << nouppercase <<val;
-        if (i % 13 == 0) header << endl; 
+        if (i % 13 == 0) header << endl;
     }
 
     header << endl << "};" << endl;

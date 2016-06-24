@@ -71,6 +71,12 @@ is all cache and no scratchpad.
     returned by this built-in function may vary from core to core because each
     core independently sets an l1d cache size.  Available starting in release 1.1.5.0.
 
+.. Note:: The function __scratch_l1d_size only returns valid sizes after
+          calling __cache_l1d_*changesize* functions listed above.  If user
+          calls CSL (Chip Support Library) functions to change L1D cache
+          directly, __scratch_l1d_size will NOT return valid size.  This
+          will be fixed in the next TI OpenCL product release.
+
 L2 memory is similar to L1D in that it can be software partitioned between
 cache and scratchpad.  The below functions can be used to control that 
 partition.  However, there are some differences between L1D and L2.
@@ -110,7 +116,7 @@ using local scratch buffers.
 .. c:function:: void     __cache_l2_512k   (void)
 
     Sets the L2 memory to 512K bytes cache and the remainder of SRAM as scratchpad.
-    Only available is total L2 space is >= 1MB.
+    Only available if total L2 space is >= 1MB.
     
 .. Note:: The function __cache_l2_512k is not available on the AM57 platform.
 

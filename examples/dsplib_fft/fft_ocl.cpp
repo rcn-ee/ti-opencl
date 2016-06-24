@@ -29,7 +29,13 @@
 #include <cmath>
 #include <cstring>
 #include <iostream>
+#include <fstream>
 #include "ocl_util.h"
+
+#ifdef _TI_RTOS
+#include "kernel.dsp_h"
+#include "../rtos_main.c"
+#endif
 
 #define __CL_ENABLE_EXCEPTIONS
 #include <CL/cl.hpp>
@@ -37,18 +43,6 @@ using namespace cl;
 using namespace std;
 
 void tw_gen(float *w, int n);
-
-const char * kernelStr =
-    "void DSPF_sp_fftSPxSP(int N, \n"
-    "    global float *x, global float *w, global float *y, \n"
-    "    unsigned char *brev, int n_min, int offset, int n_max); \n"
-    " \n"
-    "kernel void ocl_DSPF_sp_fftSPxSP(int N, \n"
-    "    global float *x, global float *w, global float *y, \n"
-    "    int n_min, int offset, int n_max) \n"
-    "{ \n"
-    "  DSPF_sp_fftSPxSP (N, x, w, y, 0, n_min, offset, n_max); \n"
-    "} \n";
 
 /* ======================================================================== */
 /*  Initialized arrays with fixed test data.                                */
@@ -63,8 +57,15 @@ float w[2*FFTSZ];
 /* ======================================================================== */
 /*  MAIN -- Top level driver for the test.                                  */
 /* ======================================================================== */
-int main ()
+#ifdef _TI_RTOS
+void ocl_main(UArg arg0, UArg arg1)
 {
+   int    argc = (int)     arg0;
+   char **argv = (char **) arg1;
+#else
+int main(int argc, char *argv[])
+{
+#endif
     int i, j;
     int rad = 4;
     
@@ -95,9 +96,19 @@ int main ()
      Buffer bufY(context, CL_MEM_WRITE_ONLY, bufsize);
      Buffer bufW(context, CL_MEM_READ_ONLY,  bufsize);
 
-     Program::Sources    source(1, std::make_pair(kernelStr,strlen(kernelStr)));
+#ifndef _TI_RTOS
+     ifstream t("kernel.cl");
+     std::string         kSrc((istreambuf_iterator<char>(t)),
+                               istreambuf_iterator<char>());
+     Program::Sources    source(1, make_pair(kSrc.c_str(), kSrc.length()));
      Program             program = Program(context, source);
      program.build(devices, "./dsplib.ae66");
+#else
+     Program::Binaries   binary(1, make_pair(kernel_dsp_bin,
+                                             sizeof(kernel_dsp_bin)));
+     Program             program = Program(context, devices, binary);
+     program.build(devices);
+#endif
 
      Kernel fft(program, "ocl_DSPF_sp_fftSPxSP");
      fft.setArg(0, FFTSZ);
@@ -124,7 +135,10 @@ int main ()
 
    }
    catch (Error err)
-   { cerr << "ERROR: " << err.what() << "(" << err.err() << ")" << endl; }
+   {
+     cerr << "ERROR: " << err.what() << "(" << err.err() << ", "
+          << ocl_decode_error(err.err()) << ")" << endl;
+   }
 
    std::cout << "Done!" << std::endl;
 }

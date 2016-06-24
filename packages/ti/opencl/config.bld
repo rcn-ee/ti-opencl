@@ -1,0 +1,9 @@
+var A15 = xdc.useModule('gnu.targets.arm.A15F');
+A15.rootDir = "" + java.lang.System.getenv("GCC_ARM_NONE_TOOLCHAIN")
+
+var DSP = xdc.useModule('ti.targets.elf.C66');
+DSP.rootDir = "" + java.lang.System.getenv("TI_OCL_CGT_INSTALL")
+
+Build.targets = [
+    A15, DSP,
+];

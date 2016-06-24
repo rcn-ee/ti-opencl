@@ -31,7 +31,7 @@
 #include "program.h"
 #include "utils.h"
 #include "u_locks_pthread.h"
-#include "driver.h"
+#include "device_info.h"
 
 #include "../kernel.h"
 #include "../memobject.h"
@@ -40,6 +40,7 @@
 
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Constants.h>
+#include "llvm/IR/InstIterator.h"
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
@@ -51,10 +52,14 @@
 #include <string>
 #include <vector>
 #include <unistd.h>
+#ifndef _SYS_BIOS
 #include <sys/mman.h>
+#else
+#define MIN(X, Y)  ((X) < (Y) ? (X) : (Y))
+#define MAN(X, Y)  ((X) > (Y) ? (X) : (Y))
+#endif
 #include <sys/param.h>
 
-#include "llvm/IR/InstIterator.h"
 
 #if defined(DEVICE_K2X)
 extern "C"
@@ -214,7 +219,6 @@ T next_power_of_two(T k)
 ******************************************************************************/
 size_t DSPKernel::workGroupSize()  const 
 { 
-    size_t wgsize = 0;
 
     int wi_alloca_size = p_kernel->get_wi_alloca_size();
 
@@ -222,20 +226,62 @@ size_t DSPKernel::workGroupSize()  const
     * Get the device max limit size, which can change if the environment
     * variable TI_OCL_WG_SIZE_LIMIT is used 
     *-------------------------------------------------------------------------*/
+    size_t wgsize = 0;
     p_device->info(CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(wgsize),&wgsize,NULL);
+
+    /*-------------------------------------------------------------------------
+    * Get the total L2 available from device
+    *------------------------------------------------------------------------*/
+    cl_ulong  local_mem_size = 0;
+    p_device->info(CL_DEVICE_LOCAL_MEM_SIZE, sizeof(local_mem_size),&local_mem_size,NULL);
 
     /*-------------------------------------------------------------------------
     * if no wi_alloca, use the work group size limit specified by the device
     *-------------------------------------------------------------------------*/
-    if (wi_alloca_size == 0) return wgsize;
+    if (wi_alloca_size)
+    {
+        /*-------------------------------------------------------------------------
+        * Subtract any local buffer space from the total L2 available space
+        *------------------------------------------------------------------------*/
+        local_mem_size -= localMemSize();
+     
+        /*-------------------------------------------------------------------------
+        * Use the smaller of the device limit or up to available L2 mem of wi_alloca
+        * space per kernel.   
+        *-------------------------------------------------------------------------*/
+        return MIN(wgsize, local_mem_size / wi_alloca_size);
+    }
 
     /*-------------------------------------------------------------------------
-    * else use the smaller of the device limit or up to 16M of wi_alloca
-    * space per kernel.  Recall that an area is reserved for each core,
-    * so we divide 2M rather than 16M.
-    *-------------------------------------------------------------------------*/
-    else return MIN(wgsize, (2<<20) / next_power_of_two(wi_alloca_size));
+    * If the kernel has any local buffer arguments, then restrict wgsize to 
+    * the amount of L2 left after static locals are accounted for.  This does 
+    * not call localMemSize, becuase it can vary based on whether it is called 
+    * before or after local buffer arguments are set.
+    *------------------------------------------------------------------------*/
+    else if (p_kernel->hasLocals())
+    {
+        uint32_t     size;
+
+        DSPDevicePtr end_allocated_l2 = locals_in_kernel_extent(size);
+        end_allocated_l2  += size;
+
+        Program*     p      = (Program *)p_kernel->parent();
+        uint32_t     L2size;
+        DSPDevicePtr L2addr = p_device->get_L2_extent(L2size);
+        uint32_t     L2used = end_allocated_l2 - L2addr;
+
+        return MIN(wgsize, L2size - L2used);
+    }
+
+    else return wgsize;
 }
+
+size_t DSPKernel::preferredWorkGroupSizeMultiple() const
+{ 
+    uint32_t wgsz = workGroupSize();
+    return MIN(128, round_down_power2(wgsz)); 
+}
+
  
 /******************************************************************************
 * localMemSize() 
@@ -298,7 +344,7 @@ DSPDevicePtr DSPKernel::locals_in_kernel_extent(uint32_t &ret_size) const
                      (llvm::AttributeSet::FunctionIndex, "_kernel_local_size")
                      .getValueAsString();
 
-    if (!KLS_str.empty()) locals_in_kernel_size = std::stoi(KLS_str);
+    if (!KLS_str.empty()) locals_in_kernel_size = atoi(KLS_str.c_str());
     ret_size = ROUNDUP(locals_in_kernel_size, MIN_BLOCK_SIZE);
     return addr;
 }
@@ -495,7 +541,7 @@ cl_int DSPKernelEvent::callArgs(unsigned max_args_size)
 
                 args_in_reg_index = getarg_inreg_index(4, AP, BP, AQ, BQ);
                 DSPVirtPtr *buf_dspvirtptr = (args_in_reg_index >= 0) ?
-                                             (&args_in_reg[args_in_reg_index]) :
+                              (DSPVirtPtr *)(&args_in_reg[args_in_reg_index]) :
                    (DSPVirtPtr *)(more_args_in_mem+ROUNDUP(more_arg_offset,4));
 
                 /*-------------------------------------------------------------
@@ -596,7 +642,7 @@ cl_int DSPKernelEvent::callArgs(unsigned max_args_size)
                     // 1. get address of argref in_reg or on_stack
                     args_in_reg_index = getarg_inreg_index(4, AP, BP, AQ, BQ);
                     DSPVirtPtr *argref_dspvirtptr = (args_in_reg_index >= 0) ?
-                                            (&args_in_reg[args_in_reg_index]) :
+                              (DSPVirtPtr *)(&args_in_reg[args_in_reg_index]) :
                    (DSPVirtPtr *)(more_args_in_mem+ROUNDUP(more_arg_offset,4));
 
                     // 2. put argref placeholder (dummy 0) in_reg or on_stack
@@ -643,7 +689,7 @@ static void debug_pause(uint32_t entry, uint32_t dsp_id,
                         const char* outfile, char *name, DSPDevicePtr load_addr,
                         bool is_gdbc6x)
 {
-    Driver *driver = Driver::instance();
+    std::string dsp_monitor = tiocl::DeviceInfo::Instance().FullyQualifiedPathToDspMonitor();
 
     if (is_gdbc6x)
         printf("gdbc6x -q "
@@ -654,7 +700,7 @@ static void debug_pause(uint32_t entry, uint32_t dsp_id,
                "-iex \"b exit\" "
                "-iex \"b %s\" "
                "\n",
-                dsp_id, driver->dsp_monitor(dsp_id).c_str(),
+                dsp_id, dsp_monitor.c_str(),
                 outfile, load_addr, name);
     else
         printf("CCS Suspend dsp core 0\n"
@@ -662,7 +708,7 @@ static void debug_pause(uint32_t entry, uint32_t dsp_id,
                "CCS Add symbols: %s, no code offset\n"
                "CCS Add breakpoint: %s\n"
                "CCS Resume dsp core 0\n",
-               outfile, load_addr, driver->dsp_monitor(dsp_id).c_str(), name);
+               outfile, load_addr, dsp_monitor.c_str(), name);
 
     printf("Press any key, then enter to continue\n");
     do { char t; std::cin >> t; } while(0);
@@ -719,6 +765,12 @@ cl_int DSPKernelEvent::run(Event::Type evtype)
     *------------------------------------------------------------------------*/
     err = setup_stack_based_arguments();
     if (err != CL_SUCCESS) return err;
+
+    /*-------------------------------------------------------------------------
+    * Flush ARM's cache for device execution
+    *------------------------------------------------------------------------*/
+    SharedMemory *shm = p_device->GetSHMHandler();
+    shm->CacheWbInvAll();
 
     /*-------------------------------------------------------------------------
     * Feedback to user for debug
@@ -865,9 +917,10 @@ cl_int DSPKernelEvent::init_kernel_runtime_variables(Event::Type evtype,
         }
         else 
         {
-            p_WG_alloca_start = p_device->malloc_msmc(chip_alloca_size);
+            SharedMemory *shm = p_device->GetSHMHandler();
+            p_WG_alloca_start = shm->AllocateMSMC(chip_alloca_size);
             if (!p_WG_alloca_start)
-                p_WG_alloca_start = p_device->malloc_global(chip_alloca_size, true);
+                p_WG_alloca_start = shm->AllocateGlobal(chip_alloca_size, true);
         }
 
         if (!p_WG_alloca_start)
@@ -894,14 +947,15 @@ cl_int DSPKernelEvent::init_kernel_runtime_variables(Event::Type evtype,
 ******************************************************************************/
 cl_int DSPKernelEvent::allocate_temp_global(void)
 {
-    Driver *driver = Driver::instance();
+    SharedMemory *shm = p_device->GetSHMHandler();
+
     for (int i = 0; i < p_hostptr_tmpbufs.size(); ++i)
     {
         MemObject      *buffer       =  p_hostptr_tmpbufs[i].first;
         DSPDevicePtr64 *p_addr64     = &p_hostptr_tmpbufs[i].second.first;
         DSPVirtPtr     *p_arg_word   =  p_hostptr_tmpbufs[i].second.second;
         
-        *p_addr64 = p_device->malloc_global(buffer->size(), false);
+        *p_addr64 = shm->AllocateGlobal(buffer->size(), false);
 
         if (!(*p_addr64))
         {
@@ -917,13 +971,11 @@ cl_int DSPKernelEvent::allocate_temp_global(void)
 
         if (! WRITE_ONLY_BUFFER(buffer))
         {
-            void *mapped_tmpbuf = driver->map(p_device, *p_addr64,
-                                              buffer->size(), false);
+            void *mapped_tmpbuf = shm->Map(*p_addr64, buffer->size(), false);
             memcpy(mapped_tmpbuf, buffer->host_ptr(), buffer->size());
             p_flush_bufs.push_back(DSPMemRange(DSPPtrPair(
                                       *p_addr64, p_arg_word), buffer->size()));
-            driver->unmap(p_device, mapped_tmpbuf, *p_addr64, buffer->size(),
-                          true);
+            shm->Unmap(mapped_tmpbuf, *p_addr64, buffer->size(), true);
         }
     }
 
@@ -935,7 +987,9 @@ cl_int DSPKernelEvent::allocate_temp_global(void)
 *------------------------------------------------------------------------*/
 cl_int DSPKernelEvent::flush_special_use_host_ptr_buffers(void)
 {
-    Driver *driver = Driver::instance();
+    SharedMemory *shm = p_device->GetSHMHandler();
+
+#if 0
     int total_buf_size = 0;
     for (int i = 0; i < p_hostptr_clMalloced_bufs.size(); ++i)
     {
@@ -949,7 +1003,7 @@ cl_int DSPKernelEvent::flush_special_use_host_ptr_buffers(void)
     *------------------------------------------------------------------------*/
     int  threshold  = (32<<20);
     bool wb_inv_all = false;
-    if (total_buf_size >= threshold)  wb_inv_all = driver->cacheWbInvAll();
+    if (total_buf_size >= threshold)  wb_inv_all = shm->CacheWbInvAll();
 
     if (! wb_inv_all)
     {
@@ -960,11 +1014,37 @@ cl_int DSPKernelEvent::flush_special_use_host_ptr_buffers(void)
             DSPDevicePtr64 data = (DSPDevicePtr64)dspbuf->data();
 
             if (! READ_ONLY_BUFFER(buffer) && ! HOST_NO_ACCESS(buffer))
-                driver->cacheWbInv(data, buffer->host_ptr(), buffer->size());
+                shm->CacheWbInv(data, buffer->host_ptr(), buffer->size());
             else if (! WRITE_ONLY_BUFFER(buffer) && ! HOST_NO_ACCESS(buffer))
-                driver->cacheWb(data, buffer->host_ptr(), buffer->size());
+                shm->CacheWb(data, buffer->host_ptr(), buffer->size());
         }
     }
+#else
+    /*-------------------------------------------------------------------------
+    * PSDK3.0 has new Linux kernel 4.4.12 and new CMEM 4.11 kernel module.  It
+    * impacts how we handle cache operations in OpenCL host runtime.  In the
+    * new CMEM kernel module, CMEM_cache{Wb,Inv,WbInv} that we call from
+    * OpenCL host runtime in turn call dma_sync_single_for_{device,cpu}, which
+    * in turn lets Linux kernel know the ownership of the buffer.  After
+    * dma_sync_single_for_device() call, which is called by CMEM_cacheWb,
+    * Linux kernel knows that the buffer is owned by device, while after
+    * dma_sync_single_for_cpu() by CMEM_cacheInv, Linux kernel knows that the
+    * buffer is owned by cpu.  We should refrain from calling CMEM_cacheWbInv,
+    * because after which Linux kernel still thinks that cpu owns the buffer.
+    * Hence we need to change from previous code to this sequence to
+    * be explicit about buffer ownership.
+    *------------------------------------------------------------------------*/
+    for (int i = 0; i < p_hostptr_clMalloced_bufs.size(); ++i)
+    {
+        MemObject *buffer = p_hostptr_clMalloced_bufs[i];
+        DSPBuffer *dspbuf = (DSPBuffer *) buffer->deviceBuffer(p_device);
+        DSPDevicePtr64 data = (DSPDevicePtr64)dspbuf->data();
+
+        // Linux 4.4.12 / CMEM 4.11: CacheWb -> transfer ownership to device
+        if (! HOST_NO_ACCESS(buffer))
+            shm->CacheWb(data, buffer->host_ptr(), buffer->size());
+    }
+#endif
 
     return CL_SUCCESS;
 }
@@ -1046,8 +1126,9 @@ cl_int DSPKernelEvent::setup_extended_memory_mappings()
 ******************************************************************************/
 cl_int DSPKernelEvent::setup_stack_based_arguments()
 {
-    Driver *driver = Driver::instance();
-    uint32_t rounded_args_on_stack_size = 
+    SharedMemory *shm = p_device->GetSHMHandler();
+
+    uint32_t rounded_args_on_stack_size =
                 ROUNDUP(p_msg.u.k.kernel.args_on_stack_size, 128);
 
     uint32_t args_in_mem_size = rounded_args_on_stack_size + argref_offset;
@@ -1055,10 +1136,10 @@ cl_int DSPKernelEvent::setup_stack_based_arguments()
     if (args_in_mem_size > 0)
     {
         // 1. allocate memory
-        DSPDevicePtr64 args_addr = p_device->malloc_msmc(args_in_mem_size);
+        DSPDevicePtr64 args_addr = shm->AllocateMSMC(args_in_mem_size);
 
         if (!args_addr)
-            args_addr = p_device->malloc_global(args_in_mem_size, true);
+            args_addr = shm->AllocateGlobal(args_in_mem_size, true);
 
         if (!args_addr)
             QERR("Unable to allocate memory for kernel arguments",
@@ -1074,8 +1155,7 @@ cl_int DSPKernelEvent::setup_stack_based_arguments()
         }
 
         // 3. copy args_on_stack and args_of_argref
-        void *mapped_addr = driver->map(p_device, args_addr, args_in_mem_size,
-                                        false);
+        void *mapped_addr = shm->Map(args_addr, args_in_mem_size, false);
         if (rounded_args_on_stack_size > 0)
             memcpy(mapped_addr, args_on_stack, rounded_args_on_stack_size);
 
@@ -1083,7 +1163,7 @@ cl_int DSPKernelEvent::setup_stack_based_arguments()
             memcpy(((char*)mapped_addr)+rounded_args_on_stack_size, args_of_argref,
                    argref_offset);
 
-        driver->unmap(p_device, mapped_addr, args_addr, args_in_mem_size, true);
+        shm->Unmap(mapped_addr, args_addr, args_in_mem_size, true);
 
         // 4. set p_msg.u.k.kernel.args_on_stack_addr
         p_msg.u.k.kernel.args_on_stack_addr = (DSPVirtPtr) args_addr;
@@ -1126,23 +1206,24 @@ int DSPKernelEvent::debug_kernel_dispatch()
 ******************************************************************************/
 void DSPKernelEvent::free_tmp_bufs()
 {
-    Driver *driver = Driver::instance();
+    SharedMemory *shm = p_device->GetSHMHandler();
+
     if (p_WG_alloca_start > 0)
     {
         if (   p_WG_alloca_start >= MSMC_OCL_START_ADDR
             && p_WG_alloca_start < MSMC_OCL_END_ADDR)
-            p_device->free_msmc(p_WG_alloca_start);
+            shm->FreeMSMC(p_WG_alloca_start);
         else
-            p_device->free_global(p_WG_alloca_start);
+            shm->FreeGlobal(p_WG_alloca_start);
     }
 
     if (p_msg.u.k.kernel.args_on_stack_addr > 0)
     {
         if (   p_msg.u.k.kernel.args_on_stack_addr >= MSMC_OCL_START_ADDR
             && p_msg.u.k.kernel.args_on_stack_addr < MSMC_OCL_END_ADDR)
-            p_device->free_msmc(p_msg.u.k.kernel.args_on_stack_addr);
+            shm->FreeMSMC(p_msg.u.k.kernel.args_on_stack_addr);
         else
-            p_device->free_global(p_msg.u.k.kernel.args_on_stack_addr);
+            shm->FreeGlobal(p_msg.u.k.kernel.args_on_stack_addr);
     }
 
     for (int i = 0; i < p_hostptr_tmpbufs.size(); ++i)
@@ -1152,13 +1233,11 @@ void DSPKernelEvent::free_tmp_bufs()
 
         if (! READ_ONLY_BUFFER(buffer))
         {
-            void *mapped_tmpbuf = driver->map(p_device, addr64, buffer->size(),
-                                              true);
+            void *mapped_tmpbuf = shm->Map(addr64, buffer->size(), true);
             memcpy(buffer->host_ptr(), mapped_tmpbuf, buffer->size());
-            driver->unmap(p_device, mapped_tmpbuf, addr64, buffer->size(),
-                          false);
+            shm->Unmap(mapped_tmpbuf, addr64, buffer->size(), false);
         }
-        p_device->free_global(addr64);
+        shm->FreeGlobal(addr64);
     }
 
     /*-------------------------------------------------------------------------
@@ -1167,6 +1246,7 @@ void DSPKernelEvent::free_tmp_bufs()
     * CHANGE AGAIN: On AM57, we see (7 out of 8000) failures that 1 or 2
     *               previously invalidated cache line got back into cache,
     *               so we inv again here
+    * Linux 4.4.12 / CMEM 4.11: CacheInv -> transfer ownership back to cpu
     *------------------------------------------------------------------------*/
     // /***
     for (int i = 0; i < p_hostptr_clMalloced_bufs.size(); ++i)
@@ -1175,7 +1255,7 @@ void DSPKernelEvent::free_tmp_bufs()
         DSPBuffer *dspbuf = (DSPBuffer *) buffer->deviceBuffer(p_device);
         DSPDevicePtr64 data = (DSPDevicePtr64)dspbuf->data();
         if (! READ_ONLY_BUFFER(buffer))
-            driver->cacheInv(data, buffer->host_ptr(), buffer->size());
+            shm->CacheInv(data, buffer->host_ptr(), buffer->size());
     }
     // ***/
 }

@@ -15,7 +15,7 @@
  *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  *   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+ *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  *   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
  *   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
  *   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
@@ -37,25 +37,34 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <sys/stat.h>
 #include <unistd.h>
 
+#ifndef _SYS_BIOS
 #include <elf.h>
+#else
+#include <elf32.h>
+#define ELFMAG0         0x7f            /* EI_MAG */
+#define ELFMAG1         'E'
+#define ELFMAG2         'L'
+#define ELFMAG3         'F'
+#define ELFMAG          "\177ELF"
+#define SELFMAG         4
+#endif
 
+#ifndef _SYS_BIOS
 #include "genfile_cache.h"
+genfile_cache * genfile_cache::pInstance = 0;
+#endif
 
-#include "dload.h"
+#include "tal/dload_impl.h"
 
 
 using tiocl::DLOAD;
 
-genfile_cache * genfile_cache::pInstance = 0;
-
-
 using namespace Coal;
 
 DSPProgram::DSPProgram(DSPDevice *device, Program *program)
-: DeviceProgram(), p_device(device), p_program(program),
+: DeviceProgram(), p_device(device), p_program(program), p_nativebin(nullptr),
   p_loaded(false), p_keep_files(false), p_cache_kernels(false), p_debug(false),
   p_info(false), p_ocl_local_overlay_start(0), p_dl(nullptr)
 {
@@ -85,7 +94,11 @@ DSPProgram::~DSPProgram()
 
 bool DSPProgram::load()
 {
+#ifndef _SYS_BIOS
     if (!p_dl->LoadProgram(p_outfile))
+#else
+    if (!p_dl->LoadProgram(*p_nativebin))
+#endif
         return false;
 
     p_loaded = true;
@@ -94,7 +107,7 @@ bool DSPProgram::load()
 
     /*-------------------------------------------------------------------------
     * Ensure that the newly populated areas are not stale in device caches
-    * Send the cache Inv command.  We do not wait here.  The wait will be 
+    * Send the cache Inv command.  We do not wait here.  The wait will be
     * handled by the standard wait loop in the worker thread.
     *------------------------------------------------------------------------*/
     p_device->mail_to(cacheMsg);
@@ -102,7 +115,7 @@ bool DSPProgram::load()
 }
 
 bool DSPProgram::unload()
-{ 
+{
     return p_dl->UnloadProgram();
 }
 
@@ -142,7 +155,7 @@ const char* DSPProgram::outfile_name() const
     return p_outfile.c_str();
 }
 
-DSPDevicePtr DSPProgram::data_page_ptr() 
+DSPDevicePtr DSPProgram::data_page_ptr()
 {
     return p_dl->GetDataPagePointer();
 }
@@ -151,29 +164,6 @@ void DSPProgram::createOptimizationPasses(llvm::PassManager *manager,
                                           bool optimize, bool hasBarrier)
 {
 }
-
-
-
-/******************************************************************************
-* Find the OpenCL installation
-******************************************************************************/
-std::string get_ocl_dsp()
-{
-    std::string stdpath("/usr/share/ti/opencl");
-
-    const char *ocl_install = getenv("TARGET_ROOTDIR");
-    if (ocl_install) stdpath = ocl_install + stdpath;
-
-    struct stat st;
-    stat(stdpath.c_str(), &st);
-    if (S_ISDIR(st.st_mode)) return stdpath.c_str();
-
-    std::cout << "The OpenCL DSP directory " << stdpath
-              << " does not exist !"         << std::endl;
-    abort();
-}
-
-
 
 /**
  * Extract llvm bitcode and native binary from MixedBinary
@@ -208,7 +198,7 @@ bool DSPProgram::ExtractMixedBinary(const std::string &binary_str,
         if (strcmp(&strtab[shdr.sh_name], ".llvmir") == 0)  break;
     }
 
-    if (i >= n_sects)  
+    if (i >= n_sects)
         return false;
 
     bitcode.clear();
@@ -225,6 +215,7 @@ void DSPProgram::WriteNativeOut(const std::string &native)
 {
     assert (native.empty() == false);
 
+#ifndef _SYS_BIOS
     try
     {
         char name_out[] = "/tmp/openclXXXXXX";
@@ -239,6 +230,10 @@ void DSPProgram::WriteNativeOut(const std::string &native)
         unlink(name_out);
     }
     catch(...) { std::cout << "ERROR: Binary write out failure" << std::endl; }
+#else
+    // SYSBIOS mode: p_nativebin contains DSP binary, to be loaded form String
+    p_nativebin = const_cast<std::string *>(&native);
+#endif
 }
 
 
@@ -287,7 +282,7 @@ uint64_t __query_symbol(cl_program d_program, const char *sym_name)
         return 0;
 
     DSPProgram *prog = (DSPProgram *)(program->deviceDependentProgram(device));
-            
+
     if (!prog->is_loaded()) prog->load();
 
     if (!prog->is_loaded())

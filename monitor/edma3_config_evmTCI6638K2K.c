@@ -160,6 +160,44 @@ typedef struct
     {DMA_CHANNEL_TO_EVENT_MAPPING_0, DMA_CHANNEL_TO_EVENT_MAPPING_1} \
 }
 
+/* EDMA3_InstanceInitConfig sample1_6 is copied from sample1, modified for  */
+/* core 6 to remove one channel that is conflicting with something in       */
+/* PSDK 3.0 / Linux 4.4.12.                                                 */
+#define regionSample1_6                                       \
+{                                                             \
+    /* Resources owned by Region */                           \
+    /* ownPaRAMSets */                                        \
+    {0x00000000u, 0x00000000u, 0xFFFFFFFFu, 0xFFFFFFFFu,      \
+     0xFFFFFFFFu, 0x00000000u, 0x00000000u, 0x00000000u,      \
+     0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,      \
+     0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u},     \
+                                                              \
+    /* ownDmaChannels */                                      \
+    {0x0000FFFEu, 0x00000000u},                               \
+                                                              \
+    /* ownQdmaChannels */                                     \
+    {0x00000000u},                                            \
+                                                              \
+    /* ownTccs */                                             \
+    /* {0x0000FFFFu, 0x00000000u}, */                              \
+    {0x0000FFFFu, 0x00000000u},                               \
+                                                              \
+    /* Resources reserved by Region */                        \
+    /* resvdPaRAMSets */                                      \
+    {0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,      \
+     0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,      \
+     0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u,      \
+     0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u},     \
+                                                              \
+    /* resvdDmaChannels */                                    \
+    {DMA_CHANNEL_TO_EVENT_MAPPING_0, DMA_CHANNEL_TO_EVENT_MAPPING_1}, \
+                                                              \
+    /* resvdQdmaChannels */                                   \
+    {0x00000000u},                                            \
+                                                              \
+    /* resvdTccs */                                           \
+    {DMA_CHANNEL_TO_EVENT_MAPPING_0, DMA_CHANNEL_TO_EVENT_MAPPING_1} \
+}
 
 /* EDMA3_InstanceInitConfig sample2 with region owning PaRAM sets 106-147,  */
 /* and EDMA channel 8-15, but not reserving any EDMA resources               */
@@ -293,7 +331,7 @@ EDMA3_InstanceInitConfig edmaMgrInstanceInitConfig[EDMA_MGR_NUM_EDMA_INSTANCES][
  },
  /* EDMA3 INSTANCE# 4 */
  { regionSample0,  regionSample0,  regionSample0,  regionSample0,
-   regionSample0,  regionSample0,  regionSample1,  regionSample2
+   regionSample0,  regionSample0,  regionSample1_6,  regionSample2
  }
 };
 

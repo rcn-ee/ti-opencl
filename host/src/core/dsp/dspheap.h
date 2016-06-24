@@ -41,13 +41,14 @@
 #include <cstdlib>
 #include "u_lockable.h"
 #include "dspmem.h"
+#include <inttypes.h>
 
 class dspheap : public Lockable
 {
   typedef std::map<DSPDevicePtr64, uint64_t> block_list;
-  typedef block_list::iterator           block_iter;
-  typedef block_list::const_iterator     const_block_iter;
-  typedef block_list::value_type         block_descriptor;
+  typedef block_list::iterator               block_iter;
+  typedef block_list::const_iterator         const_block_iter;
+  typedef block_list::value_type             block_descriptor;
 
   public:
     dspheap(DSPDevicePtr64 start_addr, uint64_t length) 
@@ -137,7 +138,7 @@ class dspheap : public Lockable
 
         if (!allow_fail)
         {
-            printf("Malloc failed for size 0x%x from range (0x%08llx, 0x%08llx)\n",
+            printf("Malloc failed for size 0x%x from range (0x%" PRIx64 ", 0x%" PRIx64 ")\n",
                    size, p_start_addr, p_start_addr+p_length-1);
             abort();
         }

@@ -27,21 +27,16 @@ endif()
 
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/modules)
 
-# project version
-# The linux shared library versioning convention uses x.y.z format,
-# with no leading zeros. For debian packaging versioning we use xx.yy.zz.ww
-# formatting with leading zero's.  Opencl/clocl platform and version queries
-# will report in this format.  The 'ww' represents the PATCH_VERSION of a
-# particular release.  This number will not be reflected in the library
-# .so name, only in the packaging.
-# NOTE!!!!!! The packaging version numbers need to match what is specified in 
-# debian/changelog!!!
-SET(OCL_SPEC_MAJOR_VERSION 1)
-SET(OCL_SPEC_MINOR_VERSION 1)
-SET(RELEASE_VERSION 8)
-# use 2-digits to specify patch version as there is no need to convert
-# to library versioning
-SET(PATCH_VERSION   03)
+# OCL_VERSION defined in Makefile.inc
+if (OCL_VERSION)
+    string(REPLACE "." ";" OCL_PROJECT_VERSION ${OCL_VERSION})
+    list(GET OCL_PROJECT_VERSION 0 OCL_SPEC_MAJOR_VERSION)
+    list(GET OCL_PROJECT_VERSION 1 OCL_SPEC_MINOR_VERSION)
+    list(GET OCL_PROJECT_VERSION 2 RELEASE_VERSION)
+    list(GET OCL_PROJECT_VERSION 3 PATCH_VERSION)
+else()
+    message(ERROR "cmake variable OCL_VERSION not specified")
+endif()
 
 # Create the packaging version numbers which need leading zeros if single digit.
 if("${OCL_SPEC_MAJOR_VERSION}" MATCHES "^[0-9]$")
@@ -77,7 +72,11 @@ if (CROSS_COMPILE)
   set(CMAKE_SKIP_RPATH TRUE)
 endif()
 
-OPTION(BUILD_SHARED_LIBS "Set to OFF to build static libraries" ON)
+if (${BUILD_OS} MATCHES "SYS_BIOS")
+  OPTION(BUILD_SHARED_LIBS "Set to OFF to build static libraries" OFF)
+else()
+  OPTION(BUILD_SHARED_LIBS "Set to OFF to build static libraries" ON)
+endif()
 
 #ADD_DEFINITIONS("-DLOCK")
 
@@ -86,7 +85,11 @@ OPTION(BUILD_SHARED_LIBS "Set to OFF to build static libraries" ON)
 # Find_Package() for LLVM/CLANG defined in CMAKE_MODULE_PATH
 # Do not use system installed versions
 Find_Package(LLVM REQUIRED)
-Find_Package(Clang REQUIRED)
+if (${BUILD_OS} MATCHES "SYS_BIOS")
+  MESSAGE(STATUS "Build OS IS SYS BIOS")
+else()
+  Find_Package(Clang REQUIRED)
+endif()
 
 # OpenCL requires boost headers. If boost is installed to some directory
 # other than /usr/include then define BOOST_INCLUDEDIR as below:
@@ -148,13 +151,22 @@ if(NOT DEFINED ENABLE_ULM)
   elseif(C6678_BUILD)
     set(ENABLE_ULM off)
   elseif(AM57_BUILD)
-    set(ENABLE_ULM on)
+    if (NOT (${BUILD_OS} MATCHES "SYS_BIOS"))
+      set(ENABLE_ULM on)
+    else()
+      set(ENABLE_ULM off)
+    endif()
   endif()
 endif()
 
 if (NOT BUILD_OUTPUT)
   set(BUILD_OUTPUT all)
 endif()
+
+if (${BUILD_OS} MATCHES "SYS_BIOS")
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../eclipse ${CMAKE_CURRENT_BINARY_DIR}/eclipse)
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../packages ${CMAKE_CURRENT_BINARY_DIR}/packages)
+endif(${BUILD_OS} MATCHES "SYS_BIOS")
 
 if (${BUILD_OUTPUT} STREQUAL "all")
   add_subdirectory(${OCL_MONITOR_DIR} ${CMAKE_CURRENT_BINARY_DIR}/monitor)
@@ -165,10 +177,17 @@ if (${BUILD_OUTPUT} STREQUAL "all" OR ${BUILD_OUTPUT} STREQUAL "lib")
   add_subdirectory(util)
   add_subdirectory(${OCL_BUILTINS_DIR} ${CMAKE_CURRENT_BINARY_DIR}/builtins)
 
-  install(DIRECTORY DESTINATION /usr/share/doc/ti-opencl         ${OCL_DPERMS})
-  install(DIRECTORY DESTINATION /usr/include/CL                  ${OCL_DPERMS})
-  install(FILES opencl-manifest.html  DESTINATION /usr/share/doc/ti-opencl 
+  if (NOT (${BUILD_OS} MATCHES "SYS_BIOS"))
+    install(DIRECTORY DESTINATION /usr/share/doc/ti-opencl ${OCL_DPERMS})
+    install(FILES opencl-manifest.html  DESTINATION /usr/share/doc/ti-opencl 
                                                                  ${OCL_FPERMS})
+  else()
+    install(DIRECTORY DESTINATION ${DESTDIR}/../../../doc  ${OCL_DPERMS})
+    install(FILES opencl-manifest.html  DESTINATION ${DESTDIR}/../../../doc
+                                                                 ${OCL_FPERMS})
+  endif()
+
+  install(DIRECTORY DESTINATION /usr/include/CL                  ${OCL_DPERMS})
   install(FILES     util/ocl_util.h  DESTINATION /usr/include    ${OCL_FPERMS})
   install(DIRECTORY include/CL       DESTINATION /usr/include    ${OCL_DPERMS})
 
@@ -186,7 +205,9 @@ if (BUILD_OUTPUT STREQUAL "all" OR BUILD_OUTPUT STREQUAL "clocl")
   add_subdirectory(clocl)
 
   if (K2X_BUILD OR K2G_BUILD OR AM57_BUILD)
-    add_custom_target(arm_clocl_build ALL DEPENDS arm_clocl)
+    if (NOT (${BUILD_OS} MATCHES "SYS_BIOS"))
+        add_custom_target(arm_clocl_build ALL DEPENDS arm_clocl)
+    endif()
   endif()
 
   if (CROSS_COMPILE OR C6678_BUILD)
@@ -194,12 +215,11 @@ if (BUILD_OUTPUT STREQUAL "all" OR BUILD_OUTPUT STREQUAL "clocl")
   endif()
 endif()
 
-
 IF (BUILD_TESTS)
     ENABLE_TESTING()
     Find_Package(Check REQUIRED)
     add_subdirectory(tests)
-ENDIF (BUILD_TESTS)
+endif (BUILD_TESTS)
 
 set (CPACK_GENERATOR "DEB")
 set (CPACK_DEBIAN_PACKAGE_MAINTAINER "TI")

@@ -157,7 +157,9 @@
 #include <OpenGL/OpenGL.h>
 #include <OpenCL/opencl.h>
 #else
+#if !defined(_TI_RTOS)
 #include <GL/gl.h>
+#endif
 #include <CL/opencl.h>
 #endif // !__APPLE__
 
@@ -175,7 +177,7 @@
 #include <string>
 #endif 
 
-#if defined(linux) || defined(__APPLE__) || defined(__MACOSX)
+#if defined(linux) || defined(__APPLE__) || defined(__MACOSX)||defined(_TI_RTOS)
 # include <alloca.h>
 #endif // linux
 
@@ -1839,6 +1841,7 @@ public:
 };
 #endif
 
+#if !defined(_TI_RTOS)
 /*! \class BufferGL
  * \brief Memory buffer interface for GL interop.
  */
@@ -1932,6 +1935,7 @@ public:
             __GET_GL_OBJECT_INFO_ERR);
     }
 };
+#endif // !defined(_TI_RTOS)
 
 /*! \class Image
  * \brief Base class  interface for all images.
@@ -2012,6 +2016,7 @@ public:
     }
 };
 
+#if !defined(_TI_RTOS)
 /*! \class Image2DGL
  * \brief 2D image interface for GL interop.
  */
@@ -2053,6 +2058,7 @@ public:
         return *this;
     }
 };
+#endif // !defined(_TI_RTOS)
 
 /*! \class Image3D
  * \brief Image interface for 3D images.
@@ -2096,6 +2102,7 @@ public:
     }
 };
 
+#if !defined(_TI_RTOS)
 /*! \class Image2DGL
  * \brief 2D image interface for GL interop.
  */
@@ -2137,6 +2144,7 @@ public:
         return *this;
     }
 };
+#endif // !defined(_TI_RTOS)
 
 /*! \class Sampler
  * \brief Sampler interface for cl_sampler.

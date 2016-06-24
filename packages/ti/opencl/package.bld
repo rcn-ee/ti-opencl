@@ -1,0 +1,18 @@
+/* explicit references to global objects */
+var Build = xdc.useModule('xdc.bld.BuildEnvironment');
+var Pkg = xdc.useModule('xdc.bld.PackageContents');
+
+Pkg.attrs.profile = 'release';
+
+for each (var targ in Build.targets) {
+    if (targ.name == "A15F")
+    {
+        Pkg.addLibrary("lib/" + Pkg.name, targ).addObjects(
+                                                          ["configuration.c"]);
+    }
+    if (targ.name == "C66")
+    {
+        Pkg.addLibrary("lib/" + Pkg.name, targ).addObjects(
+                                                      ["configuration_dsp.c"]);
+    }
+}

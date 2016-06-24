@@ -43,8 +43,11 @@
 --retain="__core_num"
 --retain="__sem_*"
 --retain="_local_*"
---retain="ti_sysbios_family_c66_Cache_w*"
---retain="ti_sysbios_family_c66_Cache_inv*"
+--retain="ti_sysbios_family_c66_Cache_*"
+--retain="ti_sysbios_knl_*"
+--retain="ti_sysbios_heaps_*"
+--retain="ti_sdo_ipc_MessageQ_*"
+--retain="MessageQ_*"
 
 --retain="printf"
 --retain="puts"
@@ -89,6 +92,9 @@ nocache_phys_start   = start(MSMC_NC_PHYS);
 nocache_virt_start   = start(MSMC_NC_VIRT);
 nocache_size         = size (MSMC_NC_PHYS);
 */
+
+service_stack_start   = start(DDR3_STACK);
+service_stack_size    = size(DDR3_STACK);
 
 --export ocl_l1d_mem_start
 --export ocl_l1d_mem_size

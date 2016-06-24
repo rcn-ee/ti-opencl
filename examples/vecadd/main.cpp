@@ -29,11 +29,18 @@
 #include <CL/cl.hpp>
 #include <iostream>
 #include <cstdlib>
+#include <cassert>
 #include "ocl_util.h"
+
+#ifdef _TI_RTOS
+#include "kernel.dsp_h"
+#include "../rtos_main.c"
+#endif
 
 using namespace cl;
 using namespace std;
 
+// Source can be embedded here, or read in from external kernel.cl
 const char * kernelStr =
     "kernel void VectorAdd(global const short4* a, \n"
     "                      global const short4* b, \n"
@@ -49,17 +56,26 @@ const int VectorElements  = 4;
 const int NumVecElements  = NumElements / VectorElements;
 const int WorkGroupSize   = NumVecElements / NumWorkGroups;
 
-cl_short Golden[NumElements];
 
+#ifdef _TI_RTOS
+#define RETURN(x) return
+void ocl_main(UArg arg0, UArg arg1)
+{
+   int    argc = (int)     arg0;
+   char **argv = (char **) arg1;
+#else
+#define RETURN(x) return x
 int main(int argc, char *argv[])
 {
+#endif
    cl_int err     = CL_SUCCESS;
    int    bufsize = sizeof(int) * NumElements;
 
-   cl_short *srcA  = (cl_short *)__malloc_ddr(bufsize);
-   cl_short *srcB  = (cl_short *)__malloc_ddr(bufsize);
-   cl_short *dst   = (cl_short *)__malloc_ddr(bufsize);
-
+   cl_short *srcA   = (cl_short *)__malloc_ddr(bufsize);
+   cl_short *srcB   = (cl_short *)__malloc_ddr(bufsize);
+   cl_short *dst    = (cl_short *)__malloc_ddr(bufsize);
+   cl_short *Golden = (cl_short *)__malloc_ddr(bufsize);
+   assert(srcA != NULL && srcB != NULL && dst != NULL && Golden != NULL);
 
    for (int i=0; i < NumElements; ++i) 
    { 
@@ -87,9 +103,14 @@ int main(int argc, char *argv[])
                              bufsize, srcB);
      Buffer bufDst (context, CL_MEM_WRITE_ONLY| CL_MEM_USE_HOST_PTR, 
                              bufsize, dst);
-
+#ifndef _TI_RTOS
      Program::Sources    source(1, std::make_pair(kernelStr,strlen(kernelStr)));
      Program             program = Program(context, source);
+#else
+     Program::Binaries   binary(1, make_pair(kernel_dsp_bin,
+                                             sizeof(kernel_dsp_bin)));
+     Program             program = Program(context, devices, binary);
+#endif
      program.build(devices); 
 
      Kernel kernel(program, "VectorAdd");
@@ -109,19 +130,23 @@ int main(int argc, char *argv[])
 
      __free_ddr(srcA);
      __free_ddr(srcB);
-     __free_ddr(dst);
-
    }
    catch (Error err) 
-   { cerr << "ERROR: " << err.what() << "(" << err.err() << ")" << endl; }
+   {
+     cerr << "ERROR: " << err.what() << "(" << err.err() << ", "
+          << ocl_decode_error(err.err()) << ")" << endl;
+   }
 
    for (int i=0; i < NumElements; ++i)
        if (Golden[i] != dst[i]) 
        { 
            cout << "Failed at Element " << i << ": " 
                 << Golden[i] << " != " << dst[i] << endl; 
-           return 1;
+           RETURN(-1);
        }
+
+   __free_ddr(dst);
+   __free_ddr(Golden);
 
    cout << "Success!" << endl; 
 }

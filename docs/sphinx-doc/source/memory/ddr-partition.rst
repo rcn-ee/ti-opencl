@@ -99,65 +99,71 @@ Starting from Processor SDK 2.0.1.x, DDR3 partitioned for OpenCL use is
 statically reserved in the device tree file.  Should you wish to change the
 size of DDR reserved for OpenCL for various reasons (e.g. you upgraded DDR on
 your 66AK2x EVM to 8GB and wish to allocate more DDR for OpenCL), you can
-modify the device tree.  The following are the steps to increase DDR reserved
-for OpenCL from default 368MB to 4GB on K2HK, as an example (other platforms
-are similar).
+modify the device tree with the "dtc" tool from the device-tree-compiler
+package.
 
- #. Go to the Processor SDK directory that you downloaded for your EVM,
-    for example,
+The following are the steps to increase DDR reserved for OpenCL from default
+368MB to either 1392MB or 4GB on K2HK, as examples (other platforms are
+similar).  You can make changes with the sizes that suit your use case.
+
+ #. Make a copy of the original k2hk-evm.dtb (if you care)
     ::
 
-      export PSDK_DIR=$HOME/ti-processor-sdk-linux-k2hk-evm-02.00.01.07
-      export DTS_DIR=$PSDK_DIR/board-support/linux-4.1.13+gitAUTOINC+8dc66170d9-g8dc6617/arch/arm/boot/dts
-      cd $DTS_DIR
+      cp /var/lib/tftpboot/k2hk-evm.dtb /var/lib/tftpboot.k2hk-evm.dtb.orig
 
- #. Update cmem dts file ($DTS_DIR/k2hk-evm-cmem.dtsi) to increase the size
-    of cmem_block_0,
+ #. Convert device tree blob format to source format
     ::
 
-      --- k2hk-evm-cmem.dtsi.orig	2016-01-25 14:46:28.929687202 -0600
-      +++ k2hk-evm-cmem.dtsi	2016-01-25 14:47:14.217688225 -0600
-      @@ -7,7 +7,7 @@
-                       };
+      dtc -I dtb -O dts /var/lib/tftpboot/k2hk-evm.dtb -o tmp.dts
+
+ #. Modify the sizes in both cmem_block@0 and corresponding cmem_block_mem
+    nodes
+    ::
+
+      --- k2hk-evm.dts.orig	2016-03-31 15:05:58.779020849 -0500
+      +++ k2hk-evm.dts	        2016-03-31 15:06:33.083021624 -0500
+      @@ -2814,7 +2814,7 @@
+       		};
        
-                       cmem_block_mem_0: cmem_block_mem@829000000 {
-      -                        reg = <0x00000008 0x29000000 0x00000000 0x17000000>;
-      +                        reg = <0x00000008 0x29000000 0x00000001 0x00000000>;
-                               no-map;
-                               status = "okay";
-                       };
-      @@ -37,7 +37,7 @@
-                       cmem_block_0: cmem_block@0 {
-                               reg = <0>;
-                               memory-region = <&cmem_block_mem_0>;
-      -                        cmem-buf-pools = <1 0x00000000 0x17000000>;
-      +                        cmem-buf-pools = <1 0x00000001 0x00000000>;
-                       };
+       		cmem_block_mem@829000000 {
+      -			reg = <0x8 0x29000000 0x0 0x17000000>;
+      +			reg = <0x8 0x29000000 0x0 0x57000000>;
+       			no-map;
+       			status = "okay";
+       			linux,phandle = <0x59>;
+      @@ -2872,7 +2872,7 @@
+       		cmem_block@0 {
+       			reg = <0x0>;
+       			memory-region = <0x59>;
+      -			cmem-buf-pools = <0x1 0x0 0x17000000>;
+      +			cmem-buf-pools = <0x1 0x0 0x57000000>;
+       		};
        
-                       cmem_block_1: cmem_block@1 {
+       		cmem_block@1 {
 
- #. Recompile device tree source (.dts) into binary (.dtb).  In the directory
-    where your EVM gets the dtb file (e.g. /var/lib/tftpboot/k2hk-evm.dtb on
-    host machine if booting from net with tftp, /boot/k2hk-evm.dtb on EVM's
-    file system if boot from sdcard), replace the old dtb file with the newly
-    compiled one,
+    Or, if 4GB of CMEM is desired, change the sizes to
     ::
 
-      cd $PSDK_DIR
-      make linux-dtbs
-      cd $EVM_DTB_DIR
-      cp k2hk-evm.dtb k2hk-evm.dtb.orig
-      cp $DTS_DIR/k2hk-evm.dtb .
+      -			reg = <0x8 0x29000000 0x0 0x17000000>;
+      +			reg = <0x8 0x29000000 0x1 0x00000000>;
+      -			cmem-buf-pools = <0x1 0x0 0x17000000>;
+      +			cmem-buf-pools = <0x1 0x1 0x00000000>;
 
- #. Reboot your evm, check /proc/iomem or run OpenCL platforms example to
-    verify the changes,
+ #. Convert device tree source back to blob format
     ::
+
+      dtc -I dts -O dtb tmp.dts -o /var/lib/tftpboot/k2hk-evm.dtb
+
+ #. Reboot your evm, check /proc/iomem or run OpenCL "platforms" example to
+    verify the changes
+    ::
+
       # cat /proc/iomem | grep CMEM
       0c100000-0c57ffff : CMEM
       822000000-828ffffff : CMEM
       829000000-928ffffff : CMEM
 
-      # ./platforms 
+      # /usr/share/ti/examples/opencl/platforms/platforms
       PLATFORM: TI KeyStone II
         Version: OpenCL 1.1 TI product version 01.01.08.00 (Jan 22 2016 15:18:29)
         Vendor : Texas Instruments, Inc.
@@ -176,3 +182,10 @@ are similar).
 .. Note::
     This method of changing DDR partitioning for OpenCL does NOT apply to
     the m800 K2H system.
+
+.. Note::
+    Starting from Processor SDK 2.0.1.x, uboot variable, "mem_reserve", is
+    no longer used to reserve memory for CMEM.  If you still have leftover
+    "mem_reserve" in your uboot environment, please unset it by
+    "setenv mem_reserve" followed by "saveenv".
+

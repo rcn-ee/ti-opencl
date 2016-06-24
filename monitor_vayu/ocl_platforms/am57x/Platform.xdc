@@ -60,9 +60,17 @@ config ti.platforms.generic.Platform.Instance CPU =
                           access: "RWX", } ],
 
       /* Cached DDR */
-      [ "DDR3_HEAP", { name: "DDR3_HEAP",
+
+      /* Stack for ocl_service_omp task - 0x10000 for each core */
+      [ "DDR3_STACK", { name: "DDR3_STACK",
                           base: 0x81000000,
-                          len:  0x01000000,
+                          len:  0x00020000,
+                          space: "data",
+                          access: "RWX", } ],
+
+      [ "DDR3_HEAP", { name: "DDR3_HEAP",
+                          base: 0x81020000,
+                          len:  0x00FE0000,
                           space: "code/data",
                           access: "RWX", } ],
 

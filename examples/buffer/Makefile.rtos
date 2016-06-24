@@ -1,0 +1,5 @@
+EXE  = buffer
+srcs = main.cpp
+
+include ../make_rtos.inc
+

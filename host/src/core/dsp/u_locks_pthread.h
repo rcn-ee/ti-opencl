@@ -39,7 +39,7 @@
 #ifndef _U_LOCKS_PTHREAD_H_
 #define _U_LOCKS_PTHREAD_H_
 
-#include <pthread.h>
+#include "../tiocl_thread.h"
                 
 /**************************************************************************//**
 * @brief Simple mutex implemented using the pthreads library
