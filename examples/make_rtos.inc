@@ -33,11 +33,20 @@
 #
 #  ======== make_rtos.inc ========
 #
+ifeq ($(OS), Windows_NT)
+DEFAULT_PSDK_RTOS      ?= C:\ti\ti-processor-sdk-rtos-am57xx-evm-03.00.00.02
+GCC_ARM_NONE_TOOLCHAIN ?= C:\ti\ccsv6\tools\compiler\gcc-arm-none-eabi-4_9-2015q3
+
+TI_OCL_CGT_INSTALL     ?= C:\ti\ccsv6\tools\compiler\ti-cgt-c6000_8.1.1
+TI_OCL_INSTALL         ?= C:\ti\opencl_rtos_am57xx_01_01_09_01\packages\ti\opencl
+
+else
 DEFAULT_PSDK_RTOS      ?= /cgnas/ti-processor-sdk-rtos-am57xx-evm-03.00.00.02-20160621
 GCC_ARM_NONE_TOOLCHAIN ?= /cgnas/gcc-arm-none-eabi-4_9-2015q3
 
 TI_OCL_CGT_INSTALL     ?= /cgnas/ti-cgt-c6000-8.1.0-release-linux
-TI_OCL_INSTALL         ?= /cgnas/opencl_rtos_am57xx_01_01_09_00-20160622/packages/ti/opencl
+TI_OCL_INSTALL         ?= /cgnas/opencl_rtos_am57xx_01_01_09_01-20160622/packages/ti/opencl
+endif
 
 BIOS_INSTALL_DIR       ?= $(wildcard $(DEFAULT_PSDK_RTOS)/bios_*)
 IPC_INSTALL_DIR        ?= $(wildcard $(DEFAULT_PSDK_RTOS)/ipc_*)
@@ -55,7 +64,11 @@ CC                = $(GCC_ARM_NONE_TOOLCHAIN)/bin/arm-none-eabi-gcc
 CXX               = $(GCC_ARM_NONE_TOOLCHAIN)/bin/arm-none-eabi-g++
 LD                = $(GCC_ARM_NONE_TOOLCHAIN)/bin/arm-none-eabi-gcc
 OCL_INSTALL_DIR   = $(TI_OCL_INSTALL)/../../..
+ifeq ($(OS), Windows_NT)
+CLOCL             = $(TI_OCL_INSTALL)/usr/share/ti/opencl/bin/pc/clocl
+else
 CLOCL             = $(TI_OCL_INSTALL)/usr/share/ti/opencl/bin/x86/clocl
+endif
 DSP_INCLUDE       = -I$(TI_OCL_CGT_INSTALL)/include
 DSP_INCLUDE      += -I$(TI_OCL_INSTALL)/usr/share/ti/opencl
 CL6X              = $(TI_OCL_CGT_INSTALL)/bin/cl6x -mv6600 --abi=eabi $(DSP_INCLUDE)
