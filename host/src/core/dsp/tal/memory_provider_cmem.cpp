@@ -70,7 +70,10 @@ void  CMEM<MapPolicy>::UnmapFromHostAddressSpace (void* host_addr, size_t size,
 template<typename MapPolicy>
 bool CMEM<MapPolicy>::CacheInv(void *host_addr, size_t size) const
 {
-    if (size >= threshold_)
+    // Linux 4.4.12/CMEM 4.11: need to be explicit about buffer ownership
+    // by calling CMEM_cache{Wb, Inv}, can no longer optimize it away
+    // with a total cache flush
+    if (false && size >= threshold_)
         return CMEM_cacheWbInvAll() == CMEM_SUCCESS;
     else
         return CMEM_cacheInv(host_addr, size) == CMEM_SUCCESS;
@@ -79,7 +82,10 @@ bool CMEM<MapPolicy>::CacheInv(void *host_addr, size_t size) const
 template<typename MapPolicy>
 bool CMEM<MapPolicy>::CacheWb(void *host_addr, size_t size) const
 {
-    if (size >= threshold_)
+    // Linux 4.4.12/CMEM 4.11: need to be explicit about buffer ownership
+    // by calling CMEM_cache{Wb, Inv}, can no longer optimize it away
+    // with a total cache flush
+    if (false && size >= threshold_)
         return CMEM_cacheWbInvAll() == CMEM_SUCCESS;
     else
         return CMEM_cacheWb(host_addr, size) == CMEM_SUCCESS;

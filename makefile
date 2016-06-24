@@ -6,6 +6,7 @@ ifneq ($(BUILD_DSPC),1)
 ifneq (,$(findstring 86, $(shell uname -m)))
     ifeq ($(BUILD_OS), SYS_BIOS)
         export GCC_ARM_NONE_TOOLCHAIN:=$(GCC_ARM_NONE_TOOLCHAIN)
+        export TI_OCL_CGT_INSTALL:=$(TI_OCL_CGT_INSTALL)
         TOOLCHAIN_FILE=../host/cmake/CMakeBiosARMToolChain.txt
     else
         TOOLCHAIN_FILE=../host/cmake/CMakeARMToolChain.txt
@@ -21,36 +22,38 @@ ifeq ($(BUILD_AM57),1)
     BUILD_TARGET=ARM_AM57
     ifneq ($(BUILD_OS), SYS_BIOS)
         CMAKE_DEFINES += -DLINUX_DEVKIT_ROOT=$(PSDK_LINUX_DEVKIT_ROOT)
-        export PATH:=$(ARM_GCC49_DIR)/bin:$(PATH)
+        export PATH:=$(ARM_GCC_DIR)/bin:$(PATH)
     else
-	export DESTDIR?=$(CURDIR)/install/ti-opencl-rtos-$(TARGET)-$(OCL_FULL_VER)/packages/ti/opencl
+        RTOS_PACKAGE_VER=$(shell echo $(OCL_FULL_VER) | sed 's/\<[0-9]\>/0&/g' | sed 's/\./_/g')
+	export DESTDIR?=$(CURDIR)/install/opencl_rtos_$(TARGET)xx_$(RTOS_PACKAGE_VER)/packages/ti/opencl
 	export GCC_ARM_NONE_TOOLCHAIN
         CMAKE_DEFINES += -DBUILD_OS=SYS_BIOS -DPSDK_RTOS=$(DEFAULT_PSDK_RTOS)
+        CLEAN_DIRS += packages/ti/opencl
     endif
     CLEAN_DIRS += monitor_vayu
 else ifeq ($(BUILD_K2H),1)
     TARGET=k2h
     BUILD_TARGET=ARM_K2H
-    CMAKE_DEFINES += -DLINUX_DEVKIT_ROOT=$(PSDK_LINUX_DEVKIT_ROOT_K2X)
-    export PATH:=$(ARM_GCC49_DIR)/bin:$(PATH)
+    CMAKE_DEFINES += -DLINUX_DEVKIT_ROOT=$(PSDK_LINUX_DEVKIT_ROOT)
+    export PATH:=$(ARM_GCC_DIR)/bin:$(PATH)
     CLEAN_DIRS += monitor
 else ifeq ($(BUILD_K2L),1)
     TARGET=k2l
     BUILD_TARGET=ARM_K2L
-    CMAKE_DEFINES += -DLINUX_DEVKIT_ROOT=$(PSDK_LINUX_DEVKIT_ROOT_K2X)
-    export PATH:=$(ARM_GCC49_DIR)/bin:$(PATH)
+    CMAKE_DEFINES += -DLINUX_DEVKIT_ROOT=$(PSDK_LINUX_DEVKIT_ROOT)
+    export PATH:=$(ARM_GCC_DIR)/bin:$(PATH)
     CLEAN_DIRS += monitor
 else ifeq ($(BUILD_K2E),1)
     TARGET=k2e
     BUILD_TARGET=ARM_K2E
-    CMAKE_DEFINES += -DLINUX_DEVKIT_ROOT=$(PSDK_LINUX_DEVKIT_ROOT_K2X)
-    export PATH:=$(ARM_GCC49_DIR)/bin:$(PATH)
+    CMAKE_DEFINES += -DLINUX_DEVKIT_ROOT=$(PSDK_LINUX_DEVKIT_ROOT)
+    export PATH:=$(ARM_GCC_DIR)/bin:$(PATH)
     CLEAN_DIRS += monitor
 else ifeq ($(BUILD_K2G),1)
     TARGET=k2g
     BUILD_TARGET=ARM_K2G
-    CMAKE_DEFINES += -DLINUX_DEVKIT_ROOT=$(PSDK_LINUX_DEVKIT_ROOT_K2X)
-    export PATH:=$(ARM_GCC49_DIR)/bin:$(PATH)
+    CMAKE_DEFINES += -DLINUX_DEVKIT_ROOT=$(PSDK_LINUX_DEVKIT_ROOT)
+    export PATH:=$(ARM_GCC_DIR)/bin:$(PATH)
     CLEAN_DIRS += monitor_vayu
 else ifeq ($(BUILD_DSPC),1)
     TARGET=dspc

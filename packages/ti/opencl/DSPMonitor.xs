@@ -28,9 +28,53 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
+ * --/COPYRIGHT--*/
 
-package ti.opencl {
-    module OpenCL;
-    module DSPMonitor;
+var DSPMonitor        = null;
+
+
+/*
+ *  ======== module$meta$init ========
+ */
+function module$meta$init()
+{
+    /* Only process during "cfg" phase */
+    if (xdc.om.$name != "cfg") {
+        return;
+    }
+
+    DSPMonitor = this;
+}
+
+/*
+ *  ======== module$use ========
+ */
+function module$use()
+{
+    if (DSPMonitor.OCL_ipc_customized == false)
+    {
+        var ipc_cfg = xdc.loadCapsule("ti/opencl/ipc.cfg.xs");
+    }
+
+    if (DSPMonitor.OCL_memory_customized == false)
+    {
+        var Program = xdc.useModule("xdc.cfg.Program");
+    }
+}
+
+
+/*
+ *  ======== module$static$init ========
+ */
+function module$static$init(mod, params)
+{
+}
+
+
+
+/*
+ *  ======== module$validate ========
+ */
+function module$validate()
+{
 }

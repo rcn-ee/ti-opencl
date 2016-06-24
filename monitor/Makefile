@@ -5,8 +5,8 @@ include ../host/Makefile.inc
 OPENCL_SRC_DIR ?= ../host
 
 # If not specified, pick a default location for TI dependent packages
-DEFAULT_DEV_INSTALL_DIR ?= $(DEFAULT_PSDK_RTOS_K2X)
-LINUX_DEVKIT_ROOT ?= $(PSDK_LINUX_DEVKIT_ROOT_K2X)
+DEFAULT_DEV_INSTALL_DIR ?= $(DEFAULT_PSDK_RTOS)
+LINUX_DEVKIT_ROOT ?= $(PSDK_LINUX_DEVKIT_ROOT)
 
 ifeq ($(TI_OCL_CGT_INSTALL),)
   $(error Monitor requires TI_OCL_CGT_INSTALL to point to C6000 Codegen tools)

@@ -163,6 +163,11 @@ if (NOT BUILD_OUTPUT)
   set(BUILD_OUTPUT all)
 endif()
 
+if (${BUILD_OS} MATCHES "SYS_BIOS")
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../eclipse ${CMAKE_CURRENT_BINARY_DIR}/eclipse)
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../packages ${CMAKE_CURRENT_BINARY_DIR}/packages)
+endif(${BUILD_OS} MATCHES "SYS_BIOS")
+
 if (${BUILD_OUTPUT} STREQUAL "all")
   add_subdirectory(${OCL_MONITOR_DIR} ${CMAKE_CURRENT_BINARY_DIR}/monitor)
 endif()
@@ -172,10 +177,17 @@ if (${BUILD_OUTPUT} STREQUAL "all" OR ${BUILD_OUTPUT} STREQUAL "lib")
   add_subdirectory(util)
   add_subdirectory(${OCL_BUILTINS_DIR} ${CMAKE_CURRENT_BINARY_DIR}/builtins)
 
-  install(DIRECTORY DESTINATION /usr/share/doc/ti-opencl         ${OCL_DPERMS})
-  install(DIRECTORY DESTINATION /usr/include/CL                  ${OCL_DPERMS})
-  install(FILES opencl-manifest.html  DESTINATION /usr/share/doc/ti-opencl 
+  if (NOT (${BUILD_OS} MATCHES "SYS_BIOS"))
+    install(DIRECTORY DESTINATION /usr/share/doc/ti-opencl ${OCL_DPERMS})
+    install(FILES opencl-manifest.html  DESTINATION /usr/share/doc/ti-opencl 
                                                                  ${OCL_FPERMS})
+  else()
+    install(DIRECTORY DESTINATION ${DESTDIR}/../../../doc  ${OCL_DPERMS})
+    install(FILES opencl-manifest.html  DESTINATION ${DESTDIR}/../../../doc
+                                                                 ${OCL_FPERMS})
+  endif()
+
+  install(DIRECTORY DESTINATION /usr/include/CL                  ${OCL_DPERMS})
   install(FILES     util/ocl_util.h  DESTINATION /usr/include    ${OCL_FPERMS})
   install(DIRECTORY include/CL       DESTINATION /usr/include    ${OCL_DPERMS})
 
@@ -208,11 +220,6 @@ IF (BUILD_TESTS)
     Find_Package(Check REQUIRED)
     add_subdirectory(tests)
 endif (BUILD_TESTS)
-
-if (${BUILD_OS} MATCHES "SYS_BIOS")
-    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../eclipse ${CMAKE_CURRENT_BINARY_DIR}/eclipse)
-    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../packages ${CMAKE_CURRENT_BINARY_DIR}/packages)
-endif(${BUILD_OS} MATCHES "SYS_BIOS")
 
 set (CPACK_GENERATOR "DEB")
 set (CPACK_DEBIAN_PACKAGE_MAINTAINER "TI")

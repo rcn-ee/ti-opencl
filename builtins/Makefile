@@ -1,7 +1,5 @@
 include ../host/Makefile.inc
 
-DEFAULT_DEV_INSTALL_DIR ?= $(DEFAULT_MCSDK)
-
 UNAME_M :=$(shell uname -m)
 ifneq (,$(findstring 86, $(UNAME_M)))
   ifeq ($(TI_OCL_CGT_INSTALL),)

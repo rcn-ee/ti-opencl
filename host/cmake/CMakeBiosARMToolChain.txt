@@ -22,7 +22,10 @@ SET(IPC_INSTALL_PATH                ${IPC_INSTALL_PATH}/packages)
 ENDIF()
 
 SET(LLVM_PATH               ${ARM_LLVM_DIR}/include)
+
+IF (NOT DEFINED LOKI_INCLUDE_PATH)
 SET(LOKI_INCLUDE_PATH       /usr/include/loki)
+ENDIF()
 
 # Windows build pathes
 # SET(XDC_INSTALL_PATH C:/ti/xdctools_3_25_06_96/packages)

@@ -346,27 +346,25 @@ bool cl6x(string& bc_file, string &binary_str)
     /*-------------------------------------------------------------------------
     * Clean up temporary files
     *------------------------------------------------------------------------*/
-    const char *name = bc_file_full.c_str();
     if (!opt_keep)
     {
-        fs_remove_file(name);
+        fs_remove_file(bc_file_full);
 
         if (!opt_lib)
         {
-            name = fs_replace_extension(bc_file_full, ".obj").c_str();
+            string name = fs_replace_extension(bc_file_full, ".obj");
             fs_remove_file(name);
         }
     }
     else
     {
-        name = fs_replace_extension(bc_file_full, ".objc").c_str();
+        string name = fs_replace_extension(bc_file_full, ".objc");
         fs_remove_file(name);
 
         string bitasm_name = fs_stem(bc_file_full);
         if (opt_tmpdir) bitasm_name = fs_get_tmp_folder() + bitasm_name;
         bitasm_name += "_bc.objc";
-        name = bitasm_name.c_str();
-        fs_remove_file(name);
+        fs_remove_file(bitasm_name);
     }
 
     string bitasm_name(fs_stem(bc_file_full));
@@ -374,15 +372,13 @@ bool cl6x(string& bc_file, string &binary_str)
     {
         if (opt_tmpdir) bitasm_name = fs_get_tmp_folder() + bitasm_name;
         bitasm_name += "_bc.asm";
-        name = bitasm_name.c_str();
-        fs_remove_file(name);
+        fs_remove_file(bitasm_name);
     }
 
     bitasm_name = fs_stem(bc_file_full);
     if (opt_tmpdir) bitasm_name = fs_get_tmp_folder() + bitasm_name;
     bitasm_name += "_bc.obj";
-    name = bitasm_name.c_str();
-    fs_remove_file(name);
+    fs_remove_file(bitasm_name);
 
     return true;
 }
@@ -397,7 +393,7 @@ void write_text(string filename)
     string hfile  (fs_replace_extension(filename, ".dsp_h"));
 
     stringstream bufss;
-    bufss << ifstream(outfile.c_str()).rdbuf();
+    bufss << ifstream(outfile.c_str(), std::ifstream::binary).rdbuf();
 
     string buf(bufss.str());
 

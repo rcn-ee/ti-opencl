@@ -82,19 +82,21 @@ MBoxMsgQ::MBoxMsgQ(Coal::DSPDevice *device)
     int status = Ipc_start();
     assert (status == Ipc_S_SUCCESS || status == Ipc_S_ALREADYSETUP);
 
+    const tiocl::DeviceInfo& device_info = tiocl::DeviceInfo::Instance();
+    const std::set<uint8_t>& compute_units = device_info.GetComputeUnits();
+
 #ifdef _SYS_BIOS
     /* Ipc_attach must be called in ProcSync_PAIR protocol */
-    UInt16 remoteProcId = MultiProc_getId(String("DSP1"));
-    assert(remoteProcId != MultiProc_INVALIDID);
-    do {
-        status = Ipc_attach(remoteProcId);
-    } while ((status < 0) && (status == Ipc_E_NOTREADY));
-
-    remoteProcId = MultiProc_getId(String("DSP2"));
-    assert(remoteProcId != MultiProc_INVALIDID);
-    do {
-        status = Ipc_attach(remoteProcId);
-    } while ((status < 0) && (status == Ipc_E_NOTREADY));
+    for (int i : compute_units)
+    {
+        char dspName[8];
+        snprintf(dspName, 8, "DSP%d", i+1);
+        UInt16 remoteProcId = MultiProc_getId(String(dspName));
+        assert(remoteProcId != MultiProc_INVALIDID);
+        do {
+            status = Ipc_attach(remoteProcId);
+        } while ((status < 0) && (status == Ipc_E_NOTREADY));
+    }
 
     /* get the SR_0 heap handle */
     IHeap_Handle heap = (IHeap_Handle) SharedRegion_getHeap(0);
@@ -116,15 +118,20 @@ MBoxMsgQ::MBoxMsgQ(Coal::DSPDevice *device)
     /* Open the DSP message queues (outbound messages to DSPs) */
     assert(p_device->dspCores() <= Ocl_MaxNumDspMsgQueues);
 
-    const tiocl::DeviceInfo& device_info = tiocl::DeviceInfo::Instance();
-    const std::set<uint8_t>& compute_units = device_info.GetComputeUnits();
     int j = 0;
     for(int i : compute_units)
     {
         assert(i < Ocl_MaxNumDspMsgQueues);
 
         MessageQ_QueueId queue;
+#if !defined(_SYS_BIOS)
         status = MessageQ_open(const_cast<char *>(Ocl_DspMsgQueueName[i]), &queue);
+#else
+        do {
+            status = MessageQ_open(const_cast<char *>(Ocl_DspMsgQueueName[i]), &queue);
+            Task_sleep(1);
+        } while (status == MessageQ_E_NOTFOUND);
+#endif
 
         if(status == MessageQ_S_SUCCESS)
             dspQue[j++] = queue;

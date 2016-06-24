@@ -35,12 +35,13 @@ SOC       = SOC_AM572x
 
 ## !Need -O* to inline CACHE_* functions!
 CC= $(TI_OCL_CGT_INSTALL)/bin/cl6x -o3 -mv6600 --abi=eabi --gcc --mem_model:const=data --mem_model:data=far -D_SYS_BIOS
+AR= $(TI_OCL_CGT_INSTALL)/bin/ar6x
 
 INCLUDES  = -i. -i $(OPENCL_SRC_DIR)/src/core/dsp
 INCLUDES += -i $(AM57_PDK_DIR)/packages -i $(TI_OCL_CGT_INSTALL)/include \
 	    -i $(IPC_DIR)/packages -i $(XDC_DIR)/packages           \
 	    -i $(BIOS_DIR)/packages -i $(EDMA3LLD_DIR)/packages     \
-	    -i $(FC_DIR)/packages -i $(XDAIS_DIR)/packages
+	    -i $(FC_DIR)/packages -i $(XDAIS_DIR)/packages -i ../packages
 INCLUDES += -D$(DEVICE)
 INCLUDES += -D$(SOC)
 #INCLUDES += -i $(ULM_DIR) -DULM_ENABLED
@@ -49,11 +50,13 @@ INCLUDES += -D$(SOC)
 SOURCES = monitor.c util.c dsp_rpc.asm touch.asm builtins.c edma.c \
           edma3_config.c device_am57.c
 HEADERS = edma.h monitor.h util.h trace.h
-LIBS    = monitor.$(PLATFORM).cmd
+LIBS    = monitor.am57x_rtos.cmd
 #LIBS   += $(ULM_DIR)/libtiulm.ae66
 #LIBS   += $(GDB_SERVER_DIR)/lib/gdb_server.ae66
 OBJS1   = $(patsubst %.c,%.obj,$(SOURCES))
 OBJS    = $(patsubst %.asm,%.obj,$(OBJS1))
+OCLLIB  = libDSPMonitor.ae66
+OCLMAIN = rtos_ocl_main
 
 LINK_CMD0 = $(PROJECT)0/linker.cmd
 LINK_CMD1 = $(PROJECT)1/linker.cmd
@@ -63,6 +66,7 @@ LINK_CMD1 = $(PROJECT)1/linker.cmd
 # XDC stuff
 #----------------------------------------------------------------------------
 XDCPATH = ./;$(IPC_DIR)/packages;$(BIOS_DIR)/packages;$(EDMA3LLD_DIR)/packages;$(FC_DIR)/packages;$(XDAIS_DIR)/packages;$(AM57_PDK_DIR)/packages;../packages
+MONITOR_CONFIG = ../packages/ti/opencl/Dsp.cfg
 
 XDCTARGET = ti.targets.elf.C66
 
@@ -108,18 +112,21 @@ dsp1 : $(LINK_CMD1) dsp1.out dsp1.syms
 #---------------------------------------------------------------------------
 # Build monitors
 #----------------------------------------------------------------------------
-dsp0.out: $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD0) $(LIBS)
+dsp0.out: $(OCLMAIN).obj $(LINK_CMD0) $(LIBS)
 	@echo Linking $@
 	@echo $(LINK_CMD0)
-	$(CC) -z --priority -w -x -m$@.map --define=DDR3=DSP1_PROG $^ -I$(TI_OCL_CGT_INSTALL)/lib -llibc.a -o $@
+	$(CC) -z --priority -w -x -m$@.map $^ -I$(TI_OCL_CGT_INSTALL)/lib -llibc.a -o $@
 
-dsp1.out: $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD1) $(LIBS)
+dsp1.out: $(OCLMAIN).obj $(LINK_CMD1) $(LIBS)
 	@echo Linking $@
 	@echo $(LINK_CMD1)
-	$(CC) -z --priority -w -x -m$@.map --define=DDR3=DSP2_PROG $^ -I$(TI_OCL_CGT_INSTALL)/lib -llibc.a -o $@
+	$(CC) -z --priority -w -x -m$@.map $^ -I$(TI_OCL_CGT_INSTALL)/lib -llibc.a -o $@
 
 %.syms: %.out export_syms
 	$(call create_dsp_syms, $<, $@)
+
+$(OCLLIB): $(OBJS) $(BUILTINS) $(LIBM)
+	$(AR) r $@ $(OBJS)
 
 $(LIBM):
 	$(MAKE) -C $(LIBM_DIR) -j4
@@ -130,13 +137,17 @@ $(BUILTINS):
 platform_files:
 	$(MAKE) -C ../packages/ti/opencl/platforms/am57x_rtos
 
-$(LINK_CMD0): monitor.$(PLATFORM).cfg platform_files
-	$(XDC_DIR)/xs --xdcpath "$(XDCPATH)" xdc.tools.configuro -c $(TI_OCL_CGT_INSTALL) --cb -t $(XDCTARGET) -p ti.opencl.platforms.$(PLATFORM):DSP1 -r $(BUILD_TYPE) -DDSPCORE=0 -Dxdc.platform.custom.check="false" -o $(PROJECT)0 monitor.$(PLATFORM).cfg
+.PHONY: $(MONITOR_CONFIG)
+$(MONITOR_CONFIG):
+	$(MAKE) -C ../packages/ti/opencl
+
+$(LINK_CMD0): $(OCLLIB) $(MONITOR_CONFIG) platform_files
+	$(XDC_DIR)/xs --xdcpath "$(XDCPATH)" xdc.tools.configuro -c $(TI_OCL_CGT_INSTALL) --cb -t $(XDCTARGET) -p ti.opencl.platforms.$(PLATFORM):DSP1 -r $(BUILD_TYPE) -DDSPCORE=0 -Dxdc.platform.custom.check="false" -o $(PROJECT)0 $(MONITOR_CONFIG)
 	@sed '/c6xabi\.exidx/d' $(LINK_CMD0) > lnk_tmp0
 	@mv lnk_tmp0 $(LINK_CMD0)
 
-$(LINK_CMD1): monitor.$(PLATFORM).cfg platform_files
-	$(XDC_DIR)/xs --xdcpath "$(XDCPATH)" xdc.tools.configuro -c $(TI_OCL_CGT_INSTALL) --cb -t $(XDCTARGET) -p ti.opencl.platforms.$(PLATFORM):DSP2 -r $(BUILD_TYPE) -DDSPCORE=1 -Dxdc.platform.custom.check="false" -o $(PROJECT)1 monitor.$(PLATFORM).cfg
+$(LINK_CMD1): $(OCLLIB) $(MONITOR_CONFIG) platform_files
+	$(XDC_DIR)/xs --xdcpath "$(XDCPATH)" xdc.tools.configuro -c $(TI_OCL_CGT_INSTALL) --cb -t $(XDCTARGET) -p ti.opencl.platforms.$(PLATFORM):DSP2 -r $(BUILD_TYPE) -DDSPCORE=1 -Dxdc.platform.custom.check="false" -o $(PROJECT)1 $(MONITOR_CONFIG)
 	@sed '/c6xabi\.exidx/d' $(LINK_CMD1) > lnk_tmp1
 	@mv lnk_tmp1 $(LINK_CMD1)
 
@@ -153,7 +164,7 @@ $(LINK_CMD1): monitor.$(PLATFORM).cfg platform_files
 
 .PHONY: clean
 clean: cleanplatform
-	@rm -fr *.out *.map *.syms *.obj libm.cmd libm.fcns builtins.cmd builtins.fcns $(PROJECT)0 $(PROJECT)1
+	@rm -fr *.out *.map *.syms *.obj *.ae66 libm.cmd libm.fcns builtins.cmd builtins.fcns $(PROJECT)0 $(PROJECT)1
 
 .PHONY: cleanplatform
 cleanplatform:

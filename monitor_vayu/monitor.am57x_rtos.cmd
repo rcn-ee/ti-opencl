@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2013-2014, Texas Instruments Incorporated - http://www.ti.com/
+ * Copyright (c) 2013-2016, Texas Instruments Incorporated - http://www.ti.com/
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -32,8 +32,8 @@
 *----------------------------------------------------------------------------*/
 --rom_model
 
---retain="../builtins/dsp.lib<*>(*)"
---retain="../libm/libm.lib<*>(*)"
+--retain="*/dsp.lib<*>(*)"
+--retain="*/libm.lib<*>(*)"
 --retain="GOMP_*"
 --retain="omp_*"
 --retain="__gomp_flush0"

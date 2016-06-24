@@ -262,10 +262,6 @@ void DSPDevice::init()
 ******************************************************************************/
 DSPDevice::~DSPDevice()
 {
-    /*-------------------------------------------------------------------------
-    * Inform the cores on the device to stop listening for commands
-    *------------------------------------------------------------------------*/
-    mail_to(exitMsg);
 
     if (p_initialized)
     {
@@ -287,6 +283,20 @@ DSPDevice::~DSPDevice()
         pthread_mutex_destroy(&p_worker_mutex);
         pthread_cond_destroy(&p_worker_cond);
     }
+
+    /*-------------------------------------------------------------------------
+     * Inform the cores on the device to stop listening for commands
+     * Send exit message after worker threads terminate to avoid a race condition
+     * on p_exit_acked. The race condition is caused by a worker thread receiving
+     * the exit response and setting p_exit_acked to true. It's possible that the
+     * master thread can read p_exit_acked before the write from the worker thread
+     * lands and enter the while loop. It then is stuck at the mail_query() while
+     * loop because the worker has already read the message.
+     *
+     * Sending the exit message after the worker threads terminate eliminates
+     * the race condition.
+     *------------------------------------------------------------------------*/
+    mail_to(exitMsg);
 
 #if defined(DEVICE_K2X) || defined(DEVICE_K2G) || defined(DSPC868X)
     /*-------------------------------------------------------------------------
