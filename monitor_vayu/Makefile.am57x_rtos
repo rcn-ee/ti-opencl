@@ -100,10 +100,26 @@ define create_dsp_syms
 	@rm -f $(1).syms.tmp* $(2).asm
 endef
 
+#---------------------------------------------------------------------------
+# Function to check if dsp exported syms are laid out exactly the same
+# on both dsp cores: the addresses are either equal (in internal memory)
+# or differ by the DDR offset of DSP1_PROG memory and DSP2_PROG memory
+# $1: dsp0.out, $2: dsp1.out, $3: DDR offset (0x0100_0000 in default memory map)
+#----------------------------------------------------------------------------
+define check_dsp_syms_layout
+	@echo Checking if DSP exported syms are laid out the same: $(1) $(2)
+	@$(TI_OCL_CGT_INSTALL)/bin/nm6x -l $(1) | grep PROT | awk -F\| '{ print $$8" "$$2 };' >  $(1).expsyms
+	@$(TI_OCL_CGT_INSTALL)/bin/nm6x -l $(1) | grep FUNC | grep -fexport_syms | awk -F\| '{ print $$8" "$$2 };' >> $(1).expsyms
+	@$(TI_OCL_CGT_INSTALL)/bin/nm6x -l $(2) | grep PROT | awk -F\| '{ printf "%s 0x%.8x\n", $$8, strtonum($$2) >= strtonum(0x80000000) ? strtonum($$2) - strtonum($(3)) : strtonum($$2) };' >  $(2).expsyms
+	@$(TI_OCL_CGT_INSTALL)/bin/nm6x -l $(2) | grep FUNC | grep -fexport_syms | awk -F\| '{ printf "%s 0x%.8x\n", $$8, strtonum($$2) >= strtonum(0x80000000) ? strtonum($$2) - strtonum($(3)) : strtonum($$2) };' >> $(2).expsyms
+        diff $(1).expsyms $(2).expsyms; if [ $$? -ne 0 ]; then echo;  echo "   *** Different!!! ***"; echo; exit 1; fi
+	@rm -f $(1).expsyms $(2).expsyms
+endef
 
 
 .PHONY: all dsp0 dsp1
 all: dsp0 dsp1
+#	$(call check_dsp_syms_layout, dsp0.out, dsp1.out, 0x01000000)
 
 dsp0 : $(LINK_CMD0) dsp0.out dsp0.syms
 dsp1 : $(LINK_CMD1) dsp1.out dsp1.syms
