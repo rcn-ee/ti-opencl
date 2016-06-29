@@ -292,3 +292,21 @@ void free_edma_channel_pool()
          edma_channel_pool[DNUM][i].status = EV_NOT_ALLOCATED;
       }
 }
+
+/******************************************************************************
+* De-allocate edma hardware channels before IpcPower suspend
+******************************************************************************/
+void free_edma_hw_channels()
+{
+  EdmaMgr_hwFreeAll();
+  cacheWbInvAllL2();
+}
+
+/******************************************************************************
+* Re-allocate edma hardware channels after IpcPower resume
+******************************************************************************/
+void restore_edma_hw_channels()
+{
+  cacheInvAllL2();
+  EdmaMgr_hwAllocAll();
+}

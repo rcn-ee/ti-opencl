@@ -5,4 +5,4 @@ CLOCL_FLAGS =
 include ../make.inc
 
 $(EXE): main.o dsp_compute.out
-	@$(CPP) $(CPP_FLAGS) main.o $(LD_FLAGS) $(LIBS) -o $@ -lrt
+	@$(CPP) $(CPP_FLAGS) main.o $(LD_FLAGS) $(LIBS) -o $@ -lrt -ldl

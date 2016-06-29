@@ -31,9 +31,9 @@ endif
 # TI C6x CGT
 
 ifeq (,$(findstring arm, $(UNAME_M)))
-    TI_OCL_CGT_INSTALL?=$(SDOMC_SHARED)/ti-cgt-c6000-8.1.1-release-linux
+    TI_OCL_CGT_INSTALL?=$(SDOMC_SHARED)/ti-cgt-c6000-8.1.0-release-linux
 else
-    TI_OCL_CGT_INSTALL?=$(SDOMC_SHARED)/ti-cgt-c6000-8.1.1-release-armlinuxa8hf
+    TI_OCL_CGT_INSTALL?=$(SDOMC_SHARED)/ti-cgt-c6000-8.1.0-release-armlinuxa8hf
 endif
 
 # LLVM
@@ -76,9 +76,9 @@ else ifeq ($(BUILD_K2G),1)
     DEFAULT_PSDK_LINUX?=$(SDOMC_SHARED)/ti-processor-sdk-linux-k2g-evm-$(PSDK_VERSION)
     OMP_DIR?=$(OMP_DIR_K2G)
 else ifeq ($(BUILD_AM57),1)
-    DEFAULT_PSDK_RTOS?=$(SDOMC_SHARED)/ti-processor-sdk-rtos-am57xx-evm-$(PSDK_VERSION)
+    DEFAULT_PSDK_RTOS?=$(SDOMC_SHARED)/ti-processor-sdk-rtos-am57xx-evm-03.00.00.03-20160629
     DEFAULT_PSDK_LINUX?=$(SDOMC_SHARED)/ti-processor-sdk-linux-am57xx-evm-$(PSDK_VERSION)
-    OMP_DIR?=$(OMP_DIR_AM57)
+    #OMP_DIR?=$(OMP_DIR_AM57)
 else
 endif
 
