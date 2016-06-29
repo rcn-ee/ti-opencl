@@ -89,7 +89,9 @@ DSPProgram::~DSPProgram()
     delete p_dl;
     p_dl = nullptr;
 
+#ifndef _SYS_BIOS
     if (!p_keep_files && !p_cache_kernels) unlink(p_outfile.c_str());
+#endif
 }
 
 bool DSPProgram::load()
