@@ -685,18 +685,18 @@ static void initialize_gdbserver()
 #if defined(DEVICE_AM572x) && !defined(_SYS_BIOS)
 void ocl_suspend_call(Int event, Ptr data)
 {
-    if (edmamgr_initialized)
-        free_edma_channel_pool();
+    free_edma_hw_channels();
 }
 
 void ocl_resume_call(Int event, Ptr data)
 {
+    restore_edma_hw_channels();
 }
 
 static void initialize_ipcpower_callbacks()
 {
     IpcPower_registerCallback(IpcPower_Event_SUSPEND, ocl_suspend_call, NULL);
-  //IpcPower_registerCallback(IpcPower_Event_RESUME,  ocl_resume_call,  NULL);
+    IpcPower_registerCallback(IpcPower_Event_RESUME,  ocl_resume_call,  NULL);
 }
 
 extern int AET_C66x_GDB_Release(void);
