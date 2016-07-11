@@ -69,6 +69,36 @@ These environment variables can be used to control OpenCL behavior and provide v
 
         The OpenCL compilation cache is automatically removed during a Linux reboot
 
+.. envvar::  TI_OCL_COMPUTE_UNIT_LIST
+
+    Specify the compute units available to the OpenCL runtime as a comma
+    separated list of compute unit indices starting at 0. If the 
+    environment variable is not specified, the runtime defaults to using all 
+    the compute units available on the device.
+
+    Example usage on AM572x:
+
+    .. code-block:: bash
+        :caption: runs the vecadd kernel only on DSP1
+
+        -> TI_OCL_COMPUTE_UNIT_LIST="0" ./vecadd
+
+    .. code-block:: bash
+        :caption: runs the vecadd kernel only on DSP2
+
+        -> TI_OCL_COMPUTE_UNIT_LIST="1" ./vecadd
+
+
+    .. code-block:: bash
+        :caption: runs the vecadd kernel on both DSP1 and DSP2 (default behavior)
+
+        -> TI_OCL_COMPUTE_UNIT_LIST="0, 1" ./vecadd
+
+
+    .. Warning::
+
+        This environment variable is available only on AM572x.
+
 .. envvar::  TI_OCL_LOAD_KERNELS_ONCHIP 
 
     By default, OpenCL kernel related code and global data is allocated out of
