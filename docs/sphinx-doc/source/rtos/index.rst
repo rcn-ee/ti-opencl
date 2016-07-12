@@ -2,14 +2,11 @@
 OpenCL on TI-RTOS
 ###################
 
-Previous chapters described TI OpenCL runtime on the platforms whose hosts
-are running Linux.  We extended TI OpenCL offering to platforms whose hosts
-are running TI-RTOS, TI's real time operating system.  In this chapter,
-we describe the OpenCL RTOS package, show how to run examples, and discuss
-the process of developing OpenCL application with OpenCL RTOS package.
+Starting with version 01.01.09.01, the OpenCL Runtime supports Cortex-A15s running TI-RTOS as host. In this chapter, we describe the OpenCL RTOS package, show how to run examples, and discuss the process of developing OpenCL application with OpenCL RTOS package.
 
-Initially Supported Platform: AM572x (since OpenCL TI Product Version
-v01.01.09.1)
+
+.. note::
+    OpenCL RTOS is only available on AM572x.
 
 .. toctree::
    :maxdepth: 2

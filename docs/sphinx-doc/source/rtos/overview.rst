@@ -27,13 +27,13 @@ application.
 
 Running Examples Shipped with OpenCL Package
 =============================================
-We recommend downloading and installing the latest Code Composer Studio (CCS)
+We recommend downloading and installing the version of Code Composer Studio (CCS) specified in the Processor SDK RTOS release notes 
 before running OpenCL RTOS examples and starting OpenCL RTOS application
 development.  From the installed CCS, create the target configuration using
-your emulator and evm, launch the target configuration (see
+your emulator and EVM, launch the target configuration (see
 :doc:`../debug/debug_ccs`).  Once launched, connect to CortexA15_0 first.
 With CortexA15_0 being connected and highlighted, click "Scripts", "CLOCK
-Configuration", "OPPHIGH" to set evm frequency into high performance mode,
+Configuration", "OPPHIGH" to set EVM frequency into high performance mode,
 then click "Scripts", "MULTICORE Initialization", "Enable all cores" to
 enable other cores on the SoC.  Connect to DSP1 and DSP2.  Now you are ready
 to run pre-built OpenCL RTOS examples.
