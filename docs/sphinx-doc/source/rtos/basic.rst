@@ -36,7 +36,7 @@ is done, building each example is as simple as running
 and cleaning is as simple as
 ``C:\ti\ccsv6\utils\bin\gmake.exe -f Makefile.rtos clean``.
 
-.. _Windows version of TI C6000 Compiler Tools version 8.1.1: http://syntaxerror.dal.design.ti.com/release/releases/c60/rel8_1_1/build/install/
+.. _Windows version of TI C6000 Compiler Tools version 8.1.1: http://software-dl.ti.com/codegen/non-esd/downloads/download.htm
 
 Creating an OpenCL RTOS Application
 ============================================
