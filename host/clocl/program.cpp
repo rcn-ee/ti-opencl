@@ -185,7 +185,8 @@ int run_cl6x(string filename, string *llvm_bitcode, string addl_files)
     {
         if (opt_verbose) cout << command << endl;
         int x = system(command.c_str());
-        if (x == -1) return false;
+        // checking (return code != 0) works on both Linux and Windows
+        if (x != 0) return false;
         return true;
     }
 
@@ -211,7 +212,7 @@ int run_cl6x(string filename, string *llvm_bitcode, string addl_files)
 
     if (opt_verbose) cout << command << endl;
     int x = system(command.c_str());
-    if (x == -1) return false;
+    if (x != 0) return false;
 
     if (!opt_debug && !opt_symbols)
     {
@@ -219,7 +220,7 @@ int run_cl6x(string filename, string *llvm_bitcode, string addl_files)
         strip_command += outfile;
         if (opt_verbose) cout << strip_command << endl;
         x = system(strip_command.c_str());
-        if (x == -1) return false;
+        if (x != 0) return false;
     }
 
     return true;

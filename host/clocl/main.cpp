@@ -341,7 +341,7 @@ bool cl6x(string& bc_file, string &binary_str)
 {
     string bc_file_full(bc_file);
 
-    run_cl6x(bc_file_full, &binary_str, files_other);
+    bool ret_code = run_cl6x(bc_file_full, &binary_str, files_other);
 
     /*-------------------------------------------------------------------------
     * Clean up temporary files
@@ -380,7 +380,7 @@ bool cl6x(string& bc_file, string &binary_str)
     bitasm_name += "_bc.obj";
     fs_remove_file(bitasm_name);
 
-    return true;
+    return ret_code;
 }
 
 /******************************************************************************
