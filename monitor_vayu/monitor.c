@@ -645,10 +645,19 @@ static void process_exit_command(ocl_msgq_message_t *msg_pkt)
     /* Not sending a response to host, delete the msg */
     MessageQ_free((MessageQ_Msg)msg_pkt);
     Log_print0(Diags_INFO, "ocl_monitor: EXIT, no response");
-#if !defined(_SYS_BIOS)
+
+    #if !defined(_SYS_BIOS)
     enable_ipcpower_suspend();
-#endif
+    #endif
+
     cacheWbInvAllL2();
+
+    // SYS_BIOS mode, exit
+    #if defined(_SYS_BIOS)
+    Ipc_stop();
+    exit(0);
+    #endif
+
 #endif
 }
 

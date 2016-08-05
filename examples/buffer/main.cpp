@@ -46,7 +46,6 @@ cl_int src  [NumElements];
 cl_int dst  [NumElements];
 
 #ifdef _TI_RTOS
-#define RETURN(x) return
 void ocl_main(UArg arg0, UArg arg1)
 {
    int    argc = (int)     arg0;
@@ -81,4 +80,6 @@ int main(int argc, char *argv[])
    if (memcmp(dst, src, bufsize) != 0) { cout << "Failed!" << endl;
                                          RETURN(-1); }
    else                                cout << "Passed!" << endl; 
+
+   RETURN(0);
 }

@@ -53,6 +53,7 @@ void ocl_main(UArg arg0, UArg arg1)
    cl_char *ary = (cl_char *) __malloc_ddr(size);
    assert(ary != nullptr);
 #else
+#define RETURN(x) return x
 cl_char ary [size];
 int main(int argc, char *argv[])
 {
@@ -103,4 +104,6 @@ int main(int argc, char *argv[])
    __free_ddr(ary);
 #endif
    std::cout << "Done!" << std::endl;
+
+   RETURN(0);
 }

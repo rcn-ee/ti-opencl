@@ -48,7 +48,6 @@ cl_uchar src   [bytes];
 cl_uchar dst   [bytes];
 
 #ifdef _TI_RTOS
-#define RETURN(x) return
 void ocl_main(UArg arg0, UArg arg1)
 {
    int    argc = (int)     arg0;
@@ -97,4 +96,6 @@ int main(int argc, char *argv[])
            { cout << "Failed at Element " << i << endl; RETURN(-1); }
 
    cout << "Success!" << endl; 
+
+   RETURN(0);
 }

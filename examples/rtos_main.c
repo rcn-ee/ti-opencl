@@ -9,6 +9,9 @@
 #define PRI_HIGH        5
 void ocl_main(UArg arg0, UArg arg1);
 
+// Use System_exit to ensure the host program terminiates
+#define RETURN(x) do { System_exit(x);} while (0);
+
 Int main(Int argc, Char* argv[])
 {
     Error_Block     eb;
