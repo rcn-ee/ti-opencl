@@ -61,7 +61,7 @@ InitializationPolicyCMEM::Destroy()
  ***************************************************************************/
 void cmem_init(std::vector<MemoryRange>& ranges)
 {
-    const int CMEM_MIN_BLOCKS = 2;
+    const int CMEM_MIN_BLOCKS = 1;
 
     // Initialize the CMEM module
     if (CMEM_init() == -1)
@@ -147,26 +147,29 @@ void cmem_init(std::vector<MemoryRange>& ranges)
                             MemoryRange::Kind::CMEM_ONDEMAND,
                             MemoryRange::Location::OFFCHIP);
 
-    // Handle CMEM Block 1 - on chip shared memory
-    CMEM_BlockAttrs pattrs1 = {0, 0};
-    CMEM_getBlockAttrs(1, &pattrs1);
+    if(num_Blocks > 1)
+    {
+        // Handle CMEM Block 1 - on chip shared memory
+        CMEM_BlockAttrs pattrs1 = {0, 0};
+        CMEM_getBlockAttrs(1, &pattrs1);
 
-    DSPDevicePtr64 onchip_shared_addr = pattrs1.phys_base;
-    uint64_t       onchip_shared_size = pattrs1.size;
-    if (onchip_shared_addr < MSMC_OCL_START_ADDR ||
-        onchip_shared_addr >= MSMC_OCL_END_ADDR)
-        ReportError(ErrorType::Fatal, ErrorKind::CMEMAllocFailed,
-                    "On-chip Shared Memory", pattrs1.phys_base);
+        DSPDevicePtr64 onchip_shared_addr = pattrs1.phys_base;
+        uint64_t       onchip_shared_size = pattrs1.size;
+        if (onchip_shared_addr < MSMC_OCL_START_ADDR ||
+            onchip_shared_addr >= MSMC_OCL_END_ADDR)
+            ReportError(ErrorType::Fatal, ErrorKind::CMEMAllocFailed,
+                        "On-chip Shared Memory", pattrs1.phys_base);
 
 
-    params.type    = CMEM_HEAP;
-    alloc_dsp_addr = CMEM_allocPhys2(1, onchip_shared_size, &params);
-    if (!alloc_dsp_addr || alloc_dsp_addr != onchip_shared_addr)
-        ReportError(ErrorType::Fatal, ErrorKind::CMEMAllocFromBlockFailed,
-               onchip_shared_size, 0, alloc_dsp_addr);
+        params.type    = CMEM_HEAP;
+        alloc_dsp_addr = CMEM_allocPhys2(1, onchip_shared_size, &params);
+        if (!alloc_dsp_addr || alloc_dsp_addr != onchip_shared_addr)
+            ReportError(ErrorType::Fatal, ErrorKind::CMEMAllocFromBlockFailed,
+                   onchip_shared_size, 0, alloc_dsp_addr);
 
-    ranges.emplace_back(onchip_shared_addr, onchip_shared_size,
-                        MemoryRange::Kind::CMEM_PERSISTENT,
-                        MemoryRange::Location::ONCHIP);
+        ranges.emplace_back(onchip_shared_addr, onchip_shared_size,
+                            MemoryRange::Kind::CMEM_PERSISTENT,
+                            MemoryRange::Location::ONCHIP);
+    }
 }
 
