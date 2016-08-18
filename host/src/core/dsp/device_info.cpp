@@ -102,26 +102,40 @@ void DeviceInfo::ComputeUnitsAvailable()
 
     if (!comp_unit)
     {
-        #if defined (DEVICE_AM57)
-        num_compute_units_ = 2;
-        #elif defined (DSPC868X)
-        num_compute_units_ = 8;
+        #if defined (DSPC868X)
+            num_compute_units_ = 8;
+        #elif defined (DEVICE_AM57)
+            num_compute_units_ = 0;
+            DIR *dir = opendir("/proc/device-tree/ocp");
+            if (!dir)
+                ReportError(ErrorType::Fatal, ErrorKind::NumComputeUnitDetectionFailed);
+
+            while (dirent * entry = readdir(dir))
+            {
+                if (entry->d_name[0] && entry->d_name[0] == 'd' &&
+                    entry->d_name[1] && entry->d_name[1] == 's' &&
+                    entry->d_name[2] && entry->d_name[2] == 'p' &&
+                    entry->d_name[3] && entry->d_name[3] == '@')
+                    ++num_compute_units_;
+            }
+
+            closedir(dir);
         #else
-        num_compute_units_ = 0;
-        DIR *dir = opendir("/dev");
-        if (!dir)
-            ReportError(ErrorType::Fatal, ErrorKind::NumComputeUnitDetectionFailed);
+            num_compute_units_ = 0;
+            DIR *dir = opendir("/dev");
+            if (!dir)
+                ReportError(ErrorType::Fatal, ErrorKind::NumComputeUnitDetectionFailed);
 
-        while (dirent * entry = readdir(dir))
-        {
-            if (entry->d_name[0] && entry->d_name[0] == 'd' &&
-                entry->d_name[1] && entry->d_name[1] == 's' &&
-                entry->d_name[2] && entry->d_name[2] == 'p' &&
-                entry->d_name[3] && isdigit(entry->d_name[3]))
-                ++num_compute_units_;
-        }
+            while (dirent * entry = readdir(dir))
+            {
+                if (entry->d_name[0] && entry->d_name[0] == 'd' &&
+                    entry->d_name[1] && entry->d_name[1] == 's' &&
+                    entry->d_name[2] && entry->d_name[2] == 'p' &&
+                    entry->d_name[3] && isdigit(entry->d_name[3]))
+                    ++num_compute_units_;
+            }
 
-        closedir(dir);
+            closedir(dir);
         #endif
 
         for (int x = 0; x < num_compute_units_; x++)
