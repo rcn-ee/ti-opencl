@@ -73,7 +73,7 @@ void cmem_init(std::vector<MemoryRange>& ranges)
     int num_Blocks = 0;
     CMEM_getNumBlocks(&num_Blocks);
     if (num_Blocks < CMEM_MIN_BLOCKS)
-        ReportError(ErrorType::Fatal, ErrorKind::CMEMMinBlocks);
+        ReportError(ErrorType::Fatal, ErrorKind::CMEMMinBlocks, CMEM_MIN_BLOCKS);
 
     CMEM_BlockAttrs pattrs0 = {0, 0};
     CMEM_getBlockAttrs(0, &pattrs0);
