@@ -106,7 +106,7 @@ PRIVATE (bool,              edmamgr_initialized) = false;
 PRIVATE (OCL_MessageQueues,  ocl_queues);
 PRIVATE (int,               n_cores);
 
-extern Semaphore_Handle higherSem;
+extern Semaphore_Handle runOmpSem;
 
 /******************************************************************************
 * Defines a fixed area of 64 bytes at the start of L2, where the kernels will
@@ -231,7 +231,7 @@ int rtos_init_ocl_dsp_monitor(int argc, char* argv[])
     taskParams.arg0 = (UArg)argc;
     taskParams.arg1 = (UArg)argv;
 #if !defined(_SYS_BIOS)
-    taskParams.priority = 3; // LOWER_PRIORITY
+    taskParams.priority = 7; // LOWER_PRIORITY
 #else
     taskParams.priority = ti_opencl_get_OCL_monitor_priority();
 #endif
@@ -250,7 +250,7 @@ int rtos_init_ocl_dsp_monitor(int argc, char* argv[])
     Error_init(&eb);
     Task_Params_init(&taskParams);
     taskParams.instance->name = "ocl_service_omp";
-    taskParams.priority = 5; // HIGHER_PRIORITY
+    taskParams.priority = 8; // HIGHER_PRIORITY
     taskParams.stackSize = SERVICE_STACK_SIZE;
     taskParams.stack = (xdc_Ptr) (stack_start + DNUM * SERVICE_STACK_SIZE);
     Task_create(ocl_service_omp, &taskParams, &eb);
@@ -436,7 +436,7 @@ static void process_task_command(ocl_msgq_message_t* msgq_pkt)
     if (is_inorder)
     {
        omp_msgq_pkt = msgq_pkt;
-       Semaphore_post(higherSem);
+       Semaphore_post(runOmpSem);
        /* in order task was completed by ocl_service_omp task*/
        if (omp_msgq_pkt != NULL)
           /* Error */; 
@@ -469,7 +469,7 @@ void ocl_service_omp()
 
     while (true)
     {
-       Semaphore_pend(higherSem, BIOS_WAIT_FOREVER);
+       Semaphore_pend(runOmpSem, BIOS_WAIT_FOREVER);
 
        if (omp_msgq_pkt != NULL)
        {
