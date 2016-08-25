@@ -107,6 +107,7 @@ PRIVATE (OCL_MessageQueues,  ocl_queues);
 PRIVATE (int,               n_cores);
 
 extern Semaphore_Handle runOmpSem;
+extern Semaphore_Handle runOmpSem_complete;
 
 /******************************************************************************
 * Defines a fixed area of 64 bytes at the start of L2, where the kernels will
@@ -437,6 +438,7 @@ static void process_task_command(ocl_msgq_message_t* msgq_pkt)
     {
        omp_msgq_pkt = msgq_pkt;
        Semaphore_post(runOmpSem);
+       Semaphore_pend(runOmpSem_complete, BIOS_WAIT_FOREVER);
        /* in order task was completed by ocl_service_omp task*/
        if (omp_msgq_pkt != NULL)
           /* Error */; 
@@ -508,6 +510,7 @@ void ocl_service_omp()
           TRACE(ULM_OCL_IOT_CACHE_COHERENCE_COMPLETE, kernel_id, 0);
 
           omp_msgq_pkt = NULL;
+          Semaphore_post(runOmpSem_complete);
        }
        else
        {
