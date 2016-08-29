@@ -102,7 +102,8 @@ void DeviceInfo::ComputeUnitsAvailable()
 
     if (!comp_unit)
     {
-        #if defined(_SYS_BIOS)
+
+        #if defined (_SYS_BIOS)
             num_compute_units_ = 0;
             ReportError(ErrorType::Fatal, ErrorKind::NumComputeUnitDetectionFailed);
         #elif defined (DSPC868X)

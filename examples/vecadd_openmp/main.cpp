@@ -33,6 +33,11 @@
 #include <stdio.h>
 #include "ocl_util.h"
 
+#ifdef _TI_RTOS
+#include "vadd_wrapper.dsp_h"
+#include "../rtos_main.c"
+#endif
+
 using namespace cl;
 using namespace std;
 
@@ -49,8 +54,16 @@ float srcB  [NumElements];
 float dst   [NumElements];
 float Golden[NumElements];
 
+#ifdef _TI_RTOS
+void ocl_main(UArg arg0, UArg arg1)
+{
+   int    argc = (int)     arg0;
+   char **argv = (char **) arg1;
+#else
+#define RETURN(x) return x
 int main(int argc, char *argv[])
 {
+#endif
    cl_int err     = CL_SUCCESS;
    int    bufsize = sizeof(Golden);
    int    num_errors = 0;
@@ -78,6 +91,7 @@ int main(int argc, char *argv[])
      Buffer bufB   (context, CL_MEM_READ_ONLY,  bufsize);
      Buffer bufDst (context, CL_MEM_WRITE_ONLY, bufsize);
 
+#ifndef _TI_RTOS
      ifstream t("vadd_wrapper.cl");
      if (!t)
      {
@@ -90,6 +104,12 @@ int main(int argc, char *argv[])
      Program::Sources    source(1, make_pair(kSrc.c_str(), kSrc.length()));
      Program             program = Program(context, source);
      program.build(devices, "vadd_openmp.obj"); 
+#else
+     Program::Binaries binary(1, make_pair(vadd_wrapper_dsp_bin,
+                                              sizeof(vadd_wrapper_dsp_bin)));
+     Program           program = Program(context, devices, binary);
+     program.build(devices);
+#endif
 
      Kernel kernel(program, "vadd_wrapper");
      kernel.setArg(0, bufA);
@@ -129,5 +149,7 @@ int main(int argc, char *argv[])
    { cerr << "ERROR: " << err.what() << "(" << err.err() << ")" << endl; }
 
    if (num_errors == 0) cout << "PASS!" << endl; 
-   else { cout << "FAIL with " << num_errors << " errors!\n"; return -1; }
+   else { cout << "FAIL with " << num_errors << " errors!\n"; RETURN(-1); }
+
+   RETURN(0);
 }

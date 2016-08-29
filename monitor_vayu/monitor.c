@@ -106,9 +106,6 @@ PRIVATE (bool,              edmamgr_initialized) = false;
 PRIVATE (OCL_MessageQueues,  ocl_queues);
 PRIVATE (int,               n_cores);
 
-extern Semaphore_Handle runOmpSem;
-extern Semaphore_Handle runOmpSem_complete;
-
 /******************************************************************************
 * Defines a fixed area of 64 bytes at the start of L2, where the kernels will
 * resolve the get_global_id type calls
@@ -154,20 +151,24 @@ static void process_configuration_message(ocl_msgq_message_t* msgq_pkt);
 * Bios Task and helper routines
 ******************************************************************************/
 static void ocl_main(UArg arg0, UArg arg1);
-#ifndef _SYS_BIOS  // TODO: disable OpenMP for now
-static void ocl_service_omp();
-#endif
+
 static bool create_mqueue(void);
 static void ocl_monitor();
 
+#if defined(OMP_ENABLED)
+static void ocl_service_omp();
 extern tomp_initOpenMPforOpenCLPerApp(int master_core, int num_cores);
 extern tomp_exitOpenMPforOpenCL(void);
 extern void tomp_dispatch_once(void);
 extern void tomp_dispatch_finish(void);
 extern bool tomp_dispatch_is_finished(void);
+extern Semaphore_Handle runOmpSem;
+extern Semaphore_Handle runOmpSem_complete;
+#endif
 
-#ifdef _SYS_BIOS
+#if !defined(OMP_ENABLED)
 // Prevent RTS versions of malloc etc. from getting pulled into link
+// If OpenMP is enabled, the OpenMP runtime provides minit, malloc etc
 void _minit(void) { }
 #endif
 
@@ -212,6 +213,8 @@ int rtos_init_ocl_dsp_monitor(int argc, char* argv[])
     do {
         status = Ipc_attach(remoteProcId);
     } while ((status < 0) && (status == Ipc_E_NOTREADY));
+
+    if (status < 0) System_abort("Ipc_attach failed\n");
 #endif
 
 #if !defined(DEVICE_AM572x)
@@ -243,7 +246,7 @@ int rtos_init_ocl_dsp_monitor(int argc, char* argv[])
         System_abort("main: failed to create ocl_main thread");
     }
 
-    #ifndef _SYS_BIOS
+    #if defined(OMP_ENABLED)
     /* Create a task to service OpenMP kernels */
     extern uint32_t service_stack_start;
     uint32_t stack_start = (uint32_t) &service_stack_start;
@@ -287,7 +290,7 @@ void ocl_main(UArg arg0, UArg arg1)
 #if !defined(DEVICE_AM572x)
     initialize_gdbserver();
 #else
-    #if !defined(_SYS_BIOS)
+    #if defined(OMP_ENABLED)
     // On AM57x, indicate that heaps must be initialized. It's ok to set this on both
     // DSP cores because there is a barrier hit before the heap is initialized.
     extern int need_mem_init;
@@ -433,7 +436,7 @@ static void process_task_command(ocl_msgq_message_t* msgq_pkt)
     uint32_t more_args_size = Msg->u.k.kernel.args_on_stack_size;
     void *   more_args      = (void *) Msg->u.k.kernel.args_on_stack_addr;
 
-#ifndef _SYS_BIOS
+    #if defined(OMP_ENABLED)
     if (is_inorder)
     {
        omp_msgq_pkt = msgq_pkt;
@@ -444,7 +447,7 @@ static void process_task_command(ocl_msgq_message_t* msgq_pkt)
           /* Error */; 
     }
     else
-#endif
+    #endif
     {
        TRACE(ULM_OCL_OOT_KERNEL_START, kernel_id, 0);
        dsp_rpc(&((kernel_msg_t *)&Msg->u.k.kernel)->entry_point,
@@ -461,7 +464,7 @@ static void process_task_command(ocl_msgq_message_t* msgq_pkt)
     return;
 }
 
-#ifndef _SYS_BIOS
+#if defined(OMP_ENABLED)
 /******************************************************************************
 * ocl_service_omp - This is it's own task to switch the stack to DDR.
 ******************************************************************************/
@@ -635,9 +638,9 @@ static void process_cache_command (int pkt_id, ocl_msgq_message_t *msgq_pkt)
 ******************************************************************************/
 static void process_exit_command(ocl_msgq_message_t *msg_pkt)
 {
-#if !defined( _SYS_BIOS)
+    #if defined( OMP_ENABLED)
     tomp_exitOpenMPforOpenCL();
-#endif
+    #endif
 
 #ifdef DEVICE_K2G
     respond_to_host(msg_pkt, -1);
@@ -861,10 +864,10 @@ static void process_configuration_message(ocl_msgq_message_t* msgq_pkt)
 
     Log_print2(Diags_INFO,"Configuring OpenMP (%d, %d)\n", master_core, n_cores);
 
-#if !defined(_SYS_BIOS)
+    #if defined(OMP_ENABLED)
     if (tomp_initOpenMPforOpenCLPerApp(master_core, n_cores) < 0)
         System_abort("main: tomp_initOpenMPforOpenCL() failed");
-#endif
+    #endif
 
     if (!edmamgr_initialized)
     {

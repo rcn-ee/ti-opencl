@@ -45,7 +45,7 @@ DEFAULT_PSDK_RTOS      ?= /cgnas/ti-processor-sdk-rtos-am57xx-evm-03.00.00.04-re
 GCC_ARM_NONE_TOOLCHAIN ?= /cgnas/gcc-arm-none-eabi-4_9-2015q3
 
 TI_OCL_CGT_INSTALL     ?= /cgnas/ti-cgt-c6000-8.1.0-release-linux
-TI_OCL_INSTALL         ?= /cgnas/opencl_rtos_am57xx_01_01_09_01-20160624/packages/ti/opencl
+TI_OCL_INSTALL         ?= /cgnas/opencl_rtos_am57xx_01_01_10_00-20160829/packages/ti/opencl
 endif
 
 BIOS_INSTALL_DIR       ?= $(wildcard $(DEFAULT_PSDK_RTOS)/bios_*)
