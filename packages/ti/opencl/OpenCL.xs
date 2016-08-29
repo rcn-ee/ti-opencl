@@ -51,8 +51,6 @@ function module$meta$init()
  */
 function module$use()
 {
-    var BIOS = xdc.useModule("ti.sysbios.BIOS");
-    var BIOS = xdc.useModule("ti.sdo.ipc.Ipc");
     if (OpenCL.OCL_ipc_customized == false)
     {
         var ipc_cfg = xdc.loadCapsule("ti/opencl/ipc.cfg.xs");

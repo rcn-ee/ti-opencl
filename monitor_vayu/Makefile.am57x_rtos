@@ -39,7 +39,7 @@ AR= $(TI_OCL_CGT_INSTALL)/bin/ar6x
 
 INCLUDES  = -i. -i $(OPENCL_SRC_DIR)/src/core/dsp
 INCLUDES += -i $(AM57_PDK_DIR)/packages -i $(TI_OCL_CGT_INSTALL)/include \
-	    -i $(CSL_DIR) -i $(IPC_DIR)/packages -i $(XDC_DIR)/packages           \
+	    -i $(IPC_DIR)/packages -i $(XDC_DIR)/packages           \
 	    -i $(BIOS_DIR)/packages -i $(EDMA3LLD_DIR)/packages     \
 	    -i $(FC_DIR)/packages -i $(XDAIS_DIR)/packages -i ../packages
 INCLUDES += -D$(DEVICE)
@@ -131,7 +131,7 @@ dsp1 : $(LINK_CMD1) dsp1.out dsp1.syms
 dsp0.out: $(OCLMAIN).obj $(LINK_CMD0) $(LIBS)
 	@echo Linking $@
 	@echo $(LINK_CMD0)
-	$(CC) -z --priority -w -x --reread_libs -m$@.map $^ -I$(TI_OCL_CGT_INSTALL)/lib -llibc.a -o $@
+	$(CC) -z --priority -w -x -m$@.map $^ -I$(TI_OCL_CGT_INSTALL)/lib -llibc.a -o $@
 
 dsp1.out: $(OCLMAIN).obj $(LINK_CMD1) $(LIBS)
 	@echo Linking $@

@@ -68,7 +68,5 @@ module DSPMonitor
      *  platform values are used.  memory sections: TBD
      */
     config Bool     OCL_memory_customized  = false;
-    config UInt32   OCL_nocache2_virt_start = 0;
-    config UInt32   OCL_nocache2_size = 0;
 }
 
