@@ -186,7 +186,7 @@ PRIVATE_1D(char, lstack, LISTEN_STACK_SIZE);
 #if !defined(_SYS_BIOS)
 int main(int argc, char* argv[])
 #else
-int rtos_init_ocl_dsp_monitor(int argc, char* argv[])
+int rtos_init_ocl_dsp_monitor(UArg argc, UArg argv)
 #endif
 {
     edmamgr_initialized = false;
@@ -197,11 +197,13 @@ int rtos_init_ocl_dsp_monitor(int argc, char* argv[])
 
     /* enable ENTRY/EXIT/INFO log events */
     Diags_setMask(MODULE_NAME"-EXF");
-
+#if !defined(_SYS_BIOS)
     /* Setup non-cacheable memory, etc... */
     initialize_memory();
-
+#endif
 #ifdef _SYS_BIOS
+   if (ti_opencl_get_OCL_ipc_customized()==false)
+   {
     /*------------------------------------------------------------------------
     * SYSBIOS mode: Ipc_start() needs to be called explicitly.
     * SYNC_PAIR protocol: need to attach peer core explicitly. Also gives
@@ -212,6 +214,7 @@ int rtos_init_ocl_dsp_monitor(int argc, char* argv[])
     do {
         status = Ipc_attach(remoteProcId);
     } while ((status < 0) && (status == Ipc_E_NOTREADY));
+   }
 #endif
 
 #if !defined(DEVICE_AM572x)
@@ -657,7 +660,10 @@ static void process_exit_command(ocl_msgq_message_t *msg_pkt)
 
     // SYS_BIOS mode, exit
     #if defined(_SYS_BIOS)
+   if (ti_opencl_get_OCL_ipc_customized()==false)
+   {
     Ipc_stop();
+   }
     exit(0);
     #endif
 
@@ -840,7 +846,7 @@ static bool create_mqueue()
 }
 
 #if defined(_SYS_BIOS)
-void mainDsp1TimerTick(UArg arg)
+void mainDsp1TimerTick_(UArg arg)
 {
     Clock_tick();
 }
