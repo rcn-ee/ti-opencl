@@ -289,7 +289,7 @@ This overhead is for the round-trip for a single kernel dispatch. In practice,
 when multiple tasks are being enqueued, this overhead is pipelined with
 execution and can approach zero.
 
-.. _sgemm example:
+.. _sgemm-example:
 
 sgemm example
 ================
@@ -299,7 +299,7 @@ This example illustrates how to efficiently offload the CBLAS SGEMM routine
 obtained on the DSP are compared against a cblas_sgemm call on the ARM. The
 example reports performance in GFlops for both DSP and ARM variants.
 
-.. _dgemm example:
+.. _dgemm-example:
 
 dgemm example
 ===============

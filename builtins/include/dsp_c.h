@@ -96,6 +96,9 @@ void*    __malloc_l2      (size_t __size);
 #undef __local
 #endif
 
+// COPIED and MODIFIED from framework_components/packages/ti/sdo/fc/edmamgr/
+#include "edmamgr.h"
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif /* __cplusplus */
