@@ -35,26 +35,45 @@
 * underlying memory (aka buffers pointed to by p are not deallocated.
 *----------------------------------------------------------------------------*/
 kernel void heap_init_ddr(__global void *p, size_t bytes) 
-    { __heap_init_ddr(p,bytes); }
+{
+    printf("DDR  heap pointer is 0x%08x\n", p);
+    __heap_init_ddr(p,bytes);
+}
 
 kernel void heap_init_msmc(__global void *p, size_t bytes) 
-    { __heap_init_msmc(p,bytes); }
+{
+    printf("MSMC heap pointer is 0x%08x\n", p);
+    __heap_init_msmc(p,bytes);
+}
 
 /*-----------------------------------------------------------------------------
 * This kernel will allocate from tthe heaps and then free them memory.
 *----------------------------------------------------------------------------*/
-kernel void alloc_and_free(int bytes)
+kernel void alloc_and_free(int ddr_bytes, int msmc_bytes)
 {
-    char *p1 = __malloc_ddr(bytes);
-    char *p2 = __malloc_msmc(bytes);
+    if(ddr_bytes > 0)
+    {
+        char *p1 = __malloc_ddr(ddr_bytes);
 
-    if (!p1 || !p2) return;
+        if(p1)
+            printf("DDR  alloc+free pointer is 0x%08x\n", p1);
+        else
+            printf("DDR  alloc+free ERROR FAILED ALLOCATION\n");
 
-    printf("DDR  heap pointer is 0x%08x\n", p1);
-    printf("MSMC heap pointer is 0x%08x\n", p2);
+        __free_ddr(p1);
+    }
 
-    __free_ddr(p1);
-    __free_msmc(p2);
+    if(msmc_bytes > 0)
+    {
+        char *p2 = __malloc_msmc(msmc_bytes);
+
+        if(p2)
+            printf("MSMC alloc+free pointer is 0x%08x\n", p2);
+        else
+            printf("MSMC alloc+free ERROR FAILED ALLOCATION\n");
+
+        __free_msmc(p2);
+    }
 }
 
 /*-----------------------------------------------------------------------------
@@ -74,13 +93,25 @@ kernel void alloc_and_free(int bytes)
 * communicated across kernels, because it is portable and cache operations 
 * are managed automatically.
 *----------------------------------------------------------------------------*/
-kernel void alloc_only(int bytes)
+kernel void alloc_only(int ddr_bytes, int msmc_bytes)
 {
-    char *p1 = __malloc_ddr(bytes);
-    char *p2 = __malloc_msmc(bytes);
+    if(ddr_bytes > 0)
+    {
+        char *p1 = __malloc_ddr(ddr_bytes);
 
-    if (!p1 || !p2) return;
+        if(p1)
+            printf("DDR  alloc pointer is 0x%08x\n", p1);
+        else
+            printf("DDR  alloc ERROR FAILED ALLOCATION\n");
+    }
 
-    printf("DDR  heap pointer is 0x%08x\n", p1);
-    printf("MSMC heap pointer is 0x%08x\n", p2);
+    if(msmc_bytes > 0)
+    {
+        char *p2 = __malloc_msmc(msmc_bytes);
+
+        if(p2)
+            printf("MSMC alloc pointer is 0x%08x\n", p2);
+        else
+            printf("MSMC alloc ERROR FAILED ALLOCATION\n");
+    }
 }

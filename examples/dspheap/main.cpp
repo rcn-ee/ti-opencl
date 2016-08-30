@@ -58,14 +58,6 @@ int main(int argc, char *argv[])
      devices.resize(1); // Only run on one device for demonstration 
 
      /*------------------------------------------------------------------------
-     * Create the underlying memory store for the heaps with OpenCL Buffers
-     *-----------------------------------------------------------------------*/
-     int ddr_heap_size  = 16 << 20;  // 16MB 
-     int msmc_heap_size = 1 << 20;   // 1MB 
-     Buffer HeapDDR (context, CL_MEM_READ_WRITE, ddr_heap_size);
-     Buffer HeapMSMC(context, CL_MEM_READ_WRITE|CL_MEM_USE_MSMC_TI, msmc_heap_size);
-
-     /*------------------------------------------------------------------------
      * OpenCL Build the precompiled kernels
      *-----------------------------------------------------------------------*/
      Program::Binaries binary(1, make_pair(kernels_dsp_bin,sizeof(kernels_dsp_bin)));
@@ -82,31 +74,56 @@ int main(int argc, char *argv[])
      KernelFunctor alloc_only     = Kernel(program, "alloc_only")    .bind(Q, NDRange(8), NDRange(1));
 
      /*------------------------------------------------------------------------
+     * Create the underlying memory store for the heaps with OpenCL Buffers
      * Call kernels to initialize a DDR based and a MSMC based heap, the init
      * step only needs to run once and one 1 core only.  See the functor 
      * mapping above that defines the global size to be 1.
      *-----------------------------------------------------------------------*/
+     int ddr_heap_size  = 16 << 20;  // 16MB
+     int ddr_alloc_size = 1024;
+     cout << "[host  ] DDR  heap size " << (ddr_heap_size/1024) << "k" << endl;
+     Buffer HeapDDR (context, CL_MEM_READ_WRITE, ddr_heap_size);
      heap_init_ddr (HeapDDR,  ddr_heap_size) .wait();
-     heap_init_msmc(HeapMSMC, msmc_heap_size).wait();
+     cout << "[host  ] DDR  heap init'ed" << endl;
+
+     int msmc_heap_size     = 0;
+     int msmc_alloc_size    = 0;
+     cl_ulong msmc_mem_size = 0;
+     devices[0].getInfo(CL_DEVICE_MSMC_MEM_SIZE_TI, &msmc_mem_size);
+     if(msmc_mem_size > 0)
+     {
+         msmc_heap_size  = msmc_mem_size;
+         msmc_alloc_size = 1024;
+         cout << "[host  ] MSMC heap size " << (msmc_heap_size/1024) << "k" << endl;
+         Buffer HeapMSMC(context, CL_MEM_READ_WRITE|CL_MEM_USE_MSMC_TI, msmc_heap_size);
+         heap_init_msmc(HeapMSMC, msmc_heap_size).wait();
+         cout << "[host  ] MSMC heap init'ed" << endl;
+     }
+     else
+     {
+         cout << "[host  ] MSMC unavailable" << endl;
+     }
+
+     cout << endl;
 
      /*------------------------------------------------------------------------
      * On each core alloc memory from both ddr and msmc and the free it.
      *-----------------------------------------------------------------------*/
-     alloc_and_free(1024).wait();
+     alloc_and_free(ddr_alloc_size, msmc_alloc_size).wait();
      cout << endl;
 
      /*------------------------------------------------------------------------
      * On each core alloc memory from both ddr and msmc. Should see same memory 
      * from above alloc_and_free call.  This time the memory is not freed.
      *-----------------------------------------------------------------------*/
-     alloc_only(1024).wait();
+     alloc_only(ddr_alloc_size, msmc_alloc_size).wait();
      cout << endl;
 
      /*------------------------------------------------------------------------
      * Again, alloc on each core. Since the previous call did not free, these
      * allocations should be in separate memory from the last set.
      *-----------------------------------------------------------------------*/
-     alloc_only(1024).wait();
+     alloc_only(ddr_alloc_size, msmc_alloc_size).wait();
      cout << endl;
    }
    catch (Error err) 
