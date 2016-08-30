@@ -51,14 +51,18 @@ function module$meta$init()
  */
 function module$use()
 {
+    var BIOS = xdc.useModule("ti.sysbios.BIOS");     // for linking ordering
+
     if (DSPMonitor.OCL_ipc_customized == false)
-    {
         var ipc_cfg = xdc.loadCapsule("ti/opencl/ipc.cfg.xs");
-    }
+    else
+        var Ipc  = xdc.useModule("ti.sdo.ipc.Ipc");  // for linking ordering
 
     if (DSPMonitor.OCL_memory_customized == false)
     {
         var Program = xdc.useModule("xdc.cfg.Program");
+        DSPMonitor.OCL_SR0_base = Program.cpu.memoryMap["SR_0"].base;
+        DSPMonitor.OCL_SR0_len  = Program.cpu.memoryMap["SR_0"].len;
     }
 }
 

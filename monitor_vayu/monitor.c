@@ -103,7 +103,7 @@ DDR (Registry_Desc, Registry_CURDESC);
 
 PRIVATE (bool,              enable_printf)       = false;
 PRIVATE (bool,              edmamgr_initialized) = false;
-PRIVATE (OCL_MessageQueues,  ocl_queues);
+PRIVATE (OCL_MessageQueues, ocl_queues);
 PRIVATE (int,               n_cores);
 
 /******************************************************************************
@@ -187,7 +187,7 @@ PRIVATE_1D(char, lstack, LISTEN_STACK_SIZE);
 #if !defined(_SYS_BIOS)
 int main(int argc, char* argv[])
 #else
-int rtos_init_ocl_dsp_monitor(int argc, char* argv[])
+int rtos_init_ocl_dsp_monitor(UArg argc, UArg argv)
 #endif
 {
     edmamgr_initialized = false;
@@ -200,21 +200,27 @@ int rtos_init_ocl_dsp_monitor(int argc, char* argv[])
     Diags_setMask(MODULE_NAME"-EXF");
 
     /* Setup non-cacheable memory, etc... */
-    initialize_memory();
+#ifdef _SYS_BIOS
+    if (ti_opencl_get_OCL_memory_customized() == false)
+#endif
+        initialize_memory();
 
 #ifdef _SYS_BIOS
-    /*------------------------------------------------------------------------
-    * SYSBIOS mode: Ipc_start() needs to be called explicitly.
-    * SYNC_PAIR protocol: need to attach peer core explicitly. Also gives
-    *     the host freedom to choose involved DSPs, compared to SYNC_ALL.
-    *------------------------------------------------------------------------*/
-    int status = Ipc_start();
-    UInt16 remoteProcId = MultiProc_getId("HOST");
-    do {
-        status = Ipc_attach(remoteProcId);
-    } while ((status < 0) && (status == Ipc_E_NOTREADY));
+    if (ti_opencl_get_OCL_ipc_customized() == false)
+    {
+        /*--------------------------------------------------------------------
+        * SYSBIOS mode: Ipc_start() needs to be called explicitly.
+        * SYNC_PAIR protocol: need to attach peer core explicitly. Also gives
+        *     the host freedom to choose involved DSPs, compared to SYNC_ALL.
+        *--------------------------------------------------------------------*/
+        int status = Ipc_start();
+        UInt16 remoteProcId = MultiProc_getId("HOST");
+        do {
+            status = Ipc_attach(remoteProcId);
+        } while ((status < 0) && (status == Ipc_E_NOTREADY));
 
-    if (status < 0) System_abort("Ipc_attach failed\n");
+        if (status < 0) System_abort("Ipc_attach failed\n");
+    }
 #endif
 
 #if !defined(DEVICE_AM572x)
@@ -660,7 +666,10 @@ static void process_exit_command(ocl_msgq_message_t *msg_pkt)
 
     // SYS_BIOS mode, exit
     #if defined(_SYS_BIOS)
-    Ipc_stop();
+    if (ti_opencl_get_OCL_ipc_customized() == false)
+    {
+        Ipc_stop();
+    }
     exit(0);
     #endif
 
@@ -841,13 +850,6 @@ static bool create_mqueue()
 
     return true;
 }
-
-#if defined(_SYS_BIOS)
-void mainDsp1TimerTick(UArg arg)
-{
-    Clock_tick();
-}
-#endif
 
 
 static void process_configuration_message(ocl_msgq_message_t* msgq_pkt)

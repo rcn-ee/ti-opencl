@@ -141,7 +141,7 @@ dsp1 : $(LINK_CMD1) dsp1.out dsp1.syms
 dsp0.out: $(OCLMAIN).obj $(LINK_CMD0) $(LIBS)
 	@echo Linking $@
 	@echo $(LINK_CMD0)
-	$(CC) -z --priority -w -x -m$@.map \
+	$(CC) -z --priority -w -x --reread_libs -m$@.map \
 	--define=DDR3=DSP1_PROG \
 	--define=DDR3_FCSECTION=DSP1_PROG --define=DDR3_NC=OCL_OMP_NOCACHE $^ \
 	-I$(TI_OCL_CGT_INSTALL)/lib -llibc.a -o $@

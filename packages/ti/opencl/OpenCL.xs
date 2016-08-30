@@ -51,10 +51,12 @@ function module$meta$init()
  */
 function module$use()
 {
+    var BIOS = xdc.useModule("ti.sysbios.BIOS");     // for linking ordering
+
     if (OpenCL.OCL_ipc_customized == false)
-    {
         var ipc_cfg = xdc.loadCapsule("ti/opencl/ipc.cfg.xs");
-    }
+    else
+        var Ipc  = xdc.useModule("ti.sdo.ipc.Ipc");  // for linking ordering
 
     if (OpenCL.OCL_memory_customized == false)
     {

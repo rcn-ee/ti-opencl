@@ -31,4 +31,7 @@
 #include <stdint.h>
 
 uint32_t ti_opencl_get_OCL_monitor_priority();
-
+uint32_t ti_opencl_get_OCL_ipc_customized();
+uint32_t ti_opencl_get_OCL_memory_customized();
+uint32_t ti_opencl_get_OCL_SR0_base();
+uint32_t ti_opencl_get_OCL_SR0_len();

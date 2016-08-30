@@ -98,6 +98,16 @@ function getLibs(prog)
             lib += ";" + libm_lib_build;
         else
             throw new Error("Library not found: " + libm_lib);
+
+        DSPMonitor = xdc.module("ti.opencl.DSPMonitor");
+        if (DSPMonitor.OCL_link_extra_sym_def == true)
+        {
+            var sym_lib = "usr/share/ti/opencl/sym.def";
+            if (java.io.File(this.packageBase + sym_lib).exists())
+                lib += ";" + sym_lib;
+            else
+                throw new Error("Library not found: " + sym_lib);
+        }
     }
     else
     {
