@@ -1,0 +1,14 @@
+EXE  = vecadd
+CL6X_FLAGS = -O1 --omp
+srcs = main.cpp
+
+ifneq ($(CORE0_ONLY),)
+    HOSTCONFIG = MyHost.cfg
+    $(info *** Only use DSP core 0 as OpenCL compute unit ***)
+endif
+
+include ../make_rtos.inc
+
+bin/$(PROFILE)/main.oa15fg: vadd_wrapper.dsp_h
+
+vadd_wrapper.dsp_h: vadd_openmp.obj
