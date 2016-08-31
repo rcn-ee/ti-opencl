@@ -30,7 +30,7 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 /**
- *  @file       edmamgr.h, COPIED and MODIFIED from
+ *  @file       dsp_edmamgr.h, COPIED and MODIFIED from
  *              framework_components/packages/ti/sdo/fc/edmamgr/edmamgr.h
  *
  *  @brief      EdmaMgr Definitions - Functional library for use
@@ -47,19 +47,25 @@
  */
 
 /**
- *  @defgroup   ti_sdo_fc_edmamgr_EdmaMgr EdmaMgr
- *
- *  @brief      EDMA3 Functional library
+ * NOTE: This is a standalone and simplified version of full-fledged
+ *       framework_components/packages/ti/sdo/fc/edmamgr/edmamgr.h
+ *       If you need the full-fledge version, include the framework_components
+ *       one instead of this one.  This standalone and simplified version is
+ *       provided in OpenCL installation for avoiding pulling in other
+ *       framework_components header files.
  */
-#ifndef ti_sdo_fc_edmamgr_EdmaMgr_
-#define ti_sdo_fc_edmamgr_EdmaMgr_
+
+#ifndef _DSP_EDMAMGR_H_
+#define _DSP_EDMAMGR_H_
 
 #ifndef _DSP_C_H_
 #include <stdint.h>
 #endif
 
-/** @ingroup    ti_sdo_fc_ecpy_EdmaMgr */
-/*@{*/
+#ifdef __cplusplus
+extern "C"
+{
+#endif /* __cplusplus */
 
 
 /**
@@ -510,6 +516,9 @@ int32_t EdmaMgr_copyLinkedFast
   int32_t           num_transfers
 );
 
-/*@}*/
 
-#endif /* ti_sdo_fc_edmamgr_EdmaMgr_ */
+#ifdef __cplusplus
+} /* extern "C" */
+#endif /* __cplusplus */
+
+#endif /* _DSP_EDMAMGR_H_ */

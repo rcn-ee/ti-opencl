@@ -34,6 +34,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include "dsp_c.h"
+#include "dsp_edmamgr.h"
 
 /*-----------------------------------------------------------------------------
 * On KeyStone devices, MSMC is not cached in L2 and this macro could be 
