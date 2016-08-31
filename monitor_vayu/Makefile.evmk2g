@@ -82,6 +82,7 @@ endif
 BUILD_TYPE = release
 
 INCLUDES = -i $(OPENCL_SRC_DIR)/src/core/dsp
+INCLUDES += -DOMP_ENABLED
 
 XDCTARGET= ti.targets.elf.C66
 XDCPATH_K2X = ./;$(C6636_PDK_DIR)/packages;$(BIOS_DIR)/packages;$(OMP_DIR)/packages;$(EDMA3LLD_DIR)/packages;$(IPC_DIR)/packages;$(FC_DIR)/packages;$(XDAIS_DIR)/packages;
