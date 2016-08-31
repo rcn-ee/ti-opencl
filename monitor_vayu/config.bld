@@ -3,6 +3,6 @@ var rootDir = "" + java.lang.System.getenv("TI_OCL_CGT_INSTALL")
 var C66 = xdc.useModule('ti.targets.elf.C66');
 C66.rootDir = rootDir;
 //C66.ccOpts.suffix += " -mi10 -mo";
-C66.ccOpts.suffix += " -mi10 -mo --mem_model:data=far";
+C66.ccOpts.suffix += " -mi10 -mo --mem_model:const=data --mem_model:data=far";
 
 Build.targets = [ C66 ];
