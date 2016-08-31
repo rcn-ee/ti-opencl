@@ -145,7 +145,12 @@ int run_cl6x(string filename, string *llvm_bitcode, string addl_files)
     }
     if (opt_keep)   command += "-mw -k --z ";
 
+    /*-------------------------------------------------------------------------
+    * Worked around the sploop bug in the compiler.                           
+    *------------------------------------------------------------------------*/
+#if 0
     command += "--disable:sploop ";
+#endif
 
     if (opt_debug)        command += "-o0 -g ";
     else if (opt_symbols) command += "-o3 ";

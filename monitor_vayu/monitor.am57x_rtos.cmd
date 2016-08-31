@@ -122,9 +122,16 @@ ocl_l1d_mem_size     = size (L1DSRAM);
 ocl_local_mem_start  = start(OCL_LOCAL);
 ocl_local_mem_size   = size (OCL_LOCAL);
 
+nocache_phys_start   = start(OCL_OMP_NOCACHE);
+nocache_virt_start   = start(OCL_OMP_NOCACHE);
+nocache_size         = size(OCL_OMP_NOCACHE);
+
 nocache2_phys_start   = start(SR_0);
 nocache2_virt_start   = start(SR_0);
 nocache2_size         = size(SR_0);
+
+service_stack_start   = start(OCL_OMP_STACK);
+service_stack_size    = size(OCL_OMP_STACK);
 
 --export ocl_l1d_mem_start
 --export ocl_l1d_mem_size

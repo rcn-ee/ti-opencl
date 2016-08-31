@@ -29,7 +29,6 @@
 #include "dsp_c.h"
 #include "cblas.h"
 #include "dgemm_kernel.h"
-#include "edmamgr.h"
 #include "c6x.h"
 #include <string.h>
 #include <stdio.h>

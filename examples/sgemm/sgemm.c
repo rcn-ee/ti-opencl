@@ -28,9 +28,6 @@
 #define USE_EDMA 1
 
 #include "data.h"
-#if USE_EDMA
-#include "edmamgr.h"
-#endif
 #include "sgemm_kernel.h"
 #include <string.h>
 #include <stdio.h>
