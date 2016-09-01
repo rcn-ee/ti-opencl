@@ -26,13 +26,16 @@
  *   THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
 
+#include <xdc/std.h>
 #include "monitor.h"
 #include "util.h"
-
 #include "message.h"
 
 #include <ti/csl/csl_cacheAux.h>
 #include <ti/ipc/MultiProc.h>
+#if defined(_SYS_BIOS)
+#include <ti/opencl/configuration_dsp.h>
+#endif
 
 #include <assert.h>
 #include <string.h>
@@ -52,8 +55,18 @@ void initialize_memory(void)
     uint32_t nc_virt = (uint32_t) &nocache_virt_start;
     uint32_t nc_size = (uint32_t) &nocache_size;
     #endif
+
+    // These two versions will return exactly the same values for nc2_*.
+    // The _SYS_BIOS version is put here in case other builds (e.g. VisionSDK)
+    // do not use our linker command file, in which case, nocache2_* are
+    // undefined.
+    #if defined(_SYS_BIOS)
+    uint32_t nc2_virt = (uint32_t) ti_opencl_get_OCL_SR0_base();
+    uint32_t nc2_size = (uint32_t) ti_opencl_get_OCL_SR0_len();
+    #else
     uint32_t nc2_virt = (uint32_t) &nocache2_virt_start;
     uint32_t nc2_size = (uint32_t) &nocache2_size;
+    #endif
 
     int32_t mask = _disable_interrupts();
 
