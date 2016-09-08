@@ -182,16 +182,6 @@ These environment variables can be used to control OpenCL behavior and provide v
     optimized for other OpenCL implementations, this environment variable can
     be used to limit the max work-group size reported. 
 
-.. envvar::  TI_OCL_CGT_INSTALL         
-
-    The OpenCL runtime is dependent on the C66x DSP compiler product for
-    the compilation of OpenCL C kernels. When OpenCL C kernels are compiled on the
-    target ARM/Linux system, the C66x compiler is assumed to be installed in the
-    standard Linux locations. However, off-line cross compilation of OpenCL C
-    kernels is also supported from x86 Ubuntu machines and in that use case, it
-    is required that this environment variable is set to the top level
-    directory path where the C66x cross compiler tools are installed. 
-
 .. envvar::  TI_OCL_DSP_1_25GHZ         
 
     Initialize the C66x DSPs to run at 1.25 GHz rather than the default 1.00 GHz.
