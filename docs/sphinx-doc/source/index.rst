@@ -20,6 +20,7 @@ TI |OpenCL (TM)| Runtime Documentation Contents:
    examples/index
    debug/index
    profiling
+   rtos/index
    faq/index
    readme/index
    disclaimer

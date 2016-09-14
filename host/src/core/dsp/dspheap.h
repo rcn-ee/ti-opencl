@@ -56,7 +56,10 @@ class dspheap : public Lockable
         configure(start_addr, length);
     }
 
-    dspheap() { }
+    dspheap()
+    {
+        configure(0, 0);
+    }
 
     void configure(DSPDevicePtr64 start_addr, uint64_t length,
                    bool is_cmem_ondemand_heap = false)
@@ -77,7 +80,7 @@ class dspheap : public Lockable
         p_map_align  = is_cmem_ondemand_heap;
 
         Lock lock(this);
-        if (free_list.empty())
+        if (free_list.empty() && length > 0)
             free_list[start_addr] = length;
     }
 

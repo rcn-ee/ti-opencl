@@ -130,7 +130,10 @@ metaonly module Platform inherits xdc.platform.IPlatform
  *            E 8E00_0000   100_0000  (  16 MB) SR_0 (ipc)
  *            F 8F00_0000   100_0000  (  16 MB) --------
  *           10 9000_0000  1000_0000  ( 256 MB) --------
- *           11 A000_0000  6000_0000  (1536 MB) OCL_GLOBAL (kernel code, data)
+ *           11 A000_0000  0100_0000  (  16 MB) OCL_OMP_NOCACHE (data)
+ *           12 A100_0000     2_0000  ( 128 KB) OCL_OMP_STACK (stack)
+ *              A102_0000    FE_0000  (  15 MB) OCL_OMP_HEAP (heap)
+ *           13 A200_0000  5E00_0000  (1504 MB) OCL_GLOBAL (kernel code, data)
  */
 
     readonly config Any HOST_PROG = {
@@ -157,10 +160,28 @@ metaonly module Platform inherits xdc.platform.IPlatform
         comment: "SR#0 Memory (16 MB)"
     };
 
+    config Any OCL_OMP_NOCACHE = {
+        name: "OCL_OMP_NOCACHE", space: "data", access: "RWX",
+        base: 0xa0000000, len:  0x01000000,
+        comment: "Shared non-cached memory for OpenMP runtime internal structures (16MB)"
+    };
+
+    config Any OCL_OMP_STACK = {
+        name: "OCL_OMP_STACK", space: "data", access: "RWX",
+        base: 0xa1000000, len:  0x00020000,
+        comment: "Stacks for tasks executing OpenMP regions in the DSP monitor (64KB per DSP)"
+    };
+
+    config Any OCL_OMP_HEAP = {
+        name: "OCL_OMP_HEAP", space: "data", access: "RWX",
+        base: 0xa1020000, len:  0x00FE0000,
+        comment: "Region for .sysmem - shared heap across DSPs (15MB)"
+    };
+
     config Any OCL_GLOBAL = {
         name: "OCL_GLOBAL", space: "data", access: "RWX",
-        base: 0xA0000000, len: 0x60000000,
-        comment: "DDR Memory (1.5 GB) for OpenCL global memory"
+        base: 0xA2000000, len: 0x5E000000,
+        comment: "DDR Memory (1504 MB) for OpenCL global memory"
     };
 
     readonly config Any DSP1 = {
@@ -169,7 +190,10 @@ metaonly module Platform inherits xdc.platform.IPlatform
             [ "L2SRAM", L2SRAM ],
             [ "OCL_LOCAL", OCL_LOCAL ],
             [ "DSP1_PROG", DSP1_PROG ],
-            [ "SR_0", SR_0 ]
+            [ "SR_0", SR_0 ],
+            [ "OCL_OMP_NOCACHE", OCL_OMP_NOCACHE ],
+            [ "OCL_OMP_STACK", OCL_OMP_STACK],
+            [ "OCL_OMP_HEAP", OCL_OMP_HEAP ]
         ],
         codeMemory:  "DSP1_PROG",
         dataMemory:  "DSP1_PROG",
@@ -185,7 +209,10 @@ metaonly module Platform inherits xdc.platform.IPlatform
             [ "L2SRAM", L2SRAM ],
             [ "OCL_LOCAL", OCL_LOCAL ],
             [ "DSP2_PROG", DSP2_PROG ],
-            [ "SR_0", SR_0 ]
+            [ "SR_0", SR_0 ],
+            [ "OCL_OMP_NOCACHE", OCL_OMP_NOCACHE ],
+            [ "OCL_OMP_STACK", OCL_OMP_STACK],
+            [ "OCL_OMP_HEAP", OCL_OMP_HEAP ]
         ],
         codeMemory:  "DSP2_PROG",
         dataMemory:  "DSP2_PROG",

@@ -74,13 +74,14 @@ CXXFLAGS := $(LLVM_CXXFLAGS) -I$(UTILDIR) -I$(WGADIR) -I$(POCLDIR) \
 
 LIBS      = $(CLANG_LIBS)  $(LLVM_LIBS)
 LDFLAGS  := $(LLVM_LDFLAGS) $(LDFLAGS)
+STATIC    = -static
 
 .PHONY: .FORCE 
 
 $(TARGET): $(TARGET)/.touch $(TARGET)/$(EXE)
 
 $(TARGET)/$(EXE): $(OBJS)
-	$(CXX) $^ $(LIBS) $(LDFLAGS) -o $@
+	$(CXX) $^ $(STATIC) $(LIBS) $(LDFLAGS) -o $@
 
 $(TARGET)/%.o: %.cpp | $(TARGET)/.touch
 	$(CXX) $(CXXFLAGS) -c $< -o $@

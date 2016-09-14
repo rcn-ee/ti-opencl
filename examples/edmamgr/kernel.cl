@@ -25,7 +25,7 @@
  *   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  *   THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
-#include "edmamgr.h"
+#include "dsp_edmamgr.h"
 
 kernel void oclEcpy(global const char* src, global char* dst, int size) 
 {

@@ -77,7 +77,6 @@ static void   cpu_mat_mpy(const float *A, const float *B, float *C,
 * main
 ******************************************************************************/
 #ifdef _TI_RTOS
-#define RETURN(x) return
 void ocl_main(UArg arg0, UArg arg1)
 {
    int    argc = (int)     arg0;
@@ -252,6 +251,8 @@ int main(int argc, char *argv[])
 #endif
 
    std::cout << "Passed!" << std::endl;
+
+   RETURN(0);
 }
 
 /******************************************************************************

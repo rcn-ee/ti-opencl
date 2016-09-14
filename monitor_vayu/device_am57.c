@@ -26,12 +26,16 @@
  *   THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
 
+#include <xdc/std.h>
 #include "monitor.h"
 #include "util.h"
-
 #include "message.h"
 
 #include <ti/csl/csl_cacheAux.h>
+#include <ti/ipc/MultiProc.h>
+#if defined(_SYS_BIOS)
+#include <ti/opencl/configuration_dsp.h>
+#endif
 
 #include <assert.h>
 #include <string.h>
@@ -47,14 +51,22 @@ void initialize_memory(void)
     extern uint32_t nocache2_virt_start;
     extern uint32_t nocache2_size;
 
-#ifndef _SYS_BIOS
-    /*** SYSBIOS does not support OpenMP yet, hence no need for this
-         non-cached shared OpenMP heap ***/
+    #if defined(OMP_ENABLED)
     uint32_t nc_virt = (uint32_t) &nocache_virt_start;
     uint32_t nc_size = (uint32_t) &nocache_size;
-#endif
+    #endif
+
+    // These two versions will return exactly the same values for nc2_*.
+    // The _SYS_BIOS version is put here in case other builds (e.g. VisionSDK)
+    // do not use our linker command file, in which case, nocache2_* are
+    // undefined.
+    #if defined(_SYS_BIOS)
+    uint32_t nc2_virt = (uint32_t) ti_opencl_get_OCL_SR0_base();
+    uint32_t nc2_size = (uint32_t) ti_opencl_get_OCL_SR0_len();
+    #else
     uint32_t nc2_virt = (uint32_t) &nocache2_virt_start;
     uint32_t nc2_size = (uint32_t) &nocache2_size;
+    #endif
 
     int32_t mask = _disable_interrupts();
 
@@ -62,9 +74,13 @@ void initialize_memory(void)
 
     enableCache (0x40, 0x40); // enable write through for OCMC
     enableCache (0x80, 0xFF);
-#ifndef _SYS_BIOS
+
+    #if defined(OMP_ENABLED)
+    // OpenMP needs shared non-cached memory for runtime data structures
     disableCache(nc_virt >> 24, (nc_virt+nc_size-1) >> 24);
-#endif
+    #endif
+
+    // Disable caching on virtio memory used by RPMsg
     disableCache(nc2_virt >> 24, (nc2_virt+nc2_size-1) >> 24);
 
     _restore_interrupts(mask);

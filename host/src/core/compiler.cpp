@@ -151,7 +151,7 @@ bool Compiler::CompileAndLinkForDSP(const std::string &source,
     unlink(name_out);
 
     // Check for system() call failure or clocl compile failure
-    if (ret_code == -1 || WEXITSTATUS(ret_code) == 0xFF)
+    if (ret_code != 0)
         return false;
 
     if (do_cache_kernels)

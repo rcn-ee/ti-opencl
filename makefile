@@ -25,8 +25,9 @@ ifeq ($(BUILD_AM57),1)
         export PATH:=$(ARM_GCC_DIR)/bin:$(PATH)
     else
         RTOS_PACKAGE_VER=$(shell echo $(OCL_FULL_VER) | sed 's/\<[0-9]\>/0&/g' | sed 's/\./_/g')
-	export DESTDIR?=$(CURDIR)/install/opencl_rtos_$(TARGET)xx_$(RTOS_PACKAGE_VER)/packages/ti/opencl
-	export GCC_ARM_NONE_TOOLCHAIN
+        RTOS_PACKAGE_NAME=opencl_rtos_$(TARGET)xx_$(RTOS_PACKAGE_VER)
+        export DESTDIR?=$(CURDIR)/install/$(TARGET)$(BUILD_OS)/$(RTOS_PACKAGE_NAME)/packages/ti/opencl
+        export GCC_ARM_NONE_TOOLCHAIN
         CMAKE_DEFINES += -DBUILD_OS=SYS_BIOS -DPSDK_RTOS=$(DEFAULT_PSDK_RTOS)
         CLEAN_DIRS += packages/ti/opencl
     endif

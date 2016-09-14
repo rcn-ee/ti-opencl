@@ -6,7 +6,9 @@ This OpenCL implementation also supports direct access to the EDMA system from
 the DSP and OpenCL C kernels. A wide range of EDMA constructs are supported.
 These include 1D to 1D, 1D to 2D, 2D to 1D, and chained transfers. See below
 for prototypes for these additional EDMA OpenCL C built-ins.  Also refer to
-:ref:`edmamgr-example` for example usage.
+:ref:`edmamgr-example`, :ref:`sgemm-example`, and :ref:`dgemm-example` for
+example usage.  If used, please add ``#include <dsp_edmamgr.h>`` to your
+source.
 
 The standard OpenCL C built-in functions async_work_group_copy and
 async_work_group_strided_copy will also utilize the on-chip DMA and can be used

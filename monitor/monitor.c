@@ -567,7 +567,7 @@ static void broadcast(uint32_t flush_msg_id, flush_msg_t *f_msg)
     /*-------------------------------------------------------------------------
     * Wait for broadcast to complete before master thread continues
     *------------------------------------------------------------------------*/
-    Semaphore_pend(higherSem, BIOS_WAIT_FOREVER);
+    Semaphore_pend(broadcastCompleteSem, BIOS_WAIT_FOREVER);
 }
 
 
@@ -739,7 +739,7 @@ static void service_broadcast(void* ptr)
             break;
     }
 
-    if (MASTER_THREAD) Semaphore_post(higherSem);
+    if (MASTER_THREAD) Semaphore_post(broadcastCompleteSem);
 }
 
 
@@ -1061,7 +1061,7 @@ static int initialize_bios_tasks(void)
     Task_Params taskParams;
 
     Task_Params_init(&taskParams);
-    taskParams.priority  = 1; // LOW_PRIORITY;
+    taskParams.priority  = 7; // LOW_PRIORITY;
     taskParams.stackSize = SERVICE_STACK_SIZE;
     taskParams.stack = (xdc_Ptr)makeAddressGlobal(DNUM, (uint32_t)sstack);
     taskHandle = Task_create((Task_FuncPtr)service_wg_task, &taskParams, NULL);
@@ -1070,7 +1070,7 @@ static int initialize_bios_tasks(void)
     if (!MASTER_THREAD) return RETURN_OK;
 
     Task_Params_init(&taskParams);
-    taskParams.priority  = 15; // HIGH_PRIORITY;
+    taskParams.priority  = 8; // HIGH_PRIORITY;
     taskParams.stackSize = LISTEN_STACK_SIZE;
     taskParams.stack = (xdc_Ptr)makeAddressGlobal(DNUM, (uint32_t)lstack);
     taskHandle = Task_create((Task_FuncPtr)listen_host_task, &taskParams, NULL);

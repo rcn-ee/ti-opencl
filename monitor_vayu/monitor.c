@@ -103,10 +103,8 @@ DDR (Registry_Desc, Registry_CURDESC);
 
 PRIVATE (bool,              enable_printf)       = false;
 PRIVATE (bool,              edmamgr_initialized) = false;
-PRIVATE (OCL_MessageQueues,  ocl_queues);
+PRIVATE (OCL_MessageQueues, ocl_queues);
 PRIVATE (int,               n_cores);
-
-extern Semaphore_Handle higherSem;
 
 /******************************************************************************
 * Defines a fixed area of 64 bytes at the start of L2, where the kernels will
@@ -153,20 +151,24 @@ static void process_configuration_message(ocl_msgq_message_t* msgq_pkt);
 * Bios Task and helper routines
 ******************************************************************************/
 static void ocl_main(UArg arg0, UArg arg1);
-#ifndef _SYS_BIOS  // TODO: disable OpenMP for now
-static void ocl_service_omp();
-#endif
+
 static bool create_mqueue(void);
 static void ocl_monitor();
 
+#if defined(OMP_ENABLED)
+static void ocl_service_omp();
 extern tomp_initOpenMPforOpenCLPerApp(int master_core, int num_cores);
 extern tomp_exitOpenMPforOpenCL(void);
 extern void tomp_dispatch_once(void);
 extern void tomp_dispatch_finish(void);
 extern bool tomp_dispatch_is_finished(void);
+extern Semaphore_Handle runOmpSem;
+extern Semaphore_Handle runOmpSem_complete;
+#endif
 
-#ifdef _SYS_BIOS
+#if !defined(OMP_ENABLED)
 // Prevent RTS versions of malloc etc. from getting pulled into link
+// If OpenMP is enabled, the OpenMP runtime provides minit, malloc etc
 void _minit(void) { }
 #endif
 
@@ -185,7 +187,7 @@ PRIVATE_1D(char, lstack, LISTEN_STACK_SIZE);
 #if !defined(_SYS_BIOS)
 int main(int argc, char* argv[])
 #else
-int rtos_init_ocl_dsp_monitor(int argc, char* argv[])
+int rtos_init_ocl_dsp_monitor(UArg argc, UArg argv)
 #endif
 {
     edmamgr_initialized = false;
@@ -198,19 +200,27 @@ int rtos_init_ocl_dsp_monitor(int argc, char* argv[])
     Diags_setMask(MODULE_NAME"-EXF");
 
     /* Setup non-cacheable memory, etc... */
-    initialize_memory();
+#ifdef _SYS_BIOS
+    if (ti_opencl_get_OCL_memory_customized() == false)
+#endif
+        initialize_memory();
 
 #ifdef _SYS_BIOS
-    /*------------------------------------------------------------------------
-    * SYSBIOS mode: Ipc_start() needs to be called explicitly.
-    * SYNC_PAIR protocol: need to attach peer core explicitly. Also gives
-    *     the host freedom to choose involved DSPs, compared to SYNC_ALL.
-    *------------------------------------------------------------------------*/
-    int status = Ipc_start();
-    UInt16 remoteProcId = MultiProc_getId("HOST");
-    do {
-        status = Ipc_attach(remoteProcId);
-    } while ((status < 0) && (status == Ipc_E_NOTREADY));
+    if (ti_opencl_get_OCL_ipc_customized() == false)
+    {
+        /*--------------------------------------------------------------------
+        * SYSBIOS mode: Ipc_start() needs to be called explicitly.
+        * SYNC_PAIR protocol: need to attach peer core explicitly. Also gives
+        *     the host freedom to choose involved DSPs, compared to SYNC_ALL.
+        *--------------------------------------------------------------------*/
+        int status = Ipc_start();
+        UInt16 remoteProcId = MultiProc_getId("HOST");
+        do {
+            status = Ipc_attach(remoteProcId);
+        } while ((status < 0) && (status == Ipc_E_NOTREADY));
+
+        if (status < 0) System_abort("Ipc_attach failed\n");
+    }
 #endif
 
 #if !defined(DEVICE_AM572x)
@@ -231,7 +241,7 @@ int rtos_init_ocl_dsp_monitor(int argc, char* argv[])
     taskParams.arg0 = (UArg)argc;
     taskParams.arg1 = (UArg)argv;
 #if !defined(_SYS_BIOS)
-    taskParams.priority = 3; // LOWER_PRIORITY
+    taskParams.priority = 7; // LOWER_PRIORITY
 #else
     taskParams.priority = ti_opencl_get_OCL_monitor_priority();
 #endif
@@ -242,7 +252,7 @@ int rtos_init_ocl_dsp_monitor(int argc, char* argv[])
         System_abort("main: failed to create ocl_main thread");
     }
 
-    #ifndef _SYS_BIOS
+    #if defined(OMP_ENABLED)
     /* Create a task to service OpenMP kernels */
     extern uint32_t service_stack_start;
     uint32_t stack_start = (uint32_t) &service_stack_start;
@@ -250,7 +260,7 @@ int rtos_init_ocl_dsp_monitor(int argc, char* argv[])
     Error_init(&eb);
     Task_Params_init(&taskParams);
     taskParams.instance->name = "ocl_service_omp";
-    taskParams.priority = 5; // HIGHER_PRIORITY
+    taskParams.priority = 8; // HIGHER_PRIORITY
     taskParams.stackSize = SERVICE_STACK_SIZE;
     taskParams.stack = (xdc_Ptr) (stack_start + DNUM * SERVICE_STACK_SIZE);
     Task_create(ocl_service_omp, &taskParams, &eb);
@@ -286,7 +296,7 @@ void ocl_main(UArg arg0, UArg arg1)
 #if !defined(DEVICE_AM572x)
     initialize_gdbserver();
 #else
-    #if !defined(_SYS_BIOS)
+    #if defined(OMP_ENABLED)
     // On AM57x, indicate that heaps must be initialized. It's ok to set this on both
     // DSP cores because there is a barrier hit before the heap is initialized.
     extern int need_mem_init;
@@ -432,17 +442,18 @@ static void process_task_command(ocl_msgq_message_t* msgq_pkt)
     uint32_t more_args_size = Msg->u.k.kernel.args_on_stack_size;
     void *   more_args      = (void *) Msg->u.k.kernel.args_on_stack_addr;
 
-#ifndef _SYS_BIOS
+    #if defined(OMP_ENABLED)
     if (is_inorder)
     {
        omp_msgq_pkt = msgq_pkt;
-       Semaphore_post(higherSem);
+       Semaphore_post(runOmpSem);
+       Semaphore_pend(runOmpSem_complete, BIOS_WAIT_FOREVER);
        /* in order task was completed by ocl_service_omp task*/
        if (omp_msgq_pkt != NULL)
           /* Error */; 
     }
     else
-#endif
+    #endif
     {
        TRACE(ULM_OCL_OOT_KERNEL_START, kernel_id, 0);
        dsp_rpc(&((kernel_msg_t *)&Msg->u.k.kernel)->entry_point,
@@ -459,7 +470,7 @@ static void process_task_command(ocl_msgq_message_t* msgq_pkt)
     return;
 }
 
-#ifndef _SYS_BIOS
+#if defined(OMP_ENABLED)
 /******************************************************************************
 * ocl_service_omp - This is it's own task to switch the stack to DDR.
 ******************************************************************************/
@@ -469,7 +480,7 @@ void ocl_service_omp()
 
     while (true)
     {
-       Semaphore_pend(higherSem, BIOS_WAIT_FOREVER);
+       Semaphore_pend(runOmpSem, BIOS_WAIT_FOREVER);
 
        if (omp_msgq_pkt != NULL)
        {
@@ -508,6 +519,7 @@ void ocl_service_omp()
           TRACE(ULM_OCL_IOT_CACHE_COHERENCE_COMPLETE, kernel_id, 0);
 
           omp_msgq_pkt = NULL;
+          Semaphore_post(runOmpSem_complete);
        }
        else
        {
@@ -632,9 +644,9 @@ static void process_cache_command (int pkt_id, ocl_msgq_message_t *msgq_pkt)
 ******************************************************************************/
 static void process_exit_command(ocl_msgq_message_t *msg_pkt)
 {
-#if !defined( _SYS_BIOS)
+    #if defined( OMP_ENABLED)
     tomp_exitOpenMPforOpenCL();
-#endif
+    #endif
 
 #ifdef DEVICE_K2G
     respond_to_host(msg_pkt, -1);
@@ -645,10 +657,22 @@ static void process_exit_command(ocl_msgq_message_t *msg_pkt)
     /* Not sending a response to host, delete the msg */
     MessageQ_free((MessageQ_Msg)msg_pkt);
     Log_print0(Diags_INFO, "ocl_monitor: EXIT, no response");
-#if !defined(_SYS_BIOS)
+
+    #if !defined(_SYS_BIOS)
     enable_ipcpower_suspend();
-#endif
+    #endif
+
     cacheWbInvAllL2();
+
+    // SYS_BIOS mode, exit
+    #if defined(_SYS_BIOS)
+    if (ti_opencl_get_OCL_ipc_customized() == false)
+    {
+        Ipc_stop();
+    }
+    exit(0);
+    #endif
+
 #endif
 }
 
@@ -827,13 +851,6 @@ static bool create_mqueue()
     return true;
 }
 
-#if defined(_SYS_BIOS)
-void mainDsp1TimerTick(UArg arg)
-{
-    Clock_tick();
-}
-#endif
-
 
 static void process_configuration_message(ocl_msgq_message_t* msgq_pkt)
 {
@@ -849,10 +866,10 @@ static void process_configuration_message(ocl_msgq_message_t* msgq_pkt)
 
     Log_print2(Diags_INFO,"Configuring OpenMP (%d, %d)\n", master_core, n_cores);
 
-#if !defined(_SYS_BIOS)
+    #if defined(OMP_ENABLED)
     if (tomp_initOpenMPforOpenCLPerApp(master_core, n_cores) < 0)
         System_abort("main: tomp_initOpenMPforOpenCL() failed");
-#endif
+    #endif
 
     if (!edmamgr_initialized)
     {

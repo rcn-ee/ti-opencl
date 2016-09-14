@@ -69,6 +69,36 @@ These environment variables can be used to control OpenCL behavior and provide v
 
         The OpenCL compilation cache is automatically removed during a Linux reboot
 
+.. envvar::  TI_OCL_COMPUTE_UNIT_LIST
+
+    Specify the compute units available to the OpenCL runtime as a comma
+    separated list of compute unit indices starting at 0. If the 
+    environment variable is not specified, the runtime defaults to using all 
+    the compute units available on the device.
+
+    Example usage on AM572x:
+
+    .. code-block:: bash
+        :caption: runs the vecadd kernel only on DSP1
+
+        -> TI_OCL_COMPUTE_UNIT_LIST="0" ./vecadd
+
+    .. code-block:: bash
+        :caption: runs the vecadd kernel only on DSP2
+
+        -> TI_OCL_COMPUTE_UNIT_LIST="1" ./vecadd
+
+
+    .. code-block:: bash
+        :caption: runs the vecadd kernel on both DSP1 and DSP2 (default behavior)
+
+        -> TI_OCL_COMPUTE_UNIT_LIST="0, 1" ./vecadd
+
+
+    .. Warning::
+
+        This environment variable is available only on AM572x.
+
 .. envvar::  TI_OCL_LOAD_KERNELS_ONCHIP 
 
     By default, OpenCL kernel related code and global data is allocated out of
@@ -151,16 +181,6 @@ These environment variables can be used to control OpenCL behavior and provide v
     much smaller max work-group size limit. When running code designed and
     optimized for other OpenCL implementations, this environment variable can
     be used to limit the max work-group size reported. 
-
-.. envvar::  TI_OCL_CGT_INSTALL         
-
-    The OpenCL runtime is dependent on the C66x DSP compiler product for
-    the compilation of OpenCL C kernels. When OpenCL C kernels are compiled on the
-    target ARM/Linux system, the C66x compiler is assumed to be installed in the
-    standard Linux locations. However, off-line cross compilation of OpenCL C
-    kernels is also supported from x86 Ubuntu machines and in that use case, it
-    is required that this environment variable is set to the top level
-    directory path where the C66x cross compiler tools are installed. 
 
 .. envvar::  TI_OCL_DSP_1_25GHZ         
 

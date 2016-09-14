@@ -124,7 +124,6 @@ void cpu_consume_callback(cl_event e, cl_int e_status, void *user_data)
 * main
 ******************************************************************************/
 #ifdef _TI_RTOS
-#define RETURN(x) return
 void ocl_main(UArg arg0, UArg arg1)
 {
    int    argc = (int)     arg0;
@@ -323,7 +322,6 @@ int main(int argc, char *argv[])
 
    if (incorrect_results) RETURN(-1);
 
-
-
+   RETURN(0);
 }
 

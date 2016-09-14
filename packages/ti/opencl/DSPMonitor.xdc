@@ -61,12 +61,31 @@ module DSPMonitor
     config Bool     OCL_ipc_customized     = false;
 
     /*!
+     *  ======== OCL_link_extra_sym_def ========
+     *
+     *  Flag for linking in extra sym def.  See package.xs:getLibs().
+     */
+    config Bool     OCL_link_extra_sym_def = false;
+
+    /*!
      *  ======== OCL_memory_customized ========
      *
      *  Flag for memory customization.  If set to true, then the memory
      *  sections below must be given valid values, otherwise, default
      *  platform values are used.  memory sections: TBD
+     *  If customizing memory, user must set cachability explicitly in the
+     *  xdc/xs config file, ddr memory used for OpenCL global buffers must be
+     *  set to write through. (see ti.sysbios.family.c66/Cache.xdc:setMarMeta)
      */
     config Bool     OCL_memory_customized  = false;
+
+    /*!
+     *  ======== OCL_SR0_base ========
+     *  ======== OCL_SR0_len ========
+     *
+     *  IPC Shared Region 0.
+     */
+    config UInt32   OCL_SR0_base           = 0;
+    config UInt32   OCL_SR0_len            = 0;
 }
 

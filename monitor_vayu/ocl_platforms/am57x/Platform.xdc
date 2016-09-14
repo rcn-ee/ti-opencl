@@ -2,7 +2,7 @@ metaonly module Platform inherits xdc.platform.IPlatform
 {
 config ti.platforms.generic.Platform.Instance CPU =
   ti.platforms.generic.Platform.create("CPU", {
-    clockRate:      600,                                       
+    clockRate:      750,                                       
     catalogName:    "ti.catalog.c6000",
     deviceName:     "DRA7XX",
 

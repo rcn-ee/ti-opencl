@@ -50,6 +50,7 @@ INCLUDES += -i $(AM57_PDK_DIR)/packages -i $(TI_OCL_CGT_INSTALL)/include \
 	    -i $(FC_DIR)/packages -i $(XDAIS_DIR)/packages
 INCLUDES += -D$(DEVICE)
 INCLUDES += -D$(SOC)
+INCLUDES += -DOMP_ENABLED
 INCLUDES += -i $(ULM_DIR) -DULM_ENABLED
 INCLUDES += -i $(GDB_SERVER_DIR)/include -DGDB_ENABLED
 

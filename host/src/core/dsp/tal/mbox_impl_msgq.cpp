@@ -34,6 +34,8 @@
 #include <stdio.h>
 #include <time.h>
 #include <unistd.h>
+#include <stdlib.h>
+#include <time.h>
 
 #include "device_info.h"
 #include "mbox_impl_msgq.h"
@@ -69,6 +71,8 @@
 
 using namespace Coal;
 using namespace tiocl;
+
+static void lost_dsp();
 
 MBoxMsgQ::MBoxMsgQ(Coal::DSPDevice *device)
     : heapId(0), p_device(device)
@@ -162,6 +166,8 @@ void MBoxMsgQ::write (uint8_t *buf, uint32_t size, uint32_t trans_id,
 
     /* send message */
     int status = MessageQ_put(dspQue[id], (MessageQ_Msg)msg);
+    if (status < 0)
+        lost_dsp();
     assert (status == MessageQ_S_SUCCESS);
 
     return;
@@ -172,6 +178,8 @@ uint32_t MBoxMsgQ::read (uint8_t *buf, uint32_t *size, uint8_t* id)
     ocl_msgq_message_t *msg = NULL;
 
     int status = MessageQ_get(hostQue, (MessageQ_Msg *)&msg, MessageQ_FOREVER);
+    if (status < 0)
+        lost_dsp();
 
     /*-------------------------------------------------------------------------
     * if a ptr to an id is passed in, return the core of the sender in it
@@ -232,4 +240,71 @@ MBoxMsgQ::~MBoxMsgQ(void)
     Ipc_stop();
 }
 
+/* Attempt to cleanly terminate when a DSP is lost on Linux. For now, implement
+ * the unsynchronized workaround described in MCT-518/MCT-540 which may produce
+ * race conditions and work improperly depending on timing, but typically
+ * enables resetting all DSPs (to handle OMP barrier reset) with clean
+ * termination of IPC and the application allowing another OCL application to
+ * run without rebooting. */
+static void lost_dsp()
+{
+#if defined(_SYS_BIOS)
+    /* Recovery not supported on SYS_BIOS host */
+    ReportError(
+        ErrorType::Fatal, ErrorKind::LostDSP,
+        " The runtime is unable to recover.");
 
+#elif defined(DEVICE_AM57)
+    ReportError(
+        ErrorType::FatalNoExit, ErrorKind::LostDSP,
+        " Please wait while the DSPs are reset and the runtime attempts to "
+        "terminate. A reboot may be required before running another OpenCL "
+        "application if this fails. See the kernel log for fault information.");
+
+    /* Let the faulted DSP settle from iommu-fault-handler induced reset before
+     * cleaning up IPC */
+    sleep(1);
+    Ipc_stop();
+
+    /* Reset all DSPs to avoid hang on OMP barrier synchronization and clean up
+     * any other corrupted DSP state */
+    char const *dspnames[] = {"40800000.dsp", "41000000.dsp"};
+
+    const tiocl::DeviceInfo& device_info = tiocl::DeviceInfo::Instance();
+    const std::set<uint8_t>& compute_units = device_info.GetComputeUnits();
+
+    for (int i : compute_units)
+    {
+        if(!(i >= 0 && i < (sizeof dspnames / sizeof *dspnames)))
+            continue;
+
+        std::string dspname = dspnames[i];
+        std::string command =
+            "echo " + dspname + " >/sys/bus/platform/drivers/omap-rproc/unbind; "
+            "echo " + dspname + " >/sys/bus/platform/drivers/omap-rproc/bind";
+
+        system(command.c_str());
+    }
+
+    /* Sleep again before exiting to make sure all DSPs are finished resetting
+     * to be ready for the next application */
+    sleep(2);
+
+    _exit(EXIT_FAILURE);
+
+#else
+    ReportError(
+        ErrorType::FatalNoExit, ErrorKind::LostDSP,
+        " Please wait while the runtime attempts to terminate. A reboot "
+        " may be required before running another OpenCL application if "
+        " this fails. See the kernel log for fault information.");
+
+    /* Let the faulted DSP settle from iommu-fault-handler induced reset before
+     * cleaning up IPC and exiting to be ready for the next application */
+    sleep(1);
+    Ipc_stop();
+
+    _exit(EXIT_FAILURE);
+
+#endif
+}

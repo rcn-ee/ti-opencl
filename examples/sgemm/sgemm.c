@@ -28,15 +28,13 @@
 #define USE_EDMA 1
 
 #include "data.h"
-#if USE_EDMA
-#include "edmamgr.h"
-#endif
 #include "sgemm_kernel.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include "dsp_c.h"
+#include "dsp_edmamgr.h"
 
 /*-----------------------------------------------------------------------------
 * On KeyStone devices, MSMC is not cached in L2 and this macro could be 

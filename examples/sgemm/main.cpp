@@ -97,7 +97,6 @@ bool SetSgemmParams(Device& device);
 /*  MAIN                                                                    */
 /* ======================================================================== */
 #ifdef _TI_RTOS
-#define RETURN(x) return
 void ocl_main(UArg arg0, UArg arg1)
 {
    int    argc = (int)     arg0;

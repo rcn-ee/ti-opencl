@@ -114,7 +114,10 @@ static const std::map<const ErrorKind, const std::string> ErrorStrings =
      "Internal Error: Error in PCIe driver"},
 
     {ErrorKind::MessageQueueCountMismatch,
-     "Internal Error: Number of message queues (%d) does not match number of compute units (%d)"}
+     "Internal Error: Number of message queues (%d) does not match number of compute units (%d)"},
+
+    {ErrorKind::LostDSP,
+     "Communication to a DSP has been lost (likely due to an MMU fault).%s"},
 
 };
 
@@ -125,6 +128,7 @@ void tiocl::ReportError(const ErrorType et, const ErrorKind ek, ...)
     switch (et)
     {
         case ErrorType::Fatal:
+        case ErrorType::FatalNoExit:
             error_format = "TIOCL FATAL: "; break;
         case ErrorType::Warning:
             error_format = "TIOCL WARNING: "; break;

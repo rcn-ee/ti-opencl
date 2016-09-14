@@ -11,8 +11,8 @@ UNAME_M:=$(shell uname -m)
 # debian/changelog!!!
 OCL_MAJOR_VER=1
 OCL_MINOR_VER=1
-OCL_RELEASE_VER=9
-OCL_PATCH_VER=01
+OCL_RELEASE_VER=10
+OCL_PATCH_VER=00
 OCL_VER=$(OCL_MAJOR_VER).$(OCL_MINOR_VER).$(OCL_RELEASE_VER)
 OCL_DPKG_NAME=ti-opencl
 OCL_VERSIONED_NAME=$(OCL_DPKG_NAME)_$(OCL_VER)
@@ -51,13 +51,13 @@ endif
 
 # OMP 
 
-OMP_DIR_K2X?=$(SDOMC_SHARED)/openmp_dsp_k2x_02_03_01_00-20160622
-OMP_DIR_K2G?=$(SDOMC_SHARED)/openmp_dsp_k2g_02_03_01_00-20160622
-OMP_DIR_AM57?=$(SDOMC_SHARED)/openmp_dsp_am57xx_02_03_01_00-20160622
+OMP_DIR_K2X?=$(SDOMC_SHARED)/openmp_dsp_k2x_02_03_02_00-20160831
+OMP_DIR_K2G?=$(SDOMC_SHARED)/openmp_dsp_k2g_02_03_02_00-20160831
+OMP_DIR_AM57?=$(SDOMC_SHARED)/openmp_dsp_am57xx_02_03_02_00-20160831
 
 # SOC PSDK
 
-PSDK_VERSION ?= 03.00.00.02-20160621
+PSDK_VERSION ?= 03.00.00.04-release
 
 ifeq ($(BUILD_K2H),1)
     DEFAULT_PSDK_RTOS?=$(SDOMC_SHARED)/ti-processor-sdk-rtos-k2hk-evm-$(PSDK_VERSION)
@@ -76,9 +76,9 @@ else ifeq ($(BUILD_K2G),1)
     DEFAULT_PSDK_LINUX?=$(SDOMC_SHARED)/ti-processor-sdk-linux-k2g-evm-$(PSDK_VERSION)
     OMP_DIR?=$(OMP_DIR_K2G)
 else ifeq ($(BUILD_AM57),1)
-    DEFAULT_PSDK_RTOS?=$(SDOMC_SHARED)/ti-processor-sdk-rtos-am57xx-evm-03.00.00.03-20160629
+    DEFAULT_PSDK_RTOS?=$(SDOMC_SHARED)/ti-processor-sdk-rtos-am57xx-evm-$(PSDK_VERSION)
     DEFAULT_PSDK_LINUX?=$(SDOMC_SHARED)/ti-processor-sdk-linux-am57xx-evm-$(PSDK_VERSION)
-    #OMP_DIR?=$(OMP_DIR_AM57)
+    OMP_DIR?=$(OMP_DIR_AM57)
 else
 endif
 
