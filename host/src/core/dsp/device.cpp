@@ -130,12 +130,17 @@ DSPDevice::DSPDevice(unsigned char dsp_id, SharedMemory* shm)
 
     core_scheduler_ = new CoreScheduler(p_cores, 4);
 
-    init_ulm();
-
     /*-------------------------------------------------------------------------
     * initialize the mailboxes on the cores, so they can receive an exit cmd
     *------------------------------------------------------------------------*/
     p_mb = MBoxFactory::CreateMailbox(this);
+
+    /*-------------------------------------------------------------------------
+    * initialize ulm only after we establish mailboxes with cores because
+    * CreateMailbox() could fail and exit from this DSPDevice constructor,
+    * in which case ulm_term() in DSPDevice destructor won't be called.
+    *------------------------------------------------------------------------*/
+    init_ulm();
 
     /*-------------------------------------------------------------------------
      * Send monitor configuration

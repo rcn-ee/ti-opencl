@@ -36,7 +36,7 @@ config ti.platforms.generic.Platform.Instance CPU =
       * MSMC related regions
       *----------------------------------------------------------------------*/
       [ "MSMC_NC_PHYS", { name: "MSMC_NC_PHYS", 
-                          base: 0x0C180000,
+                          base: 0x0C0C0000,
 			  len:  0x00080000,
                           space: "code/data", 
 			  access: "RWX", } ],

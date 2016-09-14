@@ -766,11 +766,14 @@ cl_int DSPKernelEvent::run(Event::Type evtype)
     err = setup_stack_based_arguments();
     if (err != CL_SUCCESS) return err;
 
+#if 0
     /*-------------------------------------------------------------------------
-    * Flush ARM's cache for device execution
+    * Workaround for PSDK3.0/CMEM4.11: Flush ARM's cache for device execution
+    * No longer needed for PSDK3.1/CMEM4.12
     *------------------------------------------------------------------------*/
     SharedMemory *shm = p_device->GetSHMHandler();
     shm->CacheWbInvAll();
+#endif
 
     /*-------------------------------------------------------------------------
     * Feedback to user for debug
@@ -989,7 +992,10 @@ cl_int DSPKernelEvent::flush_special_use_host_ptr_buffers(void)
 {
     SharedMemory *shm = p_device->GetSHMHandler();
 
-#if 0
+#if 1
+    /*-------------------------------------------------------------------------
+    * PSDK3.1/CMEM4.12: reverts back to pre-PSDK3.0/pre-CMEM4.11 implementation
+    *------------------------------------------------------------------------*/
     int total_buf_size = 0;
     for (int i = 0; i < p_hostptr_clMalloced_bufs.size(); ++i)
     {
