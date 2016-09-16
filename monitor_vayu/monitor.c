@@ -709,6 +709,13 @@ static void initialize_gdbserver()
 #if defined(DEVICE_AM572x) && !defined(_SYS_BIOS)
 void ocl_suspend_call(Int event, Ptr data)
 {
+    // Workaround for OpenCL runtime that experiences intermittent DSP core0
+    // crash.  Freeing all OpenCL runtime pre-allocated edma channels so that
+    // they do not need to be preserved by EdmaMgr across suspend/resume.
+    // EdmaMgr may still try to preserve pre-allocated channels by others,
+    // for example, by BLIS library.
+    free_edma_channel_pool();
+
     free_edma_hw_channels();
 }
 
