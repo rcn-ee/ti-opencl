@@ -24,6 +24,17 @@ Defect Fixes
 * [MCT-571] - dsptop does not work on AM57 with DSP suspend/resume enabled
 * [MCT-536] - clocl creates .dsp_h file even if link to build .out file fails
 
+* [MCT-516] - OpenCL-RTOS: Exit ARM and DSP programs on completion
+* [MCT-536] - clocl creates .dsp_h file even if link to build .out file fails
+* [MCT-566] - C66 intrinsics not available in OpenCL C
+* [MCT-572] - Defect in OpenCL CMEM error message regarding number of CMEM blocks required
+* [MCT-575] - OpenCL-RTOS: clocl shipped with RTOS does not find the correct version of libstdc++.so.6
+* [MCT-593] - MessageQ error results in debugss error messages on subsequent run
+* [MCT-594] - OpenCL matmpy intermittent DSP1 crash due to EdmaMgr issues w/ suspend/resume
+
+
+.. "[MCT-597] - Race condition in our OpenCL cleanup code.
+
 Compiler Versions
 =================
 This release requires the following compiler versions:
@@ -33,7 +44,7 @@ Compiler           Version
 ========           ========
 ARM GCC            5.3.1 (arm-linux-gnueabi)
 ARM GCC            4.9.3 (arm-none-eabi, for OpenCL over TI-RTOS)
-C6000              8.1.x
+C6000              8.1.0
 ========           ========
 
 
