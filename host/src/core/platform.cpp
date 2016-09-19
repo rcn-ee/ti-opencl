@@ -140,15 +140,15 @@ namespace Coal
 
     Platform::~Platform()
     {
-#ifndef _SYS_BIOS
-        flock(p_lock_fd, LOCK_UN);
-        close(p_lock_fd);
-#endif
-
         for (int i = 0; i < p_devices.size(); i++)
 	        delete pobj(p_devices[i]);
 
         p_shmFactory.DestroySharedMemoryProviders();
+
+#ifndef _SYS_BIOS
+        flock(p_lock_fd, LOCK_UN);
+        close(p_lock_fd);
+#endif
     }
 
     cl_uint Platform::getDevices(cl_device_type device_type, 
