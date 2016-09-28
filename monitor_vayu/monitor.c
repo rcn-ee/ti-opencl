@@ -73,6 +73,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <assert.h>
+#include <setjmp.h>
 
 /*-----------------------------------------------------------------------------
 * Application headers
@@ -105,6 +106,7 @@ PRIVATE (bool,              enable_printf)       = false;
 PRIVATE (bool,              edmamgr_initialized) = false;
 PRIVATE (OCL_MessageQueues, ocl_queues);
 PRIVATE (int,               n_cores);
+PRIVATE (jmp_buf,           monitor_jmp_buf);
 
 /******************************************************************************
 * Defines a fixed area of 64 bytes at the start of L2, where the kernels will
@@ -456,10 +458,18 @@ static void process_task_command(ocl_msgq_message_t* msgq_pkt)
     #endif
     {
        TRACE(ULM_OCL_OOT_KERNEL_START, kernel_id, 0);
-       dsp_rpc(&((kernel_msg_t *)&Msg->u.k.kernel)->entry_point,
-               more_args, more_args_size);
-       TRACE(ULM_OCL_OOT_KERNEL_COMPLETE, kernel_id, 0);
 
+
+       if (!setjmp(monitor_jmp_buf))
+       {
+           dsp_rpc(&((kernel_msg_t * ) & Msg->u.k.kernel)->entry_point,
+                   more_args, more_args_size);
+       }
+       else
+           printf("Abnormal termination of Out-of-order Task at 0x%08x\n",
+                  Msg->u.k.kernel.entry_point);
+
+       TRACE(ULM_OCL_OOT_KERNEL_COMPLETE, kernel_id, 0);
        respond_to_host(msgq_pkt, kernel_id);
 
        flush_msg_t*  flushMsgPtr  = &Msg->u.k.flush;
@@ -495,8 +505,16 @@ void ocl_service_omp()
           if (MASTER_CORE)
           {
              TRACE(ULM_OCL_IOT_KERNEL_START, kernel_id, 0);
-             dsp_rpc(&((kernel_msg_t *)&Msg->u.k.kernel)->entry_point,
-                     more_args, more_args_size);
+
+             if (!setjmp(monitor_jmp_buf))
+             {
+                dsp_rpc(&((kernel_msg_t *)&Msg->u.k.kernel)->entry_point,
+                         more_args, more_args_size);
+             }
+             else
+                printf("Abnormal termination of In-order Task at 0x%08x\n",
+                        Msg->u.k.kernel.entry_point);
+
              TRACE(ULM_OCL_IOT_KERNEL_COMPLETE, kernel_id, 0);
              tomp_dispatch_finish();
 
@@ -506,8 +524,12 @@ void ocl_service_omp()
           {
              do
              {
-                 tomp_dispatch_once();
-             } 
+                if (!setjmp(monitor_jmp_buf))
+                    tomp_dispatch_once();
+                else
+                    printf("Abnormal termination of OpenMP In-order Task at 0x%08x\n",
+                            Msg->u.k.kernel.entry_point);
+             }
              while (!tomp_dispatch_is_finished());
 
              /* Not sending a response to host, delete the msg */
@@ -574,11 +596,21 @@ static void process_kernel_command(ocl_msgq_message_t *msgq_pkt)
         cfg->WG_id          = workgroup++;
 
         TRACE(ULM_OCL_NDR_KERNEL_START, msg->u.k.kernel.Kernel_id, cfg->WG_id);
-        service_workgroup(msg);
-        TRACE(ULM_OCL_NDR_KERNEL_COMPLETE, msg->u.k.kernel.Kernel_id,
-                                                                   cfg->WG_id);
 
-        done = incVec(cfg->num_dims, WGid, &cfg->local_size[0], limits);
+        if (!setjmp(monitor_jmp_buf))
+        {
+            service_workgroup(msg);
+            done = incVec(cfg->num_dims, WGid, &cfg->local_size[0], limits);
+        }
+        else
+        {
+            done = true;
+            printf("Abnormal termination of NDRange kernel at 0x%08x\n",
+                   msg->u.k.kernel.entry_point);
+        }
+
+        TRACE(ULM_OCL_NDR_KERNEL_COMPLETE, msg->u.k.kernel.Kernel_id,
+              cfg->WG_id);
 
     } while (!done);
 }
@@ -885,4 +917,16 @@ static void process_configuration_message(ocl_msgq_message_t* msgq_pkt)
     }
 
     Log_print1(Diags_INFO, "\t (%d cores)\n", n_cores);
+}
+
+void __kernel_exit(int status)
+{
+    printf("Exit (%d). ", status);
+    longjmp(monitor_jmp_buf, 1);
+}
+
+void __kernel_abort()
+{
+    printf("Abort. ");
+    longjmp(monitor_jmp_buf, 1);
 }

@@ -34,6 +34,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <setjmp.h>
 
 /*-----------------------------------------------------------------------------
 * Platform and Chip Support
@@ -124,6 +125,8 @@ FAST_SHARED_1D(char, tx_mbox_mem, 64);
 
 PRIVATE(Msg_t*, printMsg)   = NULL;
 PRIVATE_1D(char, print_msg_mem, sizeof(Msg_t));
+
+PRIVATE (jmp_buf,           monitor_jmp_buf);
 
 /******************************************************************************
 * Defines an area of bytes in L2, where the kernels will
@@ -364,7 +367,11 @@ static void process_task_local(Msg_t* Msg)
 
     TRACE(ULM_OCL_IOT_KERNEL_START, kernel_id, 0);
 
-    dsp_rpc(&kmsg->entry_point, stk_args, stk_args_size);
+    if (!setjmp(monitor_jmp_buf))
+        dsp_rpc(&kmsg->entry_point, stk_args, stk_args_size);
+    else
+        printf("Abnormal termination of In-order Task at 0x%08x\n",
+               kmsg->entry_point);
 
     TRACE(ULM_OCL_IOT_KERNEL_COMPLETE, kernel_id, 0);
 
@@ -444,7 +451,11 @@ static void process_kernel_local(Msg_t* msg)
 
         TRACE(ULM_OCL_NDR_KERNEL_START, kernel_id, kcfg->WG_id);
 
-        dsp_rpc(&kmsg->entry_point, stk_args, stk_args_size);
+        if (!setjmp(monitor_jmp_buf))
+            dsp_rpc(&kmsg->entry_point, stk_args, stk_args_size);
+        else
+            printf("Abnormal termination of NDRange kernel at 0x%08x\n",
+                   kmsg->entry_point);
 
         TRACE(ULM_OCL_NDR_KERNEL_COMPLETE, kernel_id, kcfg->WG_id);
 
@@ -641,7 +652,11 @@ void service_task(void *ptr)
 
     clear_mpf();
 
-    dsp_rpc(&kmsg->entry_point, stk_args, stk_args_size);
+    if (!setjmp(monitor_jmp_buf))
+        dsp_rpc(&kmsg->entry_point, stk_args, stk_args_size);
+    else
+        printf("Abnormal termination of Out-of-order Task at 0x%08x\n",
+               kmsg->entry_point);
 
     TRACE(ULM_OCL_OOT_KERNEL_COMPLETE, kId, 0);
 
@@ -677,9 +692,13 @@ void service_workgroup(void *ptr)
 
     clear_mpf();
 
-    dsp_rpc(&kernel_attributes.entry_point, 
-            (void*)kernel_attributes.args_on_stack_addr, 
-            kernel_attributes.args_on_stack_size);
+    if (!setjmp(monitor_jmp_buf))
+        dsp_rpc(&kernel_attributes.entry_point,
+                (void*)kernel_attributes.args_on_stack_addr,
+                kernel_attributes.args_on_stack_size);
+    else
+        printf("Abnormal termination of NDRange kernel at 0x%08x\n",
+              kernel_attributes.entry_point);
 
     TRACE(ULM_OCL_NDR_KERNEL_COMPLETE, kId, wgId);
 
@@ -1168,4 +1187,17 @@ _CODE_ACCESS void __TI_readmsg(register unsigned char *parm,
                                register char          *data)
 {
     return;  // do nothing
+}
+
+
+void __kernel_exit(int status)
+{
+    printf("Exit (%d). ", status);
+    longjmp(monitor_jmp_buf, 1);
+}
+
+void __kernel_abort()
+{
+    printf("Abort. ");
+    longjmp(monitor_jmp_buf, 1);
 }

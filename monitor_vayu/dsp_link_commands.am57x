@@ -143,3 +143,5 @@ SECTIONS
 --symbol_map=__ocl_cache_l1d_std=__cache_l1d_all
 --symbol_map=__ocl_cache_l1d_half=__cache_l1d_16k
 --symbol_map=__ocl_cache_l1d_wbinvall=__cache_l1d_flush
+--symbol_map=exit=__kernel_exit
+--symbol_map=abort=__kernel_abort

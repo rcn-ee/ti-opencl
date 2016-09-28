@@ -45,3 +45,5 @@
 |__realloc_
 |__free_
 |__memalign_
+|__kernel_exit
+|__kernel_abort
