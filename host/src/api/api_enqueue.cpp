@@ -814,6 +814,7 @@ clEnqueueMarker(cl_command_queue    d_command_queue,
 
     if (rs != CL_SUCCESS)
     {
+        if (events != NULL)  { std::free(events); std::free(e_wait_list); }
         delete command;
         return rs;
     }
@@ -824,7 +825,7 @@ clEnqueueMarker(cl_command_queue    d_command_queue,
         events[i]->dereference();
     }
 
-    if (events != NULL)  std::free(events);
+    if (events != NULL)  { std::free(events); std::free(e_wait_list); }
 
     return queueEvent(command_queue, command, event, false);
 }
