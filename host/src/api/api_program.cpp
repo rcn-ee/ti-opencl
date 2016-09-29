@@ -171,12 +171,12 @@ clCreateProgramWithBinary(cl_context            d_context,
     if (*errcode_ret != CL_SUCCESS)
     {
         delete program;
-        //std::free(context_devices); -> Why didnt we do this?
+        std::free(context_devices);
         std::free(devices);
         return 0;
     }
 
-    //std::free(context_devices); -> Why didnt we do this?
+    std::free(context_devices);
     std::free(devices);
     return desc(program);
 }
@@ -286,7 +286,8 @@ clBuildProgram(cl_program           d_program,
     pobj_list(devices, device_list, num_devices);
     result =  program->build(options, pfn_notify, user_data, 
                              num_devices, devices);
-    free(devices);
+    std::free(context_devices);
+    std::free(devices);
 
     return result;
 }
