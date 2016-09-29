@@ -54,7 +54,7 @@ using std::cout;
 using std::cerr;
 using std::endl;
 
-#define DIM 512
+#define DIM 256
 const int mat_N     = DIM;     
 const int mat_K     = DIM;     
 const int mat_M     = DIM;     
@@ -162,7 +162,7 @@ int main(int argc, char *argv[])
          {
             cl_ulong msmc_size = 0;
             devices[d].getInfo(CL_DEVICE_MSMC_MEM_SIZE_TI, &msmc_size);
-            if (msmc_size > 0)  continue;
+            if (msmc_size >= AChunk)  continue;
          }
          use_msmc = 0;
          break;
