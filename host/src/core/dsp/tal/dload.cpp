@@ -238,6 +238,13 @@ BOOL DLIF_write(void* client_handle, struct DLOAD_MEMORY_REQUEST* req)
     if (req->flags & DLOAD_SF_executable)
         dl->SetProgramLoadAddress((DSPDevicePtr)obj_desc->target_address);
 
+   // free space allocated in DLIF_copy(), no more uses after DLIF_write
+   if (req->host_address)
+   {
+       free(req->host_address);
+       req->host_address = nullptr;
+   }
+
 #if DEBUG
     printf("DLIF_write (dsp:%d): %d bytes starting at 0x%x\n",
                dsp_id, obj_desc->memsz_in_bytes,
