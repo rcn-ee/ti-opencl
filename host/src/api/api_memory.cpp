@@ -521,5 +521,26 @@ __is_in_malloced_region(void *p)
     return dspdevice->isInClMallocedRegion(p);
 }
 
+uint64_t __device_malloc(int32_t dsp, size_t size)
+{
+    Coal::DSPDevice  *device = getDspDevice();
+    if (device == NULL)
+        return 0;
+
+    uint64_t t = device->GetSHMHandler()->AllocateGlobal(size, true);
+
+    return t;
+}
+
+void __device_free(int32_t dsp, uint64_t addr)
+{
+    Coal::DSPDevice  *device = getDspDevice();
+    if (device == NULL)
+        return;
+
+    device->GetSHMHandler()->FreeGlobal(addr);
+}
+
+
 }  // End: extern "C"
 

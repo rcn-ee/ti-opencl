@@ -23,6 +23,9 @@ SECTIONS
 {
     .llvmir:  type = COPY
 
+    .gnu.offload_funcs > DDR
+    .gnu.offload_vars  > DDR
+
     .mem_ddr  > DDR
     .mem_msm  > MSMC
 
