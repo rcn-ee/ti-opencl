@@ -12,7 +12,7 @@ UNAME_M:=$(shell uname -m)
 OCL_MAJOR_VER=1
 OCL_MINOR_VER=1
 OCL_RELEASE_VER=10
-OCL_PATCH_VER=03
+OCL_PATCH_VER=04
 OCL_VER=$(OCL_MAJOR_VER).$(OCL_MINOR_VER).$(OCL_RELEASE_VER)
 OCL_DPKG_NAME=ti-opencl
 OCL_VERSIONED_NAME=$(OCL_DPKG_NAME)_$(OCL_VER)
@@ -51,13 +51,13 @@ endif
 
 # OMP 
 
-OMP_DIR_K2X?=$(SDOMC_SHARED)/openmp_dsp_k2x_02_03_02_00-20160831
-OMP_DIR_K2G?=$(SDOMC_SHARED)/openmp_dsp_k2g_02_03_02_00-20160831
-OMP_DIR_AM57?=$(SDOMC_SHARED)/openmp_dsp_am57xx_02_03_02_00-20160831
+OMP_DIR_K2X?=$(SDOMC_SHARED)/openmp_dsp_k2x_02_04_00_02-20161005
+OMP_DIR_K2G?=$(SDOMC_SHARED)/openmp_dsp_k2g_02_04_00_02-20161005
+OMP_DIR_AM57?=$(SDOMC_SHARED)/openmp_dsp_am57xx_02_04_00_02-20161005
 
 # SOC PSDK
 
-PSDK_VERSION ?= 03.00.00.04-release
+PSDK_VERSION ?= 03.01.00.06-release
 
 ifeq ($(BUILD_K2H),1)
     DEFAULT_PSDK_RTOS?=$(SDOMC_SHARED)/ti-processor-sdk-rtos-k2hk-evm-$(PSDK_VERSION)
@@ -83,7 +83,7 @@ else
 endif
 
 ifeq (,$(findstring arm, $(UNAME_M)))
-    PSDK_LINUX_DEVKIT_ROOT?=$(DEFAULT_PSDK_LINUX)/linux-devkit/sysroots/cortexa15hf-neon-linux-gnueabi
+    PSDK_LINUX_DEVKIT_ROOT?=$(DEFAULT_PSDK_LINUX)/linux-devkit/sysroots/armv7ahf-neon-linux-gnueabi
 else
     PSDK_LINUX_DEVKIT_ROOT?=/
 endif
