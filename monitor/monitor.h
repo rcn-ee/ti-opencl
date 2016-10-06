@@ -29,6 +29,7 @@
 #ifndef  _monitor_h_
 #define  _monitor_h_
 
+#include <stdint.h>
 #include <ti/csl/csl_cacheAux.h>
 #include "ocl_device_defs.h"
 #include "message.h"
@@ -57,12 +58,13 @@ extern cregister volatile unsigned int DNUM;
 /******************************************************************************
 * Define the signature of an Event manager event handler
 ******************************************************************************/
-#define EVENT_HANDLER(name) void name(void *eventHdl)
+#define EVENT_HANDLER(name)
 
 /******************************************************************************
 * Event Machine Event Handlers
 ******************************************************************************/
-EVENT_HANDLER(queue_handler);
+EVENT_HANDLER(service_kernel_complete);
+EVENT_HANDLER(service_workgroup);
 EVENT_HANDLER(service_exit);
 
 /******************************************************************************
@@ -106,12 +108,9 @@ EVENT_HANDLER(service_exit);
                    __attribute((section(".ddr")))
 
 /******************************************************************************
-* ERROR Handling: 
-*  0) system printf the problem
-*  1) send error mailbox back to host, 
-*  2) exit all cores
+* Device functions
 ******************************************************************************/
-#define ERROR(msg) do { printMsg = (Msg_t*)print_msg_mem; printf("%s\n", msg);\
-                        printMsg = NULL; process_exit_command(); } while(0)
+void initialize_memory(void);
+unsigned dsp_speed();
 
 #endif  //_monitor_h_

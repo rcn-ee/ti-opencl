@@ -106,7 +106,7 @@ ifeq ($(BUILD_TARGET),DSPC868x)
 else ifeq ($(BUILD_TARGET),ARM_K2H)
     PLATFORM = evmk2h
     XDCPATH  = $(XDCPATH_K2X)
-    INCLUDES += -DDEVICE_K2K -DTI_66AK2X -DK2_PG1_MSMC_STALL_WA \
+    INCLUDES += -DDEVICE_K2H -DDEVICE_K2X -DTI_66AK2X -DK2_PG1_MSMC_STALL_WA \
                 -i $(MPM_DIR)/include -i$(ULM_DIR) -DULM_ENABLED \
                 -i $(GDB_SERVER_DIR)/include -DGDB_ENABLED
     LIBS = $(LIBS_K2X)
@@ -139,9 +139,18 @@ endif
 BUILD = monitor_$(PLATFORM)
 COMP_OPTS = $(BUILD)/compiler.opt
 LINK_CMD = $(BUILD)/linker.cmd
-OUT=$(BUILD)/dsp.out
 
-build: $(OUT)
+.PHONY: binaries syms
+
+
+build: binaries syms
+
+dsps := 0 1 2 3 4 5 6 7
+binaries:  $(foreach dsp,$(dsps),$(BUILD)/dsp$(dsp).out)
+syms:  $(foreach dsp,$(dsps),$(BUILD)/dsp$(dsp).syms)
+
+
+
 
 #----------------------------------------------------------------------------
 # include libm functions in monitor
@@ -165,31 +174,70 @@ $(BUILTINS):
 # build monitor
 #----------------------------------------------------------------------------
 
-SOURCES = monitor.c dsp_rpc.asm util.c touch.asm sem.c 
-SOURCES+= osal.c qmss_device.c  
+SOURCES = monitor.c dsp_rpc.asm util.c touch.asm
+#SOURCES+= osal.c qmss_device.c sem.c 
 SOURCES+= omp_config_api.c
 SOURCES+= builtins.c
-SOURCES+= ocl_qmss.c
+#SOURCES+= ocl_qmss.c
+SOURCES+= device_k2x.c
 SOURCES+= edma.c edma_config.c
+#SOURCES+= hooks.c
 #SOURCES+= em_pdk_hal.c ocl_em_init.c ti_em_init.c cppi_device.c 
 
-HEADERS = edma.h monitor.h util.h ocl_device_defs.h trace.h ocl_qmss.h
+#HEADERS = edma.h monitor.h util.h ocl_device_defs.h trace.h ocl_qmss.h
+HEADERS = edma.h monitor.h util.h ocl_device_defs.h trace.h
 
 OBJS1=$(patsubst %.c,$(BUILD)/%.obj,$(SOURCES))
 OBJS=$(patsubst %.asm,$(BUILD)/%.obj,$(OBJS1))
 
 ## !Need -O* to inline CACHE_* functions!
-CC= $(TI_OCL_CGT_INSTALL)/bin/cl6x -o3 -mv6600 --abi=eabi --gcc --mem_model:const=data --mem_model:data=far -fr=$(BUILD)
-#CC= $(TI_OCL_CGT_INSTALL)/bin/cl6x -o0 -g -mv6600 --abi=eabi --gcc --mem_model:const=data --mem_model:data=far -fr=$(BUILD)
+CC= $(TI_OCL_CGT_INSTALL)/bin/cl6x -o3 -mv6600 --abi=eabi --gcc --mem_model:const=data --mem_model:data=far -fr=$(BUILD) 
+	
+#--entry_hook=hooks_entry --entry_parm=address --exit_hook=hooks_exit --exit_parm=address
+#CC= $(TI_OCL_CGT_INSTALL)/bin/cl6x -o0 -g -mv6600 --abi=eabi --gcc --mem_model:const=data --mem_model:data=far -fr=$(BUILD) --entry_hook=hooks_entry --entry_parm=address --exit_hook=hooks_exit --exit_parm=address
 
-$(OUT): $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD) $(LIBS)
-	@echo Linking $(PLATFORM)
-	@$(CC) -z --priority -w -x -m$(BUILD)/dsp.map $^ -I$(TI_OCL_CGT_INSTALL)/lib -llibc.a -o $(OUT)
-	@echo Creating dsp.syms
-	@$(TI_OCL_CGT_INSTALL)/bin/nm6x -l $(OUT) | grep PROT | awk -F\| '{ print "\t.weak "$$8"\n"$$8"\t.set "$$2 };' >  $(BUILD)/dsp_syms.asm
-	@$(TI_OCL_CGT_INSTALL)/bin/nm6x -l $(OUT) | grep FUNC | grep -fexport_syms | awk -F\| '{ print "\t.weak "$$8"\n"$$8"\t.set "$$2 };' >> $(BUILD)/dsp_syms.asm
-	@$(CC) $(BUILD)/dsp_syms.asm
-	@cp dsp_link_commands.$(PLATFORM) $(BUILD)/dsp.syms
+
+$(BUILD)/%.syms: $(BUILD)/%.out
+	$(call create_dsp_syms, $<, $@)
+
+$(BUILD)/dsp0.out: $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD) $(LIBS)
+	@$(CC) -z --define=DDR3_PER_CORE=DDR3_CORE0 --priority -w -x -m$@.map $^ -I$(TI_OCL_CGT_INSTALL)/lib -llibc.a -o $@
+
+$(BUILD)/dsp1.out: $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD) $(LIBS)
+	@$(CC) -z --define=DDR3_PER_CORE=DDR3_CORE1 --priority -w -x -m$@.map $^ -I$(TI_OCL_CGT_INSTALL)/lib -llibc.a -o $@
+
+$(BUILD)/dsp2.out: $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD) $(LIBS)
+	@$(CC) -z --define=DDR3_PER_CORE=DDR3_CORE2 --priority -w -x -m$@.map $^ -I$(TI_OCL_CGT_INSTALL)/lib -llibc.a -o $@
+
+$(BUILD)/dsp3.out: $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD) $(LIBS)
+	@$(CC) -z --define=DDR3_PER_CORE=DDR3_CORE3 --priority -w -x -m$@.map $^ -I$(TI_OCL_CGT_INSTALL)/lib -llibc.a -o $@
+
+$(BUILD)/dsp4.out: $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD) $(LIBS)
+	@$(CC) -z --define=DDR3_PER_CORE=DDR3_CORE4 --priority -w -x -m$@.map $^ -I$(TI_OCL_CGT_INSTALL)/lib -llibc.a -o $@
+
+$(BUILD)/dsp5.out: $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD) $(LIBS)
+	@$(CC) -z --define=DDR3_PER_CORE=DDR3_CORE5 --priority -w -x -m$@.map $^ -I$(TI_OCL_CGT_INSTALL)/lib -llibc.a -o $@
+
+$(BUILD)/dsp6.out: $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD) $(LIBS)
+	@$(CC) -z --define=DDR3_PER_CORE=DDR3_CORE6 --priority -w -x -m$@.map $^ -I$(TI_OCL_CGT_INSTALL)/lib -llibc.a -o $@
+
+$(BUILD)/dsp7.out: $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD) $(LIBS)
+	@$(CC) -z --define=DDR3_PER_CORE=DDR3_CORE7 --priority -w -x -m$@.map $^ -I$(TI_OCL_CGT_INSTALL)/lib -llibc.a -o $@
+
+
+#---------------------------------------------------------------------------
+# Function to create the dsp symbols database
+#----------------------------------------------------------------------------
+define create_dsp_syms
+	@echo Creating $(2)
+	@$(TI_OCL_CGT_INSTALL)/bin/nm6x -l $(1) | grep PROT | awk -F\| '{ print "\t.weak "$$8"\n"$$8"\t.set "$$2 };' >  $(2).asm
+	@$(TI_OCL_CGT_INSTALL)/bin/nm6x -l $(1) | grep FUNC | grep -fexport_syms | awk -F\| '{ print "\t.weak "$$8"\n"$$8"\t.set "$$2 };' >> $(2).asm
+	@$(CC) $(2).asm
+	@cp dsp_link_commands.$(PLATFORM) $(2)
+	#@rm -f $(1).syms.tmp* $(2).asm
+endef
+
+
 
 $(BUILD)/%.obj : %.c $(COMP_OPTS) $(HEADERS)
 	@echo Compiling $<

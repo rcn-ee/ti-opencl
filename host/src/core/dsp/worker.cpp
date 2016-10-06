@@ -58,9 +58,9 @@ using namespace Coal;
 
 #define ERR(status, msg) if (status) { printf("OCL ERROR: %s\n", msg); exit(-1); }
 
-#if defined(DEVICE_AM57) || defined(DEVICE_K2G)
+#if defined(DEVICE_AM57) || defined(DEVICE_K2G) || defined (DEVICE_K2X)
 #define MAX_NUM_COMPLETION_PENDING  16
-#elif defined(DEVICE_K2X) || defined(DSPC868X)
+#elif defined(DSPC868X)
 #define MAX_NUM_COMPLETION_PENDING  32
 #else
 #error  MAX_NUM_COMPLETION_PENDING not determined for the platform.
@@ -96,7 +96,7 @@ bool handle_event_completion(DSPDevice *device)
     *--------------------------------------------------------------------*/
     if (! device->mail_query())
     {
-#if defined(DEVICE_K2X) || defined(DSPC868X)
+#if defined(DSPC868X)
         usleep(1);
 #endif
         return false;

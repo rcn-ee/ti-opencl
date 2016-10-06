@@ -22,18 +22,18 @@ config ti.platforms.generic.Platform.Instance CPU =
       *----------------------------------------------------------------------*/
       [ "L2SRAM",    { name: "L2SRAM", 
                        base: 0x00800000, 
-                       len:     0x20000,    
+                       len:     0x10000,
                        space: "code/data", 
 		       access: "RWX", } ],
 
       [ "OCL_LOCAL", { name: "OCL_LOCAL",
-                       base: 0x00820000,
-                       len:     0xc0000,  
+                       base: 0x00810000,
+                       len:     0xd0000,
                        space: "code/data",
                        access: "RWX", } ],
 
       /*-----------------------------------------------------------------------
-      * MSMC related regions
+      * MSMC related rgions
       *----------------------------------------------------------------------*/
       [ "MSMC_NC_PHYS", { name: "MSMC_NC_PHYS", 
                           base: 0x0C580000,
@@ -48,15 +48,79 @@ config ti.platforms.generic.Platform.Instance CPU =
 			  access: "RWX", } ],
 
       /*-----------------------------------------------------------------------
-      * DDR Releated regions
+      * DDR Related regions
       *----------------------------------------------------------------------*/
-      [ "DDR3",         { name: "DDR3", 
+      [ "DDR3_HEAP",   { name: "DDR3_HEAP",
                           base: 0xA0000000, 
-			  len:  0x01000000,
+			  len:  0x00900000,
+                          space: "code/data", 
+			  access: "RWX", } ],
+
+      [ "DDR3",         { name: "DDR3", 
+                          base: 0xA0900000, 
+			  len:  0x00300000,
+                          space: "code/data", 
+			  access: "RWX", } ],
+
+      [ "DDR3_CORE0", { name: "DDR3_CORE0", 
+                          base: 0xA0c00000, 
+			  len:  0x00040000,
+                          space: "code/data", 
+			  access: "RWX", } ],
+
+      [ "DDR3_CORE1", { name: "DDR3_CORE1", 
+                          base: 0xA0c40000, 
+			  len:  0x00040000,
+                          space: "code/data", 
+			  access: "RWX", } ],
+
+      [ "DDR3_CORE2", { name: "DDR3_CORE2", 
+                          base: 0xA0c80000, 
+			  len:  0x00040000,
+                          space: "code/data", 
+			  access: "RWX", } ],
+
+      [ "DDR3_CORE3", { name: "DDR3_CORE3", 
+                          base: 0xA0cc0000, 
+			  len:  0x00040000,
+                          space: "code/data", 
+			  access: "RWX", } ],
+
+      [ "DDR3_CORE4", { name: "DDR3_CORE4", 
+                          base: 0xA0d00000, 
+			  len:  0x00040000,
+                          space: "code/data", 
+			  access: "RWX", } ],
+
+      [ "DDR3_CORE5", { name: "DDR3_CORE5", 
+                          base: 0xA0d40000, 
+			  len:  0x00040000,
+                          space: "code/data", 
+			  access: "RWX", } ],
+
+      [ "DDR3_CORE6", { name: "DDR3_CORE6", 
+                          base: 0xA0d80000, 
+			  len:  0x00040000,
+                          space: "code/data", 
+			  access: "RWX", } ],
+
+      [ "DDR3_CORE7", { name: "DDR3_CORE7", 
+                          base: 0xA0dc0000, 
+			  len:  0x00040000,
                           space: "code/data", 
 			  access: "RWX", } ],
 
       /* 0xA1000000 - 0xA1100000 also used for MSMC_NC no caching setting    */
+
+
+      [ "DDR3_VIRT", { name: "DDR3_VIRT", 
+                          base: 0xA2000000, 
+                         len:  0x00040000,
+                          space: "code/data", 
+                         access: "RWX", } ],
+
+
+
     ],
 
     l2Mode:"128k", 

@@ -389,22 +389,6 @@ uint32_t count_trailing_zeros(uint32_t x)
     return cnt;
 }
 
-unsigned dsp_speed()
-{
-    const unsigned DSP_PLL  = 122880000;
-    char *BOOTCFG_BASE_ADDR = (char*)0x02620000;
-    char *CLOCK_BASE_ADDR   = (char*)0x02310000;
-    int MAINPLLCTL0         = (*(int*)(BOOTCFG_BASE_ADDR + 0x350));
-    int MULT                = (*(int*)(CLOCK_BASE_ADDR + 0x110));
-    int OUTDIV              = (*(int*)(CLOCK_BASE_ADDR + 0x108));
-
-    unsigned mult       = 1 + ((MULT & 0x3F) | ((MAINPLLCTL0 & 0x7F000) >> 6));
-    unsigned prediv     = 1 + (MAINPLLCTL0 & 0x3F);
-    unsigned output_div = 1 + ((OUTDIV >> 19) & 0xF);
-    float speed = (float)DSP_PLL * mult / prediv / output_div;
-    return speed / 1e6;
-}
-
 /******************************************************************************
 * clear_mpf()
 *   Clear Memory Protection Failure registers

@@ -49,6 +49,15 @@ static char const *const Ocl_DspMsgQueueName[] = {
     "OCL:DSP2:MsgQ",
 #elif defined(DEVICE_K2G)
     "OCL:CORE0:MsgQ",
+#elif defined(DEVICE_K2X)
+    "OCL:CORE0:MsgQ",
+    "OCL:CORE1:MsgQ",
+    "OCL:CORE2:MsgQ",
+    "OCL:CORE3:MsgQ",
+    "OCL:CORE4:MsgQ",
+    "OCL:CORE5:MsgQ",
+    "OCL:CORE6:MsgQ",
+    "OCL:CORE7:MsgQ",
 #else
     #error Unknown device
 #endif

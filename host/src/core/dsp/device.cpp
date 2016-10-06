@@ -169,7 +169,7 @@ DSPDevice::DSPDevice(unsigned char dsp_id, SharedMemory* shm)
 
 bool DSPDevice::hostSchedule() const
 {
-#if defined(DEVICE_K2G) || defined(DEVICE_AM57)
+#if defined(DEVICE_K2G) || defined(DEVICE_AM57) || defined (DEVICE_K2X)
     return true;
 #else
     return false;
