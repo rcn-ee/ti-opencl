@@ -25,15 +25,11 @@ Defect Fixes
 * [MCT-536] - clocl creates .dsp_h file even if link to build .out file fails
 
 * [MCT-516] - OpenCL-RTOS: Exit ARM and DSP programs on completion
-* [MCT-536] - clocl creates .dsp_h file even if link to build .out file fails
-* [MCT-566] - C66 intrinsics not available in OpenCL C
 * [MCT-572] - Defect in OpenCL CMEM error message regarding number of CMEM blocks required
 * [MCT-575] - OpenCL-RTOS: clocl shipped with RTOS does not find the correct version of libstdc++.so.6
 * [MCT-593] - MessageQ error results in debugss error messages on subsequent run
 * [MCT-594] - OpenCL matmpy intermittent DSP1 crash due to EdmaMgr issues w/ suspend/resume
-
-
-.. "[MCT-597] - Race condition in our OpenCL cleanup code.
+* [MCT-597] - Race condition in OpenCL cleanup code.
 
 Compiler Versions
 =================
