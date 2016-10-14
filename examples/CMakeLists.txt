@@ -21,7 +21,7 @@ else()
 endif()
 
 if (${BUILD_OS} MATCHES "SYS_BIOS")
-install(FILES rtos_main.c make_rtos.inc Makefile DESTINATION ${OCL_EXAMPLES_PATH} ${OCL_FPERMS})
+install(FILES rtos_main.c make_rtos.inc Makefile load_am57_rtos.js DESTINATION ${OCL_EXAMPLES_PATH} ${OCL_FPERMS})
 else()
 install(FILES make.inc Makefile DESTINATION ${OCL_EXAMPLES_PATH} ${OCL_FPERMS})
 install(FILES make.inc Makefile DESTINATION ${OCL_OMP_EXAMPLES_PATH} ${OCL_FPERMS})

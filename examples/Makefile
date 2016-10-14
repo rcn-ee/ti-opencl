@@ -9,26 +9,31 @@ DIRS = $(patsubst %/Makefile.rtos,%,$(MFS))
 MAKEFILE = -f Makefile.rtos
 endif
 
-all:
-	for dir in $(DIRS); do \
+ifeq ($(OS), Windows_NT)
+define make_in_dirs
+	for %%D in ($(1)) do \
+	  echo ===============  %%D  ================= & \
+	  $(MAKE) $(MAKEFILE) -C %%D $(2)
+endef
+else  # Linux
+define make_in_dirs
+	for dir in $(1); do \
 	  echo "=============== " $$dir " =================" ; \
-	  $(MAKE) $(MAKEFILE) -C $$dir; \
+	  $(MAKE) $(MAKEFILE) -C $$dir $(2); \
 	done
+endef
+endif
+
+
+all:
+	$(call make_in_dirs, $(DIRS), )
 
 test:
-	for dir in $(DIRS); do \
-	  echo "=============== " $$dir " =================" ; \
-          $(MAKE) $(MAKEFILE) -C $$dir test; \
-        done
+	$(call make_in_dirs, $(DIRS), test)
 
 cross:
-	for dir in $(DIRS); do \
-	  echo "=============== " $$dir " =================" ; \
-          $(MAKE) -C $$dir cross; \
-        done
+	$(call make_in_dirs, $(DIRS), cross)
 
 clean:
-	for dir in $(DIRS); do \
-	  $(MAKE) $(MAKEFILE) -C $$dir clean; \
-	done
+	$(call make_in_dirs, $(DIRS), clean)
 
