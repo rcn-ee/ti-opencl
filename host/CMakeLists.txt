@@ -197,10 +197,6 @@ if (${BUILD_OUTPUT} STREQUAL "all" OR ${BUILD_OUTPUT} STREQUAL "lib")
   endif()
 endif()
 
-if (BUILD_OUTPUT STREQUAL "all" OR BUILD_OUTPUT STREQUAL "examples")
-  add_subdirectory(${OCL_EXAMPLES_DIR} ${CMAKE_CURRENT_BINARY_DIR}/examples)
-endif()
-
 if (BUILD_OUTPUT STREQUAL "all" OR BUILD_OUTPUT STREQUAL "clocl")
   add_subdirectory(clocl)
 
@@ -213,6 +209,10 @@ if (BUILD_OUTPUT STREQUAL "all" OR BUILD_OUTPUT STREQUAL "clocl")
   if (CROSS_COMPILE OR C6678_BUILD)
     add_custom_target(x86_clocl_build ALL DEPENDS x86_clocl)
   endif()
+endif()
+
+if (BUILD_OUTPUT STREQUAL "all" OR BUILD_OUTPUT STREQUAL "examples")
+  add_subdirectory(${OCL_EXAMPLES_DIR} ${CMAKE_CURRENT_BINARY_DIR}/examples)
 endif()
 
 IF (BUILD_TESTS)

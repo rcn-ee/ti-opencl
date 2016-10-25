@@ -5,7 +5,7 @@
 install(CODE "execute_process(COMMAND make clean WORKING_DIRECTORY ${OCL_EXAMPLES_DIR})")
 
 if (${BUILD_OS} MATCHES "SYS_BIOS")
-    set (EXAMPLES_PATH    ${DESTDIR}/../../../examples)
+    set (EXAMPLES_PATH    /../../../examples)
     set (OCL_EXAMPLES_PATH     ${EXAMPLES_PATH})
 
     install(DIRECTORY DESTINATION ${OCL_EXAMPLES_PATH}     ${OCL_DPERMS})
@@ -59,8 +59,13 @@ FOREACH(subdir ${OCL_EXAMPLES_INSTALL_LIST})
 ENDFOREACH()
 
 # Loop through the directory list and install
-if (NOT ${BUILD_OS} MATCHES "SYS_BIOS")
+if (NOT (${BUILD_OS} MATCHES "SYS_BIOS"))
 FOREACH(subdir ${OCL_OMP_EXAMPLES_INSTALL_LIST})
    install(DIRECTORY ${subdir} DESTINATION ${OCL_OMP_EXAMPLES_PATH} ${OCL_DPERMS})
 ENDFOREACH()
+endif()
+
+# Build installed OpenCL examples (now only for TI-RTOS)
+if ((${BUILD_OS} MATCHES "SYS_BIOS") AND (${BUILD_EXAMPLES} MATCHES "1"))
+  install(CODE "execute_process(COMMAND make BUILD_OS=SYS_BIOS DEFAULT_PSDK_RTOS=${PSDK_RTOS} TI_OCL_INSTALL=$ENV{DESTDIR} WORKING_DIRECTORY $ENV{DESTDIR}/../../../examples)")
 endif()

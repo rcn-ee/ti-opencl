@@ -11,3 +11,6 @@ Building OpenCL
    * make BUILD_K2L=1
    * make BUILD_K2E=1
    * make BUILD_DSPC=1
+3. Additional build command options:
+   * BUILD_OS=SYS_BIOS: only valid with BUILD_AM57=1
+   * BUILD_EXAMPLES=1:  only valid with BUILD_OS=SYS_BIOS
