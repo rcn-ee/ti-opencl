@@ -30,7 +30,7 @@
 ##
 
 ifeq ($(BUILD_TARGET), ARM_AM57)
-    ifeq ($(BUILD_OS), SYSBIOS)
+    ifeq ($(BUILD_OS), SYS_BIOS)
     	include Makefile.am57x_rtos
     else
     	include Makefile.am57x
