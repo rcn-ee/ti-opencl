@@ -101,8 +101,13 @@ endif
 
 
 PROCLIST    = host
-CONFIG      = bin/$(PROFILE)/cfg
 
+# Avoid repeated xdc configuring for examples using the default Host.cfg
+ifeq ($(HOSTCONFIG), $(OCL_INSTALL_DIR)/packages/ti/opencl/Host.cfg)
+    CONFIG  = ../common/$(PROFILE)/cfg
+else
+    CONFIG  = bin/$(PROFILE)/cfg
+endif
 
 objs = $(addprefix bin/$(PROFILE)/,$(patsubst %.cpp,%.oa15fg,$(srcs)))
 libs = -Wl,-T,$(CONFIG)/linker.cmd -lrdimon -lgcc -lc -lm -lnosys -lstdc++ \
@@ -116,7 +121,7 @@ bin/$(PROFILE)/$(EXE).xa15fg: $(objs) $(CONFIG)/linker.cmd
 	@$(ECHO) "# Making $@ ..."
 	$(LD) $(LDFLAGS) -Wl,-Map,"$(EXE).map" -o $@ $(objs) $(libs) $(LDLIBS)
 	$(RM) *.map
-	$(RMDIR) $(CONFIG)
+#	$(RMDIR) $(CONFIG)
 
 bin/$(PROFILE)/%.oa15fg: %.cpp $(CONFIG)/compiler.opt
 	@$(ECHO) "#"
@@ -159,6 +164,9 @@ help:
 clean::
 	$(RMDIR) bin *.out *.dsp_h *.obj autoRunLog.xml
 	$(RM) *.map
+
+realclean: clean
+	$(RMDIR) $(CONFIG)
 
 test: clean
 	@$(ECHO) "#"
