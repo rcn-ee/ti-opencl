@@ -472,7 +472,10 @@ static void process_task_command(ocl_msgq_message_t* msgq_pkt)
        // If OpenMP has been disabled, only the master core runs
        // in order tasks
        if (is_inorder && !MASTER_CORE)
+       {
+           respond_to_host(msgq_pkt, kernel_id);
            return;
+       }
        #endif
 
        TRACE(ULM_OCL_OOT_KERNEL_START, kernel_id, 0);
