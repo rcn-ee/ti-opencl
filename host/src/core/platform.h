@@ -75,8 +75,12 @@ struct _cl_platform_id : public Coal::Platform
 {};
 
 #ifndef _SYS_BIOS
+// Fix for MCT-499: Delete the singleton explicitly via a gcc "destructor" function
+// Loki DefaultLifetime registers destructor using atexit. This could result in
+// platform being deleted before file scope OpenCL objects. gcc destructor functions
+// are invoked after atexit processing.
 typedef Loki::SingletonHolder<Coal::Platform, Loki::CreateUsingNew, 
-                               Loki::DefaultLifetime, Loki::ClassLevelLockable> the_platform;
+                               Loki::NoDestroy, Loki::ClassLevelLockable> the_platform;
 #else
 typedef Loki::SingletonHolder<Coal::Platform, Loki::CreateUsingNew,
                                Loki::DefaultLifetime, Loki::SingleThreaded> the_platform;

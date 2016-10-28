@@ -36,19 +36,28 @@
 
 using namespace Coal;
 
-/*-----------------------------------------------------------------------------
-* This static was previously inside the getKnownObjects function in order to 
-* delay its construction until first use.  Since we now delay the construction
-* of the platform until first use, we need to make sure that known_objects 
-* lifetime is a superset of the the_platform and all opencl objects lifetimes.
-* Therefore we moved the definition of known_objects to global scope which 
-* will ensure that it exists before the_platform and should also ensure that
-* it is destroyed after the_platform, since objects are destructed in reverse
-* order of construction.  Both singletons created with new and statics are 
-* both placed in the same dtor queue.
-*----------------------------------------------------------------------------*/
-static concurrent_set<Object *> known_objects;
+#ifdef _SYS_BIOS
+#include <Singleton.h>
+#else
+#define  LOKI_PTHREAD_H
+#include <loki/Singleton.h>
+#endif
 
+
+// Wrap known_objects in a Loki singleton to ensure its lifetime is
+// longer than any OpenCL objects tracked by known_objects.
+#ifndef _SYS_BIOS
+typedef Loki::SingletonHolder<concurrent_set<Object *>, Loki::CreateUsingNew,
+                               Loki::NoDestroy, Loki::ClassLevelLockable> the_known_objects;
+#else
+typedef Loki::SingletonHolder<concurrent_set<Object *>, Loki::CreateUsingNew,
+                               Loki::DefaultLifetime, Loki::SingleThreaded> the_known_objects;
+#endif
+
+__attribute__((destructor)) static void __delete_the_known_objects()
+{
+    delete  &the_known_objects::Instance();
+}
 
 Object::Object(Type type, Object *parent)
 : p_references(1), p_parent(parent), p_type(type), p_release_parent(true)
@@ -57,7 +66,7 @@ Object::Object(Type type, Object *parent)
         parent->reference();
 
     // Add object in the list of known objects
-    known_objects.insert(this);
+    the_known_objects::Instance().insert(this);
 }
 
 Object::~Object()
@@ -66,7 +75,7 @@ Object::~Object()
         delete p_parent;
 
     // Remove object from the list of known objects
-    known_objects.erase(this);
+    the_known_objects::Instance().erase(this);
     p_type = T_Invalid;
 }
 
@@ -106,5 +115,5 @@ bool Object::isA(Object::Type type) const
     // Check for null values
     if (this == 0) return false;
 
-    return known_objects.memberp((Object *) this) && type == p_type;
+    return the_known_objects::Instance().memberp((Object *) this) && type == p_type;
 }

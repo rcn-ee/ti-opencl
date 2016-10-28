@@ -57,9 +57,10 @@ genfile_cache * genfile_cache::pInstance = 0;
 #endif
 
 #include "tal/dload_impl.h"
+#include "../error_report.h"
 
 
-using tiocl::DLOAD;
+using namespace tiocl;
 
 using namespace Coal;
 
@@ -68,6 +69,8 @@ DSPProgram::DSPProgram(DSPDevice *device, Program *program)
   p_loaded(false), p_keep_files(false), p_cache_kernels(false), p_debug(false),
   p_info(false), p_ocl_local_overlay_start(0), p_dl(nullptr)
 {
+    ReportTrace("DSPProgram()\n");
+
     char *keep = getenv("TI_OCL_KEEP_FILES");
     if (keep) p_keep_files = true;
 
@@ -85,6 +88,7 @@ DSPProgram::DSPProgram(DSPDevice *device, Program *program)
 
 DSPProgram::~DSPProgram()
 {
+    ReportTrace("~DSPProgram()\n");
     unload();
     delete p_dl;
     p_dl = nullptr;
