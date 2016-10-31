@@ -30,6 +30,7 @@
 #include "device.h"
 #include "program.h"
 #include "../../shared_memory_interface.h"
+#include "../../error_report.h"
 
 extern "C" {
 #include "dload_api.h"
@@ -190,6 +191,8 @@ BOOL DLIF_allocate(void* client_handle, struct DLOAD_MEMORY_REQUEST *targ_req)
 /*****************************************************************************/
 BOOL DLIF_release(void* client_handle, struct DLOAD_MEMORY_SEGMENT* ptr)
 {
+   ReportTrace("DLIF_release()\n");
+
    DSPDevice* device = ((DSPProgram*) client_handle)->GetDevice();
    SharedMemory* shm = device->GetSHMHandler();
 
@@ -203,7 +206,6 @@ BOOL DLIF_release(void* client_handle, struct DLOAD_MEMORY_SEGMENT* ptr)
    printf("DLIF_free: %d bytes starting at 0x%x\n",
                       ptr->memsz_in_bytes, (uint32_t)ptr->target_address);
 #endif
-
    return 1;
 }
 
