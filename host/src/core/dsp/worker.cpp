@@ -42,16 +42,18 @@
 #include <sys/resource.h>
 #ifndef _SYS_BIOS
 #include <sys/syscall.h>
-#endif
 #include <sched.h>
+#else
+  #include <ti/sysbios/BIOS.h>
+  #if ti_sysbios_BIOS_version < (0x64601)
+  #include <sched.h>
+  #endif
+#endif
 #include <errno.h>
 
 #include "u_locks_pthread.h"
 
 #ifdef _SYS_BIOS
-#include <xdc/std.h>
-#include <ti/sysbios/BIOS.h>
-#include <ti/sysbios/knl/Task.h>
 #define  usleep   Task_sleep
 #endif
 
