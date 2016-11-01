@@ -48,14 +48,11 @@
   #if ti_sysbios_BIOS_version < (0x64601)
   #include <sched.h>
   #endif
+  #define  usleep   Task_sleep
 #endif
 #include <errno.h>
 
 #include "u_locks_pthread.h"
-
-#ifdef _SYS_BIOS
-#define  usleep   Task_sleep
-#endif
 
 using namespace Coal;
 
