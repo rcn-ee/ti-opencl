@@ -62,6 +62,7 @@ PSDK_VERSION ?= 03.01.00.06-release
 ifeq ($(BUILD_K2H),1)
     DEFAULT_PSDK_RTOS?=$(SDOMC_SHARED)/ti-processor-sdk-rtos-k2hk-evm-$(PSDK_VERSION)
     DEFAULT_PSDK_LINUX?=$(SDOMC_SHARED)/ti-processor-sdk-linux-k2hk-evm-$(PSDK_VERSION)
+    OMP_DIR        ?= $(HOME)/clean/ti-openmp-dsp-runtime/exports/openmp_dsp_k2x_02_05_00_00
     OMP_DIR?=$(OMP_DIR_K2X)
 else ifeq ($(BUILD_K2L),1)
     DEFAULT_PSDK_RTOS?=$(SDOMC_SHARED)/ti-processor-sdk-rtos-k2l-evm-$(PSDK_VERSION)

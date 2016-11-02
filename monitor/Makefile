@@ -16,11 +16,9 @@ C6636_PDK_DIR  ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/pdk_k2*)
 IPC_DIR        ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/ipc_*)
 XDC_DIR        ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/xdctools_*)
 BIOS_DIR       ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/bios_*)
-OMP_DIR        ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/openmp_dsp_*)
 FC_DIR         ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/framework_components*)
 EDMA3LLD_DIR   ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/edma3_lld_*)
 XDAIS_DIR      ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/xdais_*)
-MPM_DIR        ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/multiprocmgr_*)
 ULM_DIR        ?= $(LINUX_DEVKIT_ROOT)/usr/share/ti/ulm
 GDB_SERVER_DIR ?= $(LINUX_DEVKIT_ROOT)/usr/share/ti/gdbc6x
 SDK_DIR        ?= $(DEFAULT_DLSDK)
@@ -42,9 +40,6 @@ ifneq ($(MAKECMDGOALS),clean)
       ifeq (,$(wildcard $(C6636_PDK_DIR)/.))
        $(error Path specified for C6636_PDK_DIR(=$(C6636_PDK_DIR)) is not valid)
       endif
-   endif
-   ifeq (,$(wildcard $(MPM_DIR)/.)) 
-      $(error Path specified for MPM_DIR(=$(MPM_DIR)) is not valid)
    endif
    ifeq (,$(wildcard $(BIOS_DIR)/.)) 
       $(error Path specified for BIOS_DIR(=$(BIOS_DIR)) is not valid)
@@ -89,7 +84,7 @@ INCLUDES=  -i $(OPENCL_SRC_DIR)/src/core/dsp \
 
 XDCTARGET= ti.targets.elf.C66
 XDCPATH_K2X = ./;$(C6636_PDK_DIR)/packages;$(BIOS_DIR)/packages;$(OMP_DIR)/packages;$(EDMA3LLD_DIR)/packages;$(IPC_DIR)/packages;$(FC_DIR)/packages;$(XDAIS_DIR)/packages;
-LIBS_K2X  = monitor.cmd $(MPM_DIR)/lib_c66x/mpmmailbox.ae66 $(ULM_DIR)/libtiulm.ae66 $(GDB_SERVER_DIR)/lib/gdb_server.ae66
+LIBS_K2X  = monitor.cmd $(ULM_DIR)/libtiulm.ae66 $(GDB_SERVER_DIR)/lib/gdb_server.ae66
 
 ifeq ($(BUILD_TARGET),DSPC868x)
     PLATFORM = dspc868x
@@ -107,7 +102,7 @@ else ifeq ($(BUILD_TARGET),ARM_K2H)
     PLATFORM = evmk2h
     XDCPATH  = $(XDCPATH_K2X)
     INCLUDES += -DDEVICE_K2H -DDEVICE_K2X -DTI_66AK2X -DK2_PG1_MSMC_STALL_WA \
-                -i $(MPM_DIR)/include -i$(ULM_DIR) -DULM_ENABLED \
+                -i$(ULM_DIR) -DULM_ENABLED \
                 -i $(GDB_SERVER_DIR)/include -DGDB_ENABLED
     LIBS = $(LIBS_K2X)
 
@@ -115,7 +110,7 @@ else ifeq ($(BUILD_TARGET),ARM_K2L)
     PLATFORM = evmk2l
     XDCPATH  = $(XDCPATH_K2X)
     INCLUDES += -DDEVICE_K2K -DTI_66AK2X -DK2_PG1_MSMC_STALL_WA \
-                -i $(MPM_DIR)/include -i$(ULM_DIR) -DULM_ENABLED \
+                -i$(ULM_DIR) -DULM_ENABLED \
                 -i $(GDB_SERVER_DIR)/include -DGDB_ENABLED
     LIBS = $(LIBS_K2X)
 
@@ -123,7 +118,7 @@ else ifeq ($(BUILD_TARGET),ARM_K2E)
     PLATFORM = evmk2e
     XDCPATH  = $(XDCPATH_K2X)
     INCLUDES += -DDEVICE_K2K -DTI_66AK2X -DK2_PG1_MSMC_STALL_WA \
-                -i $(MPM_DIR)/include -i$(ULM_DIR) -DULM_ENABLED \
+                -i$(ULM_DIR) -DULM_ENABLED \
                 -i $(GDB_SERVER_DIR)/include -DGDB_ENABLED
     LIBS = $(LIBS_K2X)
 
@@ -135,6 +130,9 @@ else
         BUILD_TARGET={DSPC868x,ARM_K2H,ARM_K2L,ARM_K2E})
     endif
 endif
+
+
+INCLUDES += -DOMP_ENABLED
 
 BUILD = monitor_$(PLATFORM)
 COMP_OPTS = $(BUILD)/compiler.opt
@@ -175,8 +173,9 @@ $(BUILTINS):
 #----------------------------------------------------------------------------
 
 SOURCES = monitor.c dsp_rpc.asm util.c touch.asm
-#SOURCES+= osal.c qmss_device.c sem.c 
-SOURCES+= omp_config_api.c
+SOURCES+= osal.c
+#SOURCES+= osal.c qmss_device.c sem.c
+#SOURCES+= omp_config_api.c
 SOURCES+= builtins.c
 #SOURCES+= ocl_qmss.c
 SOURCES+= device_k2x.c

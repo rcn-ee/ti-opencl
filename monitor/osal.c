@@ -32,6 +32,8 @@
  *      This is the OS abstraction layer for the CPPI and QMSS.
  *
  */
+
+#if defined(OMP_ENABLED)
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -305,4 +307,4 @@ Osal_qmssEndMemAccess (
     CACHE_wbL1d (ptr, size, CACHE_WAIT);
     return;
 }
-
+#endif

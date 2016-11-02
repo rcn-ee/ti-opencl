@@ -100,6 +100,10 @@ nocache_size         = size (MSMC_NC_PHYS);
 ddr3_virt_start      = start(DDR3_VIRT);
 ddr3_virt_size       = size (DDR3_VIRT);
 
+service_stack_start  = start(DDR3_STACK);
+service_stack_size   = size(DDR3_STACK);
+
+
 --export ocl_l1d_mem_start
 --export ocl_l1d_mem_size
 --export ocl_local_mem_start
@@ -136,19 +140,21 @@ SECTIONS
 		"fcsettings.ae66"   (.far)
 		"nullres.ae66"	    (.far)
 		"rman.ae66"	    (.far)
+
+                "*edma_config.obj" (.fardata)
     } run=DDR3_VIRT, load=DDR3_PER_CORE
 
-    /* If OpenMP runtime is not included in the monitor, the following directive is required to ensure
-     * each core gets its own copy of MessageQ related data structures such as HeapBuf.
-     */
+    /* If OpenMP runtime is not included in the monitor, the following 
+       directive is required to ensure each core gets its own copy of 
+       MessageQ related data structures such as HeapBuf.
     .localfar :
     {
         "*rts*.lib" (.far)
         "*rts*.lib" (.fardata)
-        "*edma_config.obj" (.fardata)
         "*monitor_pe66.oe66" (.fardata)
         "*monitor_pe66.oe66" (.far)
     } run=DDR3_VIRT, load=DDR3_PER_CORE
+     */
 
     .fardata: load >> DDR3
     .far: load >> DDR3
