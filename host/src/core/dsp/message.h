@@ -107,6 +107,7 @@ typedef struct
 {
     uint32_t      command;  // enum command_codes, use uint32_t in message
     uint32_t      trans_id;
+    uint32_t      pid;
     union
     {
         struct

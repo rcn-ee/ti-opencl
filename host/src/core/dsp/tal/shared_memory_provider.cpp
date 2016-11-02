@@ -1,6 +1,7 @@
 #include <cstddef>
 #include <algorithm>
 #include "shared_memory_provider.h"
+#include "../dspmem.h"
 #include "../error_report.h"
 
 /*-----------------------------------------------------------------------------
@@ -20,7 +21,12 @@ using namespace tiocl;
 
 template <class MIPolicy, class RWPolicy>
 SharedMemoryProvider<MIPolicy, RWPolicy>::
-SharedMemoryProvider(uint8_t device_id) : device_id_(device_id)
+SharedMemoryProvider(uint8_t device_id) : 
+    device_id_(device_id),
+    heap_segment_(boost::interprocess::open_or_create, "HeapManager", 64 << 10),
+    ddr_heap1_(heap_segment_.find_or_construct<Heap64Bit>("ddr_heap1")(heap_segment_)),
+    ddr_heap2_(heap_segment_.find_or_construct<Heap64Bit>("ddr_heap2")(heap_segment_)),
+    msmc_heap_(heap_segment_.find_or_construct<Heap64Bit>("msmc_heap")(heap_segment_))
 {
     // Discover available shared memory memory_ranges_
     MIPolicy::DiscoverMemoryRanges(memory_ranges_);
@@ -33,7 +39,7 @@ SharedMemoryProvider(uint8_t device_id) : device_id_(device_id)
         // Configure a heap for the range
         if (r.GetLocation() == MemoryRange::Location::ONCHIP)
         {
-            msmc_heap_.configure(r.GetBase(),  r.GetSize());
+            msmc_heap_->configure(r.GetBase(),  r.GetSize(), MIN_BLOCK_SIZE);
             ulm_put_mem(ULM_MEM_IN_DATA_ONLY, r.GetSize() >> 16, 1.0f);
         }
         else if (r.GetLocation() == MemoryRange::Location::OFFCHIP)
@@ -41,12 +47,14 @@ SharedMemoryProvider(uint8_t device_id) : device_id_(device_id)
             if (r.GetKind() == MemoryRange::Kind::CMEM_PERSISTENT ||
                 r.GetKind() == MemoryRange::Kind::RTOS_SHMEM)
             {
-                ddr_heap1_.configure(r.GetBase(),  r.GetSize());
+                ddr_heap1_->configure(r.GetBase(),  r.GetSize(), MIN_BLOCK_SIZE);
                 ulm_put_mem(ULM_MEM_EX_CODE_AND_DATA, r.GetSize() >> 16, 1.0f);
             }
             else if (r.GetKind() == MemoryRange::Kind::CMEM_ONDEMAND)
             {
-                ddr_heap2_.configure(r.GetBase(), r.GetSize(), true);
+                ddr_heap2_->configure(r.GetBase(), r.GetSize(), MIN_CMEM_ONDEMAND_BLOCK_SIZE);
+                ddr_heap2_->set_additional_alignment_requirements(MAX_CMEM_MAP_ALIGN);
+
                 ulm_put_mem(ULM_MEM_EX_DATA_ONLY, r.GetSize() >> 16, 1.0f);
             }
             else
@@ -69,12 +77,17 @@ SharedMemoryProvider<MIPolicy, RWPolicy>::
 
     // Perform any cleanup required
     MIPolicy::Destroy();
+
+    uint32_t pid = getpid();
+    msmc_heap_->garbage_collect(pid);
+    ddr_heap1_->garbage_collect(pid);
+    ddr_heap2_->garbage_collect(pid);
 }
 
 template <class MIPolicy, class RWPolicy>
 uint64_t SharedMemoryProvider<MIPolicy, RWPolicy>::AllocateMSMC(size_t size)
 {
-    uint64_t ret = msmc_heap_.malloc(size,true);
+    uint64_t ret = msmc_heap_->malloc(size,true);
     if (ret) dsptop_msmc();
     return ret;
 }
@@ -82,7 +95,7 @@ uint64_t SharedMemoryProvider<MIPolicy, RWPolicy>::AllocateMSMC(size_t size)
 template <class MIPolicy, class RWPolicy>
 void SharedMemoryProvider<MIPolicy, RWPolicy>::FreeMSMC(uint64_t addr)
 {
-    msmc_heap_.free(addr);
+    msmc_heap_->free(addr);
     dsptop_msmc();
 }
 
@@ -97,7 +110,7 @@ AllocateGlobal(size_t size, bool prefer_32bit)
 
     if (prefer_32bit)
     {
-        uint64_t ret = ddr_heap1_.malloc(size, true);
+        uint64_t ret = ddr_heap1_->malloc(size, true);
         if (ret) dsptop_ddr_fixed();
         ReportTrace("<-AllocateGlobal (%llx)\n", ret);
         return ret;
@@ -107,21 +120,21 @@ AllocateGlobal(size_t size, bool prefer_32bit)
     uint64_t size64 = 0;
     uint32_t block_size = 0;
 
-    ddr_heap1_.max_block_size(size64, block_size);
+    ddr_heap1_->max_block_size(size64, block_size);
 
     if (size64 / size > FRACTION_PERSISTENT_FOR_BUFFER)
     {
-        addr = ddr_heap1_.malloc(size, true);
+        addr = ddr_heap1_->malloc(size, true);
         if (addr) dsptop_ddr_fixed();
     }
     if (!addr)
     {
-        addr = ddr_heap2_.malloc(size, true);
+        addr = ddr_heap2_->malloc(size, true);
         if (addr) dsptop_ddr_extended();
     }
     if (!addr)
     {
-        addr = ddr_heap1_.malloc(size, true); // give it another chance
+        addr = ddr_heap1_->malloc(size, true); // give it another chance
         if (addr) dsptop_ddr_fixed();
     }
 
@@ -135,12 +148,12 @@ FreeGlobal(uint64_t addr)
 {
     if (addr < DSP_36BIT_ADDR)
     {
-        ddr_heap1_.free(addr);
+        ddr_heap1_->free(addr);
         dsptop_ddr_fixed();
     }
     else
     {
-        ddr_heap2_.free(addr);
+        ddr_heap2_->free(addr);
         dsptop_ddr_extended();
     }
 }
@@ -149,9 +162,9 @@ template <class MIPolicy, class RWPolicy>
 void SharedMemoryProvider<MIPolicy, RWPolicy>::
 dsptop_msmc()
 {
-    uint64_t k64block_size = msmc_heap_.size() >> 16;
-    float    pctfree  =  msmc_heap_.available();
-             pctfree /=  msmc_heap_.size();
+    uint64_t k64block_size = msmc_heap_->size() >> 16;
+    float    pctfree  =  msmc_heap_->available();
+             pctfree /=  msmc_heap_->size();
 
     ulm_put_mem(ULM_MEM_IN_DATA_ONLY, k64block_size, pctfree);
 }
@@ -160,9 +173,9 @@ template <class MIPolicy, class RWPolicy>
 void SharedMemoryProvider<MIPolicy, RWPolicy>::
 dsptop_ddr_fixed()
 {
-    uint64_t k64block_size = ddr_heap1_.size() >> 16;
-    float    pctfree  =  ddr_heap1_.available();
-             pctfree /=  ddr_heap1_.size();
+    uint64_t k64block_size = ddr_heap1_->size() >> 16;
+    float    pctfree  =  ddr_heap1_->available();
+             pctfree /=  ddr_heap1_->size();
 
     ulm_put_mem(ULM_MEM_EX_CODE_AND_DATA, k64block_size, pctfree);
 }
@@ -171,9 +184,9 @@ template <class MIPolicy, class RWPolicy>
 void SharedMemoryProvider<MIPolicy, RWPolicy>::
 dsptop_ddr_extended()
 {
-    uint64_t ext_size = ddr_heap2_.size();
+    uint64_t ext_size = ddr_heap2_->size();
     uint64_t k64block_size = ext_size >> 16;
-    float    pctfree  =  ddr_heap2_.available();
+    float    pctfree  =  ddr_heap2_->available();
 
     if (ext_size != 0) pctfree /= ext_size;
     else               pctfree  = 0.0f;
@@ -296,13 +309,13 @@ HeapSize(MemoryRange::Kind k, MemoryRange::Location l)
         case MemoryRange::Kind::CMEM_PERSISTENT:
         {
             if (l == MemoryRange::Location::ONCHIP)
-                return msmc_heap_.size();
+                return msmc_heap_->size();
             else
-                return ddr_heap1_.size();
+                return ddr_heap1_->size();
         }
 
         case MemoryRange::Kind::CMEM_ONDEMAND:
-            return ddr_heap2_.size();
+            return ddr_heap2_->size();
 
         default:
             return 0;
@@ -321,16 +334,16 @@ HeapMaxAllocSize(MemoryRange::Kind k, MemoryRange::Location l)
         case MemoryRange::Kind::CMEM_PERSISTENT:
         {
             if (l == MemoryRange::Location::ONCHIP)
-                msmc_heap_.max_block_size(size, not_used);
+                msmc_heap_->max_block_size(size, not_used);
             else
-                ddr_heap1_.max_block_size(size, not_used);
+                ddr_heap1_->max_block_size(size, not_used);
 
             return size;
         }
 
         case MemoryRange::Kind::CMEM_ONDEMAND:
         {
-            ddr_heap2_.max_block_size(size, not_used);
+            ddr_heap2_->max_block_size(size, not_used);
             return size;
         }
 

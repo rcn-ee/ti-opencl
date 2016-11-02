@@ -91,12 +91,7 @@ void cmem_init(std::vector<MemoryRange>& ranges)
     params.flags            = CMEM_CACHED;
     params.type             = CMEM_POOL;
 
-    DSPDevicePtr64 alloc_dsp_addr = CMEM_allocPoolPhys2(0, 0, &params);
-
-    if (!alloc_dsp_addr || alloc_dsp_addr != ddr_addr)
-        ReportError(ErrorType::Fatal, ErrorKind::CMEMAllocFromBlockFailed,
-               ddr_size, 0, alloc_dsp_addr);
-
+    CMEM_registerAlloc(ddr_addr);
 
     DSPDevicePtr64 addr1 = ddr_addr;
     uint64_t       size1 = ddr_size;
@@ -160,16 +155,11 @@ void cmem_init(std::vector<MemoryRange>& ranges)
             ReportError(ErrorType::Fatal, ErrorKind::CMEMAllocFailed,
                         "On-chip Shared Memory", pattrs1.phys_base);
 
-
         params.type    = CMEM_HEAP;
-        alloc_dsp_addr = CMEM_allocPhys2(1, onchip_shared_size, &params);
-        if (!alloc_dsp_addr || alloc_dsp_addr != onchip_shared_addr)
-            ReportError(ErrorType::Fatal, ErrorKind::CMEMAllocFromBlockFailed,
-                   onchip_shared_size, 0, alloc_dsp_addr);
+        CMEM_registerAlloc(onchip_shared_addr);
 
         ranges.emplace_back(onchip_shared_addr, onchip_shared_size,
                             MemoryRange::Kind::CMEM_PERSISTENT,
                             MemoryRange::Location::ONCHIP);
     }
 }
-

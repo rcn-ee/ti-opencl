@@ -148,6 +148,8 @@ void dsp_cblas_dgemm(CBLAS_ORDER order, CBLAS_TRANSPOSE transA,
                                                NDRange(numwgs),
                                                NDRange(1), NULL, &e);
         e.wait();
+
+        delete bufMsmc;
     }
     catch (Error err)
     {

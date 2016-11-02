@@ -171,10 +171,16 @@ int main(int argc, char* argv[])
     *------------------------------------------------------------------------*/
     int retval = Check(C, Ccpu, M, N);
 
+    __free_ddr(A);
+    __free_ddr(B);
+    __free_ddr(C);
+    free(Ccpu);
+
     /*-------------------------------------------------------------------------
     * Calling ocl_free to clean up OpenCL resources and temporary files.
     *------------------------------------------------------------------------*/
     ocl_free();
+
 
     return retval;
 }

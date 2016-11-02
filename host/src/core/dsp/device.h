@@ -28,11 +28,7 @@
 #ifndef __DSP_DEVICE_H__
 #define __DSP_DEVICE_H__
 
-
-
-
 #include "../deviceinterface.h"
-#include "dspheap.h"
 #include "message.h"
 #include "u_lockable.h"
 #include "u_concurrent_map.h"
@@ -156,6 +152,7 @@ class DSPDevice : public DeviceInterface, public Lockable
 
         const DeviceManager *device_manager_;
         class CoreScheduler *core_scheduler_;
+        uint32_t           p_pid;
 };
 
 }

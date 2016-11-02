@@ -40,6 +40,7 @@
 #include <vector>
 #include <string>
 #include "../tiocl_thread.h"
+#include "../tiocl_types.h"
 #include <stdint.h>
 
 inline uint32_t xlog2(uint32_t val) { return sizeof(val)*8 - 1 - __builtin_clz(val); }

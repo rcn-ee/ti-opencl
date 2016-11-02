@@ -32,6 +32,7 @@
 #include "utils.h"
 #include "u_locks_pthread.h"
 #include "device_info.h"
+#include "dspmem.h"
 
 #include "../kernel.h"
 #include "../memobject.h"

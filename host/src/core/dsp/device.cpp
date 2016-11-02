@@ -104,7 +104,8 @@ DSPDevice::DSPDevice(unsigned char dsp_id, SharedMemory* shm)
       p_complete_pending    (),
       p_mpax_default_res    (NULL),
       p_shmHandler          (shm),
-      device_manager_       (nullptr)
+      device_manager_       (nullptr),
+      p_pid                 (getpid())
 {
     const DeviceInfo& device_info = DeviceInfo::Instance();
 
@@ -533,6 +534,7 @@ int DSPDevice::numHostMails(Msg_t &msg) const
 
 void DSPDevice::mail_to(Msg_t &msg, unsigned int core)
 {
+    msg.pid = p_pid;
     if(hostSchedule())
     {
         switch(msg.command)
