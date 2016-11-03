@@ -72,7 +72,7 @@ void ReportError(const ErrorType et, const ErrorKind ek, ...);
 
 // Trace mechanism for debugging, disabled by default.
 // Zero overhead when disabled.
-// #define TRACE_ENABLED
+//#define TRACE_ENABLED
 #if defined(TRACE_ENABLED)
 void ReportTrace(const char *fmt, ...);
 #else

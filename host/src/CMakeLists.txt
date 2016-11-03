@@ -58,6 +58,14 @@ if (K2X_BUILD)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDEVICE_K2X")
 endif()
 
+if (K2H_BUILD)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDEVICE_K2H")
+elseif (K2L_BUILD)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDEVICE_K2L")
+elseif (K2E_BUILD)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDEVICE_K2E")
+endif()
+
 if (K2G_BUILD)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDEVICE_K2G")
 endif()
@@ -144,11 +152,6 @@ set(COAL_SRC_FILES ${COAL_SRC_FILES}
     core/dsp/tal/shmem_provider_factory.cpp
     core/dsp/tal/symbol_address_elf.cpp
 )
-endif()
-
-if (K2X_BUILD)
-    set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/rm_qmss_res.c)
-    #set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/mbox_impl_mpm.cpp)
 endif()
 
 if (K2X_BUILD OR K2G_BUILD)

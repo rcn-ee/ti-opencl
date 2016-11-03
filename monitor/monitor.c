@@ -200,7 +200,7 @@ int rtos_init_ocl_dsp_monitor(UArg argc, UArg argv)
     assert(result == Registry_SUCCESS);
 
     /* enable ENTRY/EXIT/INFO log events */
-    Diags_setMask(MODULE_NAME"-EXF");
+    Diags_setMask(MODULE_NAME"+EXF");
 
     Log_print0(Diags_ENTRY, "--> main:");
 
@@ -701,7 +701,7 @@ static void process_exit_command(ocl_msgq_message_t *msg_pkt)
     tomp_exitOpenMPforOpenCL();
     #endif
 
-#if defined(DEVICE_K2G) || defined (DEVICE_K2H)
+#if defined(DEVICE_K2G) || defined (DEVICE_K2H) || defined (DEVICE_K2L) || defined (DEVICE_K2E)
     respond_to_host(msg_pkt, -1);
     Log_print0(Diags_INFO, "ocl_monitor: EXIT");
     cacheWbInvAllL2();

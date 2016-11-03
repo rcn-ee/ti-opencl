@@ -88,8 +88,6 @@ void initialize_memory()
         set_MSMC_MPAX(10, 2, nc_virt, nc_size, nc_phys, DEFAULT_PERMISSION);
     }
 
-    //set_mpax_before_cinit();
-
     _restore_interrupts(mask);
 
     MultiProc_setLocalId(DNUM + 1); // HOST has id 0, CORE0 has id 1, ...
@@ -101,10 +99,13 @@ void set_mpax_before_cinit()
     extern uint32_t ddr3_virt_size;
 
     uint32_t ddr3_virt = ((uint32_t) &ddr3_virt_start) >> 12;
-    uint32_t size_encoding = 
-                        count_trailing_zeros(((uint32_t) &ddr3_virt_size)) - 1;
+    uint32_t size = (uint32_t) &ddr3_virt_size;
+    uint32_t size_encoding = count_trailing_zeros(size) - 1;
 
-    uint32_t ddr3_phys = (0x820c00000ULL + (DNUM * 0x40000)) >> 12;
+    // The same 32b virtual address is mapped to a core specific 36b system address.
+    // 0xA0c0_0000 -> 0x8:20c0_0000
+    // The 36b physical address must be in sync with 32b DDR3_CORE0 base in Platform.xdc
+    uint32_t ddr3_phys = (0x820c00000ULL + (DNUM * size)) >> 12;
 
     set_MPAX     (3, ddr3_virt, size_encoding,  ddr3_phys, DEFAULT_PERMISSION);
 }

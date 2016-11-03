@@ -11,7 +11,7 @@ UNAME_M:=$(shell uname -m)
 # debian/changelog!!!
 OCL_MAJOR_VER=1
 OCL_MINOR_VER=1
-OCL_RELEASE_VER=11
+OCL_RELEASE_VER=12
 OCL_PATCH_VER=00
 OCL_VER=$(OCL_MAJOR_VER).$(OCL_MINOR_VER).$(OCL_RELEASE_VER)
 OCL_DPKG_NAME=ti-opencl
@@ -51,7 +51,8 @@ endif
 
 # OMP 
 
-OMP_DIR_K2X?=$(SDOMC_SHARED)/openmp_dsp_k2x_02_04_00_02-20161005
+#OMP_DIR_K2X?=$(SDOMC_SHARED)/openmp_dsp_k2x_02_04_00_02-20161005
+OMP_DIR_K2X?=$(SDOMC_SHARED)/openmp_dsp_k2x_02_06_00_00-20161103
 OMP_DIR_K2G?=$(SDOMC_SHARED)/openmp_dsp_k2g_02_04_00_02-20161005
 OMP_DIR_AM57?=$(SDOMC_SHARED)/openmp_dsp_am57xx_02_04_00_02-20161005
 
@@ -62,7 +63,6 @@ PSDK_VERSION ?= 03.01.00.06-release
 ifeq ($(BUILD_K2H),1)
     DEFAULT_PSDK_RTOS?=$(SDOMC_SHARED)/ti-processor-sdk-rtos-k2hk-evm-$(PSDK_VERSION)
     DEFAULT_PSDK_LINUX?=$(SDOMC_SHARED)/ti-processor-sdk-linux-k2hk-evm-$(PSDK_VERSION)
-    OMP_DIR        ?= $(HOME)/clean/ti-openmp-dsp-runtime/exports/openmp_dsp_k2x_02_05_00_00
     OMP_DIR?=$(OMP_DIR_K2X)
 else ifeq ($(BUILD_K2L),1)
     DEFAULT_PSDK_RTOS?=$(SDOMC_SHARED)/ti-processor-sdk-rtos-k2l-evm-$(PSDK_VERSION)

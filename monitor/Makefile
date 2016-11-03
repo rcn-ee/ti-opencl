@@ -79,48 +79,32 @@ BUILD_TYPE = release
 #	  -i $(OPENCL_SRC_DIR)/src/core/dsp \
 #	  -D MAILBOX_ON_HOST 
 
-INCLUDES=  -i $(OPENCL_SRC_DIR)/src/core/dsp \
-           -D MAILBOX_ON_HOST 
+INCLUDES=  -i $(OPENCL_SRC_DIR)/src/core/dsp
 
 XDCTARGET= ti.targets.elf.C66
 XDCPATH_K2X = ./;$(C6636_PDK_DIR)/packages;$(BIOS_DIR)/packages;$(OMP_DIR)/packages;$(EDMA3LLD_DIR)/packages;$(IPC_DIR)/packages;$(FC_DIR)/packages;$(XDAIS_DIR)/packages;
 LIBS_K2X  = monitor.cmd $(ULM_DIR)/libtiulm.ae66 $(GDB_SERVER_DIR)/lib/gdb_server.ae66
 
-ifeq ($(BUILD_TARGET),DSPC868x)
-    PLATFORM = dspc868x
-    XDCPATH = ./;$(C6678_PDK_DIR)/packages;$(BIOS_DIR)/packages;$(OMP_DIR)/packages;$(IPC_DIR)/packages
-    INCLUDES += -DTI_C6678 \
-                -i $(SDK_DIR)/sdk/pciedrv \
-                -i $(SDK_DIR)/sdk/mailBox \
-                -i $(SDK_DIR)/sdk/mailBox/inc \
-                -i $(SDK_DIR)/sdk/buffmgr \
-                -i $(SDK_DIR)/sdk/config \
-                -i $(C6678_PDK_DIR)/packages/ti/drv/qmss
-    LIBS = monitor_k1.cmd $(SDK_DIR)/sdk/mailBox/c66x/lib/mailBox.a
-
-else ifeq ($(BUILD_TARGET),ARM_K2H)
+ifeq ($(BUILD_TARGET),ARM_K2H)
     PLATFORM = evmk2h
     XDCPATH  = $(XDCPATH_K2X)
-    INCLUDES += -DDEVICE_K2H -DDEVICE_K2X -DTI_66AK2X -DK2_PG1_MSMC_STALL_WA \
-                -i$(ULM_DIR) -DULM_ENABLED \
-                -i $(GDB_SERVER_DIR)/include -DGDB_ENABLED
+    INCLUDES += -DDEVICE_K2H
     LIBS = $(LIBS_K2X)
+    DSPS := 0 1 2 3 4 5 6 7
 
 else ifeq ($(BUILD_TARGET),ARM_K2L)
     PLATFORM = evmk2l
     XDCPATH  = $(XDCPATH_K2X)
-    INCLUDES += -DDEVICE_K2K -DTI_66AK2X -DK2_PG1_MSMC_STALL_WA \
-                -i$(ULM_DIR) -DULM_ENABLED \
-                -i $(GDB_SERVER_DIR)/include -DGDB_ENABLED
+    INCLUDES += -DDEVICE_K2L
     LIBS = $(LIBS_K2X)
+    DSPS := 0 1 2 3
 
 else ifeq ($(BUILD_TARGET),ARM_K2E)
     PLATFORM = evmk2e
     XDCPATH  = $(XDCPATH_K2X)
-    INCLUDES += -DDEVICE_K2K -DTI_66AK2X -DK2_PG1_MSMC_STALL_WA \
-                -i$(ULM_DIR) -DULM_ENABLED \
-                -i $(GDB_SERVER_DIR)/include -DGDB_ENABLED
+    INCLUDES += -DDEVICE_K2E
     LIBS = $(LIBS_K2X)
+    DSPS := 0
 
 else
     ifeq ($(MAKECMDGOALS),clean)
@@ -131,8 +115,10 @@ else
     endif
 endif
 
-
+INCLUDES += -DTI_66AK2X -DK2_PG1_MSMC_STALL_WA
 INCLUDES += -DOMP_ENABLED
+INCLUDES += -i $(ULM_DIR) -DULM_ENABLED
+INCLUDES += -i $(GDB_SERVER_DIR)/include -DGDB_ENABLED
 
 BUILD = monitor_$(PLATFORM)
 COMP_OPTS = $(BUILD)/compiler.opt
@@ -143,9 +129,8 @@ LINK_CMD = $(BUILD)/linker.cmd
 
 build: binaries syms
 
-dsps := 0 1 2 3 4 5 6 7
-binaries:  $(foreach dsp,$(dsps),$(BUILD)/dsp$(dsp).out)
-syms:  $(foreach dsp,$(dsps),$(BUILD)/dsp$(dsp).syms)
+binaries:  $(foreach dsp,$(DSPS),$(BUILD)/dsp$(dsp).out)
+syms:  $(foreach dsp,$(DSPS),$(BUILD)/dsp$(dsp).syms)
 
 
 
@@ -173,17 +158,12 @@ $(BUILTINS):
 #----------------------------------------------------------------------------
 
 SOURCES = monitor.c dsp_rpc.asm util.c touch.asm
-SOURCES+= osal.c
-#SOURCES+= osal.c qmss_device.c sem.c
-#SOURCES+= omp_config_api.c
+#SOURCES+= osal.c
 SOURCES+= builtins.c
-#SOURCES+= ocl_qmss.c
 SOURCES+= device_k2x.c
 SOURCES+= edma.c edma_config.c
 #SOURCES+= hooks.c
-#SOURCES+= em_pdk_hal.c ocl_em_init.c ti_em_init.c cppi_device.c 
 
-#HEADERS = edma.h monitor.h util.h ocl_device_defs.h trace.h ocl_qmss.h
 HEADERS = edma.h monitor.h util.h ocl_device_defs.h trace.h
 
 OBJS1=$(patsubst %.c,$(BUILD)/%.obj,$(SOURCES))
@@ -233,7 +213,7 @@ define create_dsp_syms
 	@$(TI_OCL_CGT_INSTALL)/bin/nm6x -l $(1) | grep FUNC | grep -fexport_syms | awk -F\| '{ print "\t.weak "$$8"\n"$$8"\t.set "$$2 };' >> $(2).asm
 	@$(CC) $(2).asm
 	@cp dsp_link_commands.$(PLATFORM) $(2)
-	#@rm -f $(1).syms.tmp* $(2).asm
+	@rm -f $(1).syms.tmp* $(2).asm
 endef
 
 
