@@ -43,6 +43,8 @@
 #include <cstdlib>
 #include <inttypes.h>
 #include <unistd.h>
+#include <signal.h>
+#include <sys/types.h>
 
 #include <map>
 #include <unordered_set>
@@ -454,12 +456,43 @@ template <typename Address, typename Length, typename Scope> class HeapManager
             { std::cout << ex.what() << std::endl; exit(EXIT_FAILURE); }
     }
 
+    /*-----------------------------------------------------------------------------
+     * process_exists - Does a PID represent a running process?
+     *----------------------------------------------------------------------------*/
+    bool process_exists(uint32_t pid) { return (0 == kill(pid, 0)); }
+
     /*-------------------------------------------------------------------------
     * HeapManager::garbage_collect 
     *
-    *   Remove and allocated blocks associated with the provided PID.
+    *   Remove any allocated blocks associated with the non-active PIDs.
     *------------------------------------------------------------------------*/
-    void garbage_collect(uint32_t pid)
+    void garbage_collect()
+    {
+        try
+        {
+            std::unordered_set<Address> need_free;
+
+            ScopedLock lock(mutex_);
+            for (auto ab : alloc_list_)
+                if (!process_exists(Scope::pid(ab.second))) need_free.insert(ab.first);
+
+            /*-----------------------------------------------------------------
+            * Unlock the lock so the free calls can get the lock
+            *----------------------------------------------------------------*/
+            lock.unlock();
+
+            for (auto nf : need_free) free(nf);
+        }
+        catch(Exception &ex)
+            { std::cout << ex.what() << std::endl; exit(EXIT_FAILURE); }
+    }
+
+    /*-------------------------------------------------------------------------
+    * HeapManager::free_all_pid 
+    *
+    *   Remove any allocated blocks associated with the non-active PIDs.
+    *------------------------------------------------------------------------*/
+    void free_all_pid(uint32_t pid)
     {
         try
         {
@@ -483,30 +516,32 @@ template <typename Address, typename Length, typename Scope> class HeapManager
     /*-------------------------------------------------------------------------
     * HeapManager::dump
     *------------------------------------------------------------------------*/
-    void dump(void) 
+    void dump(const char * name) 
     {
         try
         {
             ScopedLock lock(mutex_);
 
             std::cout << std::hex;
-            std::cout << "-- HeapManager ------------------------------" << std::endl;
-            std::cout << "   Addr: 0x" << start_addr_ << std::endl;
-            std::cout << "   Size: 0x" << length_     << std::endl;
-            std::cout << "   Algn: 0x" << min_block_size_ << std::endl;
-            std::cout << "   Pow2: " << addrs_need_pow2_size_alignment_ << std::endl;
-            std::cout << "   Free: " << std::endl;
+            std::cout << "-- " << name << " ------------------------------" << std::endl;
+            std::cout << "   Addr : 0x" << start_addr_ << std::endl;
+            std::cout << "   Size : 0x" << length_     << std::endl;
+            std::cout << "   Avail: 0x" << available_     << std::endl;
+            std::cout << "   Align: 0x" << min_block_size_ << std::endl;
 
-            for (auto& kv : free_list_)
-                std::cout << "        addr: 0x" << kv.first << " size: 0x" << kv.second << std::endl;
+            if (length_ != available_)
+            {
+                std::cout << "   Free: " << std::endl;
+                for (auto& kv : free_list_)
+                    std::cout << "        addr: 0x" << kv.first << " size: 0x" << kv.second << std::endl;
 
-            std::cout << "   Aloc: " << std::endl;
+                std::cout << "   Aloc: " << std::endl;
+                for (auto& kv : alloc_list_)
+                    std::cout << "        addr: 0x" << kv.first << " size: 0x" << Scope::length(kv.second)
+                              << std::dec << " pid: " << Scope::pid(kv.second) << std::hex << std::endl;
+            }
 
-            for (auto& kv : alloc_list_)
-                std::cout << "        addr: 0x" << kv.first << " size: 0x" << Scope::length(kv.second)
-                          << std::dec << " pid: " << Scope::pid(kv.second) << std::hex << std::endl;
-
-            std::cout << "-----------------------------------------" << std::endl;
+            std::cout << "-----------------------------------------" << std::endl << std::endl;
             std::cout << std::dec;
         }
         catch(Exception &ex)

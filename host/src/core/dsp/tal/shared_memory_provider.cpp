@@ -79,9 +79,9 @@ SharedMemoryProvider<MIPolicy, RWPolicy>::
     MIPolicy::Destroy();
 
     uint32_t pid = getpid();
-    msmc_heap_->garbage_collect(pid);
-    ddr_heap1_->garbage_collect(pid);
-    ddr_heap2_->garbage_collect(pid);
+    msmc_heap_->free_all_pid(pid);
+    ddr_heap1_->free_all_pid(pid);
+    ddr_heap2_->free_all_pid(pid);
 }
 
 template <class MIPolicy, class RWPolicy>

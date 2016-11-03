@@ -8,13 +8,13 @@ set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -O3 -std=c++11 -D_FILE_OFFSET_BITS=64 -DBO
 
 SET(RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-add_executable(mctd mctd.cpp)
-add_executable(opencl-heap-check opencl-heap-check.cpp)
+add_executable(ti-mctd mctd.cpp)
+add_executable(ti-mct-heap-check heap-check.cpp)
 
 find_library(CMEM_LIB          ticmem)
 
-target_link_libraries(mctd ${CMEM_LIB})
-target_link_libraries(opencl-heap-check pthread rt)
+target_link_libraries(ti-mctd ${CMEM_LIB} pthread rt)
+target_link_libraries(ti-mct-heap-check pthread rt)
 
-install(TARGETS mctd RUNTIME DESTINATION /usr/bin ${OCL_BPERMS})
-install(TARGETS opencl-heap-check RUNTIME DESTINATION /usr/bin ${OCL_BPERMS})
+install(TARGETS ti-mctd RUNTIME DESTINATION /usr/bin ${OCL_BPERMS})
+install(TARGETS ti-mct-heap-check RUNTIME DESTINATION /usr/bin ${OCL_BPERMS})
