@@ -285,8 +285,10 @@ class Event : public _cl_event, public Object
 
         /**
          * \brief Event status
+         *     Use C++11 typed enum to ensure underlying type is "int"
+         *     so that negative error status can be represented.
          */
-        enum Status
+        enum Status : int
         {
             Queued = CL_QUEUED,       /*!< \brief Simply queued in a command queue */
             Submitted = CL_SUBMITTED, /*!< \brief Submitted to a device */

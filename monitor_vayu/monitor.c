@@ -107,6 +107,7 @@ PRIVATE (bool,              edmamgr_initialized) = false;
 PRIVATE (OCL_MessageQueues, ocl_queues);
 PRIVATE (int,               n_cores);
 PRIVATE (jmp_buf,           monitor_jmp_buf);
+PRIVATE (int,               command_retcode);
 
 /******************************************************************************
 * Defines a fixed area of 64 bytes at the start of L2, where the kernels will
@@ -166,6 +167,7 @@ extern void tomp_dispatch_finish(void);
 extern bool tomp_dispatch_is_finished(void);
 extern Semaphore_Handle runOmpSem;
 extern Semaphore_Handle runOmpSem_complete;
+static void update_master_core_private(void *l2_addr, int size);
 #endif
 
 #if !defined(OMP_ENABLED)
@@ -350,6 +352,7 @@ void ocl_monitor()
 
         /* Get a pointer to the OpenCL payload in the message */
         Msg_t *ocl_msg =  &(msgq_pkt->message);
+        command_retcode =  CL_SUCCESS;
 
         switch (ocl_msg->command)
         {
@@ -459,7 +462,6 @@ static void process_task_command(ocl_msgq_message_t* msgq_pkt)
     {
        TRACE(ULM_OCL_OOT_KERNEL_START, kernel_id, 0);
 
-
        if (!setjmp(monitor_jmp_buf))
        {
            dsp_rpc(&((kernel_msg_t * ) & Msg->u.k.kernel)->entry_point,
@@ -527,8 +529,11 @@ void ocl_service_omp()
                 if (!setjmp(monitor_jmp_buf))
                     tomp_dispatch_once();
                 else
+                {
                     printf("Abnormal termination of OpenMP In-order Task at 0x%08x\n",
                             Msg->u.k.kernel.entry_point);
+                    update_master_core_private(&command_retcode, sizeof(int));
+                }
              }
              while (!tomp_dispatch_is_finished());
 
@@ -548,6 +553,17 @@ void ocl_service_omp()
           /* Error */;
        }
     } /* while (true) */
+}
+
+/******************************************************************************
+* update_master_core_private - Update copy in master core's L2
+*                              Master core's copy MUST have same address in L2!
+******************************************************************************/
+void update_master_core_private(void *l2_addr, int size)
+{
+#if defined(DEVICE_AM572x)
+  memcpy(((char*)l2_addr) - 0x08000000 + 0x40800000, l2_addr, size);
+#endif
 }
 #endif
 
@@ -676,6 +692,8 @@ static void process_cache_command (int pkt_id, ocl_msgq_message_t *msgq_pkt)
 ******************************************************************************/
 static void process_exit_command(ocl_msgq_message_t *msg_pkt)
 {
+    enable_printf = false;
+
     #if defined( OMP_ENABLED)
     tomp_exitOpenMPforOpenCL();
     #endif
@@ -802,6 +820,7 @@ static int incVec(unsigned dims, unsigned *vec, unsigned *inc, unsigned *maxs)
 static void respond_to_host(ocl_msgq_message_t *msgq_pkt, uint32_t msgId)
 {
     msgq_pkt->message.trans_id = msgId;
+    msgq_pkt->message.u.command_retcode.retcode = command_retcode;
     MessageQ_setReplyQueue(ocl_queues.dspQue,  (MessageQ_Msg)msgq_pkt);
     MessageQ_put          (ocl_queues.hostQue, (MessageQ_Msg)msgq_pkt);
 }
@@ -922,11 +941,13 @@ static void process_configuration_message(ocl_msgq_message_t* msgq_pkt)
 void __kernel_exit(int status)
 {
     printf("Exit (%d). ", status);
+    command_retcode = CL_ERROR_KERNEL_EXIT_TI;
     longjmp(monitor_jmp_buf, 1);
 }
 
 void __kernel_abort()
 {
     printf("Abort. ");
+    command_retcode = CL_ERROR_KERNEL_ABORT_TI;
     longjmp(monitor_jmp_buf, 1);
 }

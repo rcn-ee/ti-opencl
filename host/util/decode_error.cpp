@@ -79,6 +79,11 @@ const char* ocl_decode_error(int code)
         case -62: return "Invalid mip level";
         case -63: return "Invalid global work size";
         case -64: return "Invalid property";
+
+        case -7101: return "Kernel aborted";
+        case -7102: return "Kernel exited";
+        case -7103: return "Kernel timed out";
+
         default:  return "Unknown";
     }
 }

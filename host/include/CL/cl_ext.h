@@ -107,6 +107,11 @@ extern void CL_API_ENTRY clLogMessagesToStderrAPPLE(   const char * /* errstr */
 /* Additional Error Codes                                                  */
 #define CL_PLATFORM_NOT_FOUND_KHR                   -1001
 
+/* Additional Error Codes: TI extensions                                   */
+#define CL_ERROR_KERNEL_ABORT_TI                    -7101
+#define CL_ERROR_KERNEL_EXIT_TI                     -7102
+#define CL_ERROR_KERNEL_TIMEOUT_TI                  -7103
+
 extern CL_API_ENTRY cl_int CL_API_CALL
 clIcdGetPlatformIDsKHR(cl_uint          /* num_entries */,
                        cl_platform_id * /* platforms */,

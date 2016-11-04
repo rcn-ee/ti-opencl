@@ -99,7 +99,7 @@ class DSPDevice : public DeviceInterface, public Lockable
         int  numHostMails(Msg_t& msg) const;
         void mail_to   (Msg_t& msg, unsigned core = 0);
         bool mail_query();
-        int  mail_from ();
+        int  mail_from (int *retcode = nullptr);
 
         void push_complete_pending(uint32_t idx, class Event* const data,
                                    unsigned int cnt = 1);
