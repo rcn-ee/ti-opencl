@@ -724,6 +724,12 @@ void Event::setStatus(Status status)
 {
     std::list<CallbackData> callbacks;
 
+    /*---------------------------------------------------------------------
+    * CQ.pushEventsOnDevice() needs to access internal data structure of CQ.
+    * To prevent CQ from being deleted from within pushEventsOnDevice() call,
+    * for example when the completed event is the last event in the queue,
+    * we retain CQ beforehand and release CQ afterwards.
+    *--------------------------------------------------------------------*/
     if (type() == Event::User || (parent() && status == Complete))
     {
         CommandQueue *cq = (CommandQueue *) parent();
@@ -765,6 +771,8 @@ void Event::setStatus(Status status)
         int num_dependent_events = setStatusHelper(status, callbacks);
 
         /*---------------------------------------------------------------------
+        * Error event status has the same effect as "Complete" status: it also
+        * satisfies event dependencies.  The only difference is:
         * If status is error (< 0), set dependent events status to
         * CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST
         *--------------------------------------------------------------------*/

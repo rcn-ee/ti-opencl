@@ -167,7 +167,6 @@ extern void tomp_dispatch_finish(void);
 extern bool tomp_dispatch_is_finished(void);
 extern Semaphore_Handle runOmpSem;
 extern Semaphore_Handle runOmpSem_complete;
-static void update_master_core_private(void *l2_addr, int size);
 #endif
 
 #if !defined(OMP_ENABLED)
@@ -529,11 +528,8 @@ void ocl_service_omp()
                 if (!setjmp(monitor_jmp_buf))
                     tomp_dispatch_once();
                 else
-                {
                     printf("Abnormal termination of OpenMP In-order Task at 0x%08x\n",
                             Msg->u.k.kernel.entry_point);
-                    update_master_core_private(&command_retcode, sizeof(int));
-                }
              }
              while (!tomp_dispatch_is_finished());
 
@@ -553,17 +549,6 @@ void ocl_service_omp()
           /* Error */;
        }
     } /* while (true) */
-}
-
-/******************************************************************************
-* update_master_core_private - Update copy in master core's L2
-*                              Master core's copy MUST have same address in L2!
-******************************************************************************/
-void update_master_core_private(void *l2_addr, int size)
-{
-#if defined(DEVICE_AM572x)
-  memcpy(((char*)l2_addr) - 0x08000000 + 0x40800000, l2_addr, size);
-#endif
 }
 #endif
 
