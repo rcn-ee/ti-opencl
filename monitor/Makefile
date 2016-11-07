@@ -158,11 +158,10 @@ $(BUILTINS):
 #----------------------------------------------------------------------------
 
 SOURCES = monitor.c dsp_rpc.asm util.c touch.asm
-#SOURCES+= osal.c
 SOURCES+= builtins.c
 SOURCES+= device_k2x.c
 SOURCES+= edma.c edma_config.c
-#SOURCES+= hooks.c
+
 
 HEADERS = edma.h monitor.h util.h ocl_device_defs.h trace.h
 
@@ -170,10 +169,8 @@ OBJS1=$(patsubst %.c,$(BUILD)/%.obj,$(SOURCES))
 OBJS=$(patsubst %.asm,$(BUILD)/%.obj,$(OBJS1))
 
 ## !Need -O* to inline CACHE_* functions!
-CC= $(TI_OCL_CGT_INSTALL)/bin/cl6x -o3 -mv6600 --abi=eabi --gcc --mem_model:const=data --mem_model:data=far -fr=$(BUILD) 
-	
-#--entry_hook=hooks_entry --entry_parm=address --exit_hook=hooks_exit --exit_parm=address
-#CC= $(TI_OCL_CGT_INSTALL)/bin/cl6x -o0 -g -mv6600 --abi=eabi --gcc --mem_model:const=data --mem_model:data=far -fr=$(BUILD) --entry_hook=hooks_entry --entry_parm=address --exit_hook=hooks_exit --exit_parm=address
+CC= $(TI_OCL_CGT_INSTALL)/bin/cl6x -o3 -mv6600 --abi=eabi --gcc --mem_model:const=data --mem_model:data=far -fr=$(BUILD)
+#CC= $(TI_OCL_CGT_INSTALL)/bin/cl6x -o0 -g -mv6600 --abi=eabi --gcc --mem_model:const=data --mem_model:data=far -fr=$(BUILD)
 
 
 $(BUILD)/%.syms: $(BUILD)/%.out

@@ -271,7 +271,6 @@ LIST (APPEND LIBS ${FFI_LIB} ${SQLITE3_LIB} ${ELF_LIB})
 # Add target dependent libraries
 if(K2X_BUILD)
    find_library(CMEM_LIB          ticmem)
-   #find_library(MPMMAIL_LIB       mpmmailbox)
    find_library(MPMTRANSPORT_LIB  mpmtransport)
    find_library(MPMCLIENT_LIB     mpmclient)
    find_library(RM_LIB            rm)
@@ -281,7 +280,7 @@ if(K2X_BUILD)
    find_library(IPC_TRANS_RPMSG   titransportrpmsg)
 
    LIST (APPEND LIBS ${CMEM_LIB} ${IPC_LIB} ${IPC_UTIL_LIB} ${IPC_TRANS_RPMSG}
-                     ${MPMMAIL_LIB} ${MPMTRANSPORT_LIB} 
+                     ${MPMTRANSPORT_LIB} 
                      ${MPMCLIENT_LIB} ${RM_LIB} )
 elseif(C6678_BUILD)
   LIST (APPEND LIBS

@@ -47,55 +47,9 @@ EXPORT void __mfence(void)
 /******************************************************************************
 * Clock Handling
 ******************************************************************************/
-#define MY_HW_TIM_IDX 0
 extern cregister volatile uint32_t TSCL;
 extern cregister volatile uint32_t TSCH;
 
-typedef struct 
-{
-    uint32_t globalStartTime;
-    uint32_t localStartTime;
-} ClockDsc_t;
-
-FAST_SHARED_1D(ClockDsc_t, ClockDscTbl, MAX_NUM_CORES);
-
-int initClockLocal(void)
-{
-    volatile CSL_TmrRegs* lvTimerRegPtr;
-
-    lvTimerRegPtr = (CSL_TmrRegs *)(CSL_TIMER_0_REGS + 
-                    (CSL_TIMER_1_REGS-CSL_TIMER_0_REGS)*MY_HW_TIM_IDX);
-    TSCL = 0; // start local timer
-
-    ClockDscTbl[DNUM].localStartTime = TSCL;
-    ClockDscTbl[DNUM].globalStartTime = lvTimerRegPtr->CNTLO;
-
-    return RETURN_OK;
-}
-
-int initClockGlobal(void)
-{
-    volatile CSL_TmrRegs* lvTimerRegPtr;
-
-    lvTimerRegPtr = (CSL_TmrRegs *)(CSL_TIMER_0_REGS + 
-                    (CSL_TIMER_1_REGS-CSL_TIMER_0_REGS)*MY_HW_TIM_IDX);
-
-    lvTimerRegPtr->TGCR  = 0x00000000; // TIMMODE = 0; TIMHIRS = 0; TIMLORS = 0
-    lvTimerRegPtr->PRDLO = (Uint32) 0xffffffff;
-    lvTimerRegPtr->PRDHI = (Uint32) 0xffffffff;
-    lvTimerRegPtr->CNTLO = 0;
-    lvTimerRegPtr->CNTHI = 0;
-    lvTimerRegPtr->TCR   = 0x00000080; // ENAMODE_LO=2; CLKSRC_LO=0; TI_EN_LO=0
-    lvTimerRegPtr->TGCR  = 0x00000003; // TIMMODE = 0; TIMHIRS = 1; TIMLORS = 1
-
-    return RETURN_OK;
-}
-
-uint32_t readClockGlobal(void)
-{
-    return (TSCL - ClockDscTbl[DNUM].localStartTime + 
-            6 * ClockDscTbl[DNUM].globalStartTime);
-}
 
 EXPORT uint32_t __clock(void)
 {

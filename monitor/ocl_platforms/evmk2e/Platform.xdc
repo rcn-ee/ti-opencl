@@ -48,24 +48,45 @@ config ti.platforms.generic.Platform.Instance CPU =
                           access: "RWX", } ],
 
       /*-----------------------------------------------------------------------
-      * DDR Releated regions
+      * DDR Related regions
       *----------------------------------------------------------------------*/
-      [ "DDR3",         { name: "DDR3", 
-                          base: 0xA0000000, 
-                          len:  0x01000000,
-                          space: "code/data", 
-                          access: "RWX", } ],
+      [ "DDR3_HEAP",  { name: "DDR3_HEAP",
+                        base: 0xA0000000,
+                        len:  0x00880000,
+                        space: "code/data",
+                        access: "RWX", } ],
+
+      /* Stack for ocl_service_omp task - 0x10000 for each core */
+      [ "DDR3_STACK", { name: "DDR3_STACK",
+                        base: 0xA0880000,
+                        len:  0x00080000,
+                        space: "code/data",
+                        access: "RWX", } ],
+
+      [ "DDR3",       { name: "DDR3",
+                        base: 0xA0900000,
+                        len:  0x00300000,
+                        space: "code/data",
+                        access: "RWX", } ],
+
+      /* Core specific DDR regions mapped to the same "virtual" address using MPAX
+       * The length must be consistent with MPAX configuration on device_k2x.c
+       */
+      [ "DDR3_CORE0", { name: "DDR3_CORE0",
+                        base: 0xA0c00000,
+                        len:  0x00040000,
+                        space: "code/data",
+                        access: "RWX", } ],
+
+      [ "DDR3_VIRT", {  name: "DDR3_VIRT",
+                        base: 0xA0d00000,
+                        len:  0x00040000,
+                        space: "code/data",
+                        access: "RWX", } ],
 
       /* 0xA1000000 - 0xA1100000 also used for MSMC_NC no caching setting    */
 
-      [ "DDR3_VIRT", { name: "DDR3_VIRT",
-                       base: 0xA0d00000,
-                       len:  0x00040000,
-                       space: "code/data",
-                       access: "RWX", } ],
-
       /* 0xA2000000 onwards corresponds to 36bit system address used by CMEM */
-
     ],
 
     l2Mode:"128k", 

@@ -200,7 +200,7 @@ int rtos_init_ocl_dsp_monitor(UArg argc, UArg argv)
     assert(result == Registry_SUCCESS);
 
     /* enable ENTRY/EXIT/INFO log events */
-    Diags_setMask(MODULE_NAME"+EXF");
+    Diags_setMask(MODULE_NAME"-EXF");
 
     Log_print0(Diags_ENTRY, "--> main:");
 
@@ -954,11 +954,3 @@ void __kernel_abort()
     printf("Abort. ");
     longjmp(monitor_jmp_buf, 1);
 }
-
-void testexception()
-{
-    while (1)
-        ;
-}
-
-

@@ -36,7 +36,7 @@ MBox* MBoxFactory::CreateMailbox(Coal::DSPDevice* device)
 {
     #if defined (DEVICE_K2G) || defined (DEVICE_AM57) || defined (DEVICE_K2X)
     return new MBoxMsgQ(device);
-    #elif defined (DSPC868X) /* || defined (DEVICE_K2X) */
+    #elif defined (DSPC868X)
     return new MBoxMPM(device);
     #else
     #error "Device not supported"

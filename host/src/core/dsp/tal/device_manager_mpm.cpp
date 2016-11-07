@@ -60,6 +60,7 @@ bool DeviceManagerMPM::Load() const
         char curr_core[10];
         snprintf(curr_core, 5,"dsp%d", core);
 
+        // Replace <path_to>/dsp.out with <path_to>/dspN.out where N=0/1/2..7
         char curr_binary[10];
         snprintf(curr_binary, 9, "dsp%d.out", core);
 
