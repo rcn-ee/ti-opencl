@@ -134,6 +134,11 @@ const char* ocl_error_str(int ocl_error_num)
         case -62: return "CL_INVALID_MIP_LEVEL";
         case -63: return "CL_INVALID_GLOBAL_WORK_SIZE";
         case -64: return "CL_INVALID_PROPERTY";
+
+        case -7101: return "CL_ERROR_KERNEL_ABORT_TI";
+        case -7102: return "CL_ERROR_KERNEL_EXIT_TI";
+        case -7103: return "CL_ERROR_KERNEL_TIMEOUT_TI";
+
         default:  return "UNKNOWN_ERROR_NUM";
     }
 }

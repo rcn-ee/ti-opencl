@@ -428,7 +428,7 @@ void CommandQueue::pushEventsOnDevice(Event *ready_event,
 
         cl_int e_status = (cl_int) event->status();
         // If the event is completed, remove it
-        if (e_status == Event::Complete)
+        if (e_status == Event::Complete || e_status < 0)
         {
             event->setReleaseParent(false);
             oldit = it;
@@ -445,14 +445,6 @@ void CommandQueue::pushEventsOnDevice(Event *ready_event,
             clReleaseEvent(desc(event));
 #endif
             continue;
-        }
-        // Question: Should we propagate error everywhere: Q, events in Q?
-        //           OpenCL Spec is vague on asynchronous error handling,
-        //           except for blocking waits with wait_events_list.
-        else if (e_status < 0)
-        {
-            p_flushed = false;
-            break;
         }
 
         // If OOO queue threshold is met, skip examining the rest of events
@@ -732,6 +724,12 @@ void Event::setStatus(Status status)
 {
     std::list<CallbackData> callbacks;
 
+    /*---------------------------------------------------------------------
+    * CQ.pushEventsOnDevice() needs to access internal data structure of CQ.
+    * To prevent CQ from being deleted from within pushEventsOnDevice() call,
+    * for example when the completed event is the last event in the queue,
+    * we retain CQ beforehand and release CQ afterwards.
+    *--------------------------------------------------------------------*/
     if (type() == Event::User || (parent() && status == Complete))
     {
         CommandQueue *cq = (CommandQueue *) parent();
@@ -773,16 +771,31 @@ void Event::setStatus(Status status)
         int num_dependent_events = setStatusHelper(status, callbacks);
 
         /*---------------------------------------------------------------------
+        * Error event status has the same effect as "Complete" status: it also
+        * satisfies event dependencies.  The only difference is:
         * If status is error (< 0), set dependent events status to
         * CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST
         *--------------------------------------------------------------------*/
         if (status < 0)
         {
-            printf("OCL ERROR: %s(%d, %s)\n", name(), status,
-                                                      ocl_error_str(status));
+            //printf("OCL ERROR: %s(%d, %s)\n", name(), status,
+            //                                          ocl_error_str(status));
+            CommandQueue *cq = (CommandQueue *) parent();
+            if (cq != NULL)  clRetainCommandQueue(desc(cq));
+
             for (int i = 0; i < num_dependent_events; i += 1)
-                p_dependent_events[i]->setStatus(
+            {
+                Event *d_event = p_dependent_events[i];
+                d_event->removeWaitEvent(this);
+                d_event->setStatus(
                         (Status) CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST);
+            }
+
+            if (cq != NULL)
+            {
+                cq->pushEventsOnDevice(NULL, true);
+                clReleaseCommandQueue(desc(cq));
+            }
         }
     }
 

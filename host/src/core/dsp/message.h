@@ -103,6 +103,11 @@ typedef struct
     int ocl_qmss_first_memory_region_idx;
 } configure_monitor_t;
 
+typedef struct
+{
+    int retcode;
+} command_retcode_t;
+
 typedef struct 
 {
     uint32_t      command;  // enum command_codes, use uint32_t in message
@@ -116,6 +121,7 @@ typedef struct
             flush_msg_t     flush;
         } k;
         configure_monitor_t configure_monitor;
+        command_retcode_t   command_retcode;
         char message[sizeof(kernel_config_t) + sizeof(kernel_msg_t) + sizeof(flush_msg_t)];
     } u;
 } Msg_t;
@@ -140,6 +146,13 @@ static const uint32_t mbox_payload         = sizeof(Msg_t);
 // Normal vs Debug encoding: WG_gid_start_0
 #define NORMAL_MODE_WG_GID_START 0
 #define DEBUG_MODE_WG_GID_START  1
+
+// Need to be consistent with error code in cl_ext.h
+#define CL_SUCCESS                                  0
+#define CL_ERROR_KERNEL_ABORT_TI                    -7101
+#define CL_ERROR_KERNEL_EXIT_TI                     -7102
+#define CL_ERROR_KERNEL_TIMEOUT_TI                  -7103
+
 
 #define IS_OOO_TASK(msg) ((msg.command == TASK) && \
                           (msg.u.k.config.global_size[0] != IN_ORDER_TASK_SIZE))
