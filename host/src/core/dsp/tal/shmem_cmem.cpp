@@ -1,6 +1,7 @@
 #include "shared_memory_provider.h"
 #include "shmem_rw_policy_cmem.h"
 #include "shmem_init_policy_cmem.h"
+#include "heaps_policy_process.h"
 
 using namespace tiocl;
 
@@ -9,5 +10,6 @@ using namespace tiocl;
 
 // Instantiate the CMEM shared memory provider
 template class 
-SharedMemoryProvider<InitializationPolicyCMEM, ReadWritePolicyCMEM>;
+SharedMemoryProvider<InitializationPolicyCMEM, ReadWritePolicyCMEM,
+                     HeapsMultiProcessPolicy>;
 

@@ -38,15 +38,16 @@ endif
 
 # LLVM
 
-ARM_LLVM_DIR?=$(SDOMC_SHARED)/llvm-3.6.0-20160615-arm
 ifeq ($(BUILD_OS), SYS_BIOS)
-    ARM_LLVM_DIR=$(SDOMC_SHARED)/llvm-3.6.0-20160615-sysbios
+    ARM_LLVM_DIR=$(SDOMC_SHARED)/llvm-3.6.0-20161107-sysbios
+else
+    ARM_LLVM_DIR=$(SDOMC_SHARED)/llvm-3.6.0-20161107-arm
 endif
 
 ifeq (,$(findstring x86_64, $(UNAME_M)))
-    X86_LLVM_DIR?=$(SDOMC_SHARED)/llvm-3.6.0-20160615-x86
+    X86_LLVM_DIR?=$(SDOMC_SHARED)/llvm-3.6.0-20161107-x86
 else
-    X86_LLVM_DIR?=$(SDOMC_SHARED)/llvm-3.6.0-20160615-x86_64
+    X86_LLVM_DIR?=$(SDOMC_SHARED)/llvm-3.6.0-20161107-x86_64
 endif
 
 # OMP 

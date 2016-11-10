@@ -39,87 +39,13 @@
 #ifndef HEAP_MANAGER_H_
 #define HEAP_MANAGER_H_
 
-#include <cstdio>
-#include <cstdlib>
-#include <inttypes.h>
-#include <unistd.h>
 #include <signal.h>
-#include <sys/types.h>
-
 #include <map>
 #include <unordered_set>
 #include <iostream>
 #include <iomanip>
 
-#include <boost/thread/mutex.hpp>
-#include <boost/interprocess/managed_shared_memory.hpp>
-#include <boost/interprocess/allocators/allocator.hpp>
-#include <boost/interprocess/containers/map.hpp>
-
 namespace utility { 
-
-/*-----------------------------------------------------------------------------
-* Create the alias BIP for boost:interprocess, but make it only visible in this 
-* header by placing it in an anonymous namespace.
-*----------------------------------------------------------------------------*/
-namespace { namespace BIP = boost::interprocess; }
-
-/*-----------------------------------------------------------------------------
-* Policy class for HeapManager, when cross inter-process usage is required
-*----------------------------------------------------------------------------*/
-template <typename Address, typename Length> struct MultiProcess
-{
-    typedef BIP::interprocess_mutex                         Mutex;
-    typedef BIP::scoped_lock<Mutex>                         ScopedLock;
-    typedef BIP::managed_shared_memory                      ManagedMemory;
-    typedef ManagedMemory::segment_manager                  SegmentManager;
-    typedef BIP::interprocess_exception                     Exception;
-    typedef std::pair<Length, uint32_t>                     AllocMapElementVal;
-    typedef std::pair<const Address, AllocMapElementVal>    AllocMapElement;
-    typedef BIP::allocator<AllocMapElement, SegmentManager> AllocMapAllocator;
-    typedef Length                                          FreeMapElementVal;
-    typedef std::pair<const Address, FreeMapElementVal>     FreeMapElement;
-    typedef BIP::allocator<FreeMapElement, SegmentManager>  FreeMapAllocator;
-
-    typedef BIP::map<Address, AllocMapElementVal, 
-              std::less<Address>, const AllocMapAllocator>  AllocBlockList;
-
-    typedef BIP::map<Address, FreeMapElementVal, 
-              std::less<Address>, const FreeMapAllocator>   FreeBlockList;
-
-    static inline Length length(AllocMapElementVal& val) { return val.first;  }
-    static inline Length pid   (AllocMapElementVal& val) { return val.second; }
-    static inline AllocMapElementVal alloc_entry (Length& val) 
-                                  { return AllocMapElementVal(val, getpid()); }
-};
-
-/*-----------------------------------------------------------------------------
-* Policy class for HeapManager, when multi-threaded usage is required
-*----------------------------------------------------------------------------*/
-template <typename Address, typename Length> struct MultiThread
-{
-    typedef boost::mutex                        Mutex;
-    typedef boost::mutex::scoped_lock           ScopedLock;
-    typedef class managed_memory                ManagedMemory;
-    typedef std::pair<const Address, Length>    MapElement;
-    typedef std::exception                      Exception;
-    typedef std::allocator<MapElement>          MapAllocator;
-    typedef MapAllocator                        AllocMapAllocator;
-    typedef MapAllocator                        FreeMapAllocator;
-    typedef std::map<Address, Length>           BlockList;
-    typedef BlockList                           AllocBlockList;
-    typedef BlockList                           FreeBlockList;
-
-    struct managed_memory
-    {
-         MapAllocator get_segment_manager() { return MapAllocator(); }
-    };
-
-    static inline Length length(Length& val)       { return val; }
-    static inline Length pid   (Length& )          { return 0;   }
-    static inline Length alloc_entry (Length& val) { return val; }
-};
-
 
 /*-----------------------------------------------------------------------------
 * HeapManager - manage an out of line heap allocator, meaning that the heap 
@@ -162,16 +88,16 @@ template <typename Address, typename Length, typename Scope> class HeapManager
     * CTOR - Used for Scope = MultiProcess
     *------------------------------------------------------------------------*/
     HeapManager (const ManagedMemory& segment) :
-       alloc_map_allocator_            (segment.get_segment_manager()),
-       free_map_allocator_             (segment.get_segment_manager()),
-       free_list_                      (std::less<Address>(), free_map_allocator_),
-       alloc_list_                     (std::less<Address>(), alloc_map_allocator_),
-       start_addr_                     (0),
-       length_                         (0),
-       min_block_size_                 (0),
-       available_                      (0),
+       alloc_map_allocator_        (segment.get_segment_manager()),
+       free_map_allocator_         (segment.get_segment_manager()),
+       free_list_                  (std::less<Address>(), free_map_allocator_),
+       alloc_list_                 (std::less<Address>(), alloc_map_allocator_),
+       start_addr_                 (0),
+       length_                     (0),
+       min_block_size_             (0),
+       available_                  (0),
        addrs_need_pow2_size_alignment_ (false),
-       max_pow2_size_alignment_        (0) {}
+       max_pow2_size_alignment_    (0) {}
 
     /*-------------------------------------------------------------------------
     * CTOR - Used for Scope = MultiThread
@@ -271,10 +197,10 @@ template <typename Address, typename Length, typename Scope> class HeapManager
             if (!allow_fail)
             {
                 std::cout << std::hex 
-                          << "Malloc failed for size 0x" << size 
-                          << " from range (0x"           << start_addr_
-                          << ", 0x"                      << start_addr_ + length_ - 1
-                          << ")"                         << std::endl << std::dec;
+                     << "Malloc failed for size 0x" << size 
+                     << " from range (0x"           << start_addr_
+                     << ", 0x"                      << start_addr_ + length_ -1
+                     << ")"                         << std::endl << std::dec;
 
                 exit(EXIT_FAILURE);
             }
@@ -303,7 +229,6 @@ template <typename Address, typename Length, typename Scope> class HeapManager
             auto it = alloc_list_.find(addr);
             if (it == alloc_list_.end()) return -1;
 
-            // PID Length size = it->second;
             Length size = Scope::length(it->second);
 
             /*-----------------------------------------------------------------
@@ -331,7 +256,8 @@ template <typename Address, typename Length, typename Scope> class HeapManager
             * a separate block in the free list and no space indicates a merged
             * block
             *----------------------------------------------------------------*/
-            bool can_merge_prior = (prior_block->first + prior_block->second == addr);
+            bool can_merge_prior = ((prior_block->first + prior_block->second)
+                                     == addr);
             bool can_merge_after = (addr + size == after_block->first);
 
             if (can_merge_after) size += after_block->second;
@@ -456,9 +382,9 @@ template <typename Address, typename Length, typename Scope> class HeapManager
             { std::cout << ex.what() << std::endl; exit(EXIT_FAILURE); }
     }
 
-    /*-----------------------------------------------------------------------------
+    /*-------------------------------------------------------------------------
      * process_exists - Does a PID represent a running process?
-     *----------------------------------------------------------------------------*/
+     *------------------------------------------------------------------------*/
     bool process_exists(uint32_t pid) { return (0 == kill(pid, 0)); }
 
     /*-------------------------------------------------------------------------
@@ -474,7 +400,8 @@ template <typename Address, typename Length, typename Scope> class HeapManager
 
             ScopedLock lock(mutex_);
             for (auto ab : alloc_list_)
-                if (!process_exists(Scope::pid(ab.second))) need_free.insert(ab.first);
+                if (!process_exists(Scope::pid(ab.second))) 
+                    need_free.insert(ab.first);
 
             /*-----------------------------------------------------------------
             * Unlock the lock so the free calls can get the lock
@@ -523,7 +450,8 @@ template <typename Address, typename Length, typename Scope> class HeapManager
             ScopedLock lock(mutex_);
 
             std::cout << std::hex;
-            std::cout << "-- " << name << " ------------------------------" << std::endl;
+            std::cout << "-- " << name << " ------------------------------" 
+                      << std::endl;
             std::cout << "   Addr : 0x" << start_addr_ << std::endl;
             std::cout << "   Size : 0x" << length_     << std::endl;
             std::cout << "   Avail: 0x" << available_     << std::endl;
@@ -533,16 +461,19 @@ template <typename Address, typename Length, typename Scope> class HeapManager
             {
                 std::cout << "   Free: " << std::endl;
                 for (auto& kv : free_list_)
-                    std::cout << "        addr: 0x" << kv.first << " size: 0x" << kv.second << std::endl;
+                    std::cout << "        addr: 0x" << kv.first << " size: 0x" 
+                              << kv.second << std::endl;
 
                 std::cout << "   Aloc: " << std::endl;
                 for (auto& kv : alloc_list_)
-                    std::cout << "        addr: 0x" << kv.first << " size: 0x" << Scope::length(kv.second)
-                              << std::dec << " pid: " << Scope::pid(kv.second) << std::hex << std::endl;
+                    std::cout << "        addr: 0x" << kv.first << " size: 0x" 
+                              << Scope::length(kv.second)
+                              << std::dec << " pid: " << Scope::pid(kv.second) 
+                              << std::hex << std::endl;
             }
 
-            std::cout << "-----------------------------------------" << std::endl << std::endl;
-            std::cout << std::dec;
+            std::cout << "-----------------------------------------" 
+                      << std::endl << std::endl << std::dec;
         }
         catch(Exception &ex)
             { std::cout << ex.what() << std::endl; exit(EXIT_FAILURE); }

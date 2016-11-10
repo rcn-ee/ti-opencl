@@ -117,7 +117,8 @@ typedef struct
             flush_msg_t     flush;
         } k;
         configure_monitor_t configure_monitor;
-        char message[sizeof(kernel_config_t) + sizeof(kernel_msg_t) + sizeof(flush_msg_t)];
+        char message[sizeof(kernel_config_t) + sizeof(kernel_msg_t) + 
+                     sizeof(flush_msg_t)];
     } u;
 } Msg_t;
 

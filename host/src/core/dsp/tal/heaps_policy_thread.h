@@ -25,45 +25,41 @@
  *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  *  THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
+#ifndef HEAPS_POLICY_THREAD_H_
+#define HEAPS_POLICY_THREAD_H_
 
-#include <cassert>
-#include "shared_memory_provider.h"
-#include "shmem_rw_policy_cmem.h"
-#include "shmem_init_policy_cmem.h"
-#include "heaps_policy_process.h"
+#include <unistd.h>
+#include "heap_manager.h"
+#include "heap_manager_policy_thread.h"
 
-using namespace tiocl;
-
-SharedMemory* SharedMemoryProviderFactory::CreateSharedMemoryProvider
-           (uint8_t device_id)
+/******************************************************************************
+* class HeapsMultiThreadedPolicy
+*   Create heap managers in private process memory and share across threads.
+******************************************************************************/
+class HeapsMultiThreadedPolicy
 {
-    // Create a CMEM based shared memory implementation
-    SharedMemory* shm =
-        new SharedMemoryProvider<InitializationPolicyCMEM, ReadWritePolicyCMEM,
-            HeapsMultiProcessPolicy> (device_id);
+public:
+    typedef utility::HeapManager<DSPDevicePtr, uint32_t, 
+            utility::MultiThread<DSPDevicePtr, uint32_t> > Heap32Bit;
 
-    assert (shm != nullptr);
+    typedef utility::HeapManager<DSPDevicePtr64, uint64_t, 
+            utility::MultiThread<DSPDevicePtr64, uint64_t> > Heap64Bit;
 
-    shmProviderMap[device_id] = shm;
+    HeapsMultiThreadedPolicy() : ddr_heap1_(new Heap64Bit), 
+                                 ddr_heap2_(new Heap64Bit), 
+                                 msmc_heap_(new Heap64Bit)
+    {}
+        
+    ~HeapsMultiThreadedPolicy()
+    {
+	delete msmc_heap_;
+	delete ddr_heap1_;
+	delete ddr_heap2_;
+    }
 
-    return shm;
-}
-
-void SharedMemoryProviderFactory::DestroySharedMemoryProviders()
-{
-    for (auto const &m : shmProviderMap)
-        delete m.second;
-}
-
-
-SharedMemory* SharedMemoryProviderFactory::GetSharedMemoryProvider
-      (uint8_t device_id) const
-{
-    std::map<uint8_t, SharedMemory*>::const_iterator it = 
-             shmProviderMap.find(device_id);
-
-    if (it != shmProviderMap.end())
-        return shmProviderMap.at(device_id);
-
-    return nullptr;
-}
+protected:
+    Heap64Bit* ddr_heap1_;  // persistently mapped off-chip memory
+    Heap64Bit* ddr_heap2_;  // ondemand mapped off-chip memory
+    Heap64Bit* msmc_heap_;  // on-chip memory
+};
+#endif // HEAPS_POLICY_THREAD_H_

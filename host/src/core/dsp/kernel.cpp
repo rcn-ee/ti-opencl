@@ -53,6 +53,7 @@
 #include <string>
 #include <vector>
 #include <unistd.h>
+#include <stdio.h>
 #ifndef _SYS_BIOS
 #include <sys/mman.h>
 #else
@@ -202,7 +203,9 @@ size_t DSPKernel::guessWorkGroupSize(cl_uint num_dims, cl_uint dim,
     return global_work_size / divisor;
 }
 
-// From Wikipedia : http://www.wikipedia.org/wiki/Power_of_two#Algorithm_to_round_up_to_power_of_two
+/*-----------------------------------------------------------------------------
+* From Wikipedia : http://www.wikipedia.org/wiki/Power_of_two#Algorithm_to_round_up_to_power_of_two
+*----------------------------------------------------------------------------*/
 template <class T>
 T next_power_of_two(T k) 
 {
@@ -213,7 +216,6 @@ T next_power_of_two(T k)
             k = k | k >> i;
     return k+1;
 }
-
 
 /******************************************************************************
 * workGroupSize()
@@ -234,22 +236,23 @@ size_t DSPKernel::workGroupSize()  const
     * Get the total L2 available from device
     *------------------------------------------------------------------------*/
     cl_ulong  local_mem_size = 0;
-    p_device->info(CL_DEVICE_LOCAL_MEM_SIZE, sizeof(local_mem_size),&local_mem_size,NULL);
+    p_device->info(CL_DEVICE_LOCAL_MEM_SIZE, sizeof(local_mem_size),
+                   &local_mem_size, NULL);
 
     /*-------------------------------------------------------------------------
     * if no wi_alloca, use the work group size limit specified by the device
     *-------------------------------------------------------------------------*/
     if (wi_alloca_size)
     {
-        /*-------------------------------------------------------------------------
+        /*---------------------------------------------------------------------
         * Subtract any local buffer space from the total L2 available space
-        *------------------------------------------------------------------------*/
+        *--------------------------------------------------------------------*/
         local_mem_size -= localMemSize();
      
-        /*-------------------------------------------------------------------------
-        * Use the smaller of the device limit or up to available L2 mem of wi_alloca
-        * space per kernel.   
-        *-------------------------------------------------------------------------*/
+        /*---------------------------------------------------------------------
+        * Use the smaller of the device limit or up to available L2 mem of 
+        * wi_alloca space per kernel.   
+        *---------------------------------------------------------------------*/
         return MIN(wgsize, local_mem_size / wi_alloca_size);
     }
 
@@ -316,12 +319,12 @@ DSPDevice *      DSPKernel::device()   const { return p_device; }
 *    return the kernel .ocl_local_overlay address and a kernel specific 
 *    .ocl_local_overlay size.
 *
-* +=========+====================+=================+====================+=========+
-* | .mem_l2 | .ocl_local_overlay | local arguments | variable expansion | scratch |
-* +=========+====================+=================+====================+=========+
-* ^                                                                     ^
-* |                                                                     |
-* L2 start                                                        scratch start
+* +=========+====================+=================+===============+=========+
+* | .mem_l2 | .ocl_local_overlay | local arguments | var expansion | scratch |
+* +=========+====================+=================+===============+=========+
+* ^                                                                ^
+* |                                                                |
+* L2 start                                                   scratch start
 *
 ******************************************************************************/
 DSPDevicePtr DSPKernel::locals_in_kernel_extent(uint32_t &ret_size) const 
@@ -364,7 +367,8 @@ DSPDevicePtr DSPKernel::locals_as_args_extent(uint32_t &ret_size) const
 
         if (arg.kind() == Kernel::Arg::Buffer && 
             arg.file() == Kernel::Arg::Local)
-              local_args_size += ROUNDUP(arg.allocAtKernelRuntime(), MIN_BLOCK_SIZE);
+              local_args_size += 
+                       ROUNDUP(arg.allocAtKernelRuntime(), MIN_BLOCK_SIZE);
     }
 
     ret_size = local_args_size;
@@ -573,9 +577,11 @@ cl_int DSPKernelEvent::callArgs(unsigned max_args_size)
                     }
                     else
                     {
-                        DSPBuffer *dspbuf = (DSPBuffer *)buffer->deviceBuffer(p_device);
+                        DSPBuffer *dspbuf = 
+                                   (DSPBuffer *)buffer->deviceBuffer(p_device);
                         buffer->allocate(p_device);
                         DSPDevicePtr64 addr64 = dspbuf->data();
+                        
                         if (addr64 < 0xFFFFFFFF)
                             buf_ptr = addr64;
                         else
@@ -620,16 +626,21 @@ cl_int DSPKernelEvent::callArgs(unsigned max_args_size)
 
                     if (arg.is_subword_int_uns())
                     {
-                        if (size == 1) dummy = (unsigned) *((unsigned char*)arg.data());
-                        else if (size == 2)  dummy = (unsigned) *((unsigned short*)arg.data());
+                        if (size == 1) 
+                            dummy = (unsigned) *((unsigned char*)arg.data());
+                        else if (size == 2)  
+                            dummy = (unsigned) *((unsigned short*)arg.data());
                     }
                     else
                     {
-                        if (size == 1) dummy = (int) *((signed char*)arg.data());
-                        else if (size == 2)  dummy = (int) *((short*)arg.data());
+                        if (size == 1) 
+                            dummy = (int) *((signed char*)arg.data());
+                        else if (size == 2)  
+                            dummy = (int) *((short*)arg.data());
                     }
 
-                    void *p_data = (dummy == 0) ? (void*)arg.data() : (void *) &dummy;
+                    void *p_data = (dummy == 0) ? (void*)arg.data() 
+                                                : (void *) &dummy;
                     size         = (dummy == 0) ? size : 4;
 
                     setarg_inreg(args_in_reg_index, size, args_in_reg, p_data);
@@ -690,7 +701,8 @@ static void debug_pause(uint32_t entry, uint32_t dsp_id,
                         const char* outfile, char *name, DSPDevicePtr load_addr,
                         bool is_gdbc6x)
 {
-    std::string dsp_monitor = tiocl::DeviceInfo::Instance().FullyQualifiedPathToDspMonitor();
+    std::string dsp_monitor = tiocl::DeviceInfo::Instance()
+                                     .FullyQualifiedPathToDspMonitor();
 
     if (is_gdbc6x)
         printf("gdbc6x -q "
@@ -732,13 +744,14 @@ cl_int DSPKernelEvent::run(Event::Type evtype)
     uint32_t     remaining_l2_size;
     DSPDevicePtr local_scratch;
 
-    cl_int err = allocate_and_assign_local_buffers(remaining_l2_size, local_scratch);
+    cl_int err = allocate_and_assign_local_buffers(remaining_l2_size, 
+                                                   local_scratch);
     if (err != CL_SUCCESS) return err;
 
     /*-------------------------------------------------------------------------
     * Populate the kernel_config_t structure
     *------------------------------------------------------------------------*/
-    err = init_kernel_runtime_variables(evtype, remaining_l2_size, local_scratch);
+    err = init_kernel_runtime_variables(evtype,remaining_l2_size,local_scratch);
     if (err != CL_SUCCESS) return err;
 
     /*-------------------------------------------------------------------------
@@ -870,8 +883,8 @@ cl_int DSPKernelEvent::init_kernel_runtime_variables(Event::Type evtype,
         /*---------------------------------------------------------------------
         * Overloaded use of this field for tasks.
         *--------------------------------------------------------------------*/
-        cfg->global_size[0] = (q_prop & CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE) ?
-                           OUT_OF_ORDER_TASK_SIZE : IN_ORDER_TASK_SIZE;
+        cfg->global_size[0]= (q_prop & CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE) ?
+                              OUT_OF_ORDER_TASK_SIZE : IN_ORDER_TASK_SIZE;
 
         /*---------------------------------------------------------------------
         * Note: We do not bother to write the fields that are static for tasks.
@@ -899,7 +912,8 @@ cl_int DSPKernelEvent::init_kernel_runtime_variables(Event::Type evtype,
     * Will attempt allocation from faster to slower memory.
     *------------------------------------------------------------------------*/
     cfg->WG_alloca_size = p_kernel->kernel()->get_wi_alloca_size() * 
-        p_event->local_work_size(0)* p_event->local_work_size(1)* p_event->local_work_size(2);
+        p_event->local_work_size(0) * p_event->local_work_size(1) *
+        p_event->local_work_size(2);
 
     if (cfg->WG_alloca_size > 0)
     {
@@ -1091,10 +1105,10 @@ cl_int DSPKernelEvent::setup_extended_memory_mappings()
         uint32_t mpax_used = 0;
         for (; mpax_res.mapping[mpax_used].segsize_power2 > 0; mpax_used += 1)
         {
-            p_msg.u.k.flush.mpax_settings[2*mpax_used+1] =     // e.g. 0xC000000D
+            p_msg.u.k.flush.mpax_settings[2*mpax_used+1] =    // e.g. 0xC000000D
                   mpax_res.mapping[mpax_used].baddr
                | (mpax_res.mapping[mpax_used].segsize_power2-1);
-            p_msg.u.k.flush.mpax_settings[2*mpax_used  ] =     // e.g. 0x8220043F
+            p_msg.u.k.flush.mpax_settings[2*mpax_used  ] =    // e.g. 0x8220043F
                  ((uint32_t) (mpax_res.mapping[mpax_used].raddr >> 4))
                | DEFAULT_PERMISSION;
         }
@@ -1167,8 +1181,8 @@ cl_int DSPKernelEvent::setup_stack_based_arguments()
             memcpy(mapped_addr, args_on_stack, rounded_args_on_stack_size);
 
         if (argref_offset > 0)
-            memcpy(((char*)mapped_addr)+rounded_args_on_stack_size, args_of_argref,
-                   argref_offset);
+            memcpy(((char*)mapped_addr)+rounded_args_on_stack_size, 
+                    args_of_argref, argref_offset);
 
         shm->Unmap(mapped_addr, args_addr, args_in_mem_size, true);
 

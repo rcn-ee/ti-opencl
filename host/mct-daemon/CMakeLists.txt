@@ -4,12 +4,11 @@ endif()
 
 include_directories( ${PROJECT_SOURCE_DIR}/src/core/dsp )
 
-set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -O3 -std=c++11 -D_FILE_OFFSET_BITS=64 -DBOOST_SYSTEM_NO_DEPRECATED=1")
-
+set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -O3 -std=c++11 -D_FILE_OFFSET_BITS=64 -DBOOST_SYSTEM_NO_DEPRECATED=1 -DBOOST_SYSTEM_NO_LIB=1") 
 SET(RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 add_executable(ti-mctd mctd.cpp)
-add_executable(ti-mct-heap-check heap-check.cpp)
+add_executable(ti-mct-heap-check heap_check.cpp)
 
 find_library(CMEM_LIB          ticmem)
 

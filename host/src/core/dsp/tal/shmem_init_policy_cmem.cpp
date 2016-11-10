@@ -73,7 +73,7 @@ void cmem_init(std::vector<MemoryRange>& ranges)
     int num_Blocks = 0;
     CMEM_getNumBlocks(&num_Blocks);
     if (num_Blocks < CMEM_MIN_BLOCKS)
-        ReportError(ErrorType::Fatal, ErrorKind::CMEMMinBlocks, CMEM_MIN_BLOCKS);
+       ReportError(ErrorType::Fatal, ErrorKind::CMEMMinBlocks, CMEM_MIN_BLOCKS);
 
     CMEM_BlockAttrs pattrs0 = {0, 0};
     CMEM_getBlockAttrs(0, &pattrs0);
@@ -91,6 +91,9 @@ void cmem_init(std::vector<MemoryRange>& ranges)
     params.flags            = CMEM_CACHED;
     params.type             = CMEM_POOL;
 
+    /*-------------------------------------------------------------------------
+    * Register alloc CMEM block already allocated by the mct daemon
+    *------------------------------------------------------------------------*/
     CMEM_registerAlloc(ddr_addr);
 
     DSPDevicePtr64 addr1 = ddr_addr;
@@ -107,7 +110,8 @@ void cmem_init(std::vector<MemoryRange>& ranges)
         size1 = ddr_size - size2;
         addr2 = ddr_addr + size1;
 
-        ReportTrace("CMEM splitting into 2 chunks: (0x%llx, %lld MB), (0x%llx, %lld MB)\n",
+        ReportTrace("CMEM splitting into 2 chunks: (0x%llx, %lld MB), "
+                    "(0x%llx, %lld MB)\n",
                     addr1, size1 >> 20, addr2, size2 >> 20);
     }
 
@@ -156,6 +160,10 @@ void cmem_init(std::vector<MemoryRange>& ranges)
                         "On-chip Shared Memory", pattrs1.phys_base);
 
         params.type    = CMEM_HEAP;
+
+        /*---------------------------------------------------------------------
+        * Register alloc CMEM block already allocated by the mct daemon
+        *--------------------------------------------------------------------*/
         CMEM_registerAlloc(onchip_shared_addr);
 
         ranges.emplace_back(onchip_shared_addr, onchip_shared_size,

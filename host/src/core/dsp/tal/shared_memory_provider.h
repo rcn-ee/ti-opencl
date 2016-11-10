@@ -34,7 +34,6 @@
 #include "core/shared_memory_interface.h"
 #include "memory_provider_factory.h"
 #include "../../tiocl_types.h"
-#include "heap_manager.h"
 
 #pragma once
 
@@ -50,9 +49,10 @@ typedef std::map<void*, PhysAddrSizeFlagsTriple>           clMallocMapping;
  *           ranges are discovered
  * RWPolicy: Handles variations in Read/Write and Map/Unmap functions
  ***************************************************************************/
-template <class MIPolicy, class RWPolicy>
+template <class MIPolicy, class RWPolicy, class HeapPolicy>
 class SharedMemoryProvider : public SharedMemory,
-                             private MIPolicy, private RWPolicy,
+                             private MIPolicy, private RWPolicy, 
+                             public HeapPolicy,
                              public Lockable
 {
 public:
@@ -96,15 +96,6 @@ private:
     std::vector<MemoryRange>     memory_ranges_;
     tiocl::MemoryProviderFactory mp_factory_;
 
-    typedef utility::HeapManager<DSPDevicePtr,   uint32_t, 
-                         utility::MultiProcess<DSPDevicePtr,  uint32_t>> Heap32Bit;
-    typedef utility::HeapManager<DSPDevicePtr64, uint64_t, 
-                         utility::MultiProcess<DSPDevicePtr64,uint64_t>> Heap64Bit;
-
-    boost::interprocess::managed_shared_memory    heap_segment_;
-    Heap64Bit*         ddr_heap1_;  // persistently mapped off-chip memory
-    Heap64Bit*         ddr_heap2_;  // ondemand mapped off-chip memory
-    Heap64Bit*         msmc_heap_;  // on-chip memory
     clMallocMapping    clMalloc_mapping_;
 };
 

@@ -175,7 +175,7 @@ if (${BUILD_OUTPUT} STREQUAL "all")
   add_subdirectory(${OCL_MONITOR_DIR} ${CMAKE_CURRENT_BINARY_DIR}/monitor)
 endif()
 
-if (${BUILD_OUTPUT} STREQUAL "all" OR ${BUILD_OS} not MATCHES "SYS_BIOS")
+if (NOT (${BUILD_OS} MATCHES "SYS_BIOS"))
   add_subdirectory(mct-daemon)
 endif()
 

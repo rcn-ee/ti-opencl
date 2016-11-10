@@ -130,13 +130,13 @@ static int  incVec(unsigned dims, unsigned *vec, unsigned *inc, unsigned *maxs);
 static void respond_to_host(ocl_msgq_message_t *msgq_pkt, uint32_t msgId);
 
 static void process_kernel_command(ocl_msgq_message_t* msgq_pkt);
-static void process_task_command  (ocl_msgq_message_t* msgq_msg);
-static void process_cache_command (int pkt_id, ocl_msgq_message_t *msgq_pkt);
-static void process_exit_command  (ocl_msgq_message_t* msgq_msg);
+static void process_task_command (ocl_msgq_message_t* msgq_msg);
+static void process_cache_command(int pkt_id, ocl_msgq_message_t *msgq_pkt);
+static void process_exit_command (ocl_msgq_message_t* msgq_msg);
 static void process_setup_debug_command(ocl_msgq_message_t* msgq_pkt);
-static void service_workgroup     (Msg_t* msg);
-static bool setup_ndr_chunks      (int dims, uint32_t* limits, uint32_t* offsets,
-                                   uint32_t *gsz, uint32_t* lsz);
+static void service_workgroup    (Msg_t* msg);
+static bool setup_ndr_chunks     (int dims, uint32_t* limits, uint32_t* offsets,
+                                  uint32_t *gsz, uint32_t* lsz);
 static void process_configuration_message(ocl_msgq_message_t* msgq_pkt);
 
 
@@ -314,7 +314,6 @@ void ocl_main(UArg arg0, UArg arg1)
 
     return;
 }
-
 
 /******************************************************************************
 * ocl_monitor
@@ -618,7 +617,8 @@ static bool setup_ndr_chunks(int dims, uint32_t* limits, uint32_t* offsets,
     // a multiple of chunk size
     int num_chunks = n_cores;
     while (--dims >= 0)
-        if (IS_MULTIPLE(num_chunks, gsz[dims]) && IS_MULTIPLE(lsz[dims], gsz[dims] / num_chunks))
+        if (IS_MULTIPLE(num_chunks, gsz[dims]) && 
+            IS_MULTIPLE(lsz[dims], gsz[dims] / num_chunks))
         {
             limits[dims] /= num_chunks;
             offsets[dims] += (DNUM * limits[dims]);
