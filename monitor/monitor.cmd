@@ -77,11 +77,6 @@ SECTIONS
 
     .workgroup_config: > L2SRAM  palign(L2_LINE_SIZE)
 
-    .mbox_d2h:         run=MSMC_NC_VIRT, load=MSMC_NC_PHYS, fill=0
-		          load_start(mbox_d2h_phys) size(mbox_d2h_size) 
-
-    .mbox_h2d:         run=MSMC_NC_VIRT, load=MSMC_NC_PHYS, fill=0
-		          load_start(mbox_h2d_phys) size(mbox_h2d_size) 
 }
 
 /*-----------------------------------------------------------------------------
@@ -99,6 +94,8 @@ nocache_size         = size (MSMC_NC_PHYS);
 
 ddr3_virt_start      = start(DDR3_VIRT);
 ddr3_virt_size       = size (DDR3_VIRT);
+
+ddr3_32b_phy_base    = start(DDR3_CORE0);
 
 service_stack_start  = start(DDR3_STACK);
 service_stack_size   = size(DDR3_STACK);

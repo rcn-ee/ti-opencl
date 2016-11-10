@@ -55,17 +55,6 @@ extern cregister volatile unsigned int DNUM;
 #define FLUSH_MSG_KERNEL_PROLOG 0xFFFFFFFD  // kernel/iotask prolog
 #define FLUSH_MSG_IOTASK_EPILOG 0xFFFFFFFC  // iotask epilog
 
-/******************************************************************************
-* Define the signature of an Event manager event handler
-******************************************************************************/
-#define EVENT_HANDLER(name)
-
-/******************************************************************************
-* Event Machine Event Handlers
-******************************************************************************/
-EVENT_HANDLER(service_kernel_complete);
-EVENT_HANDLER(service_workgroup);
-EVENT_HANDLER(service_exit);
 
 /******************************************************************************
 * Macro used to define variables that will be aligned to a cache linesize and 

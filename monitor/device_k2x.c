@@ -93,21 +93,42 @@ void initialize_memory()
     MultiProc_setLocalId(DNUM + 1); // HOST has id 0, CORE0 has id 1, ...
 }
 
+/*
+ * Using MPAX to create core local memory regions in DDR. E.g., on K2H:
+ *  -  Create a region for each DSP core in the Platform file. Also create a
+ *     virtual region DDR3_VIRT, that all of these core local regions map to
+ *     o   Core 0, local DDR region DDR3_CORE0 at 0xa0c0_0000, size 0x40000
+ *     o   Core 1, local DDR region DDR3_CORE1 at 0xa0c4_0000
+ *     o   virtual region at 0xa200_000
+ *  -  Program MPAX register to map the virtual region (in 32b address space)
+ *     to different DDR regions in the 36-bit system address space
+ *     o   Core 0, 0xa200_0000 maps to 0x8:20c0_0000
+ *     o   Core 1, 0xa200_0000 maps to 0x8:20c4_0000
+ *     o   Note: MPAX must be set up before cinit is called.
+ *               This is done using a Reset hook in the cfg file.
+ *  -  In the linker command file (monitor.cmd), set the run address of .far
+ *     and .fardata mapped to the local regions to the virtual address
+ *     (e.g. 0xa100_0000).
+ *     The load address is the physical address (e.g. 0xa0c0_0000 for core 0)
+ *
+ *     https://confluence.itg.ti.com/x/9KJW
+ */
 void set_mpax_before_cinit()
 {
     extern uint32_t ddr3_virt_start;
     extern uint32_t ddr3_virt_size;
 
-    uint32_t ddr3_virt = ((uint32_t) &ddr3_virt_start) >> 12;
-    uint32_t size = (uint32_t) &ddr3_virt_size;
-    uint32_t size_encoding = count_trailing_zeros(size) - 1;
+    uint32_t ddr3_virt_encoding = ((uint32_t) &ddr3_virt_start) >> 12;
+    uint32_t size               = (uint32_t) &ddr3_virt_size;
+    uint32_t size_encoding      = count_trailing_zeros(size) - 1;
 
     // The same 32b virtual address is mapped to a core specific 36b system address.
     // 0xA0c0_0000 -> 0x8:20c0_0000
-    // The 36b physical address must be in sync with 32b DDR3_CORE0 base in Platform.xdc
-    uint32_t ddr3_phys = (0x820c00000ULL + (DNUM * size)) >> 12;
+    extern uint32_t ddr3_32b_phy_base;
+    uint64_t ddr3_system = 0x820000000ULL | (((uint32_t) &ddr3_32b_phy_base) & 0xffffff);
+    uint32_t ddr3_phys_encoding = (ddr3_system + (DNUM * size)) >> 12;
 
-    set_MPAX     (3, ddr3_virt, size_encoding,  ddr3_phys, DEFAULT_PERMISSION);
+    set_MPAX  (3, ddr3_virt_encoding, size_encoding, ddr3_phys_encoding, DEFAULT_PERMISSION);
 }
 
 unsigned dsp_speed()

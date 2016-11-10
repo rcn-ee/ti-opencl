@@ -159,7 +159,7 @@ if (K2X_BUILD OR K2G_BUILD)
     set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/device_manager_mpm.cpp)
 endif()
 
-if (K2G_BUILD OR AM57_BUILD OR K2X_BUILD)
+if (NOT C6678_BUILD)
     set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/mbox_impl_msgq.cpp)
 endif()
 

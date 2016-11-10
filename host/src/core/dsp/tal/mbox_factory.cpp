@@ -26,19 +26,28 @@
  *   THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
 
-#if /*defined(DEVICE_K2X) ||*/ defined(DSPC868X)
+#if defined(DSPC868X)
+#define MAILBOX_MPM     (1)
+#define MAILBOX_MQ      (0)
+#elif defined (DEVICE_K2G) || defined (DEVICE_AM57) || defined(DEVICE_K2H) || \
+      defined(DEVICE_K2L) || defined (DEVICE_K2E)
+#define MAILBOX_MQ      (1)
+#define MAILBOX_MPM     (0)
+#else
+    #error "Device not supported"
+#endif
+
+#if MAILBOX_MPM
 #include "mbox_impl_mpm.h"
-#elif defined (DEVICE_K2G) || defined (DEVICE_AM57) || defined(DEVICE_K2X)
+#elif MAILBOX_MQ
 #include "mbox_impl_msgq.h"
 #endif
 
 MBox* MBoxFactory::CreateMailbox(Coal::DSPDevice* device)
 {
-    #if defined (DEVICE_K2G) || defined (DEVICE_AM57) || defined (DEVICE_K2X)
+    #if MAILBOX_MQ
     return new MBoxMsgQ(device);
-    #elif defined (DSPC868X)
+    #elif MAILBOX_MPM
     return new MBoxMPM(device);
-    #else
-    #error "Device not supported"
     #endif
 }
