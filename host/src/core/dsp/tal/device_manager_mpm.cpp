@@ -60,12 +60,20 @@ bool DeviceManagerMPM::Load() const
         char curr_core[10];
         snprintf(curr_core, 5,"dsp%d", core);
 
+        // Replace <path_to>/dsp.out with <path_to>/dspN.out where N=0/1/2..7
+        char curr_binary[10];
+        snprintf(curr_binary, 9, "dsp%d.out", core);
+
+        std::string dspbin = monitor_;
+        size_t pos = dspbin.find("dsp.out");
+        dspbin.replace(pos, 7, const_cast<char*>(curr_binary));
+
         int error_code = 0;
-        int ret = mpm_load(curr_core, const_cast<char*>(monitor_.c_str()),
+        int ret = mpm_load(curr_core, const_cast<char*>(dspbin.c_str()),
                        &error_code);
         if (ret < 0)
             ReportError(ErrorType::Fatal, ErrorKind::DeviceLoadFailed,
-                        monitor_.c_str(), core, error_code);
+                        dspbin.c_str(), core, error_code);
     }
 
 

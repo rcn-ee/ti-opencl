@@ -50,8 +50,6 @@
 extern "C"
 {
     #include <ti/runtime/mmap/include/mmap_resource.h> // For MPAX
-    extern int get_ocl_qmss_res(Msg_t *msg);
-    extern void free_ocl_qmss_res();
 }
 #endif
 
@@ -150,15 +148,6 @@ DSPDevice::DSPDevice(unsigned char dsp_id, SharedMemory* shm)
     Msg_t msg = {CONFIGURE_MONITOR};
     msg.u.configure_monitor.n_cores = dspCores();
 
-#if defined(DEVICE_K2X) && !defined(DEVICE_K2G)
-    // Keystone2: get QMSS resources from RM, mail to DSP monitor
-    if (get_ocl_qmss_res(&msg) == 0)
-    {
-        printf("Unable to allocate resource from RM server!\n");
-        exit(-1);
-    }
-#endif
-
     mail_to(msg);
 
     /*-------------------------------------------------------------------------
@@ -169,7 +158,7 @@ DSPDevice::DSPDevice(unsigned char dsp_id, SharedMemory* shm)
 
 bool DSPDevice::hostSchedule() const
 {
-#if defined(DEVICE_K2G) || defined(DEVICE_AM57)
+#if defined(DEVICE_K2G) || defined(DEVICE_AM57) || defined (DEVICE_K2X)
     return true;
 #else
     return false;
@@ -327,10 +316,6 @@ DSPDevice::~DSPDevice()
     *------------------------------------------------------------------------*/
     delete device_manager_;
     delete core_scheduler_;
-
-#if defined(DEVICE_K2X)
-    free_ocl_qmss_res();
-#endif
 }
 
 /******************************************************************************

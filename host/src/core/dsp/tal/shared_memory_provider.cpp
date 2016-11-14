@@ -92,13 +92,14 @@ template <class MIPolicy, class RWPolicy>
 uint64_t SharedMemoryProvider<MIPolicy, RWPolicy>::
 AllocateGlobal(size_t size, bool prefer_32bit)
 {
-    ReportTrace("AllocateGlobal with %d bytes (prefer_32bit: %d)\n",
+    ReportTrace("->AllocateGlobal with %d bytes (prefer_32bit: %d)\n",
                 size, prefer_32bit);
 
     if (prefer_32bit)
     {
         uint64_t ret = ddr_heap1_.malloc(size, true);
         if (ret) dsptop_ddr_fixed();
+        ReportTrace("<-AllocateGlobal (%llx)\n", ret);
         return ret;
     }
 
@@ -124,6 +125,7 @@ AllocateGlobal(size_t size, bool prefer_32bit)
         if (addr) dsptop_ddr_fixed();
     }
 
+    ReportTrace("<-AllocateGlobal (%llx)\n", addr);
     return addr;
 }
 

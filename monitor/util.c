@@ -47,55 +47,9 @@ EXPORT void __mfence(void)
 /******************************************************************************
 * Clock Handling
 ******************************************************************************/
-#define MY_HW_TIM_IDX 0
 extern cregister volatile uint32_t TSCL;
 extern cregister volatile uint32_t TSCH;
 
-typedef struct 
-{
-    uint32_t globalStartTime;
-    uint32_t localStartTime;
-} ClockDsc_t;
-
-FAST_SHARED_1D(ClockDsc_t, ClockDscTbl, MAX_NUM_CORES);
-
-int initClockLocal(void)
-{
-    volatile CSL_TmrRegs* lvTimerRegPtr;
-
-    lvTimerRegPtr = (CSL_TmrRegs *)(CSL_TIMER_0_REGS + 
-                    (CSL_TIMER_1_REGS-CSL_TIMER_0_REGS)*MY_HW_TIM_IDX);
-    TSCL = 0; // start local timer
-
-    ClockDscTbl[DNUM].localStartTime = TSCL;
-    ClockDscTbl[DNUM].globalStartTime = lvTimerRegPtr->CNTLO;
-
-    return RETURN_OK;
-}
-
-int initClockGlobal(void)
-{
-    volatile CSL_TmrRegs* lvTimerRegPtr;
-
-    lvTimerRegPtr = (CSL_TmrRegs *)(CSL_TIMER_0_REGS + 
-                    (CSL_TIMER_1_REGS-CSL_TIMER_0_REGS)*MY_HW_TIM_IDX);
-
-    lvTimerRegPtr->TGCR  = 0x00000000; // TIMMODE = 0; TIMHIRS = 0; TIMLORS = 0
-    lvTimerRegPtr->PRDLO = (Uint32) 0xffffffff;
-    lvTimerRegPtr->PRDHI = (Uint32) 0xffffffff;
-    lvTimerRegPtr->CNTLO = 0;
-    lvTimerRegPtr->CNTHI = 0;
-    lvTimerRegPtr->TCR   = 0x00000080; // ENAMODE_LO=2; CLKSRC_LO=0; TI_EN_LO=0
-    lvTimerRegPtr->TGCR  = 0x00000003; // TIMMODE = 0; TIMHIRS = 1; TIMLORS = 1
-
-    return RETURN_OK;
-}
-
-uint32_t readClockGlobal(void)
-{
-    return (TSCL - ClockDscTbl[DNUM].localStartTime + 
-            6 * ClockDscTbl[DNUM].globalStartTime);
-}
 
 EXPORT uint32_t __clock(void)
 {
@@ -387,22 +341,6 @@ uint32_t count_trailing_zeros(uint32_t x)
         cnt ++;
     }
     return cnt;
-}
-
-unsigned dsp_speed()
-{
-    const unsigned DSP_PLL  = 122880000;
-    char *BOOTCFG_BASE_ADDR = (char*)0x02620000;
-    char *CLOCK_BASE_ADDR   = (char*)0x02310000;
-    int MAINPLLCTL0         = (*(int*)(BOOTCFG_BASE_ADDR + 0x350));
-    int MULT                = (*(int*)(CLOCK_BASE_ADDR + 0x110));
-    int OUTDIV              = (*(int*)(CLOCK_BASE_ADDR + 0x108));
-
-    unsigned mult       = 1 + ((MULT & 0x3F) | ((MAINPLLCTL0 & 0x7F000) >> 6));
-    unsigned prediv     = 1 + (MAINPLLCTL0 & 0x3F);
-    unsigned output_div = 1 + ((OUTDIV >> 19) & 0xF);
-    float speed = (float)DSP_PLL * mult / prediv / output_div;
-    return speed / 1e6;
 }
 
 /******************************************************************************

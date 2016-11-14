@@ -47,8 +47,22 @@ static char const *const Ocl_DspMsgQueueName[] = {
 #if defined(DEVICE_AM57) || defined(DEVICE_AM572x)
     "OCL:DSP1:MsgQ",
     "OCL:DSP2:MsgQ",
-#elif defined(DEVICE_K2G)
+#elif defined(DEVICE_K2G) || defined(DEVICE_K2E)
     "OCL:CORE0:MsgQ",
+#elif defined(DEVICE_K2L)
+    "OCL:CORE0:MsgQ",
+    "OCL:CORE1:MsgQ",
+    "OCL:CORE2:MsgQ",
+    "OCL:CORE3:MsgQ",
+#elif defined(DEVICE_K2H)
+    "OCL:CORE0:MsgQ",
+    "OCL:CORE1:MsgQ",
+    "OCL:CORE2:MsgQ",
+    "OCL:CORE3:MsgQ",
+    "OCL:CORE4:MsgQ",
+    "OCL:CORE5:MsgQ",
+    "OCL:CORE6:MsgQ",
+    "OCL:CORE7:MsgQ",
 #else
     #error Unknown device
 #endif

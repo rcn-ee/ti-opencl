@@ -14,21 +14,21 @@ config ti.platforms.generic.Platform.Instance CPU =
       [ "L1DSRAM",       { name: "L1DSRAM", 
                           base: 0x00F00000, 
                           len:  0x00008000, 
-		          space: "code/data", 
-			  access: "RWX", } ], 
+                  space: "code/data",
+              access: "RWX", } ],
 
       /*-----------------------------------------------------------------------
       * L2 Related regions
       *----------------------------------------------------------------------*/
       [ "L2SRAM",    { name: "L2SRAM", 
                        base: 0x00800000, 
-                       len:     0x20000,    
+                       len:     0x10000,
                        space: "code/data", 
-		       access: "RWX", } ],
+               access: "RWX", } ],
 
       [ "OCL_LOCAL", { name: "OCL_LOCAL",
-                       base: 0x00820000,
-                       len:     0x40000,  
+                       base: 0x00810000,
+                       len:     0x50000,  
                        space: "code/data",
                        access: "RWX", } ],
 
@@ -37,26 +37,56 @@ config ti.platforms.generic.Platform.Instance CPU =
       *----------------------------------------------------------------------*/
       [ "MSMC_NC_PHYS", { name: "MSMC_NC_PHYS", 
                           base: 0x0C000000,
-			  len:  0x00080000,
+                          len:  0x00080000,
                           space: "code/data", 
-			  access: "RWX", } ],
+                          access: "RWX", } ],
 
       [ "MSMC_NC_VIRT", { name: "MSMC_NC_VIRT", 
                           base: 0xA1000000, 
-			  len:  0x00080000,
+                          len:  0x00080000,
                           space: "code/data", 
-			  access: "RWX", } ],
+                          access: "RWX", } ],
 
       /*-----------------------------------------------------------------------
-      * DDR Releated regions
+      * DDR Related regions
       *----------------------------------------------------------------------*/
-      [ "DDR3",         { name: "DDR3", 
-                          base: 0xA0000000, 
-			  len:  0x01000000,
-                          space: "code/data", 
-			  access: "RWX", } ],
+      [ "DDR3_HEAP",  { name: "DDR3_HEAP",
+                        base: 0xA0000000,
+                        len:  0x00880000,
+                        space: "code/data",
+                        access: "RWX", } ],
+
+      /* Stack for ocl_service_omp task - 0x10000 for each core */
+      [ "DDR3_STACK", { name: "DDR3_STACK",
+                        base: 0xA0880000,
+                        len:  0x00080000,
+                        space: "code/data",
+                        access: "RWX", } ],
+
+      [ "DDR3",       { name: "DDR3",
+                        base: 0xA0900000,
+                        len:  0x00300000,
+                        space: "code/data",
+                        access: "RWX", } ],
+
+      /* Core specific DDR regions mapped to the same "virtual" address using MPAX
+       * The length must be consistent with MPAX configuration on device_k2x.c
+       */
+      [ "DDR3_CORE0", { name: "DDR3_CORE0",
+                        base: 0xA0c00000,
+                        len:  0x00040000,
+                        space: "code/data",
+                        access: "RWX", } ],
+
+      [ "DDR3_VIRT", {  name: "DDR3_VIRT",
+                        base: 0xA0d00000,
+                        len:  0x00040000,
+                        space: "code/data",
+                        access: "RWX", } ],
 
       /* 0xA1000000 - 0xA1100000 also used for MSMC_NC no caching setting    */
+
+      /* 0xA2000000 onwards corresponds to 36bit system address used by CMEM */
     ],
 
     l2Mode:"128k", 

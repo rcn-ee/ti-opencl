@@ -58,6 +58,14 @@ if (K2X_BUILD)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDEVICE_K2X")
 endif()
 
+if (K2H_BUILD)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDEVICE_K2H")
+elseif (K2L_BUILD)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDEVICE_K2L")
+elseif (K2E_BUILD)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDEVICE_K2E")
+endif()
+
 if (K2G_BUILD)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDEVICE_K2G")
 endif()
@@ -146,17 +154,12 @@ set(COAL_SRC_FILES ${COAL_SRC_FILES}
 )
 endif()
 
-if (K2X_BUILD)
-    set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/rm_qmss_res.c)
-    set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/mbox_impl_mpm.cpp)
-endif()
-
 if (K2X_BUILD OR K2G_BUILD)
     set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/devmem_map_policy_mpm.cpp)
     set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/device_manager_mpm.cpp)
 endif()
 
-if (K2G_BUILD OR AM57_BUILD)
+if (NOT C6678_BUILD)
     set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/mbox_impl_msgq.cpp)
 endif()
 
@@ -268,12 +271,16 @@ LIST (APPEND LIBS ${FFI_LIB} ${SQLITE3_LIB} ${ELF_LIB})
 # Add target dependent libraries
 if(K2X_BUILD)
    find_library(CMEM_LIB          ticmem)
-   find_library(MPMMAIL_LIB       mpmmailbox)
    find_library(MPMTRANSPORT_LIB  mpmtransport)
    find_library(MPMCLIENT_LIB     mpmclient)
    find_library(RM_LIB            rm)
 
-   LIST (APPEND LIBS ${CMEM_LIB} ${MPMMAIL_LIB} ${MPMTRANSPORT_LIB} 
+   find_library(IPC_LIB           tiipc)
+   find_library(IPC_UTIL_LIB      tiipcutils)
+   find_library(IPC_TRANS_RPMSG   titransportrpmsg)
+
+   LIST (APPEND LIBS ${CMEM_LIB} ${IPC_LIB} ${IPC_UTIL_LIB} ${IPC_TRANS_RPMSG}
+                     ${MPMTRANSPORT_LIB} 
                      ${MPMCLIENT_LIB} ${RM_LIB} )
 elseif(C6678_BUILD)
   LIST (APPEND LIBS

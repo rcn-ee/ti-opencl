@@ -77,11 +77,6 @@ SECTIONS
 
     .workgroup_config: > L2SRAM  palign(L2_LINE_SIZE)
 
-    .mbox_d2h:         run=MSMC_NC_VIRT, load=MSMC_NC_PHYS, fill=0
-		          load_start(mbox_d2h_phys) size(mbox_d2h_size) 
-
-    .mbox_h2d:         run=MSMC_NC_VIRT, load=MSMC_NC_PHYS, fill=0
-		          load_start(mbox_h2d_phys) size(mbox_h2d_size) 
 }
 
 /*-----------------------------------------------------------------------------
@@ -96,6 +91,15 @@ ocl_local_mem_size   = size (OCL_LOCAL);
 nocache_phys_start   = start(MSMC_NC_PHYS);
 nocache_virt_start   = start(MSMC_NC_VIRT);
 nocache_size         = size (MSMC_NC_PHYS);
+
+ddr3_virt_start      = start(DDR3_VIRT);
+ddr3_virt_size       = size (DDR3_VIRT);
+
+ddr3_32b_phy_base    = start(DDR3_CORE0);
+
+service_stack_start  = start(DDR3_STACK);
+service_stack_size   = size(DDR3_STACK);
+
 
 --export ocl_l1d_mem_start
 --export ocl_l1d_mem_size
@@ -133,7 +137,21 @@ SECTIONS
 		"fcsettings.ae66"   (.far)
 		"nullres.ae66"	    (.far)
 		"rman.ae66"	    (.far)
-    } > L2SRAM
+
+                "*edma_config.obj" (.fardata)
+    } run=DDR3_VIRT, load=DDR3_PER_CORE
+
+    /* If OpenMP runtime is not included in the monitor, the following 
+       directive is required to ensure each core gets its own copy of 
+       MessageQ related data structures such as HeapBuf.
+    .localfar :
+    {
+        "*rts*.lib" (.far)
+        "*rts*.lib" (.fardata)
+        "*monitor_pe66.oe66" (.fardata)
+        "*monitor_pe66.oe66" (.far)
+    } run=DDR3_VIRT, load=DDR3_PER_CORE
+     */
 
     .fardata: load >> DDR3
     .far: load >> DDR3

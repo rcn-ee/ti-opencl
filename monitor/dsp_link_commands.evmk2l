@@ -12,11 +12,12 @@
 -x 
 -heap 0x0
 
+/* L2SRAM range must be in sync with Platform.xdc */
 MEMORY
 {
     DDR:    o = 0x80000000 l = 0x19000000
     MSMC:   o = 0x0C000000 l = 0x00180000
-    L2SRAM: o = 0x00820000 l = 0x000C0000
+    L2SRAM: o = 0x00810000 l = 0x000D0000
 }
 
 SECTIONS

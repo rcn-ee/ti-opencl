@@ -16,11 +16,9 @@ C6636_PDK_DIR  ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/pdk_k2*)
 IPC_DIR        ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/ipc_*)
 XDC_DIR        ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/xdctools_*)
 BIOS_DIR       ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/bios_*)
-OMP_DIR        ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/openmp_dsp_*)
 FC_DIR         ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/framework_components*)
 EDMA3LLD_DIR   ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/edma3_lld_*)
 XDAIS_DIR      ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/xdais_*)
-MPM_DIR        ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/multiprocmgr_*)
 ULM_DIR        ?= $(LINUX_DEVKIT_ROOT)/usr/share/ti/ulm
 GDB_SERVER_DIR ?= $(LINUX_DEVKIT_ROOT)/usr/share/ti/gdbc6x
 SDK_DIR        ?= $(DEFAULT_DLSDK)
@@ -42,9 +40,6 @@ ifneq ($(MAKECMDGOALS),clean)
       ifeq (,$(wildcard $(C6636_PDK_DIR)/.))
        $(error Path specified for C6636_PDK_DIR(=$(C6636_PDK_DIR)) is not valid)
       endif
-   endif
-   ifeq (,$(wildcard $(MPM_DIR)/.)) 
-      $(error Path specified for MPM_DIR(=$(MPM_DIR)) is not valid)
    endif
    ifeq (,$(wildcard $(BIOS_DIR)/.)) 
       $(error Path specified for BIOS_DIR(=$(BIOS_DIR)) is not valid)
@@ -84,48 +79,32 @@ BUILD_TYPE = release
 #	  -i $(OPENCL_SRC_DIR)/src/core/dsp \
 #	  -D MAILBOX_ON_HOST 
 
-INCLUDES=  -i $(OPENCL_SRC_DIR)/src/core/dsp \
-           -D MAILBOX_ON_HOST 
+INCLUDES=  -i $(OPENCL_SRC_DIR)/src/core/dsp
 
 XDCTARGET= ti.targets.elf.C66
 XDCPATH_K2X = ./;$(C6636_PDK_DIR)/packages;$(BIOS_DIR)/packages;$(OMP_DIR)/packages;$(EDMA3LLD_DIR)/packages;$(IPC_DIR)/packages;$(FC_DIR)/packages;$(XDAIS_DIR)/packages;
-LIBS_K2X  = monitor.cmd $(MPM_DIR)/lib_c66x/mpmmailbox.ae66 $(ULM_DIR)/libtiulm.ae66 $(GDB_SERVER_DIR)/lib/gdb_server.ae66
+LIBS_K2X  = monitor.cmd $(ULM_DIR)/libtiulm.ae66 $(GDB_SERVER_DIR)/lib/gdb_server.ae66
 
-ifeq ($(BUILD_TARGET),DSPC868x)
-    PLATFORM = dspc868x
-    XDCPATH = ./;$(C6678_PDK_DIR)/packages;$(BIOS_DIR)/packages;$(OMP_DIR)/packages;$(IPC_DIR)/packages
-    INCLUDES += -DTI_C6678 \
-                -i $(SDK_DIR)/sdk/pciedrv \
-                -i $(SDK_DIR)/sdk/mailBox \
-                -i $(SDK_DIR)/sdk/mailBox/inc \
-                -i $(SDK_DIR)/sdk/buffmgr \
-                -i $(SDK_DIR)/sdk/config \
-                -i $(C6678_PDK_DIR)/packages/ti/drv/qmss
-    LIBS = monitor_k1.cmd $(SDK_DIR)/sdk/mailBox/c66x/lib/mailBox.a
-
-else ifeq ($(BUILD_TARGET),ARM_K2H)
+ifeq ($(BUILD_TARGET),ARM_K2H)
     PLATFORM = evmk2h
     XDCPATH  = $(XDCPATH_K2X)
-    INCLUDES += -DDEVICE_K2K -DTI_66AK2X -DK2_PG1_MSMC_STALL_WA \
-                -i $(MPM_DIR)/include -i$(ULM_DIR) -DULM_ENABLED \
-                -i $(GDB_SERVER_DIR)/include -DGDB_ENABLED
+    INCLUDES += -DDEVICE_K2H
     LIBS = $(LIBS_K2X)
+    DSPS := 0 1 2 3 4 5 6 7
 
 else ifeq ($(BUILD_TARGET),ARM_K2L)
     PLATFORM = evmk2l
     XDCPATH  = $(XDCPATH_K2X)
-    INCLUDES += -DDEVICE_K2K -DTI_66AK2X -DK2_PG1_MSMC_STALL_WA \
-                -i $(MPM_DIR)/include -i$(ULM_DIR) -DULM_ENABLED \
-                -i $(GDB_SERVER_DIR)/include -DGDB_ENABLED
+    INCLUDES += -DDEVICE_K2L
     LIBS = $(LIBS_K2X)
+    DSPS := 0 1 2 3
 
 else ifeq ($(BUILD_TARGET),ARM_K2E)
     PLATFORM = evmk2e
     XDCPATH  = $(XDCPATH_K2X)
-    INCLUDES += -DDEVICE_K2K -DTI_66AK2X -DK2_PG1_MSMC_STALL_WA \
-                -i $(MPM_DIR)/include -i$(ULM_DIR) -DULM_ENABLED \
-                -i $(GDB_SERVER_DIR)/include -DGDB_ENABLED
+    INCLUDES += -DDEVICE_K2E
     LIBS = $(LIBS_K2X)
+    DSPS := 0
 
 else
     ifeq ($(MAKECMDGOALS),clean)
@@ -136,12 +115,25 @@ else
     endif
 endif
 
+INCLUDES += -DTI_66AK2X -DK2_PG1_MSMC_STALL_WA
+INCLUDES += -DOMP_ENABLED
+INCLUDES += -i $(ULM_DIR) -DULM_ENABLED
+INCLUDES += -i $(GDB_SERVER_DIR)/include -DGDB_ENABLED
+
 BUILD = monitor_$(PLATFORM)
 COMP_OPTS = $(BUILD)/compiler.opt
 LINK_CMD = $(BUILD)/linker.cmd
-OUT=$(BUILD)/dsp.out
 
-build: $(OUT)
+.PHONY: binaries syms
+
+
+build: binaries syms
+
+binaries:  $(foreach dsp,$(DSPS),$(BUILD)/dsp$(dsp).out)
+syms:  $(foreach dsp,$(DSPS),$(BUILD)/dsp$(dsp).syms)
+
+
+
 
 #----------------------------------------------------------------------------
 # include libm functions in monitor
@@ -165,15 +157,13 @@ $(BUILTINS):
 # build monitor
 #----------------------------------------------------------------------------
 
-SOURCES = monitor.c dsp_rpc.asm util.c touch.asm sem.c 
-SOURCES+= osal.c qmss_device.c  
-SOURCES+= omp_config_api.c
+SOURCES = monitor.c dsp_rpc.asm util.c touch.asm
 SOURCES+= builtins.c
-SOURCES+= ocl_qmss.c
+SOURCES+= device_k2x.c
 SOURCES+= edma.c edma_config.c
-#SOURCES+= em_pdk_hal.c ocl_em_init.c ti_em_init.c cppi_device.c 
 
-HEADERS = edma.h monitor.h util.h ocl_device_defs.h trace.h ocl_qmss.h
+
+HEADERS = edma.h monitor.h util.h ocl_device_defs.h trace.h
 
 OBJS1=$(patsubst %.c,$(BUILD)/%.obj,$(SOURCES))
 OBJS=$(patsubst %.asm,$(BUILD)/%.obj,$(OBJS1))
@@ -182,14 +172,48 @@ OBJS=$(patsubst %.asm,$(BUILD)/%.obj,$(OBJS1))
 CC= $(TI_OCL_CGT_INSTALL)/bin/cl6x -o3 -mv6600 --abi=eabi --gcc --mem_model:const=data --mem_model:data=far -fr=$(BUILD)
 #CC= $(TI_OCL_CGT_INSTALL)/bin/cl6x -o0 -g -mv6600 --abi=eabi --gcc --mem_model:const=data --mem_model:data=far -fr=$(BUILD)
 
-$(OUT): $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD) $(LIBS)
-	@echo Linking $(PLATFORM)
-	@$(CC) -z --priority -w -x -m$(BUILD)/dsp.map $^ -I$(TI_OCL_CGT_INSTALL)/lib -llibc.a -o $(OUT)
-	@echo Creating dsp.syms
-	@$(TI_OCL_CGT_INSTALL)/bin/nm6x -l $(OUT) | grep PROT | awk -F\| '{ print "\t.weak "$$8"\n"$$8"\t.set "$$2 };' >  $(BUILD)/dsp_syms.asm
-	@$(TI_OCL_CGT_INSTALL)/bin/nm6x -l $(OUT) | grep FUNC | grep -fexport_syms | awk -F\| '{ print "\t.weak "$$8"\n"$$8"\t.set "$$2 };' >> $(BUILD)/dsp_syms.asm
-	@$(CC) $(BUILD)/dsp_syms.asm
-	@cp dsp_link_commands.$(PLATFORM) $(BUILD)/dsp.syms
+
+$(BUILD)/%.syms: $(BUILD)/%.out
+	$(call create_dsp_syms, $<, $@)
+
+$(BUILD)/dsp0.out: $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD) $(LIBS)
+	@$(CC) -z --define=DDR3_PER_CORE=DDR3_CORE0 --priority -w -x -m$@.map $^ -I$(TI_OCL_CGT_INSTALL)/lib -llibc.a -o $@
+
+$(BUILD)/dsp1.out: $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD) $(LIBS)
+	@$(CC) -z --define=DDR3_PER_CORE=DDR3_CORE1 --priority -w -x -m$@.map $^ -I$(TI_OCL_CGT_INSTALL)/lib -llibc.a -o $@
+
+$(BUILD)/dsp2.out: $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD) $(LIBS)
+	@$(CC) -z --define=DDR3_PER_CORE=DDR3_CORE2 --priority -w -x -m$@.map $^ -I$(TI_OCL_CGT_INSTALL)/lib -llibc.a -o $@
+
+$(BUILD)/dsp3.out: $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD) $(LIBS)
+	@$(CC) -z --define=DDR3_PER_CORE=DDR3_CORE3 --priority -w -x -m$@.map $^ -I$(TI_OCL_CGT_INSTALL)/lib -llibc.a -o $@
+
+$(BUILD)/dsp4.out: $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD) $(LIBS)
+	@$(CC) -z --define=DDR3_PER_CORE=DDR3_CORE4 --priority -w -x -m$@.map $^ -I$(TI_OCL_CGT_INSTALL)/lib -llibc.a -o $@
+
+$(BUILD)/dsp5.out: $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD) $(LIBS)
+	@$(CC) -z --define=DDR3_PER_CORE=DDR3_CORE5 --priority -w -x -m$@.map $^ -I$(TI_OCL_CGT_INSTALL)/lib -llibc.a -o $@
+
+$(BUILD)/dsp6.out: $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD) $(LIBS)
+	@$(CC) -z --define=DDR3_PER_CORE=DDR3_CORE6 --priority -w -x -m$@.map $^ -I$(TI_OCL_CGT_INSTALL)/lib -llibc.a -o $@
+
+$(BUILD)/dsp7.out: $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD) $(LIBS)
+	@$(CC) -z --define=DDR3_PER_CORE=DDR3_CORE7 --priority -w -x -m$@.map $^ -I$(TI_OCL_CGT_INSTALL)/lib -llibc.a -o $@
+
+
+#---------------------------------------------------------------------------
+# Function to create the dsp symbols database
+#----------------------------------------------------------------------------
+define create_dsp_syms
+	@echo Creating $(2)
+	@$(TI_OCL_CGT_INSTALL)/bin/nm6x -l $(1) | grep PROT | awk -F\| '{ print "\t.weak "$$8"\n"$$8"\t.set "$$2 };' >  $(2).asm
+	@$(TI_OCL_CGT_INSTALL)/bin/nm6x -l $(1) | grep FUNC | grep -fexport_syms | awk -F\| '{ print "\t.weak "$$8"\n"$$8"\t.set "$$2 };' >> $(2).asm
+	@$(CC) $(2).asm
+	@cp dsp_link_commands.$(PLATFORM) $(2)
+	@rm -f $(1).syms.tmp* $(2).asm
+endef
+
+
 
 $(BUILD)/%.obj : %.c $(COMP_OPTS) $(HEADERS)
 	@echo Compiling $<

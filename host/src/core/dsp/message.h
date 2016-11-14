@@ -44,7 +44,7 @@ typedef enum
 #define MAX_ARGS_TOTAL_SIZE 1024
 
 #define MAX_XMCSES_MPAXS	7
-#define FIRST_FREE_XMC_MPAX	3  // XMC MPAXs available: 3 - F
+#define FIRST_FREE_XMC_MPAX	4  // XMC MPAXs available: 4 - F
 #define FIRST_FREE_SES_MPAX	1  // SES MPAXs available: 1 - 7
 // MPAXH:  20-bit baddr, 7-bit padding, 5-bit segment size
 // MPAXL:  24-bit raddr, 8-bit permission (Res, Res, SR, SW, SX, UR, UW, UX)
