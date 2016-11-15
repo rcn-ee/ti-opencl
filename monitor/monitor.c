@@ -93,18 +93,11 @@
 #endif
 
 
-typedef struct 
-{
-    MessageQ_Handle   dspQue;  // DSP creates,  Host writes, DSP  reads
-    MessageQ_QueueId  hostQue; // Host creates, DSP  writes, Host reads
-} OCL_MessageQueues;
-
-
 DDR (Registry_Desc, Registry_CURDESC);
 
-PRIVATE (bool,              enable_printf)       = false;
+PRIVATE (MessageQ_QueueId,  enable_printf)       = MessageQ_INVALIDMESSAGEQ;
 PRIVATE (bool,              edmamgr_initialized) = false;
-PRIVATE (OCL_MessageQueues, ocl_queues);
+PRIVATE (MessageQ_Handle,   dspQue);
 PRIVATE (int,               n_cores);
 PRIVATE (jmp_buf,           monitor_jmp_buf);
 
@@ -310,13 +303,13 @@ void ocl_main(UArg arg0, UArg arg1)
 #endif
 
     /* printfs are enabled ony for the duration of an OpenCL kernel */
-    enable_printf = false;
+    enable_printf = MessageQ_INVALIDMESSAGEQ;
 
     /* OpenCL monitor loop - does not return */
     ocl_monitor();
 
     /* delete the message queue */
-    int status = MessageQ_delete(&ocl_queues.dspQue);
+    int status = MessageQ_delete(&dspQue);
 
     if (status < 0)
     {
@@ -343,31 +336,27 @@ void ocl_monitor()
 
         ocl_msgq_message_t *msgq_pkt;
 
-        status = MessageQ_get(ocl_queues.dspQue, (MessageQ_Msg *)&msgq_pkt,
+        status = MessageQ_get(dspQue, (MessageQ_Msg *)&msgq_pkt,
                                   MessageQ_FOREVER);
 
         if (status < 0)
             goto error;
 
-        /* Get the host queue id from the message & save it */
-        MessageQ_QueueId  hostQueId = MessageQ_getReplyQueue(msgq_pkt);
-        if (ocl_queues.hostQue == MessageQ_INVALIDMESSAGEQ)
-            ocl_queues.hostQue = hostQueId;
-
-        enable_printf = true;
+        enable_printf = MessageQ_getReplyQueue(msgq_pkt);
 
         /* Get a pointer to the OpenCL payload in the message */
         Msg_t *ocl_msg =  &(msgq_pkt->message);
+        uint32_t pid   = ocl_msg->pid;
 
         switch (ocl_msg->command)
         {
             case TASK: 
-                Log_print0(Diags_INFO, "TASK\n");
+                Log_print1(Diags_INFO, "TASK(%u)\n", pid);
                 process_task_command(msgq_pkt);
                 break;
 
             case NDRKERNEL: 
-                Log_print0(Diags_INFO, "NDRKERNEL\n");
+                Log_print1(Diags_INFO, "NDRKERNEL(%u)\n", pid);
                 process_kernel_command(msgq_pkt);
                 process_cache_command(ocl_msg->u.k.kernel.Kernel_id, msgq_pkt);
                 TRACE(ULM_OCL_NDR_CACHE_COHERENCE_COMPLETE,
@@ -375,37 +364,37 @@ void ocl_monitor()
                 break;
 
             case CACHEINV: 
-                Log_print0(Diags_INFO, "CACHEINV\n");
+                Log_print1(Diags_INFO, "CACHEINV(%u)\n", pid);
                 process_cache_command(-1, msgq_pkt); 
                 break; 
 
             case EXIT:     
-                Log_print0(Diags_INFO, "EXIT\n");
+                Log_print1(Diags_INFO, "EXIT(%u)\n", pid);
                 TRACE(ULM_OCL_EXIT, 0, 0);
                 process_exit_command(msgq_pkt);
                 break;
 
             case SETUP_DEBUG:
-                Log_print0(Diags_INFO, "SETUP_DEBUG\n");
+                Log_print1(Diags_INFO, "SETUP_DEBUG(%u)\n", pid);
                 process_setup_debug_command(msgq_pkt);
                 break;
 
             case FREQUENCY:
-                Log_print0(Diags_INFO, "FREQUENCY\n");
+                Log_print1(Diags_INFO, "FREQUENCY(%u)\n", pid);
                 respond_to_host(msgq_pkt, dsp_speed());
                 break;
 
             case CONFIGURE_MONITOR:
-                Log_print0(Diags_INFO, "CONFIGURE_MONITOR\n");
+                Log_print1(Diags_INFO, "CONFIGURE_MONITOR(%u)\n", pid);
                 process_configuration_message(msgq_pkt);
                 break;
 
             default:
-                Log_print1(Diags_INFO, "OTHER (%d)\n", ocl_msg->command);
+                Log_print2(Diags_INFO, "OTHER (%d)(%u)\n", ocl_msg->command, pid);
                 break;
         }
 
-        enable_printf = false;
+        enable_printf = MessageQ_INVALIDMESSAGEQ;
 
     } /* while (true) */
 
@@ -651,7 +640,8 @@ static bool setup_ndr_chunks(int dims, uint32_t* limits, uint32_t* offsets,
     // a multiple of chunk size
     int num_chunks = n_cores;
     while (--dims >= 0)
-        if (IS_MULTIPLE(num_chunks, gsz[dims]) && IS_MULTIPLE(lsz[dims], gsz[dims] / num_chunks))
+        if (IS_MULTIPLE(num_chunks, gsz[dims]) && 
+            IS_MULTIPLE(lsz[dims], gsz[dims] / num_chunks))
         {
             limits[dims] /= num_chunks;
             offsets[dims] += (DNUM * limits[dims]);
@@ -701,12 +691,6 @@ static void process_exit_command(ocl_msgq_message_t *msg_pkt)
     tomp_exitOpenMPforOpenCL();
     #endif
 
-#if defined(DEVICE_K2G) || defined (DEVICE_K2H) || defined (DEVICE_K2L) || defined (DEVICE_K2E)
-    respond_to_host(msg_pkt, -1);
-    Log_print0(Diags_INFO, "ocl_monitor: EXIT");
-    cacheWbInvAllL2();
-    exit(0);
-#else
     /* Not sending a response to host, delete the msg */
     MessageQ_free((MessageQ_Msg)msg_pkt);
     Log_print0(Diags_INFO, "ocl_monitor: EXIT, no response");
@@ -725,8 +709,6 @@ static void process_exit_command(ocl_msgq_message_t *msg_pkt)
     }
     exit(0);
     #endif
-
-#endif
 }
 
 /******************************************************************************
@@ -823,8 +805,10 @@ static int incVec(unsigned dims, unsigned *vec, unsigned *inc, unsigned *maxs)
 static void respond_to_host(ocl_msgq_message_t *msgq_pkt, uint32_t msgId)
 {
     msgq_pkt->message.trans_id = msgId;
-    MessageQ_setReplyQueue(ocl_queues.dspQue,  (MessageQ_Msg)msgq_pkt);
-    MessageQ_put          (ocl_queues.hostQue, (MessageQ_Msg)msgq_pkt);
+
+    MessageQ_QueueId replyQ = MessageQ_getReplyQueue(msgq_pkt);
+    MessageQ_setReplyQueue(dspQue, (MessageQ_Msg)msgq_pkt);
+    MessageQ_put          (replyQ, (MessageQ_Msg)msgq_pkt);
 }
 
 /******************************************************************************
@@ -847,7 +831,7 @@ _CODE_ACCESS void __TI_writemsg(               unsigned char  command,
                                 register const          char *data,
                                                 unsigned int  length)
 {
-    if (!enable_printf)
+    if (enable_printf == MessageQ_INVALIDMESSAGEQ)
         return;
 
     ocl_msgq_message_t *msg = 
@@ -863,8 +847,8 @@ _CODE_ACCESS void __TI_writemsg(               unsigned char  command,
     memcpy(printMsg->u.message+1, data, msgLen);
     printMsg->u.message[msgLen+1] = '\0';
 
-    MessageQ_setReplyQueue(ocl_queues.dspQue,     (MessageQ_Msg)msg);
-    int status = MessageQ_put(ocl_queues.hostQue, (MessageQ_Msg)msg);
+    MessageQ_setReplyQueue(dspQue,           (MessageQ_Msg)msg);
+    int status = MessageQ_put(enable_printf, (MessageQ_Msg)msg);
     if (status != MessageQ_S_SUCCESS)
         Log_print0(Diags_INFO, "__TI_writemsg: Message put failed");
 
@@ -888,16 +872,14 @@ static bool create_mqueue()
 
     /* Create DSP message queue (inbound messages from ARM) */
     MessageQ_Params_init(&msgqParams);
-    ocl_queues.dspQue = MessageQ_create(Ocl_DspMsgQueueName[DNUM], &msgqParams);
+    dspQue = MessageQ_create(Ocl_DspMsgQueueName[DNUM], &msgqParams);
 
-    if (ocl_queues.dspQue == NULL) 
+    if (dspQue == NULL) 
     {
         Log_print1(Diags_INFO,"create_mqueue: DSP %d MessageQ creation failed",
                    DNUM);
         return false;
     }
-
-    ocl_queues.hostQue = MessageQ_INVALIDMESSAGEQ;
 
     Log_print1(Diags_INFO,"create_mqueue: %s ready", Ocl_DspMsgQueueName[DNUM]);
 

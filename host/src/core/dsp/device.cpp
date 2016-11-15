@@ -306,7 +306,7 @@ DSPDevice::~DSPDevice()
     *------------------------------------------------------------------------*/
     mail_to(exitMsg);
 
-#if defined(DEVICE_K2X) || defined(DEVICE_K2G) || defined(DSPC868X)
+#if defined(DSPC868X)
     /*-------------------------------------------------------------------------
     * Wait for the EXIT acknowledgement from device
     *------------------------------------------------------------------------*/
