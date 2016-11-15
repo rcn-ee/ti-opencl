@@ -158,11 +158,11 @@ endif()
 
 if (K2X_BUILD OR K2G_BUILD)
     set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/devmem_map_policy_mpm.cpp)
-    set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/device_manager_mpm.cpp)
 endif()
 
 if (NOT C6678_BUILD)
     set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/mbox_impl_msgq.cpp)
+    set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/device_manager_remoteproc.cpp)
 endif()
 
 if (AM57_BUILD)
@@ -271,7 +271,7 @@ find_library(ELF_LIB elf)
 LIST (APPEND LIBS ${FFI_LIB} ${SQLITE3_LIB} ${ELF_LIB})
 
 # Add target dependent libraries
-if(K2X_BUILD)
+if(K2X_BUILD OR K2G_BUILD)
    find_library(CMEM_LIB          ticmem)
    find_library(MPMTRANSPORT_LIB  mpmtransport)
    find_library(MPMCLIENT_LIB     mpmclient)
@@ -293,15 +293,6 @@ elseif(C6678_BUILD)
 	${SDK}/sdk/mailBox/host/lib/mailBox.a
         pciaccess
 	)
-elseif (K2G_BUILD)
-  find_library(CMEM_LIB          ticmem)
-  find_library(IPC_LIB           tiipc)
-  find_library(IPC_UTIL_LIB      tiipcutils)
-  find_library(IPC_TRANS_RPMSG   titransportrpmsg)
-  find_library(MPMTRANSPORT_LIB  mpmtransport)
-  find_library(MPMCLIENT_LIB     mpmclient)
-  LIST (APPEND LIBS ${CMEM_LIB} ${IPC_LIB} ${IPC_UTIL_LIB} ${IPC_TRANS_RPMSG}
-                    ${MPMTRANSPORT_LIB} ${MPMCLIENT_LIB})
 elseif (AM57_BUILD)
   find_library(CMEM_LIB          ticmem)
   find_library(IPC_LIB           tiipc)

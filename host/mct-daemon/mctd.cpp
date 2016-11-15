@@ -60,19 +60,26 @@ Heap64* msmc_heap = nullptr;
 volatile bool graceful_exit = false;
 void signal_handler(int sig) { graceful_exit = true; }
 
-/*-----------------------------------------------------------------------------
+/******************************************************************************
 * process_exists - Does a PID represent a running process?
-*----------------------------------------------------------------------------*/
+******************************************************************************/
 bool process_exists(uint32_t pid) { return (0 == kill(pid, 0)); }
+
+extern void reset_dsps() __attribute__((weak));
+extern void load_dsps()  __attribute__((weak));
+extern void run_dsps()   __attribute__((weak));
 
 /******************************************************************************
 * main
 ******************************************************************************/
 int main()
 {
-   /*--------------------------------------------------------------------------
-   * Create or find handles to the multicore tools device heaps
-   *-------------------------------------------------------------------------*/
+    openlog("ti-mctd", LOG_CONS | LOG_PID | LOG_NDELAY, LOG_DAEMON);
+    syslog (LOG_INFO, "started");
+
+    /*-------------------------------------------------------------------------
+    * Create or find handles to the multicore tools device heaps
+    *------------------------------------------------------------------------*/
     try 
     {
        bipc::managed_shared_memory segment (bipc::open_or_create, "HeapManager",
@@ -87,6 +94,10 @@ int main()
        exit(EXIT_FAILURE); 
     }
 
+    if (reset_dsps) reset_dsps();
+    if (load_dsps)  load_dsps();
+    if (run_dsps)   run_dsps();
+
     /*-------------------------------------------------------------------------
     * Register signal handlers
     *------------------------------------------------------------------------*/
@@ -99,9 +110,6 @@ int main()
     *------------------------------------------------------------------------*/
     daemon(0,0);
 
-    openlog("ti-mctd", LOG_CONS | LOG_PID | LOG_NDELAY, LOG_DAEMON);
-    syslog (LOG_INFO, "started");
-
     /*-------------------------------------------------------------------------
     * Persist indefinitely, until a signal is caught
     *------------------------------------------------------------------------*/
@@ -113,6 +121,8 @@ int main()
         {
             syslog (LOG_INFO, "Graceful exit");
             bipc::shared_memory_object::remove("HeapManager");
+            if (reset_dsps) reset_dsps();
+            closelog();
             exit(EXIT_SUCCESS);
         }
     }

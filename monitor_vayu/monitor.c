@@ -668,12 +668,6 @@ static void process_exit_command(ocl_msgq_message_t *msg_pkt)
     tomp_exitOpenMPforOpenCL();
     #endif
 
-#ifdef DEVICE_K2G
-    respond_to_host(msg_pkt, -1);
-    Log_print0(Diags_INFO, "ocl_monitor: EXIT");
-    cacheWbInvAllL2();
-    exit(0);
-#else
     /* Not sending a response to host, delete the msg */
     MessageQ_free((MessageQ_Msg)msg_pkt);
     Log_print0(Diags_INFO, "ocl_monitor: EXIT, no response");
@@ -692,8 +686,6 @@ static void process_exit_command(ocl_msgq_message_t *msg_pkt)
     }
     exit(0);
     #endif
-
-#endif
 }
 
 /******************************************************************************
