@@ -118,6 +118,7 @@ int main(int argc, char *argv[])
 
      run_kernel_wait(k_io, buf, -1);
      IOQ.enqueueReadBuffer(buf, CL_TRUE, 0, size, ary);
+     OOQ.finish();
    }
    catch (Error err) 
    {
