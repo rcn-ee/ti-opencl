@@ -340,11 +340,13 @@ static void process_task_local(Msg_t* Msg)
     kernel_msg_t    *kmsg       = &Msg->u.k.kernel;
     flush_msg_t     *fmsg       = &Msg->u.k.flush;
     uint32_t         kernel_id  = kmsg->Kernel_id;
+    int            is_inorder_q = (kcfg->global_size[0] == IN_ORDER_TASK_SIZE);
 
     void *           stk_args      = (void *) kmsg->args_on_stack_addr;
     uint32_t         stk_args_size = kmsg->args_on_stack_size;
 
-    TRACE(ULM_OCL_IOT_OVERHEAD, kernel_id, 0);
+    TRACE(is_inorder_q ? ULM_OCL_IOT_OVERHEAD : ULM_OCL_OOT_OVERHEAD,
+          kernel_id, 0);
 
     /*-----------------------------------------------------------------
     * Copy the static task config in L2, where the kernel wants it.
@@ -369,15 +371,17 @@ static void process_task_local(Msg_t* Msg)
     *--------------------------------------------------------------------*/
     clear_mpf();
 
-    TRACE(ULM_OCL_IOT_KERNEL_START, kernel_id, 0);
+    TRACE(is_inorder_q ? ULM_OCL_IOT_KERNEL_START : ULM_OCL_OOT_KERNEL_START,
+          kernel_id, 0);
 
     if (!setjmp(monitor_jmp_buf))
         dsp_rpc(&kmsg->entry_point, stk_args, stk_args_size);
     else
-        printf("Abnormal termination of In-order Task at 0x%08x\n",
-               kmsg->entry_point);
+        printf("Abnormal termination of %s Task at 0x%08x\n",
+               is_inorder_q ? "In-order" : "Out-of-order", kmsg->entry_point);
 
-    TRACE(ULM_OCL_IOT_KERNEL_COMPLETE, kernel_id, 0);
+    TRACE(is_inorder_q ? ULM_OCL_IOT_KERNEL_COMPLETE :
+                         ULM_OCL_OOT_KERNEL_COMPLETE, kernel_id, 0);
 
     report_and_clear_mpf();
 
@@ -385,7 +389,8 @@ static void process_task_local(Msg_t* Msg)
 
     cacheInvAllL2(); 
 
-    TRACE(ULM_OCL_IOT_CACHE_COHERENCE_COMPLETE, kernel_id, 0);
+    TRACE(is_inorder_q ? ULM_OCL_IOT_CACHE_COHERENCE_COMPLETE :
+                         ULM_OCL_OOT_CACHE_COHERENCE_COMPLETE, kernel_id, 0);
 
     broadcast(FLUSH_MSG_IOTASK_EPILOG, &Msg->u.k.flush);
     return;
