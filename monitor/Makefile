@@ -75,15 +75,17 @@ endif
 
 BUILD_TYPE = release
 
-#INCLUDES= -i $(OPENCL_SRC_DIR)/inc \
-#	  -i $(OPENCL_SRC_DIR)/src/core/dsp \
-#	  -D MAILBOX_ON_HOST 
-
 INCLUDES=  -i $(OPENCL_SRC_DIR)/src/core/dsp
 
 XDCTARGET= ti.targets.elf.C66
-XDCPATH_K2X = ./;$(C6636_PDK_DIR)/packages;$(BIOS_DIR)/packages;$(OMP_DIR)/packages;$(EDMA3LLD_DIR)/packages;$(IPC_DIR)/packages;$(FC_DIR)/packages;$(XDAIS_DIR)/packages;
-LIBS_K2X  = monitor.cmd $(ULM_DIR)/libtiulm.ae66 $(GDB_SERVER_DIR)/lib/gdb_server.ae66
+XDCPATH_K2X=./;$(C6636_PDK_DIR)/packages;$(BIOS_DIR)/packages;$(OMP_DIR)/packages;$(EDMA3LLD_DIR)/packages;$(IPC_DIR)/packages;$(FC_DIR)/packages;$(XDAIS_DIR)/packages;
+
+LIBS_K2X  = cmds/monitor.cmd \
+	    $(ULM_DIR)/libtiulm.ae66 \
+	    $(GDB_SERVER_DIR)/lib/gdb_server.ae66
+
+# L2SRAM_SIZE and MSMC_SIZE used to generate device specific command files from
+# dsp_link_commands.template
 
 ifeq ($(BUILD_TARGET),ARM_K2H)
     PLATFORM = evmk2h
@@ -92,12 +94,17 @@ ifeq ($(BUILD_TARGET),ARM_K2H)
     LIBS = $(LIBS_K2X)
     DSPS := 0 1 2 3 4 5 6 7
 
+    L2SRAM_SIZE = 0x000d0000
+    MSMC_SIZE   = 0x00580000
+
 else ifeq ($(BUILD_TARGET),ARM_K2L)
     PLATFORM = evmk2l
     XDCPATH  = $(XDCPATH_K2X)
     INCLUDES += -DDEVICE_K2L
     LIBS = $(LIBS_K2X)
     DSPS := 0 1 2 3
+    L2SRAM_SIZE = 0x000d0000
+    MSMC_SIZE   = 0x00180000
 
 else ifeq ($(BUILD_TARGET),ARM_K2E)
     PLATFORM = evmk2e
@@ -105,6 +112,8 @@ else ifeq ($(BUILD_TARGET),ARM_K2E)
     INCLUDES += -DDEVICE_K2E
     LIBS = $(LIBS_K2X)
     DSPS := 0
+    L2SRAM_SIZE = 0x00050000
+    MSMC_SIZE   = 0x00180000
 
 else
     ifeq ($(MAKECMDGOALS),clean)
@@ -163,7 +172,7 @@ SOURCES+= device_k2x.c
 SOURCES+= edma.c edma_config.c
 
 
-HEADERS = edma.h monitor.h util.h ocl_device_defs.h trace.h
+HEADERS = src/edma.h src/monitor.h src/util.h src/trace.h
 
 OBJS1=$(patsubst %.c,$(BUILD)/%.obj,$(SOURCES))
 OBJS=$(patsubst %.asm,$(BUILD)/%.obj,$(OBJS1))
@@ -209,22 +218,24 @@ define create_dsp_syms
 	@$(TI_OCL_CGT_INSTALL)/bin/nm6x -l $(1) | grep PROT | awk -F\| '{ print "\t.weak "$$8"\n"$$8"\t.set "$$2 };' >  $(2).asm
 	@$(TI_OCL_CGT_INSTALL)/bin/nm6x -l $(1) | grep FUNC | grep -fexport_syms | awk -F\| '{ print "\t.weak "$$8"\n"$$8"\t.set "$$2 };' >> $(2).asm
 	@$(CC) $(2).asm
-	@cp dsp_link_commands.$(PLATFORM) $(2)
+	$(SEDCMD) cmds/dsp_link_commands.template > $(2)
 	@rm -f $(1).syms.tmp* $(2).asm
 endef
 
 
+SEDCMD = \
+	 sed -e 's|__MSMC_SIZE__|$(MSMC_SIZE)|g' \
+	     -e 's|__L2SRAM_SIZE__|$(L2SRAM_SIZE)|g'
 
-$(BUILD)/%.obj : %.c $(COMP_OPTS) $(HEADERS)
+$(BUILD)/%.obj : src/%.c $(COMP_OPTS) $(HEADERS)
 	@echo Compiling $<
-	@$(CC) -@$(COMP_OPTS) $(INCLUDES) -c $< 
+	$(CC) -Isrc -@$(COMP_OPTS) $(INCLUDES) -c $<
 
-$(BUILD)/%.obj : %.asm $(COMP_OPTS)
+$(BUILD)/%.obj : src/%.asm $(COMP_OPTS)
 	@echo Compiling $<
-	@$(CC) -@$(COMP_OPTS) $(INCLUDES) -c $< 
+	$(CC) -@$(COMP_OPTS) $(INCLUDES) -c $<
 
 $(BUILD)/monitor.obj:  $(OPENCL_SRC_DIR)/src/core/dsp/message.h
-$(BUILD)/ocl_qmss.obj: $(OPENCL_SRC_DIR)/src/core/dsp/message.h
 
 
 #--------------------------------------------------------------------------
@@ -234,16 +245,16 @@ $(BUILD)/ocl_qmss.obj: $(OPENCL_SRC_DIR)/src/core/dsp/message.h
 $(COMP_OPTS): $(LINK_CMD)
 
 $(LINK_CMD): \
-    monitor.cfg \
-    ocl_platforms/$(PLATFORM)/package/package_ocl_platforms.$(PLATFORM).c
+    cfg/monitor.cfg \
+    platforms/$(PLATFORM)/package/package_platforms.$(PLATFORM).c
 	@echo Making $(BUILD) files
-	@$(XDC_DIR)/xs --xdcpath "$(XDCPATH)" xdc.tools.configuro -c $(TI_OCL_CGT_INSTALL) --cb -t $(XDCTARGET) -p ocl_platforms.$(PLATFORM) -r $(BUILD_TYPE) -o $(BUILD) monitor.cfg
+	@$(XDC_DIR)/xs --xdcpath "$(XDCPATH)" xdc.tools.configuro -c $(TI_OCL_CGT_INSTALL) --cb -t $(XDCTARGET) -p platforms.$(PLATFORM) -r $(BUILD_TYPE) -o $(BUILD) cfg/monitor.cfg
 	@sed '/c6xabi\.exidx/d' $(LINK_CMD) > lnk_tmp
 	@mv lnk_tmp $(LINK_CMD)
 
-ocl_platforms/$(PLATFORM)/package/package_ocl_platforms.$(PLATFORM).c: \
-    ocl_platforms/$(PLATFORM)/Platform.xdc
-	 $(MAKE) BIOS_DIR=$(BIOS_DIR) -C ocl_platforms/$(PLATFORM) 
+platforms/$(PLATFORM)/package/package_platforms.$(PLATFORM).c: \
+    platforms/$(PLATFORM)/Platform.xdc
+	 $(MAKE) BIOS_DIR=$(BIOS_DIR) -C platforms/$(PLATFORM)
 
 
 #--------------------------------------------------------------------------
@@ -253,10 +264,10 @@ ocl_platforms/$(PLATFORM)/package/package_ocl_platforms.$(PLATFORM).c: \
 .PHONY: clean
 clean:
 	@rm -fr monitor_dspc868x monitor_evmk2h monitor_evmk2l monitor_evmk2e
-	@$(MAKE) -C ocl_platforms/dspc868x clean
-	@$(MAKE) -C ocl_platforms/evmk2h clean
-	@$(MAKE) -C ocl_platforms/evmk2l clean
-	@$(MAKE) -C ocl_platforms/evmk2e clean
+	@$(MAKE) -C platforms/dspc868x clean
+	@$(MAKE) -C platforms/evmk2h clean
+	@$(MAKE) -C platforms/evmk2l clean
+	@$(MAKE) -C platforms/evmk2e clean
 
 .PHONY: realclean
 realclean: clean

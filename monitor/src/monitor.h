@@ -31,10 +31,14 @@
 
 #include <stdint.h>
 #include <ti/csl/csl_cacheAux.h>
-#include "ocl_device_defs.h"
 #include "message.h"
 
+extern int n_cores;
+
 extern cregister volatile unsigned int DNUM;
+
+#define OCL_HW_SEM_IDX                          (3)
+
 
 #define RETURN_FAIL 0
 #define RETURN_OK   1

@@ -27,7 +27,6 @@
 #ifndef _util_h_
 #define _util_h_
 
-#include "ocl_device_defs.h"
 #include <monitor.h>
 #include <stdint.h>
 #include <ti/csl/csl_semAux.h>
