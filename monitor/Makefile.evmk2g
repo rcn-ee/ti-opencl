@@ -92,8 +92,11 @@ ifeq ($(BUILD_TARGET),ARM_K2G)
     PLATFORM = evmk2g
     XDCPATH  = $(XDCPATH_K2X)
     INCLUDES += -DDEVICE_K2G
-    LIBS = monitor.$(PLATFORM).cmd $(LIBS_K2X)
+    LIBS = cmds/monitor.$(PLATFORM).cmd $(LIBS_K2X)
 
+    L2SRAM_START = 0x00810000
+    L2SRAM_SIZE  = 0x000d0000
+    MSMC_SIZE    = 0x00100000
 else
     ifeq ($(MAKECMDGOALS),clean)
     else ifeq ($(MAKECMDGOALS),realclean)
@@ -134,10 +137,15 @@ $(BUILTINS):
 
 SOURCES = monitor.c util.c dsp_rpc.asm touch.asm builtins.c \
           edma.c edma3_tci66ak2g02_cfg.c device_k2g.c
-HEADERS = monitor.h util.h trace.h edma.h
+HEADERS = src/monitor.h src/util.h src/trace.h src/edma.h
 
 OBJS1=$(patsubst %.c,$(BUILD)/%.obj,$(SOURCES))
 OBJS=$(patsubst %.asm,$(BUILD)/%.obj,$(OBJS1))
+
+SEDCMD = \
+	 sed -e 's|__MSMC_SIZE__|$(MSMC_SIZE)|g' \
+	     -e 's|__L2SRAM_START__|$(L2SRAM_START)|g' \
+	     -e 's|__L2SRAM_SIZE__|$(L2SRAM_SIZE)|g'
 
 ## !Need -O* to inline CACHE_* functions!
 CC= $(TI_OCL_CGT_INSTALL)/bin/cl6x -o3 -mv6600 --abi=eabi --gcc --mem_model:const=data --mem_model:data=far -fr=$(BUILD)
@@ -150,13 +158,13 @@ $(OUT): $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD) $(LIBS)
 	@$(TI_OCL_CGT_INSTALL)/bin/nm6x -l $(OUT) | grep PROT | awk -F\| '{ print "\t.weak "$$8"\n"$$8"\t.set "$$2 };' >  $(BUILD)/dsp_syms.asm
 	@$(TI_OCL_CGT_INSTALL)/bin/nm6x -l $(OUT) | grep FUNC | grep -fexport_syms | awk -F\| '{ print "\t.weak "$$8"\n"$$8"\t.set "$$2 };' >> $(BUILD)/dsp_syms.asm
 	@$(CC) $(BUILD)/dsp_syms.asm
-	@cp dsp_link_commands.$(PLATFORM) $(BUILD)/dsp.syms
+	@$(SEDCMD) cmds/dsp_link_commands.template > $(BUILD)/dsp.syms
 
-$(BUILD)/%.obj : %.c $(COMP_OPTS) $(HEADERS)
+$(BUILD)/%.obj : src/%.c $(COMP_OPTS) $(HEADERS)
 	@echo Compiling $<
-	@$(CC) -@$(COMP_OPTS) $(INCLUDES) -c $< 
+	@$(CC) -Isrc -@$(COMP_OPTS) $(INCLUDES) -c $<
 
-$(BUILD)/%.obj : %.asm $(COMP_OPTS)
+$(BUILD)/%.obj : src/%.asm $(COMP_OPTS)
 	@echo Compiling $<
 	@$(CC) -@$(COMP_OPTS) $(INCLUDES) -c $< 
 
@@ -170,16 +178,16 @@ $(BUILD)/monitor.obj:  $(OPENCL_SRC_DIR)/src/core/dsp/message.h
 $(COMP_OPTS): $(LINK_CMD)
 
 $(LINK_CMD): \
-    monitor.$(PLATFORM).cfg \
-    ocl_platforms/$(PLATFORM)/package/package_ocl_platforms.$(PLATFORM).c
+    cfg/monitor.$(PLATFORM).cfg \
+    platforms/$(PLATFORM)/package/package_platforms.$(PLATFORM).c
 	@echo Making $(BUILD) files
-	@$(XDC_DIR)/xs --xdcpath "$(XDCPATH)" xdc.tools.configuro -c $(TI_OCL_CGT_INSTALL) --cb -t $(XDCTARGET) -p ocl_platforms.$(PLATFORM) -r $(BUILD_TYPE) -o $(BUILD) monitor.$(PLATFORM).cfg
+	@$(XDC_DIR)/xs --xdcpath "$(XDCPATH)" xdc.tools.configuro -c $(TI_OCL_CGT_INSTALL) --cb -t $(XDCTARGET) -p platforms.$(PLATFORM) -r $(BUILD_TYPE) -o $(BUILD) cfg/monitor.$(PLATFORM).cfg
 	@sed '/c6xabi\.exidx/d' $(LINK_CMD) > lnk_tmp
 	@mv lnk_tmp $(LINK_CMD)
 
-ocl_platforms/$(PLATFORM)/package/package_ocl_platforms.$(PLATFORM).c: \
-    ocl_platforms/$(PLATFORM)/Platform.xdc
-	 $(MAKE) BIOS_DIR=$(BIOS_DIR) -C ocl_platforms/$(PLATFORM) 
+platforms/$(PLATFORM)/package/package_platforms.$(PLATFORM).c: \
+    platforms/$(PLATFORM)/Platform.xdc
+	 $(MAKE) BIOS_DIR=$(BIOS_DIR) -C platforms/$(PLATFORM)
 
 
 #--------------------------------------------------------------------------
@@ -189,7 +197,7 @@ ocl_platforms/$(PLATFORM)/package/package_ocl_platforms.$(PLATFORM).c: \
 .PHONY: clean
 clean:
 	@rm -fr monitor_evmk2g
-	@$(MAKE) -C ocl_platforms/evmk2g clean
+	@$(MAKE) -C platforms/evmk2g clean
 
 .PHONY: realclean
 realclean: clean

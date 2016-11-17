@@ -14,21 +14,21 @@ config ti.platforms.generic.Platform.Instance CPU =
       [ "L1DSRAM",       { name: "L1DSRAM", 
                           base: 0x00F00000, 
                           len:  0x00008000, 
-                  space: "code/data",
-              access: "RWX", } ],
+                          space: "code/data",
+                          access: "RWX", } ],
 
       /*-----------------------------------------------------------------------
       * L2 Related regions
       *----------------------------------------------------------------------*/
       [ "L2SRAM",    { name: "L2SRAM", 
                        base: 0x00800000, 
-                       len:     0x10000,
+                       len:     0x08000,
                        space: "code/data", 
-               access: "RWX", } ],
+                       access: "RWX", } ],
 
       [ "OCL_LOCAL", { name: "OCL_LOCAL",
-                       base: 0x00810000,
-                       len:     0xd0000,
+                       base: 0x00808000,
+                       len:     0xd8000,
                        space: "code/data",
                        access: "RWX", } ],
 
@@ -37,15 +37,15 @@ config ti.platforms.generic.Platform.Instance CPU =
       *----------------------------------------------------------------------*/
       [ "MSMC_NC_PHYS", { name: "MSMC_NC_PHYS", 
                           base: 0x0C580000,
-              len:  0x00080000,
+                          len:  0x00080000,
                           space: "code/data", 
-              access: "RWX", } ],
+                          access: "RWX", } ],
 
       [ "MSMC_NC_VIRT", { name: "MSMC_NC_VIRT", 
                           base: 0xA1000000, 
-              len:  0x00080000,
+                          len:  0x00080000,
                           space: "code/data", 
-              access: "RWX", } ],
+                          access: "RWX", } ],
 
       /*-----------------------------------------------------------------------
       * DDR Related regions

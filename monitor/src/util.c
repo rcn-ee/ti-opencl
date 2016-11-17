@@ -30,18 +30,24 @@
 #include "monitor.h"
 #include <ti/csl/csl_xmc.h>
 #include <ti/csl/csl_xmcAux.h>
+#if defined (DEVICE_K2H) || defined (DEVICE_K2L) || defined (DEVICE_K2E)
 #include <ti/csl/csl_msmc.h>
 #include <ti/csl/csl_msmcAux.h>
 #include <ti/csl/csl_semAux.h>
-#include <ti/csl/cslr_tmr.h>
-#include <ti/csl/csl_emif4fAux.h>
+#endif
 #include <ti/csl/csl_cacheAux.h>
 #include <c6x.h>
 #include <stdio.h>
 
 EXPORT void __mfence(void)
 {
-    ocl_mfence();
+    _mfence(); // Wait until data written to memory
+    _mfence(); // Second one because of a bug (KeyStone I FAE alert)
+    
+    // sprz332b.pdf, Advisory 24 - Require 16 NOPs after MFENCE after certain
+    // cache coherency operations
+    asm(" NOP 9");
+    asm(" NOP 7");
 }
 
 /******************************************************************************
@@ -66,47 +72,6 @@ EXPORT void __cycle_delay (uint64_t cyclesToDelay)
     while((__clock64() - now) < cyclesToDelay);
 }
 
-/******************************************************************************
-* Barrier Implementation
-******************************************************************************/
-typedef struct 
-{
-    uint8_t tbl0[MAX_NUM_CORES];
-    uint8_t tbl1[MAX_NUM_CORES];
-} CoreBarrier_t;
-
-FAST_SHARED(CoreBarrier_t, CoreBarrier);
-
-//uint8_t CoreBarrierSense = 0;
-PRIVATE(uint8_t, CoreBarrierSense) = 0;
-
-void waitAtCoreBarrier(void)
-{
-    volatile uint8_t* lvCoreBarrierPtr;
-    volatile uint8_t lvGo = 0;
-    int i;
-
-    if (CoreBarrierSense == 0)
-    {
-        lvCoreBarrierPtr = CoreBarrier.tbl0;
-        CoreBarrierSense = 1;
-    }
-    else
-    {
-        lvCoreBarrierPtr = CoreBarrier.tbl1;
-        CoreBarrierSense = 0;
-    }
-
-    for (i = 0; i < n_cores; i++) *(lvCoreBarrierPtr + i) = 0;
-
-    while (!lvGo)
-    {
-        lvGo = 1;
-        *(lvCoreBarrierPtr + DNUM) = 1;
-        for (i = 0; i < n_cores; i++) lvGo = lvGo & *(lvCoreBarrierPtr + i);
-        *(lvCoreBarrierPtr + DNUM) = 1;
-    }
-}
 
 /******************************************************************************
 * disableCache
@@ -203,6 +168,8 @@ void cacheInvL2 (uint8_t* bufferPtr, uint32_t bufferSize)
     _restore_interrupts(lvInt);
     return;
 }
+
+#if defined (DEVICE_K2H) || defined (DEVICE_K2L) || defined (DEVICE_K2E)
 
 /******************************************************************************
 * set_MPAX
@@ -317,21 +284,6 @@ void reset_kernel_MPAXs(int num_mpaxs)
     _restore_interrupts(lvInt);
 }
 
-
-uint32_t count_trailing_zeros(uint32_t x)
-{
-    int cnt = 0;
-
-    if (!x) return 32;
-
-    while ((x & 1) == 0)
-    {
-        x >>= 1;
-        cnt ++;
-    }
-    return cnt;
-}
-
 /******************************************************************************
 * clear_mpf()
 *   Clear Memory Protection Failure registers
@@ -358,15 +310,19 @@ void report_and_clear_mpf()
                               mpfsr.ur, mpfsr.uw, mpfsr.ux);
     CSL_XMC_clearFault();
 }
+#endif
 
-uint32_t makeAddressGlobal(uint32_t coreIdx, uint32_t address)
+
+uint32_t count_trailing_zeros(uint32_t x)
 {
-    if (address < 0x01000000)
+    int cnt = 0;
+
+    if (!x) return 32;
+
+    while ((x & 1) == 0)
     {
-        address = (0x10 + coreIdx) << 24 | address;
+        x >>= 1;
+        cnt ++;
     }
-
-    return address;
+    return cnt;
 }
-
-

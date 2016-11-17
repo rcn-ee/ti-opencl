@@ -25,12 +25,10 @@
  *   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  *   THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
+#include <stddef.h>
 #include "monitor.h"
 #include "util.h"
-#include <ti/csl/csl_xmc.h>
-#include <ti/csl/csl_xmcAux.h>
-
-extern cregister volatile unsigned int DNUM;
+#include <c6x.h>
 
 extern uint32_t ocl_l1d_mem_start;
 extern uint32_t ocl_l1d_mem_size;
@@ -203,6 +201,10 @@ EXPORT int __cache_l2_128k()
     return 1;
 }
 
+#ifdef DEVICE_AM572x
+EXPORT int __cache_l2_256k() { return 0; }
+EXPORT int __cache_l2_512k() { return 0; }
+#else
 EXPORT int __cache_l2_256k()
 {
     int32_t scratch_delta = __cache_l2_size() - (256 << 10);
@@ -230,6 +232,7 @@ EXPORT int __cache_l2_512k()
     CACHE_getL2Size ();
     return 1;
 }
+#endif
 
 EXPORT void __cache_l2_flush()
 {
@@ -240,28 +243,3 @@ EXPORT void __cache_l2_flush()
     __mfence();
     _restore_interrupts(lvInt);
 }
-
-#ifndef TI_66AK2X
-EXPORT void  __copy_wait(void *event)  { return; }
-EXPORT void* __copy_1D1D(void *event, void *dst, void *src, uint32_t bytes)
-{
-    memcpy(dst, src, bytes);
-    return NULL;
-}
-EXPORT void* __copy_2D1D(void *event, void *dst, void *src, 
-			 uint32_t  bytes, uint32_t num_lines, int32_t pitch)
-{
-    int i;
-    for (i = 0; i < num_lines; ++i)
-        memcpy(((char *)dst) + i*bytes, ((char *)src) + i*pitch*bytes, bytes);
-    return NULL;
-}
-EXPORT void* __copy_1D2D(void *event, void *dst, void *src,             
-			 uint32_t  bytes, uint32_t num_lines, int32_t pitch)
-{
-    int i;
-    for (i = 0; i < num_lines; ++i)
-        memcpy(((char *)dst) + i*pitch*bytes, ((char *)src) + i*bytes, bytes);
-    return NULL;
-}
-#endif

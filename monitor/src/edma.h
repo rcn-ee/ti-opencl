@@ -25,4 +25,6 @@ copy_event *__copy_1D2D(copy_event *event, void *dst, void *src, uint32_t bytes,
                         uint32_t num_lines, int32_t pitch);
 
 void free_edma_channel_pool();
+void free_edma_hw_channels();
+void restore_edma_hw_channels();
 #endif // _EDMA_H_
