@@ -12,11 +12,12 @@
 -x 
 -heap 0x0
 
+/* L2SRAM range must be in sync with Platform.xdc */
 MEMORY
 {
     DDR:    o = 0x80000000 l = 0x19000000
-    MSMC:   o = 0x0C000000 l = 0x00380000
-    L2SRAM: o = 0x00810000 l = 0x00050000
+    MSMC:   o = 0x0C000000 l = __MSMC_SIZE__
+    L2SRAM: o = 0x00810000 l = __L2SRAM_SIZE__
 }
 
 SECTIONS
@@ -28,7 +29,7 @@ SECTIONS
 
     GROUP
     {
-        .mem_l2: align(128)
+	.mem_l2: align(128)
         .ocl_local_overlay:*   align(128) run_start(_ocl_local_overlay_start)
     } > L2SRAM
 
@@ -140,6 +141,5 @@ SECTIONS
 --symbol_map=__ocl_cache_l1d_std=__cache_l1d_all
 --symbol_map=__ocl_cache_l1d_half=__cache_l1d_16k
 --symbol_map=__ocl_cache_l1d_wbinvall=__cache_l1d_flush
---symbol_map=_Z11__copy_1D1DP11__ocl_eventPU7CLlocalvPU8CLglobalvj=__copy_1D1D
---symbol_map=_Z11__copy_1D1DP11__ocl_eventPU8CLglobalvPU7CLlocalvj=__copy_1D1D
---symbol_map=_Z11__copy_1D1DP11__ocl_eventPU8CLglobalvS2_j=__copy_1D1D
+--symbol_map=exit=__kernel_exit
+--symbol_map=abort=__kernel_abort

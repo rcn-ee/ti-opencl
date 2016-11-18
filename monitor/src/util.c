@@ -28,7 +28,6 @@
 #include "string.h"
 #include "util.h"
 #include "monitor.h"
-#include "ocl_device_defs.h"
 #include <ti/csl/csl_xmc.h>
 #include <ti/csl/csl_xmcAux.h>
 #include <ti/csl/csl_msmc.h>
@@ -37,6 +36,7 @@
 #include <ti/csl/cslr_tmr.h>
 #include <ti/csl/csl_emif4fAux.h>
 #include <ti/csl/csl_cacheAux.h>
+#include <c6x.h>
 #include <stdio.h>
 
 EXPORT void __mfence(void)
@@ -47,9 +47,6 @@ EXPORT void __mfence(void)
 /******************************************************************************
 * Clock Handling
 ******************************************************************************/
-extern cregister volatile uint32_t TSCL;
-extern cregister volatile uint32_t TSCH;
-
 
 EXPORT uint32_t __clock(void)
 {
@@ -320,14 +317,6 @@ void reset_kernel_MPAXs(int num_mpaxs)
     _restore_interrupts(lvInt);
 }
 
-
-#define GPIO_IN_DATA 0x02320020     // for DSP number 
-
-uint32_t get_dsp_id()
-{
-    uint32_t dsp_id = ((*(unsigned int*) GPIO_IN_DATA) & 0x6) >> 1; 
-    return dsp_id;
-}
 
 uint32_t count_trailing_zeros(uint32_t x)
 {
