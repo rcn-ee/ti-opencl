@@ -17,19 +17,22 @@ MEMORY
 {
     DDR:    o = 0x80000000 l = 0x19000000
     MSMC:   o = 0x0C000000 l = __MSMC_SIZE__
-    L2SRAM: o = 0x00810000 l = __L2SRAM_SIZE__
+    L2SRAM: o = __L2SRAM_START__ l = __L2SRAM_SIZE__
 }
 
 SECTIONS
 {
     .llvmir:  type = COPY
 
+    .gnu.offload_funcs > DDR
+    .gnu.offload_vars  > DDR
+
     .mem_ddr  > DDR
     .mem_msm  > MSMC
 
     GROUP
     {
-	.mem_l2: align(128)
+        .mem_l2: align(128)
         .ocl_local_overlay:*   align(128) run_start(_ocl_local_overlay_start)
     } > L2SRAM
 

@@ -22,13 +22,13 @@ config ti.platforms.generic.Platform.Instance CPU =
       *----------------------------------------------------------------------*/
       [ "L2SRAM",    { name: "L2SRAM", 
                        base: 0x00800000, 
-                       len:     0x10000,
+                       len:     0x08000,
                        space: "code/data", 
                access: "RWX", } ],
 
       [ "OCL_LOCAL", { name: "OCL_LOCAL",
-                       base: 0x00810000,
-                       len:     0xd0000,
+                       base: 0x00808000,
+                       len:     0xd8000,
                        space: "code/data",
                        access: "RWX", } ],
 

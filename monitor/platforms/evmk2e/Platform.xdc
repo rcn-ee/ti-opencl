@@ -14,21 +14,21 @@ config ti.platforms.generic.Platform.Instance CPU =
       [ "L1DSRAM",       { name: "L1DSRAM", 
                           base: 0x00F00000, 
                           len:  0x00008000, 
-                  space: "code/data",
-              access: "RWX", } ],
+                          space: "code/data",
+                          access: "RWX", } ],
 
       /*-----------------------------------------------------------------------
       * L2 Related regions
       *----------------------------------------------------------------------*/
       [ "L2SRAM",    { name: "L2SRAM", 
                        base: 0x00800000, 
-                       len:     0x10000,
+                       len:     0x08000,
                        space: "code/data", 
-               access: "RWX", } ],
+                       access: "RWX", } ],
 
       [ "OCL_LOCAL", { name: "OCL_LOCAL",
-                       base: 0x00810000,
-                       len:     0x50000,  
+                       base: 0x00808000,
+                       len:     0x58000,  
                        space: "code/data",
                        access: "RWX", } ],
 

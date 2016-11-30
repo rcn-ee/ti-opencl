@@ -15,7 +15,7 @@ ifneq (,$(findstring 86, $(shell uname -m)))
 endif
 endif
 
-CLEAN_DIRS = builtins examples libm host/clocl
+CLEAN_DIRS = builtins examples libm host/clocl monitor
 
 ifeq ($(BUILD_AM57),1)
     TARGET=am57
@@ -31,36 +31,30 @@ ifeq ($(BUILD_AM57),1)
         CMAKE_DEFINES += -DBUILD_OS=SYS_BIOS -DPSDK_RTOS=$(DEFAULT_PSDK_RTOS)
         CLEAN_DIRS += packages/ti/opencl
     endif
-    CLEAN_DIRS += monitor_vayu
 else ifeq ($(BUILD_K2H),1)
     TARGET=k2h
     BUILD_TARGET=ARM_K2H
     CMAKE_DEFINES += -DLINUX_DEVKIT_ROOT=$(PSDK_LINUX_DEVKIT_ROOT)
     export PATH:=$(ARM_GCC_DIR)/bin:$(PATH)
-    CLEAN_DIRS += monitor
 else ifeq ($(BUILD_K2L),1)
     TARGET=k2l
     BUILD_TARGET=ARM_K2L
     CMAKE_DEFINES += -DLINUX_DEVKIT_ROOT=$(PSDK_LINUX_DEVKIT_ROOT)
     export PATH:=$(ARM_GCC_DIR)/bin:$(PATH)
-    CLEAN_DIRS += monitor
 else ifeq ($(BUILD_K2E),1)
     TARGET=k2e
     BUILD_TARGET=ARM_K2E
     CMAKE_DEFINES += -DLINUX_DEVKIT_ROOT=$(PSDK_LINUX_DEVKIT_ROOT)
     export PATH:=$(ARM_GCC_DIR)/bin:$(PATH)
-    CLEAN_DIRS += monitor
 else ifeq ($(BUILD_K2G),1)
     TARGET=k2g
     BUILD_TARGET=ARM_K2G
     CMAKE_DEFINES += -DLINUX_DEVKIT_ROOT=$(PSDK_LINUX_DEVKIT_ROOT)
     export PATH:=$(ARM_GCC_DIR)/bin:$(PATH)
-    CLEAN_DIRS += monitor_vayu
 else ifeq ($(BUILD_DSPC),1)
     TARGET=dspc
     BUILD_TARGET=DSPC868x
     CMAKE_DEFINES += -DSDK=$(DEFAULT_DLSDK)
-    CLEAN_DIRS += monitor
 else
     ifeq ($(MAKECMDGOALS),clean)
     else ifeq ($(MAKECMDGOALS),realclean)

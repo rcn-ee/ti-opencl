@@ -29,29 +29,23 @@
 
 #include <monitor.h>
 #include <stdint.h>
-#include <ti/csl/csl_semAux.h>
+#include <c6x.h>
 
-extern cregister volatile uint32_t DNUM;
-
-void     startEmifPerfCounters  (void);
-void     stopEmifPerfCounters   (uint32_t* count1Ptr, uint32_t* count2Ptr);
-int      initClockGlobal        (void);
-int      initClockLocal         (void);
-uint32_t readClockGlobal        (void);
 EXPORT uint32_t __clock                (void);
 EXPORT uint64_t __clock64              (void);
 EXPORT void     __cycle_delay          (uint64_t cyclesToDelay);
 EXPORT void     __mfence               (void);
-void     waitAtCoreBarrier      (void);
 void     cacheWbInvAllL2        (void);
 void     cacheInvAllL2          (void);
 void     cacheWbInvL2           (uint8_t* bufferPtr, uint32_t bufferSize);
 void     cacheInvL2             (uint8_t* bufferPtr, uint32_t bufferSize);
-uint32_t get_dsp_id             (void);
 uint32_t count_trailing_zeros   (uint32_t x);
 
 void     enableCache    (unsigned start, unsigned next_start);
 void     disableCache   (unsigned start, unsigned next_start);
+
+
+#if defined (DEVICE_K2H) || defined (DEVICE_K2L) || defined (DEVICE_K2E)
 void     set_MPAX       (            int index, uint32_t bAddr, uint8_t segSize,
                                                 uint32_t rAddr, uint8_t perm);
 void     set_MSMC_MPAX  (int privId, int index, uint32_t bAddr, uint8_t segSize,
@@ -62,38 +56,6 @@ void     set_kernel_MPAXs  (int num_mpaxs, uint32_t *settings);
 void     reset_kernel_MPAXs(int num_mpaxs);
 void     clear_mpf           (void);
 void     report_and_clear_mpf(void);
-
-uint32_t makeAddressGlobal(uint32_t coreIdx, uint32_t address);
-
-static inline void ocl_mfence(void)
-{
-    _mfence(); // Wait until data written to memory
-    _mfence(); // Second one because of a bug
-    asm(" NOP 9");
-    asm(" NOP 7");
-}
-
-
-/******************************************************************************
-* Locking Mechanism
-******************************************************************************/
-static inline void sem_lock(void)
-{
-    while (!CSL_semAcquireDirect(OCL_HW_SEM_IDX));
-}
-
-static inline void sem_unlock(void)
-{
-    ocl_mfence();
-    CSL_semReleaseSemaphore(OCL_HW_SEM_IDX);
-}
-
-static inline void sem_reset(void)
-{
-    ocl_mfence();
-    if (!CSL_semIsFree(OCL_HW_SEM_IDX)) CSL_semReleaseSemaphore(OCL_HW_SEM_IDX);
-
-}
-
+#endif
 
 #endif /* _util_h_ */

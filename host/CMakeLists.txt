@@ -130,11 +130,7 @@ set(OCL_EXAMPLES_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../examples)
 endif()
 
 if (NOT OCL_MONITOR_DIR)
-    if (K2X_BUILD OR C6678_BUILD)
      set(OCL_MONITOR_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../monitor)
-    else()
-     set(OCL_MONITOR_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../monitor_vayu)
-    endif()
 endif()
 
 if (NOT OCL_BUILTINS_DIR)

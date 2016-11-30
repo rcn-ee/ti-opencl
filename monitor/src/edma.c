@@ -1,5 +1,3 @@
-#ifdef TI_66AK2X
-
 #include <xdc/std.h>
 #include <string.h>
 #include <ti/sysbios/BIOS.h>
@@ -18,11 +16,24 @@
 
 #define ADDR_IS_EDMA3_COHERENT(addr) (((unsigned int) (addr) >> 20) == 0x008)
 
+/*-----------------------------------------------------------------------------
+* On AM57x, each DSP core has an identical copy of configuration parameters
+* table, private to each core
+*----------------------------------------------------------------------------*/
 
 /*-----------------------------------------------------------------------------
 * If the edmamgr resource map changes, we may need to revisit these macros
 *----------------------------------------------------------------------------*/
-#define EDMA_MGR_MAX_NUM_CHANNELS    (15)
+#if defined(DEVICE_AM572x)
+    #define EDMA_MGR_MAX_NUM_CHANNELS    (32)
+#elif defined(DEVICE_K2G)
+    #define EDMA_MGR_MAX_NUM_CHANNELS    (16)
+#elif defined(DEVICE_K2H) || defined (DEVICE_K2L) || defined (DEVICE_K2E)
+    #define EDMA_MGR_MAX_NUM_CHANNELS    (15)
+#else
+    #error Unknown device
+#endif
+
 #define STARTUP_NUM_OF_EDMA_CHANNELS (4)
 
 #define MEMCPY_THRESHOLD             (0x800) 
@@ -73,7 +84,13 @@ int initialize_edmamgr()
    Diags_setMask(FCSETTINGS_MODNAME"+EX1234567");
 #endif
 
+#ifdef DEVICE_AM572x
+   // On AM57x, Each DSP has an identical copy of EDMA
+   // Use proc_id 0 to pick Instance 1, region 2 (see edma_config.c)
+   if((status = EdmaMgr_init(0, NULL)) != EdmaMgr_SUCCESS)
+#else
    if((status = EdmaMgr_init(DNUM, NULL)) != EdmaMgr_SUCCESS)
+#endif
       return !status;
 
    return !initialize_edma_channel_pool();
@@ -262,14 +279,36 @@ EXPORT void __copy_wait(copy_event *event)
 
 /******************************************************************************
 * De-allocate all used edma channels
+* AM57x: Allocated EdmaMgr channels currently can NOT survive IpcPower
+* suspend/resume yet, we have to free them before suspend.
 ******************************************************************************/
 void free_edma_channel_pool()
 {
    int i;
 
+   available_edma_channel = NULL;
    for(i = 0; i < EDMA_MGR_MAX_NUM_CHANNELS; i++)
       if (edma_channel_pool[DNUM][i].status != EV_NOT_ALLOCATED)
+      {
          EdmaMgr_free(edma_channel_pool[DNUM][i].channel);
+         edma_channel_pool[DNUM][i].status = EV_NOT_ALLOCATED;
+      }
 }
 
-#endif   // #ifdef TI_66AK2X
+/******************************************************************************
+* De-allocate edma hardware channels before IpcPower suspend
+******************************************************************************/
+void free_edma_hw_channels()
+{
+  EdmaMgr_hwFreeAll();
+  cacheWbInvAllL2();
+}
+
+/******************************************************************************
+* Re-allocate edma hardware channels after IpcPower resume
+******************************************************************************/
+void restore_edma_hw_channels()
+{
+  cacheInvAllL2();
+  EdmaMgr_hwAllocAll();
+}
