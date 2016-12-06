@@ -34,6 +34,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <setjmp.h>
 
 /*-----------------------------------------------------------------------------
 * Platform and Chip Support
@@ -124,6 +125,9 @@ FAST_SHARED_1D(char, tx_mbox_mem, 64);
 
 PRIVATE(Msg_t*, printMsg)   = NULL;
 PRIVATE_1D(char, print_msg_mem, sizeof(Msg_t));
+
+PRIVATE (jmp_buf,           monitor_jmp_buf);
+PRIVATE (int,               command_retcode);
 
 /******************************************************************************
 * Defines an area of bytes in L2, where the kernels will
@@ -222,6 +226,8 @@ static inline void set_mpax_for_extended_memory(flush_msg_t* flush_msg);
 static inline void restore_mpax_for_extended_memory(flush_msg_t* flush_msg);
 static        void all_core_copy (void *dest, void *src, size_t size);
 
+static        void update_master_core_private(void *l2_addr, int size);
+
 /******************************************************************************
 * MASTER_THREAD : One core acts as a master.  This macro identifies that thread
 ******************************************************************************/
@@ -284,6 +290,7 @@ BIOS_TASK(listen_host_task)
        int is_inorder_q = (kcfg->global_size[0]  == IN_ORDER_TASK_SIZE);
        int is_debugmode = (kcfg->WG_gid_start[0] == DEBUG_MODE_WG_GID_START);
 
+       command_retcode = CL_SUCCESS;
        /*----------------------------------------------------------------------
        * Inspect the message type and dispatch wrok accordingly
        *---------------------------------------------------------------------*/
@@ -333,11 +340,13 @@ static void process_task_local(Msg_t* Msg)
     kernel_msg_t    *kmsg       = &Msg->u.k.kernel;
     flush_msg_t     *fmsg       = &Msg->u.k.flush;
     uint32_t         kernel_id  = kmsg->Kernel_id;
+    int            is_inorder_q = (kcfg->global_size[0] == IN_ORDER_TASK_SIZE);
 
     void *           stk_args      = (void *) kmsg->args_on_stack_addr;
     uint32_t         stk_args_size = kmsg->args_on_stack_size;
 
-    TRACE(ULM_OCL_IOT_OVERHEAD, kernel_id, 0);
+    TRACE(is_inorder_q ? ULM_OCL_IOT_OVERHEAD : ULM_OCL_OOT_OVERHEAD,
+          kernel_id, 0);
 
     /*-----------------------------------------------------------------
     * Copy the static task config in L2, where the kernel wants it.
@@ -362,11 +371,17 @@ static void process_task_local(Msg_t* Msg)
     *--------------------------------------------------------------------*/
     clear_mpf();
 
-    TRACE(ULM_OCL_IOT_KERNEL_START, kernel_id, 0);
+    TRACE(is_inorder_q ? ULM_OCL_IOT_KERNEL_START : ULM_OCL_OOT_KERNEL_START,
+          kernel_id, 0);
 
-    dsp_rpc(&kmsg->entry_point, stk_args, stk_args_size);
+    if (!setjmp(monitor_jmp_buf))
+        dsp_rpc(&kmsg->entry_point, stk_args, stk_args_size);
+    else
+        printf("Abnormal termination of %s Task at 0x%08x\n",
+               is_inorder_q ? "In-order" : "Out-of-order", kmsg->entry_point);
 
-    TRACE(ULM_OCL_IOT_KERNEL_COMPLETE, kernel_id, 0);
+    TRACE(is_inorder_q ? ULM_OCL_IOT_KERNEL_COMPLETE :
+                         ULM_OCL_OOT_KERNEL_COMPLETE, kernel_id, 0);
 
     report_and_clear_mpf();
 
@@ -374,7 +389,8 @@ static void process_task_local(Msg_t* Msg)
 
     cacheInvAllL2(); 
 
-    TRACE(ULM_OCL_IOT_CACHE_COHERENCE_COMPLETE, kernel_id, 0);
+    TRACE(is_inorder_q ? ULM_OCL_IOT_CACHE_COHERENCE_COMPLETE :
+                         ULM_OCL_OOT_CACHE_COHERENCE_COMPLETE, kernel_id, 0);
 
     broadcast(FLUSH_MSG_IOTASK_EPILOG, &Msg->u.k.flush);
     return;
@@ -408,7 +424,7 @@ static void process_task_distributed(Msg_t* Msg)
 ******************************************************************************/
 static void process_kernel_local(Msg_t* msg)
 {
-    int               done;
+    int               done = false;
     uint32_t          workgroup     = 0;
     uint32_t          WGid[3]       = {0,0,0};
     kernel_config_t * kcfg          = &msg->u.k.config;
@@ -444,13 +460,20 @@ static void process_kernel_local(Msg_t* msg)
 
         TRACE(ULM_OCL_NDR_KERNEL_START, kernel_id, kcfg->WG_id);
 
-        dsp_rpc(&kmsg->entry_point, stk_args, stk_args_size);
+        if (!setjmp(monitor_jmp_buf))
+            dsp_rpc(&kmsg->entry_point, stk_args, stk_args_size);
+        else
+        {
+            printf("Abnormal termination of NDRange kernel at 0x%08x\n",
+                   kmsg->entry_point);
+            done = true;
+        }
 
         TRACE(ULM_OCL_NDR_KERNEL_COMPLETE, kernel_id, kcfg->WG_id);
 
         report_and_clear_mpf();
 
-        done = incVec(kcfg->num_dims, WGid, &kcfg->local_size[0], &kcfg->global_size[0]);
+        done = done | incVec(kcfg->num_dims, WGid, &kcfg->local_size[0], &kcfg->global_size[0]);
     } while (!done);
 
     mail_safely((uint8_t*)&readyMsg, sizeof(readyMsg), kernel_id);
@@ -634,6 +657,7 @@ void service_task(void *ptr)
     kernel_config_l2.WG_alloca_size   = pkt->WG_alloca_size;
     kernel_config_l2.L2_scratch_start = pkt->L2_scratch_start;
     kernel_config_l2.L2_scratch_size  = pkt->L2_scratch_size;
+    command_retcode                   = CL_SUCCESS;
 
     set_mpax_for_extended_memory(fmsg);
 
@@ -641,7 +665,11 @@ void service_task(void *ptr)
 
     clear_mpf();
 
-    dsp_rpc(&kmsg->entry_point, stk_args, stk_args_size);
+    if (!setjmp(monitor_jmp_buf))
+        dsp_rpc(&kmsg->entry_point, stk_args, stk_args_size);
+    else
+        printf("Abnormal termination of Out-of-order Task at 0x%08x\n",
+               kmsg->entry_point);
 
     TRACE(ULM_OCL_OOT_KERNEL_COMPLETE, kId, 0);
 
@@ -661,6 +689,9 @@ void service_task(void *ptr)
 ******************************************************************************/
 void service_workgroup(void *ptr)
 {
+    // A previous WG in this NDR kernel has failed, skip rest of WGs
+    if (command_retcode != CL_SUCCESS)  return;
+
     workgroup_pkt_t* pkt = (workgroup_pkt_t*) ptr;
 
     kernel_config_l2.WG_gid_start[0] = pkt->WG_gid_start[0];
@@ -677,9 +708,13 @@ void service_workgroup(void *ptr)
 
     clear_mpf();
 
-    dsp_rpc(&kernel_attributes.entry_point, 
-            (void*)kernel_attributes.args_on_stack_addr, 
-            kernel_attributes.args_on_stack_size);
+    if (!setjmp(monitor_jmp_buf))
+        dsp_rpc(&kernel_attributes.entry_point,
+                (void*)kernel_attributes.args_on_stack_addr,
+                kernel_attributes.args_on_stack_size);
+    else
+        printf("Abnormal termination of NDRange kernel at 0x%08x\n",
+              kernel_attributes.entry_point);
 
     TRACE(ULM_OCL_NDR_KERNEL_COMPLETE, kId, wgId);
 
@@ -713,6 +748,7 @@ static void service_broadcast(void* ptr)
             set_mpax_for_extended_memory(flush_msg);
             CACHE_invL1d(&kernel_config_l2,  sizeof(kernel_config_l2),  CACHE_WAIT); 
             CACHE_invL1d(&kernel_attributes, sizeof(kernel_attributes), CACHE_WAIT); 
+            command_retcode = CL_SUCCESS;
             waitAtCoreBarrier(); 
             break;
 
@@ -726,6 +762,8 @@ static void service_broadcast(void* ptr)
  
             if (cache_op)      cacheInvAllL2(); 
             if (num_mpaxs > 0) reset_kernel_MPAXs(num_mpaxs);
+            if (! MASTER_THREAD && command_retcode != CL_SUCCESS)
+                update_master_core_private(&command_retcode, sizeof(int));
             waitAtCoreBarrier(); 
 
             /*-----------------------------------------------------------------
@@ -742,6 +780,15 @@ static void service_broadcast(void* ptr)
     if (MASTER_THREAD) Semaphore_post(broadcastCompleteSem);
 }
 
+
+/******************************************************************************
+* update_master_core_private - Update copy in master core's L2
+*                              Master core's copy MUST have same address in L2!
+******************************************************************************/
+void update_master_core_private(void *l2_addr, int size)
+{
+  memcpy((void *)makeAddressGlobal(0, (uint32_t)l2_addr), l2_addr, size);
+}
 
 
 /******************************************************************************
@@ -1131,6 +1178,10 @@ static int incVec(unsigned dims, unsigned *vec, unsigned *inc, unsigned *maxs)
 void mail_safely(uint8_t* msg, size_t msgSz, uint32_t msgId)
 {
    int status;
+
+   if (((Msg_t *) msg)->command != PRINT)
+       ((Msg_t *) msg)->u.command_retcode.retcode = command_retcode;
+
    do 
    {
        sem_lock();
@@ -1168,4 +1219,19 @@ _CODE_ACCESS void __TI_readmsg(register unsigned char *parm,
                                register char          *data)
 {
     return;  // do nothing
+}
+
+
+void __kernel_exit(int status)
+{
+    printf("Exit (%d). ", status);
+    command_retcode = CL_ERROR_KERNEL_EXIT_TI;
+    longjmp(monitor_jmp_buf, 1);
+}
+
+void __kernel_abort()
+{
+    printf("Abort. ");
+    command_retcode = CL_ERROR_KERNEL_ABORT_TI;
+    longjmp(monitor_jmp_buf, 1);
 }

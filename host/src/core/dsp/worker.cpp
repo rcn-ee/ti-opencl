@@ -42,18 +42,17 @@
 #include <sys/resource.h>
 #ifndef _SYS_BIOS
 #include <sys/syscall.h>
-#endif
 #include <sched.h>
+#else
+  #include <ti/sysbios/BIOS.h>
+  #if ti_sysbios_BIOS_version < (0x64601)
+  #include <sched.h>
+  #endif
+  #define  usleep   Task_sleep
+#endif
 #include <errno.h>
 
 #include "u_locks_pthread.h"
-
-#ifdef _SYS_BIOS
-#include <xdc/std.h>
-#include <ti/sysbios/BIOS.h>
-#include <ti/sysbios/knl/Task.h>
-#define  usleep   Task_sleep
-#endif
 
 using namespace Coal;
 
@@ -79,6 +78,8 @@ using namespace Coal;
 ******************************************************************************/
 bool handle_event_completion(DSPDevice *device)
 {
+    static std::map<int, int> kernel_errors;
+
     /*---------------------------------------------------------------------
     * If device is not stopping, and there is no complete_pending available,
     * wait. The handle_dispatch thread will wake me up when either stop is
@@ -103,7 +104,8 @@ bool handle_event_completion(DSPDevice *device)
         return false;
     }
 
-    int k_id  = device->mail_from();
+    int retcode = CL_SUCCESS;
+    int k_id  = device->mail_from(&retcode);
 
     /*-------------------------------------------------------------------------
     * If this is a false completion message due to prinft traffic, etc.
@@ -112,7 +114,17 @@ bool handle_event_completion(DSPDevice *device)
 
     Event* event;
     bool   done = device->get_complete_pending(k_id, event);
-    if (!done) return false;
+    if (!done)
+    {
+        if (retcode != CL_SUCCESS)  kernel_errors[k_id] = retcode;
+        return false;
+    }
+
+    if (kernel_errors.find(k_id) != kernel_errors.end())
+    {
+        retcode = kernel_errors[k_id];
+        kernel_errors.erase(k_id);
+    }
 
     /*-------------------------------------------------------------------------
     * A mailbox slot just becomes available, signal the handle_dispatch thread.
@@ -140,7 +152,9 @@ bool handle_event_completion(DSPDevice *device)
     // an event may be released once it is Complete
     if (queue_props & CL_QUEUE_PROFILING_ENABLE)
        event->updateTiming(Event::End);
-    event->setStatus(Event::Complete);
+
+    event->setStatus(retcode == CL_SUCCESS ? Event::Complete :
+                                             (Event::Status)retcode);
 
     return false;
 }

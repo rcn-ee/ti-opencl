@@ -1,5 +1,5 @@
 *************************
-OpenCL v01.01.10.x Readme
+OpenCL v01.01.11.x Readme
 *************************
 
 Platforms supported
@@ -15,21 +15,15 @@ Platforms supported
 
 Release Notes
 =============
-* Added support for AM571x
-* AM57x: Add DSP performance monitoring support for OpenCL applications 
+* Support use of exit/abort in C code called from OpenCL C kernels
 
 Defect Fixes
 ------------
-* [MCT-566] - C66 intrinsics not available in OpenCL C
-* [MCT-571] - dsptop does not work on AM57 with DSP suspend/resume enabled
-* [MCT-536] - clocl creates .dsp_h file even if link to build .out file fails
 
-* [MCT-516] - OpenCL-RTOS: Exit ARM and DSP programs on completion
-* [MCT-572] - Defect in OpenCL CMEM error message regarding number of CMEM blocks required
-* [MCT-575] - OpenCL-RTOS: clocl shipped with RTOS does not find the correct version of libstdc++.so.6
-* [MCT-593] - MessageQ error results in debugss error messages on subsequent run
-* [MCT-594] - OpenCL matmpy intermittent DSP1 crash due to EdmaMgr issues w/ suspend/resume
-* [MCT-597] - Race condition in OpenCL cleanup code.
+* [MCT-499] Destruction of the Platform singleton causes a crash in a subsequent clReleaseProgram() during teardown of ViennaCL OCL examples
+* [MCT-648] C++ I/O broken for OpenCL RTOS examples with 4Q BIOS
+* [MCT-649] OOT being reported as IOT on K2E
+
 
 Compiler Versions
 =================

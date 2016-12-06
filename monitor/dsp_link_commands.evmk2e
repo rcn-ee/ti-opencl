@@ -15,7 +15,7 @@
 MEMORY
 {
     DDR:    o = 0x80000000 l = 0x19000000
-    MSMC:   o = 0x0C000000 l = 0x00180000
+    MSMC:   o = 0x0C000000 l = 0x000C0000
     L2SRAM: o = 0x00820000 l = 0x00040000
 }
 
@@ -140,3 +140,5 @@ SECTIONS
 --symbol_map=__ocl_cache_l1d_std=__cache_l1d_all
 --symbol_map=__ocl_cache_l1d_half=__cache_l1d_16k
 --symbol_map=__ocl_cache_l1d_wbinvall=__cache_l1d_flush
+--symbol_map=exit=__kernel_exit
+--symbol_map=abort=__kernel_abort

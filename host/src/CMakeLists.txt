@@ -317,7 +317,7 @@ else()
     ADDLIB ${ARM_LLVM_DIR}/lib/libLLVMBitReader.a
     ADDLIB ${ARM_LLVM_DIR}/lib/libLLVMCore.a
     ADDLIB ${ARM_LLVM_DIR}/lib/libLLVMSupport.a
-    ADDLIB ${PROJECT_BINARY_DIR}/lib/liboclload.a
+    ADDLIB ../lib/liboclload.a
     SAVE
     END")
   add_custom_command (TARGET OpenCL POST_BUILD

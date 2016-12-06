@@ -52,13 +52,25 @@
 #ifndef _SYS_BIOS
 #include <signal.h>
 #endif
+#include "error_report.h"
 
 using namespace Coal;
+using namespace tiocl;
 
 // Ensure that Class Platform remains mutable to the ICD "POD" C structure, as
 // expected by the ICD loader
 static_assert(std::is_standard_layout<Platform>::value,
               "Class Platform must be of C++ standard layout type.");
+
+
+// Loki singleton uses NoDestroy lifetime policy. Destory it explicitly using a
+// gcc destructor. Experiments indicate that gcc destructor functions are called
+// after atexit
+__attribute__((destructor)) static void __delete_theplatform()
+{
+    delete  &the_platform::Instance();
+}
+
 
 #ifndef _SYS_BIOS
 /******************************************************************************
@@ -112,6 +124,7 @@ namespace Coal
 {
     Platform::Platform() : dispatch(&dispatch_table)
     {
+        ReportTrace("Platform()\n");
 #ifndef _SYS_BIOS
         p_lock_fd = begin_file_lock_crit_section("/var/lock/opencl");
 
@@ -140,6 +153,7 @@ namespace Coal
 
     Platform::~Platform()
     {
+        ReportTrace("~Platform()\n");
         for (int i = 0; i < p_devices.size(); i++)
 	        delete pobj(p_devices[i]);
 

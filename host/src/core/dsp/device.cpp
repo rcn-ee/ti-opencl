@@ -616,7 +616,7 @@ bool DSPDevice::mail_query()
     return p_mb->query();
 }
 
-int DSPDevice::mail_from()
+int DSPDevice::mail_from(int *retcode)
 {
     uint32_t size_rx;
     int32_t  trans_id_rx;
@@ -647,6 +647,8 @@ int DSPDevice::mail_from()
     {
         if (core < p_cores) core_scheduler_->free(core);
     }
+
+    if (retcode != nullptr)  *retcode = rxmsg.u.command_retcode.retcode;
 
     return trans_id_rx;
 }

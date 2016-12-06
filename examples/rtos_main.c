@@ -9,6 +9,12 @@
 #define PRI_HIGH        5
 void ocl_main(UArg arg0, UArg arg1);
 
+// Workaround for C++ output via SemiHosting linked with SYSBIOS re-entrant C
+// runtime libraries, while C++ runtime still linked from compiler toolchain.
+// Without this WA, only C output in Task appear, C++ output disappear.
+class CppOutputWA { public: CppOutputWA() { std::cout << std::endl; } };
+CppOutputWA cpp_output_workaround_dummy;
+
 // Use System_exit to ensure the host program terminiates
 #define RETURN(x) do { System_exit(x);} while (0);
 

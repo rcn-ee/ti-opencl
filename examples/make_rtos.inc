@@ -34,18 +34,22 @@
 #  ======== make_rtos.inc ========
 #
 ifeq ($(OS), Windows_NT)
-DEFAULT_PSDK_RTOS      ?= C:\ti\ti-processor-sdk-rtos-am57xx-evm-03.00.00.02
+DEFAULT_PSDK_RTOS      ?= C:\ti\ti-processor-sdk-rtos-am57xx-evm-03.01.00.06
 GCC_ARM_NONE_TOOLCHAIN ?= C:\ti\ccsv6\tools\compiler\gcc-arm-none-eabi-4_9-2015q3
 
 TI_OCL_CGT_INSTALL     ?= C:\ti\ccsv6\tools\compiler\ti-cgt-c6000_8.1.1
-TI_OCL_INSTALL         ?= C:\ti\opencl_rtos_am57xx_01_01_09_01\packages\ti\opencl
+TI_OCL_INSTALL         ?= $(DEFAULT_PSDK_RTOS)\opencl_rtos_am57xx_01_01_10_00\packages\ti\opencl
+DSS_CMD                 = $(CCS_INSTALL_DIR)\ccs_base\scripting\bin\dss.bat
+NULLFILE                = NUL
 
-else
-DEFAULT_PSDK_RTOS      ?= /cgnas/ti-processor-sdk-rtos-am57xx-evm-03.00.00.04-release
+else  # Linux
+DEFAULT_PSDK_RTOS      ?= /cgnas/ti-processor-sdk-rtos-am57xx-evm-03.01.00.06-release
 GCC_ARM_NONE_TOOLCHAIN ?= /cgnas/gcc-arm-none-eabi-4_9-2015q3
 
 TI_OCL_CGT_INSTALL     ?= /cgnas/ti-cgt-c6000-8.1.0-release-linux
-TI_OCL_INSTALL         ?= /cgnas/opencl_rtos_am57xx_01_01_10_00-20160829/packages/ti/opencl
+TI_OCL_INSTALL         ?= $(DEFAULT_PSDK_RTOS)/opencl_rtos_am57xx_01_01_10_00/packages/ti/opencl
+DSS_CMD                 = $(CCS_INSTALL_DIR)/ccs_base/scripting/bin/dss.sh
+NULLFILE                = /dev/null
 endif
 
 BIOS_INSTALL_DIR       ?= $(wildcard $(DEFAULT_PSDK_RTOS)/bios_*)
@@ -72,6 +76,17 @@ endif
 DSP_INCLUDE       = -I$(TI_OCL_CGT_INSTALL)/include
 DSP_INCLUDE      += -I$(TI_OCL_INSTALL)/usr/share/ti/opencl
 CL6X              = $(TI_OCL_CGT_INSTALL)/bin/cl6x -mv6600 --abi=eabi $(DSP_INCLUDE)
+DSP1_OUT          = $(TI_OCL_INSTALL)/usr/share/ti/opencl/dsp0.out
+DSP2_OUT          = $(TI_OCL_INSTALL)/usr/share/ti/opencl/dsp1.out
+
+ifeq ($(MAKECMDGOALS), test)
+    ifeq ($(CCS_INSTALL_DIR),)
+        $(error Environment variable CCS_INSTALL_DIR must be defined. Set it to point at Code Composer Studio installation (e.g. /opt/ti/ccsv6))
+    endif
+    ifeq ($(CCS_TARGET_CONFIG),)
+        $(error Environment variable CCS_TARGET_CONFIG must be defined. Set it to point at CCS target configuration file (e.g. \$HOME/ti/CCSTargetConfigurations/AM57.ccxml))
+    endif
+endif
 
 
 # Use this goal to print your product variables.
@@ -86,8 +101,13 @@ CL6X              = $(TI_OCL_CGT_INSTALL)/bin/cl6x -mv6600 --abi=eabi $(DSP_INCL
 
 
 PROCLIST    = host
-CONFIG      = bin/$(PROFILE)/cfg
 
+# Avoid repeated xdc configuring for examples using the default Host.cfg
+ifeq ($(HOSTCONFIG), $(OCL_INSTALL_DIR)/packages/ti/opencl/Host.cfg)
+    CONFIG  = ../common/$(PROFILE)/cfg
+else
+    CONFIG  = bin/$(PROFILE)/cfg
+endif
 
 objs = $(addprefix bin/$(PROFILE)/,$(patsubst %.cpp,%.oa15fg,$(srcs)))
 libs = -Wl,-T,$(CONFIG)/linker.cmd -lrdimon -lgcc -lc -lm -lnosys -lstdc++ \
@@ -101,7 +121,7 @@ bin/$(PROFILE)/$(EXE).xa15fg: $(objs) $(CONFIG)/linker.cmd
 	@$(ECHO) "# Making $@ ..."
 	$(LD) $(LDFLAGS) -Wl,-Map,"$(EXE).map" -o $@ $(objs) $(libs) $(LDLIBS)
 	$(RM) *.map
-	$(RMDIR) $(CONFIG)
+#	$(RMDIR) $(CONFIG)
 
 bin/$(PROFILE)/%.oa15fg: %.cpp $(CONFIG)/compiler.opt
 	@$(ECHO) "#"
@@ -142,8 +162,24 @@ help:
 	@$(ECHO) "make clean             # clean everything"
 
 clean::
-	$(RMDIR) bin *.out *.dsp_h *.obj
+	$(RMDIR) bin *.out *.dsp_h *.obj autoRunLog.xml
 	$(RM) *.map
+
+realclean: clean
+	$(RMDIR) $(CONFIG)
+
+test: clean
+	@$(ECHO) "#"
+	@$(ECHO) "# Making  bin/$(PROFILE)/$(EXE).xa15fg ..."
+	@$(MAKE) -f Makefile.rtos $(EXE).x > $(NULLFILE)
+	@$(ECHO) "#"
+	@$(ECHO) "# Running bin/$(PROFILE)/$(EXE).xa15fg ..."
+	@$(DSS_CMD) ../load_am57_rtos.js $(CCS_TARGET_CONFIG) \
+                   bin/$(PROFILE)/$(EXE).xa15fg $(DSP1_OUT) $(DSP2_OUT) 0
+
+test_noclean:
+	$(DSS_CMD) ../load_am57_rtos.js $(CCS_TARGET_CONFIG) \
+                   bin/$(PROFILE)/$(EXE).xa15fg $(DSP1_OUT) $(DSP2_OUT) 1
 
 
 PKGPATH := $(BIOS_INSTALL_DIR)/packages
@@ -163,7 +199,7 @@ CPPFLAGS += -Dfar= -D__DYNAMIC_REENT__ -D_TI_RTOS -fpermissive -std=c++0x
 CFLAGS   += -c -MD -MF $@.dep -MMD -MP -mcpu=cortex-a15 -mtune=cortex-a15 -mfloat-abi=hard -ffunction-sections -fdata-sections $(CCPROFILE_$(PROFILE)) @$(CONFIG)/compiler.opt -I"$(GCC_ARM_NONE_TOOLCHAIN)/arm-none-eabi/include" -I. -I$(TI_OCL_INSTALL)/usr/include
 
 LDFLAGS += $(LDPROFILE_$(PROFILE)) -mfloat-abi=hard -nostartfiles -Wl,-static -Wl,--gc-sections -Wl,-Map=$(@D)/$(@F).map
-LDLIBS += -L$(XDC_INSTALL_DIR)/packages/gnu/targets/arm/libs/install-native/arm-none-eabi/lib/fpu
+LDLIBS += -L$(BIOS_INSTALL_DIR)/packages/gnu/targets/arm/libs/install-native/arm-none-eabi/lib/fpu
 
 CCPROFILE_debug = -g -ggdb -D_DEBUG_=1
 CCPROFILE_release = -O3

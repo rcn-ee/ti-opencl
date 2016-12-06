@@ -11,6 +11,7 @@ Khronos `OpenCL 1.1 specification`_. The Texas Instruments OpenCL implementation
 SoC           System                          Khronos Conformance            Installation Instructions
 ============= =============================== ============================== =========================
 AM572_         `AM572 EVM`_                   OpenCL v1.1 Conformant         `Processor SDK for AM57x`_
+AM571_         `AM572 EVM`_                   Not submitted for conformance  `Processor SDK for AM57x`_
 66AK2H_       `66AK2H EVM`_                   OpenCL v1.1 Conformant         `Processor SDK for K2H`_
 66AK2L_       `66AK2L EVM`_                   Not submitted for conformance  `Processor SDK for K2L`_
 66AK2E_       `66AK2E EVM`_                   Not submitted for conformance  `Processor SDK for K2E`_
@@ -51,6 +52,7 @@ System                Host                                      Compute Device
 .. _MCSDK-HPC for m800: http://processors.wiki.ti.com/index.php/MCSDK_HPC_3.x_Getting_Started_Guide_for_HP_ProLiant_m800
 .. _OpenCL 1.1 specification: https://www.khronos.org/registry/cl/specs/opencl-1.1.pdf
 .. _AM572:              http://www.ti.com/product/AM5728
+.. _AM571:              http://www.ti.com/product/AM5718
 .. _AM572 EVM:          http://www.ti.com/tool/tmdsevm572x
 .. _Processor SDK for AM57x:          http://www.ti.com/tool/processor-sdk-am57x
 .. _Processor SDK for K2H:            http://www.ti.com/tool/processor-sdk-k2h
