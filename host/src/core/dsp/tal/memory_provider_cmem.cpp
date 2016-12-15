@@ -130,8 +130,8 @@ void CMEMMapPolicyPersistent::Configure(DSPDevicePtr64 dsp_addr, uint64_t size)
     if (dsp_addr_ >= AM57_DSP_VIRT_ADDR)
         cmem_addr = dsp_addr_ + AM57_DSP_V2P_OFFSET;
 #else
-    if (dsp_addr_ >= 0xA0000000 && dsp_addr_ < 0xFFFFFFFF)
-        cmem_addr = dsp_addr_ - 0xA0000000 + 0x820000000ULL;
+    if (dsp_addr_ >= 0x80000000 && dsp_addr_ < 0xFFFFFFFF)
+        cmem_addr = dsp_addr_ - 0x80000000 + 0x800000000ULL;
 #endif
 
     host_addr_ = CMEM_map(cmem_addr, size);
@@ -162,8 +162,8 @@ CMEMMapPolicyPersistent::~CMEMMapPolicyPersistent()
     if (dsp_addr_ >= AM57_DSP_VIRT_ADDR)
         cmem_addr = dsp_addr_ - RESERVED_CMEM_SIZE + AM57_DSP_V2P_OFFSET;
 #else
-    if (dsp_addr_ > 0xA0000000 && dsp_addr_ < 0xFFFFFFFF)
-        cmem_addr = dsp_addr_ - 0xA0000000 + 0x820000000ULL;
+    if (dsp_addr_ >= 0x80000000 && dsp_addr_ < 0xFFFFFFFF)
+        cmem_addr = dsp_addr_ - 0x80000000 + 0x800000000ULL;
 #endif
 
     CMEM_freePhys(cmem_addr, &params);

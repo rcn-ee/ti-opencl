@@ -56,9 +56,9 @@ struct timespec t0,t1;
 /*-----------------------------------------------------------------------------
 * Global Variables
 *----------------------------------------------------------------------------*/
-int    M               = 2048;
-int    N               = 2048;
-int    K               = 2048;
+int    M               = 1024;
+int    N               = 1024;
+int    K               = 1024;
 double alpha           = 1.0; 
 double beta            = 0.0;
 CBLAS_ORDER     order  = CblasColMajor;
