@@ -55,9 +55,8 @@ void initialize_memory(void)
     int32_t mask = _disable_interrupts();
 
     enableCache (0x0c, 0x0c); // enable write through for msmc
-    enableCache (0xa0, 0xff); // enable write through for ddr
-    disableCache(0xa1, 0xa1); // disable cache for DDR3_NC
-    disableCache(0x9f, 0x9f); // disable cache for vrings
+    enableCache (0x90, 0xff); // enable write through for ddr
+    disableCache(0x9f, 0x9f); // disable cache for DDR3_NC and vrings
 
     _restore_interrupts(mask);
 }

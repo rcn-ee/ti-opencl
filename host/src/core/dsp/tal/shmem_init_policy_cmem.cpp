@@ -119,7 +119,7 @@ void cmem_init(std::vector<MemoryRange>& ranges)
     // translate first chunk to using 32-bit aliased physical addresses
     if (ddr_addr > DSP_36BIT_ADDR)
     {
-        addr1 = ddr_addr + 0xA0000000 - 0x820000000ULL;
+        addr1 = ddr_addr + 0x80000000 - 0x800000000ULL;
 
         // If the ddr size is greater than we can currently support, limit it
         uint64_t ddr_size_limit = ALL_PERSISTENT_MAX_DSP_ADDR - ddr_addr;
