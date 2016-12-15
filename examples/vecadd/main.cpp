@@ -68,7 +68,7 @@ int main(int argc, char *argv[])
 {
 #endif
    cl_int err     = CL_SUCCESS;
-   int    bufsize = sizeof(int) * NumElements;
+   int    bufsize = sizeof(cl_short) * NumElements;
 
    cl_short *srcA   = (cl_short *)__malloc_ddr(bufsize);
    cl_short *srcB   = (cl_short *)__malloc_ddr(bufsize);
