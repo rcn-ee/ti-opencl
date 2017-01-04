@@ -40,3 +40,10 @@ target_link_libraries(ti-mct-heap-check pthread rt)
 
 install(TARGETS ti-mctd RUNTIME DESTINATION /usr/bin ${OCL_BPERMS})
 install(TARGETS ti-mct-heap-check RUNTIME DESTINATION /usr/bin ${OCL_BPERMS})
+
+install(DIRECTORY DESTINATION /lib/systemd/system ${OCL_DPERMS})
+if (K2X_BUILD)
+    install(FILES ti-mct-daemon.service.k2x DESTINATION  /lib/systemd/system RENAME ti-mct-daemon.service  ${OCL_FPERMS})
+elseif (AM57_BUILD)
+    install(FILES ti-mct-daemon.service.am57x DESTINATION  /lib/systemd/system RENAME ti-mct-daemon.service  ${OCL_FPERMS})
+endif()

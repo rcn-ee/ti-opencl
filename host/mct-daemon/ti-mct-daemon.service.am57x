@@ -1,0 +1,9 @@
+[Unit]
+Description=TI MultiCore Tools Daemon
+
+[Service]
+Type=forking
+ExecStart=/usr/bin/ti-mctd
+
+[Install]
+WantedBy=basic.target
