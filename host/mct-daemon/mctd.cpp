@@ -83,7 +83,7 @@ int main()
     try 
     {
        bipc::managed_shared_memory segment (bipc::open_or_create, "HeapManager",
-                                            64 << 10);
+                                            HEAP_MANAGER_SIZE);
        ddr_heap1 = segment.find_or_construct<Heap64>("ddr_heap1")(segment);
        ddr_heap2 = segment.find_or_construct<Heap64>("ddr_heap2")(segment);
        msmc_heap = segment.find_or_construct<Heap64>("msmc_heap")(segment);

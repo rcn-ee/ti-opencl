@@ -58,9 +58,12 @@ public:
     * contain the heap managers for all needed OpenCL buffer heaps. It will 
     * reside on the file system at /dev/shm/HeapManager. It is assumed this 
     * shared memory is created by a pre-existing daemon on Linux systems.
+    * Note: Using open_or_create to avoid a throw from the constructor when
+    * the opencl application is run without starting ti-mctd.
     *------------------------------------------------------------------------*/
     HeapsMultiProcessPolicy() :
-       segment_(boost::interprocess::open_only, "HeapManager"),
+       segment_(boost::interprocess::open_or_create, "HeapManager",
+                HEAP_MANAGER_SIZE),
        ddr_heap1_(segment_.find_or_construct<Heap64Bit>("ddr_heap1")(segment_)),
        ddr_heap2_(segment_.find_or_construct<Heap64Bit>("ddr_heap2")(segment_)),
        msmc_heap_(segment_.find_or_construct<Heap64Bit>("msmc_heap")(segment_))

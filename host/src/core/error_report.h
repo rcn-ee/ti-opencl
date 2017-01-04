@@ -61,10 +61,11 @@ enum class ErrorKind
     PCIeDriverError,
     MessageQueueCountMismatch,
     LostDSP,
+    DaemonNotRunning,
 };
 
 // Types of error messages, used to control behavior of ReportError
-enum class ErrorType { Warning, Fatal, FatalNoExit };
+enum class ErrorType { Warning, Fatal, FatalNoExit, Abort };
 
 // Report an error to the user. Calls exit for ErrorType::Fatal
 void ReportError(const ErrorType et, const ErrorKind ek, ...);
