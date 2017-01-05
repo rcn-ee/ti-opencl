@@ -45,6 +45,8 @@
 #include <iostream>
 #include <iomanip>
 
+const size_t HEAP_MANAGER_SIZE = (64 << 10);
+
 namespace utility { 
 
 /*-----------------------------------------------------------------------------
@@ -60,7 +62,8 @@ namespace utility {
 * For a shared memory heap manager
 *
 *    boost::interprocess::managed_shared_memory segment 
-*              (boost::interprocess::open_or_create, "HeapManager", 256 << 10);
+*              (boost::interprocess::open_or_create, "HeapManager", 
+*               HEAP_MANAGER_SIZE);
 * 
 *    typedef HeapManager<Address, Length, MultiProcess<Address,Length>> DdrHeap;
 *    DdrHeap* ddr_heap= segment.find_or_construct<DdrHeap>("ddr_heap")(segment);

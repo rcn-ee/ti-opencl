@@ -93,8 +93,14 @@ void cmem_init(std::vector<MemoryRange>& ranges)
 
     /*-------------------------------------------------------------------------
     * Register alloc CMEM block already allocated by the mct daemon
+    * Note: We need an abort because this error is encountered during platform
+    * construction. Calling exit will call delete on the_platform via
+    * __delete_theplatform. This results in a deadlock as the reference to 
+    * the_platform::Instance() attempts to construct the_platform. Calling
+    * abort() bypasses atexit processing, including __delete_theplatform.
     *------------------------------------------------------------------------*/
-    CMEM_registerAlloc(ddr_addr);
+    if (CMEM_registerAlloc(ddr_addr) == NULL)
+        ReportError(ErrorType::Abort, ErrorKind::DaemonNotRunning);
 
     DSPDevicePtr64 addr1 = ddr_addr;
     uint64_t       size1 = ddr_size;
