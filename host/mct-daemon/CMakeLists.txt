@@ -42,7 +42,7 @@ install(TARGETS ti-mctd RUNTIME DESTINATION /usr/bin ${OCL_BPERMS})
 install(TARGETS ti-mct-heap-check RUNTIME DESTINATION /usr/bin ${OCL_BPERMS})
 
 install(DIRECTORY DESTINATION /lib/systemd/system ${OCL_DPERMS})
-if (K2X_BUILD)
+if (K2X_BUILD OR K2G_BUILD)
     install(FILES ti-mct-daemon.service.k2x DESTINATION  /lib/systemd/system RENAME ti-mct-daemon.service  ${OCL_FPERMS})
 elseif (AM57_BUILD)
     install(FILES ti-mct-daemon.service.am57x DESTINATION  /lib/systemd/system RENAME ti-mct-daemon.service  ${OCL_FPERMS})
