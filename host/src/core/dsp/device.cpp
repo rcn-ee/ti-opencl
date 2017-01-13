@@ -50,8 +50,6 @@
 extern "C"
 {
     #include <ti/runtime/mmap/include/mmap_resource.h> // For MPAX
-    extern int get_ocl_qmss_res(Msg_t *msg);
-    extern void free_ocl_qmss_res();
 }
 #endif
 
@@ -89,6 +87,19 @@ void *dsp_worker_event_dispatch   (void* data);
 void *dsp_worker_event_completion (void* data);
 void HOSTwait   (unsigned char dsp_id);
 
+
+/*-----------------------------------------------------------------------------
+* osal_getpid:  get a process ID.  Under BIOS this is a don't care value
+*----------------------------------------------------------------------------*/
+uint32_t osal_getpid()
+{
+#ifdef _SYS_BIOS
+    return 0;
+#else
+    return getpid();
+#endif
+}
+
 /******************************************************************************
 * DSPDevice::DSPDevice(unsigned char dsp_id)
 ******************************************************************************/
@@ -106,7 +117,8 @@ DSPDevice::DSPDevice(unsigned char dsp_id, SharedMemory* shm)
       p_complete_pending    (),
       p_mpax_default_res    (NULL),
       p_shmHandler          (shm),
-      device_manager_       (nullptr)
+      device_manager_       (nullptr),
+      p_pid                 (osal_getpid())
 {
     const DeviceInfo& device_info = DeviceInfo::Instance();
 
@@ -114,7 +126,7 @@ DSPDevice::DSPDevice(unsigned char dsp_id, SharedMemory* shm)
 
 #if !defined(_SYS_BIOS)
     device_manager_ = DeviceManagerFactory::CreateDeviceManager(dsp_id, p_cores,
-                                                    device_info.FullyQualifiedPathToDspMonitor());
+                                 device_info.FullyQualifiedPathToDspMonitor());
 
     device_manager_->Reset();
     device_manager_->Load();
@@ -150,15 +162,6 @@ DSPDevice::DSPDevice(unsigned char dsp_id, SharedMemory* shm)
     Msg_t msg = {CONFIGURE_MONITOR};
     msg.u.configure_monitor.n_cores = dspCores();
 
-#if defined(DEVICE_K2X) && !defined(DEVICE_K2G)
-    // Keystone2: get QMSS resources from RM, mail to DSP monitor
-    if (get_ocl_qmss_res(&msg) == 0)
-    {
-        printf("Unable to allocate resource from RM server!\n");
-        exit(-1);
-    }
-#endif
-
     mail_to(msg);
 
     /*-------------------------------------------------------------------------
@@ -169,7 +172,7 @@ DSPDevice::DSPDevice(unsigned char dsp_id, SharedMemory* shm)
 
 bool DSPDevice::hostSchedule() const
 {
-#if defined(DEVICE_K2G) || defined(DEVICE_AM57)
+#if defined(DEVICE_K2G) || defined(DEVICE_AM57) || defined (DEVICE_K2X)
     return true;
 #else
     return false;
@@ -290,20 +293,20 @@ DSPDevice::~DSPDevice()
     }
 
     /*-------------------------------------------------------------------------
-     * Inform the cores on the device to stop listening for commands
-     * Send exit message after worker threads terminate to avoid a race condition
-     * on p_exit_acked. The race condition is caused by a worker thread receiving
-     * the exit response and setting p_exit_acked to true. It's possible that the
-     * master thread can read p_exit_acked before the write from the worker thread
-     * lands and enter the while loop. It then is stuck at the mail_query() while
-     * loop because the worker has already read the message.
-     *
-     * Sending the exit message after the worker threads terminate eliminates
-     * the race condition.
-     *------------------------------------------------------------------------*/
+    * Inform the cores on the device to stop listening for commands
+    * Send exit message after worker threads terminate to avoid a race condition
+    * on p_exit_acked. The race condition is caused by a worker thread receiving
+    * the exit response and setting p_exit_acked to true. It's possible that the
+    * master thread can read p_exit_acked before write from the worker thread
+    * lands and enter the while loop. It then is stuck at the mail_query() while
+    * loop because the worker has already read the message.
+    *
+    * Sending the exit message after the worker threads terminate eliminates
+    * the race condition.
+    *------------------------------------------------------------------------*/
     mail_to(exitMsg);
 
-#if defined(DEVICE_K2X) || defined(DEVICE_K2G) || defined(DSPC868X)
+#if defined(DSPC868X)
     /*-------------------------------------------------------------------------
     * Wait for the EXIT acknowledgement from device
     *------------------------------------------------------------------------*/
@@ -327,10 +330,6 @@ DSPDevice::~DSPDevice()
     *------------------------------------------------------------------------*/
     delete device_manager_;
     delete core_scheduler_;
-
-#if defined(DEVICE_K2X)
-    free_ocl_qmss_res();
-#endif
 }
 
 /******************************************************************************
@@ -540,7 +539,8 @@ bool DSPDevice::isInClMallocedRegion(void *ptr)
 int DSPDevice::numHostMails(Msg_t &msg) const
 {
     if (hostSchedule() && (msg.command == EXIT || msg.command == CACHEINV ||
-                           msg.command == SETUP_DEBUG || msg.command == CONFIGURE_MONITOR ||
+                           msg.command == SETUP_DEBUG || 
+                           msg.command == CONFIGURE_MONITOR ||
                            (msg.command == NDRKERNEL && !IS_DEBUG_MODE(msg))))
         return dspCores();
     return 1;
@@ -548,6 +548,7 @@ int DSPDevice::numHostMails(Msg_t &msg) const
 
 void DSPDevice::mail_to(Msg_t &msg, unsigned int core)
 {
+    msg.pid = p_pid;
     if(hostSchedule())
     {
         switch(msg.command)
@@ -1099,10 +1100,12 @@ cl_int DSPDevice::info(cl_device_info param_name,
     return CL_SUCCESS;
 }
 
-bool DSPDevice::addr_is_l2  (DSPDevicePtr addr)const { return (addr >> 20 == 0x008); }
+bool DSPDevice::addr_is_l2  (DSPDevicePtr addr)const 
+    { return (addr >> 20 == 0x008); }
 
 // TODO: Fix msmc address for AM57
-bool DSPDevice::addr_is_msmc(DSPDevicePtr addr)const { return (addr >> 24 == 0x0C); }
+bool DSPDevice::addr_is_msmc(DSPDevicePtr addr)const 
+    { return (addr >> 24 == 0x0C); }
 
 void dump_hex(char *addr, int bytes)
 {

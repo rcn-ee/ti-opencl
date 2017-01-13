@@ -30,15 +30,17 @@
 #include "shared_memory_provider.h"
 #include "shmem_rw_policy_cmem.h"
 #include "shmem_init_policy_cmem.h"
+#include "heaps_policy_process.h"
 
 using namespace tiocl;
 
-SharedMemory* SharedMemoryProviderFactory::CreateSharedMemoryProvider(uint8_t device_id)
+SharedMemory* SharedMemoryProviderFactory::CreateSharedMemoryProvider
+           (uint8_t device_id)
 {
     // Create a CMEM based shared memory implementation
     SharedMemory* shm =
-        new SharedMemoryProvider<InitializationPolicyCMEM, ReadWritePolicyCMEM>
-            (device_id);
+        new SharedMemoryProvider<InitializationPolicyCMEM, ReadWritePolicyCMEM,
+            HeapsMultiProcessPolicy> (device_id);
 
     assert (shm != nullptr);
 
@@ -54,9 +56,11 @@ void SharedMemoryProviderFactory::DestroySharedMemoryProviders()
 }
 
 
-SharedMemory* SharedMemoryProviderFactory::GetSharedMemoryProvider(uint8_t device_id) const
+SharedMemory* SharedMemoryProviderFactory::GetSharedMemoryProvider
+      (uint8_t device_id) const
 {
-    std::map<uint8_t, SharedMemory*>::const_iterator it = shmProviderMap.find(device_id);
+    std::map<uint8_t, SharedMemory*>::const_iterator it = 
+             shmProviderMap.find(device_id);
 
     if (it != shmProviderMap.end())
         return shmProviderMap.at(device_id);

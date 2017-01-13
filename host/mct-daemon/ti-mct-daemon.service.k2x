@@ -1,0 +1,11 @@
+[Unit]
+Description=TI MultiCore Tools Daemon
+Wants=mpmsrv-daemon.service
+After=mpmsrv-daemon.service
+
+[Service]
+Type=forking
+ExecStart=/usr/bin/ti-mctd
+
+[Install]
+WantedBy=basic.target

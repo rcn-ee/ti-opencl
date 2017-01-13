@@ -73,7 +73,7 @@ function getLibs(prog)
              String(xdc.global.oclProcName).search("DSP") != -1)
     {
         var dsp_monitor_lib = "usr/share/ti/opencl/libDSPMonitor.ae66";
-        var dsp_monitor_lib_build = "../../../monitor_vayu/libDSPMonitor.ae66";
+        var dsp_monitor_lib_build = "../../../monitor/libDSPMonitor.ae66";
         if (java.io.File(this.packageBase + dsp_monitor_lib).exists())
             lib += dsp_monitor_lib;
         else if (java.io.File(this.packageBase+dsp_monitor_lib_build).exists())

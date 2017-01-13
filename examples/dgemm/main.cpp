@@ -77,7 +77,8 @@ int  Check         (const double *C1, const double *C2, int M, int N);
 * Operation printing helpers
 *----------------------------------------------------------------------------*/
 const char *op(CBLAS_TRANSPOSE t) { return t == CblasTrans ? "'" : ""; }
-const char *maj(CBLAS_ORDER o)    { return (o == CblasColMajor) ? "cMaj " : "rMaj "; }
+const char *maj(CBLAS_ORDER o)    { return (o == CblasColMajor) ? "cMaj " 
+                                                                : "rMaj "; }
 
 /*-----------------------------------------------------------------------------
 * MAIN
@@ -85,7 +86,7 @@ const char *maj(CBLAS_ORDER o)    { return (o == CblasColMajor) ? "cMaj " : "rMa
 int main(int argc, char* argv[])
 {
     /*-------------------------------------------------------------------------
-     * Catch ctrl-c so we ensure that we call dtors and the dsp is reset properly
+     * Catch ctrl-c to ensure that we call dtors and the dsp is reset properly
      *------------------------------------------------------------------------*/
     signal(SIGABRT, exit);
     signal(SIGTERM, exit);
@@ -170,6 +171,11 @@ int main(int argc, char* argv[])
     * Verify Results
     *------------------------------------------------------------------------*/
     int retval = Check(C, Ccpu, M, N);
+
+    __free_ddr(A);
+    __free_ddr(B);
+    __free_ddr(C);
+    free(Ccpu);
 
     /*-------------------------------------------------------------------------
     * Calling ocl_free to clean up OpenCL resources and temporary files.
