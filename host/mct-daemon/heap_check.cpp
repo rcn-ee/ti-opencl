@@ -94,4 +94,6 @@ int main (int argc, char *argv[])
     {
         std::cout << "TI Multicore Tools Heaps do not exist" << std::endl;
     }
+
+    return 0;
 }
