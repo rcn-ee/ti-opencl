@@ -731,13 +731,13 @@ bool TIOpenclWorkGroupAggregation::implicit_long_conv_use_bif(Function &F)
     Module       *M      = F.getParent();
     FunctionType *l2f_ft = FunctionType::get(FP32, Int64, false);
     FunctionType *l2d_ft = FunctionType::get(FP64, Int64, false);
-    Function     *l2f_f  = dyn_cast<Function>(M->getOrInsertFunction(
+    Function     *l2f_f  = cast<Function>(M->getOrInsertFunction(
                                               "_Z13convert_floatl", l2f_ft));
-    Function     *l2d_f  = dyn_cast<Function>(M->getOrInsertFunction(
+    Function     *l2d_f  = cast<Function>(M->getOrInsertFunction(
                                               "_Z14convert_doublel", l2d_ft));
-    Function     *ul2f_f = dyn_cast<Function>(M->getOrInsertFunction(
+    Function     *ul2f_f = cast<Function>(M->getOrInsertFunction(
                                               "_Z13convert_floatm", l2f_ft));
-    Function     *ul2d_f = dyn_cast<Function>(M->getOrInsertFunction(
+    Function     *ul2d_f = cast<Function>(M->getOrInsertFunction(
                                               "_Z14convert_doublem", l2d_ft));
 
     for (std::list<CastInst*>::iterator I = cast_list.begin(),

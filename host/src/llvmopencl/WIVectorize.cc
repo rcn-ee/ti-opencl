@@ -778,6 +778,8 @@ namespace {
                 if (candidateVector->size() == VectorWidth -1) {
                     Value* newV = cast<Value>(node);
                     valueMap[newV] = candidateVector;
+                } else {
+                    delete candidateVector;
                 }
             }
         }
@@ -830,7 +832,6 @@ namespace {
                 useiter++;                
             }
                     
-            //}
             Value *X = ConstantInt::get(Type::getInt32Ty(Context), index);       
             Instruction* other = ExtractElementInst::Create(phi, X,
                                             getReplacementName(phi, false, 0));
@@ -870,6 +871,11 @@ namespace {
                 ins = other;
             }          
             
+        }
+
+        for (DenseMap<Value*, ValueVector*>::iterator i =
+            valueMap.begin(); i != valueMap.end(); i++) {
+            delete (*i).second;
         }
         return true;      
     }

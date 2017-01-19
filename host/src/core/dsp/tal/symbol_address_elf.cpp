@@ -72,7 +72,10 @@ void SymbolAddressLookupELF::InitializeLookup() const
     // Create an ELF handle from the file descriptor
     Elf* elf_file = elf_begin(fd, ELF_C_READ, NULL);
     if (elf_file == nullptr || (elf_kind(elf_file) != ELF_K_ELF))
+    {
+        close(fd);
         ReportError(ErrorType::Fatal, ErrorKind::ELFLibraryInitFailed, elf_errmsg(-1));
+    }
 
 
     // Walk through sections in the ELF file

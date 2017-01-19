@@ -619,7 +619,7 @@ void CPUKernelWorkGroup::readImageImplF(T *result, Image2D *image, float x,
             {
                 case CLK_FILTER_NEAREST:
                 {
-                    int i, j, k;
+                    int i, j, k = 0;
 
                     x = (x - std::floor(x)) * (float)w;
                     i = std::floor(x);

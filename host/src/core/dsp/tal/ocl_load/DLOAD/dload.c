@@ -618,6 +618,8 @@ static void initialize_loaded_module(DLOAD_HANDLE handle,
          DLIMP_Loaded_Segment seg;
          seg.obj_desc = DLIF_malloc(sizeof(struct DLOAD_MEMORY_SEGMENT));
          seg.phdr.p_vaddr = dyn_module->phdr[i].p_vaddr;
+         seg.phdr.p_type = PT_NULL;
+         seg.phdr.p_paddr = 0;
          seg.phdr.p_offset = dyn_module->phdr[i].p_offset;
          seg.obj_desc->target_page = 0; /*not used*/
          seg.modified = 0;
@@ -627,6 +629,8 @@ static void initialize_loaded_module(DLOAD_HANDLE handle,
 	                  = dyn_module->phdr[i].p_memsz;
          seg.phdr.p_align = dyn_module->phdr[i].p_align;
          seg.phdr.p_flags = dyn_module->phdr[i].p_flags;
+         seg.host_address = NULL;
+         seg.input_vaddr  = 0;
          AL_append(&(loaded_module->loaded_segments), &seg);
       }
 
@@ -2726,7 +2730,10 @@ int32_t DLOAD_load(DLOAD_HANDLE handle, LOADER_FILE_DESC *fd)
    /* structure associated with this file.                                   */
    /*------------------------------------------------------------------------*/
    if (!dload_dynamic_segment(handle, fd, dyn_module))
+   {
+      delete_DLIMP_Dynamic_Module(handle, &dyn_module);
       return 0;
+   }
 
    /*------------------------------------------------------------------------*/
    /* Perform sanity checking on the read-in ELF file.                       */
@@ -2735,6 +2742,7 @@ int32_t DLOAD_load(DLOAD_HANDLE handle, LOADER_FILE_DESC *fd)
    {
       DLIF_error(DLET_FILE, "Attempt to load invalid ELF file, '%s'.\n",
                     dyn_module->name);
+      delete_DLIMP_Dynamic_Module(handle, &dyn_module);
       return 0;
    }
 
@@ -2782,7 +2790,10 @@ int32_t DLOAD_load(DLOAD_HANDLE handle, LOADER_FILE_DESC *fd)
    /* addition to the relocation entry processing.                           */
    /*------------------------------------------------------------------------*/
    if (!allocate_dynamic_segments_and_relocate_symbols(handle, fd, dyn_module))
+   {
+      delete_DLIMP_Dynamic_Module(handle, &dyn_module);
       return 0;
+   }
 
    /*------------------------------------------------------------------------*/
    /* __c_args__ points to the beginning of the .args section, if there is   */
@@ -2838,7 +2849,10 @@ int32_t DLOAD_load(DLOAD_HANDLE handle, LOADER_FILE_DESC *fd)
                                          dyn_module->name,
                                          dyn_module->loaded_module->file_handle,
                                          dyn_module->dsbt_index))
+   {
+      delete_DLIMP_Dynamic_Module(handle, &dyn_module);
       return 0;
+   }
 
    /*------------------------------------------------------------------------*/
    /* Load this ELF file's dependees (all files on its DT_NEEDED list).      */
@@ -2846,7 +2860,10 @@ int32_t DLOAD_load(DLOAD_HANDLE handle, LOADER_FILE_DESC *fd)
    /* relocations.                                                           */
    /*------------------------------------------------------------------------*/
    if (!dload_and_allocate_dependencies(handle, dyn_module))
+   {
+      delete_DLIMP_Dynamic_Module(handle, &dyn_module);
       return 0;
+   }
 
    /*------------------------------------------------------------------------*/
    /* Remove the current ELF file from the list of files that are in the     */
@@ -3307,6 +3324,7 @@ int32_t DLOAD_load_symbols(DLOAD_HANDLE handle, LOADER_FILE_DESC *fd)
    /*------------------------------------------------------------------------*/
    if (!fd)
    {
+      delete_DLIMP_Dynamic_Module(handle, &dyn_module);
       DLIF_error(DLET_FILE, "Missing file specification.\n");
       return 0;
    }

@@ -289,12 +289,18 @@ BOOL DLIF_copy(void* client_handle, struct DLOAD_MEMORY_REQUEST* targ_req)
    int result = 1;
    if (obj_desc->objsz_in_bytes)
    {
-#ifndef _SYS_BIOS
        buf = calloc(obj_desc->memsz_in_bytes, 1);
+
+       if (buf == NULL)
+       {
+           DLIF_error(DLET_MEMORY, "DLIF allocation failure.\n");
+           return 0;
+       }
+
+#ifndef _SYS_BIOS
        fseek(f, targ_req->offset, SEEK_SET);
        result = fread(buf, obj_desc->objsz_in_bytes, 1, f);
 #else
-       buf = calloc(obj_desc->memsz_in_bytes, 1); 
        DLIF_fseek(f, targ_req->offset, SEEK_SET);
        result = DLIF_fread(buf, obj_desc->objsz_in_bytes, 1, f);
 #endif

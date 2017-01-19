@@ -43,6 +43,10 @@ public:
     DeviceInfo();
     virtual ~DeviceInfo();
 
+    // Disable copy constuction and assignment
+    DeviceInfo(const DeviceInfo&)            =delete;
+    DeviceInfo& operator=(const DeviceInfo&) =delete;
+
     uint8_t      GetNumDevices() const { return num_devices_; } // was num_dsps
     std::string  FullyQualifiedPathToDspMonitor() const;
     uint8_t      GetComputeUnitsPerDevice(int device) const; // was cores_per_dsp(int dsp);

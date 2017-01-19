@@ -50,6 +50,13 @@ public:
 
     explicit DLOAD(Coal::DSPProgram *program);
     virtual ~DLOAD();
+
+
+    // Disable default constructor, copy constuction and assignment
+    DLOAD()                        =delete;
+    DLOAD(const DLOAD&)            =delete;
+    DLOAD& operator=(const DLOAD&) =delete;
+
 #ifndef _SYS_BIOS
     virtual bool LoadProgram(const std::string &fileName) override;
 #else

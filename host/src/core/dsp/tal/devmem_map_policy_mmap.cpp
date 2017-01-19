@@ -66,7 +66,11 @@ void DevMemMapPolicyMmap::Configure(DSPDevicePtr64 dsp_addr,  uint64_t size)
     host_addr_ = mmap(0, size, (PROT_READ|PROT_WRITE), MAP_SHARED, mmap_fd_,
                          (off_t)dsp_addr);
 
-    assert (host_addr_ != MAP_FAILED);
+    if (host_addr_ == MAP_FAILED)
+    {
+        close (mmap_fd_); mmap_fd_ = -1;
+        ReportError(ErrorType::Fatal, ErrorKind::ShouldNotGetHere, __FILE__, __LINE__);
+    }
 
     xlate_dsp_to_host_offset_ = (void*)((int64_t)host_addr_ - dsp_addr);
 

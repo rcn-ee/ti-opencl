@@ -322,7 +322,7 @@ MapImageEvent::MapImageEvent(CommandQueue *parent,
 
     // Check for overflow
     if (image->type() == MemObject::Image2D &&
-        (origin[2] != 0 || region[2] != 1))
+        ((origin && origin[2] != 0) || region[2] != 1))
     {
         *errcode_ret = CL_INVALID_VALUE;
         return;
@@ -718,7 +718,8 @@ KernelEvent::KernelEvent(CommandQueue *parent,
     }
 
     // Check dimension
-    if (work_dim == 0 || work_dim > max_dims)
+    if ((work_dim == 0 || work_dim > max_dims) ||
+            (max_dims > MAX_WORK_DIMS))
     {
         *errcode_ret = CL_INVALID_WORK_DIMENSION;
         return;
@@ -771,6 +772,7 @@ KernelEvent::KernelEvent(CommandQueue *parent,
         if (!global_work_size || !global_work_size[i])
         {
             *errcode_ret = CL_INVALID_GLOBAL_WORK_SIZE;
+            return;
         }
         p_global_work_size[i] = global_work_size[i];
 

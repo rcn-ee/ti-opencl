@@ -59,6 +59,11 @@ class DSPDevice : public DeviceInterface, public Lockable
         DSPDevice(unsigned char dsp_id, SharedMemory* shm);
         ~DSPDevice();
 
+        // Disable default constructor, copy constuction and assignment
+        DSPDevice()                            =delete;
+        DSPDevice(const DSPDevice&)            =delete;
+        DSPDevice& operator=(const DSPDevice&) =delete;
+
         void init();
 
         cl_int info(cl_device_info param_name,

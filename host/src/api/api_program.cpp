@@ -245,7 +245,11 @@ clBuildProgram(cl_program           d_program,
                                  context_num_devices * sizeof(cl_device_id),
                                  context_devices, 0);
 
-    if (result != CL_SUCCESS) return result;
+    if (result != CL_SUCCESS)
+    {
+        std::free(context_devices);
+        return result;
+    }
 
 
     // Check the devices for compliance
@@ -265,7 +269,10 @@ clBuildProgram(cl_program           d_program,
             }
 
             if (!found)
+            {
+                std::free(context_devices);
                 return CL_INVALID_DEVICE;
+            }
         }
     }
     else
@@ -277,7 +284,10 @@ clBuildProgram(cl_program           d_program,
     // We cannot try to build a previously-failed program
     if (!(program->state() == Coal::Program::Loaded ||
           program->state() == Coal::Program::Built  ))
+    {
+        std::free(context_devices);
         return CL_INVALID_OPERATION;
+    }
 
     // Build program
     Coal::DeviceInterface  **devices =

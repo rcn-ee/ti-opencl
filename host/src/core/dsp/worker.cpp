@@ -206,10 +206,14 @@ bool handle_event_dispatch(DSPDevice *device)
     *    and will be waiting for mails from DSP.
     *--------------------------------------------------------------------*/
     pthread_mutex_lock(device->get_worker_mutex());
-    while ((t == Event::NDRangeKernel || t == Event::TaskKernel) &&
-           device->num_complete_pending() >= MAX_NUM_COMPLETION_PENDING)
-        pthread_cond_wait(device->get_worker_cond(),
-                          device->get_worker_mutex());
+
+    if (t == Event::NDRangeKernel || t == Event::TaskKernel)
+    {
+        while (device->num_complete_pending() >= MAX_NUM_COMPLETION_PENDING)
+            pthread_cond_wait(device->get_worker_cond(),
+                              device->get_worker_mutex());
+    }
+
     pthread_mutex_unlock(device->get_worker_mutex());
 
     CommandQueue *              queue = 0;
@@ -621,6 +625,8 @@ void *dsp_worker_event_dispatch(void *data)
 
         if (env_sleep >= 0) usleep(env_sleep);
     }
+
+    return NULL;
 }
 
 /******************************************************************************
@@ -651,4 +657,6 @@ void *dsp_worker_event_completion(void *data)
 
         if (env_sleep >= 0) usleep(env_sleep);
     }
+
+    return NULL;
 }

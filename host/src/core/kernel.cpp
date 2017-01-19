@@ -442,6 +442,8 @@ void Kernel::reqdWorkGroupSize(llvm::Module *module, cl_uint dims[3]) const
     for (unsigned int i = 0, e = kernels->getNumOperands(); i != e; ++i){
        llvm::MDNode *kernel_iter = kernels->getOperand(i);
 
+       assert (kernel_iter->getNumOperands() > 0);
+
        /*---------------------------------------------------------------------
        * Each node has only one operand : a llvm::Function
        *--------------------------------------------------------------------*/
