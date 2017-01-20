@@ -190,7 +190,7 @@ int main(int argc, char* argv[])
 *----------------------------------------------------------------------------*/
 int Check(const double *C1, const double *C2, int M, int N)
 {
-    const int EPISILON = 0.00001;
+    const int EPISILON = 0.01;  // we have integer inputs
     const int NERRORS  = 13;
     int       num_errors = 0, i;
 

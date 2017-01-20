@@ -363,7 +363,7 @@ void PrintMatrix(float *mat, int rows, int cols, enum CBLAS_ORDER mem_order)
     cout << endl;
 }
 
-#define EPISILON 0.00001
+#define EPISILON 0.01  // we have all integer inputs
 int CheckForErrors(const float *Mat, const float *Golden, int M, int N, int K,
                     enum CBLAS_ORDER mem_order)
 {

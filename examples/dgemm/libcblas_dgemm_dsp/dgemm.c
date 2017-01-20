@@ -58,7 +58,7 @@ void dgemm(int transa, int transb,
     int mIndex, mCnt, mCntNext;
     int nIndex, nCnt, nCntNext/*, innerNCnt*/;
     int innerIndex_m, innerIndex_n;
-    int flagLastK, flagLastM, flagLastN;
+    int flagLastK, flagLastM, flagLastN, flagLastMXfers, flagLastNXfers;
     double * restrict ptrA, * restrict ptrB, * restrict ptrC;
     double * restrict ptrASeg1, * restrict ptrASeg2;
     double * restrict ptrBSeg1, * restrict ptrBSeg2;
@@ -246,7 +246,9 @@ void dgemm(int transa, int transb,
             // This is GEPB loop
             mCnt = ((m-mIndex) < MPARTITION) ? (m-mIndex) : MPARTITION;
             mCntNext = ((m-mIndex-MPARTITION) < MPARTITION) ? (m-mIndex-MPARTITION) : MPARTITION;
+            mCntNext = (mCntNext <= 0) ? (m < MPARTITION ? m : MPARTITION) : mCntNext;
             flagLastM = ((mIndex+MPARTITION)<m) ? 0 : 1;
+            flagLastMXfers = ((mIndex+2*MPARTITION)<m) ? 0 : 1;
 
             if(flagLastM) mCntNext = (m < MPARTITION) ? m : MPARTITION;
 
@@ -276,7 +278,7 @@ void dgemm(int transa, int transb,
                     {
                         if (flagUseDMACopyA)
                         {
-                            if (mIndex == 0)
+                            if (mIndex == 0 || flagLastMXfers)
                                 EdmaMgr_copy2D2DSep(chan0,
                                         a+aXferIndex, /* src */
                                         ptrASeg1, /* dst */
@@ -326,7 +328,7 @@ void dgemm(int transa, int transb,
                     {
                         if (flagUseDMACopyA)
                         {
-                            if (mIndex == 0)
+                            if (mIndex == 0 || flagLastMXfers)
                                 EdmaMgr_copy2D2DSep(chan0,
                                         a+aXferIndex, /* src */
                                         ptrASeg1, /* dst */
@@ -381,7 +383,9 @@ void dgemm(int transa, int transb,
             {
                 nCnt = ((n-nIndex) < NPARTITION) ? (n-nIndex) : NPARTITION;
                 nCntNext = ((n-nIndex-NPARTITION) < NPARTITION) ? (n-nIndex-NPARTITION) : NPARTITION;
+                nCntNext = (nCntNext <= 0) ? (n < NPARTITION ? n : NPARTITION) : nCntNext;
                 flagLastN = ((nIndex+NPARTITION)<n) ? 0 : 1;
+                flagLastNXfers = ((nIndex+2*NPARTITION)<n) ? 0 : 1;
                 if(flagLastN) nCntNext = (n < NPARTITION) ? n : NPARTITION;
 
                 // bring in B into L1 SRAM (a new parallel transfer)
@@ -400,7 +404,7 @@ void dgemm(int transa, int transb,
                         ptrB = (indexBNext == 0) ? ptrBSeg1: ptrBSeg2;
                         if (flagUseDMACopyB)
                         {
-                            if (nIndex == 0)
+                            if (nIndex == 0 || flagLastNXfers)
                                 EdmaMgr_copy2D2DSep(chan1,
                                         b+bXferIndex, /* src */
                                         ptrB, /* dst */
@@ -437,7 +441,7 @@ void dgemm(int transa, int transb,
                         ptrB = (indexBNext == 0) ? ptrBSeg1: ptrBSeg2;
                         if (flagUseDMACopyB)
                         {
-                            if (nIndex == 0)
+                            if (nIndex == 0 || flagLastNXfers)
                                 EdmaMgr_copy2D2DSep(chan1,
                                         b+bXferIndex, /* src */
                                         ptrB, /* dst */
