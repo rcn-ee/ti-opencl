@@ -74,6 +74,7 @@ extern void run_dsps()   __attribute__((weak));
 ******************************************************************************/
 int main()
 {
+    sleep(1);
     openlog("ti-mctd", LOG_CONS | LOG_PID | LOG_NDELAY, LOG_DAEMON);
     syslog (LOG_INFO, "started");
 
