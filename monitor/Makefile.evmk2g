@@ -109,7 +109,7 @@ endif
 BUILD = monitor_$(PLATFORM)
 COMP_OPTS = $(BUILD)/compiler.opt
 LINK_CMD = $(BUILD)/linker.cmd
-OUT=$(BUILD)/dsp.out
+OUT=$(BUILD)/dsp0.out
 
 build: $(OUT)
 
