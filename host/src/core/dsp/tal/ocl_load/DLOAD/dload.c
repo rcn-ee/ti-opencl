@@ -2269,7 +2269,8 @@ static int32_t dload_static_executable(DLOAD_HANDLE handle,
       /* the dynamic module object that created it.  Take note of the file   */
       /* handle.                                                             */
       /*---------------------------------------------------------------------*/
-      DLIMP_Loaded_Module *loaded_module = detach_loaded_module(dyn_module);
+      DLIMP_Loaded_Module *loaded_module = dyn_module->loaded_module;
+      (void)detach_loaded_module(dyn_module);
       local_file_handle = loaded_module->file_handle;
    }
 

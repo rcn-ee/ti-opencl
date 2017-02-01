@@ -43,4 +43,6 @@ int ocl_read_binary(const char *filename, char* &buffer)
         return length;
     }
     catch(...) { std::cout << "Binary read function failure" << std::endl; }
+
+    return 0;
 }

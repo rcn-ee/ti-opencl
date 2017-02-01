@@ -222,7 +222,6 @@ class CommandQueue : public _cl_command_queue, public Object
 
     private:
         DeviceInterface *p_device;
-        cl_int p_num_events_in_queue;
         cl_int p_num_events_on_device;
         cl_int p_num_events_completed;
         cl_command_queue_properties p_properties;

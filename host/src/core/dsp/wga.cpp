@@ -442,6 +442,10 @@ bool TIOpenclWorkGroupAggregation::rewrite_ocl_funcs(Function &F)
     for (I = wi_calls.begin(), E = wi_calls.end(); I != E; ++I)
     {
         call = *I;
+
+        if (call->getCalledFunction() == NULL)
+            continue;
+
         string name(call->getCalledFunction()->getName());
 
         if (name == "get_local_id") 
@@ -557,6 +561,8 @@ BasicBlock* TIOpenclWorkGroupAggregation::findExitBlock(Function &F)
             if (!exit) exit = &(*B);
             else assert(false);
         }
+
+    assert (exit != 0);
 
     /*-------------------------------------------------------------------------
     * Split the return off into it's own block
@@ -721,7 +727,8 @@ bool TIOpenclWorkGroupAggregation::implicit_long_conv_use_bif(Function &F)
             if (!isa<SIToFPInst>(cast) && !isa<UIToFPInst>(cast))  continue;
             Type *ty = cast->getType();
             if (ty != FP32 && ty != FP64)  continue;
-            if (cast->getOperand(0)->getType() != Int64)  continue;
+            if (cast->getOperand(0) &&
+                   (cast->getOperand(0)->getType() != Int64))  continue;
             cast_list.push_back(cast);
         }
 

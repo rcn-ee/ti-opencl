@@ -456,6 +456,8 @@ void Kernel::reqdWorkGroupSize(llvm::Module *module, cl_uint dims[3]) const
        kernel = kernel_iter;
     }
 
+    if (!kernel) return;
+
     unsigned e = kernel->getNumOperands();
     for (unsigned int i=1; i != e; ++i)
     {
@@ -469,13 +471,13 @@ void Kernel::reqdWorkGroupSize(llvm::Module *module, cl_uint dims[3]) const
             (meta_name == "reqd_work_group_size"))
         {
 	    dims[0] = (llvm::cast<llvm::ConstantInt>(
-               llvm::dyn_cast<llvm::ConstantAsMetadata>(
+               llvm::cast<llvm::ConstantAsMetadata>(
                   meta->getOperand(1))->getValue()))->getLimitedValue();
 	    dims[1] = (llvm::cast<llvm::ConstantInt>(
-               llvm::dyn_cast<llvm::ConstantAsMetadata>(
+               llvm::cast<llvm::ConstantAsMetadata>(
                   meta->getOperand(2))->getValue()))->getLimitedValue();
 	    dims[2] = (llvm::cast<llvm::ConstantInt>(
-               llvm::dyn_cast<llvm::ConstantAsMetadata>(
+               llvm::cast<llvm::ConstantAsMetadata>(
                   meta->getOperand(3))->getValue()))->getLimitedValue();
 
             return;
