@@ -1,0 +1,11 @@
+EXE  = conv1d
+srcs = main.cpp
+CL6X_FLAGS  = -o3 -mw --symdebug:none
+CLOCL_FLAGS = 
+
+include ../make_rtos.inc
+
+bin/$(PROFILE)/main.oa15fg: ti_kernels.dsp_h
+
+ti_kernels.dsp_h: k_extc.obj
+

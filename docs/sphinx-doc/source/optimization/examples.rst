@@ -1,6 +1,6 @@
-########################################
-Optimizing 3x3 Gaussian smoothing filter
-########################################
+#################################################
+Example: Optimizing 3x3 Gaussian smoothing filter
+#################################################
 
 This section describes a step-by-step approach to optimizing the 3x3 Gaussian smoothing filter kernel for the C66x DSP.
 

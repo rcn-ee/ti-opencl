@@ -33,10 +33,10 @@ endif()
 # of the target platform.  Use the target build specific blocks below to add to
 # this list
 if (${BUILD_OS} MATCHES "SYS_BIOS")
-    SET(OCL_EXAMPLES_INSTALL_LIST buffer ccode dsplib_fft float_compute null
+    SET(OCL_EXAMPLES_INSTALL_LIST buffer ccode conv1d dsplib_fft float_compute null
             offline_embed platforms simple vecadd matmpy ooo_callback edmamgr sgemm vecadd_openmp vecadd_openmp_t)
 else()
-    SET(OCL_EXAMPLES_INSTALL_LIST edmamgr matmpy simple dsplib_fft mandelbrot mandelbrot_native offline offline_embed platforms ccode null ooo vecadd dspheap float_compute sgemm monte_carlo)
+    SET(OCL_EXAMPLES_INSTALL_LIST edmamgr matmpy simple dsplib_fft mandelbrot mandelbrot_native offline offline_embed platforms ccode conv1d null ooo vecadd dspheap float_compute sgemm monte_carlo)
 endif()
 SET(OCL_OMP_EXAMPLES_INSTALL_LIST vecadd_openmp vecadd_openmp_t dgemm)
 

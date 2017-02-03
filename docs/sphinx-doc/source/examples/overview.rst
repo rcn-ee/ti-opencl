@@ -18,7 +18,8 @@ Name               Purpose Execute Model   Kernel Compile Buffer Model Profiling
 ================== ======= =============== ============== ============ ========= ========================= ==================
 blas               simp    iot             B/F            map                    C
 ccode              simp    1wi             S/F            read                   C
-dgemm              perf    iot             S/F            host         host      C, omp, msmc, edma, cache
+conv1d             perf    ndr,1wi         B/E            map          host      C, edma                   async, local, query, vec
+dgemm              perf    iot             B/E            host         host      C, omp, msmc, edma, cache
 dspheap            simp    1wi             B/F                                   dspheap, msmc             functor
 dsplib_fft         simp    iot             S/E            read         event     C
 edmamgr            simp    1wi             B/E            read                   C, edma
@@ -34,7 +35,7 @@ ooo_callback       simp    oot             S/E            read         host     
 ooo_map            simp    oot             S/E            map          host                                event, native
 openmpbench_C_v3   info    iot             B/F            read                   C, omp
 platforms          info                                   query
-sgemm              perf    1wi             S/F            map          host      C, msmc, edma, cache      local, vec
+sgemm              perf    1wi             B/E            map          host      C, msmc, edma, cache      local, vec
 simple             simp    ndr             S/E            read                                             functor
 vecadd             simp    ndr             S/E            host                                             vec
 vecadd_mpax        simp    ndr             S/E            map                                              extMem, query, vec
@@ -308,6 +309,19 @@ This example illustrates how to efficiently offload the CBLAS DGEMM routine
 (double precision matrix multiply) to the DSPs using OpenCL. The results
 obtained on the DSP are compared against a cblas_dgemm call on the ARM. The
 example reports performance in GFlops for both DSP and ARM variants.
+
+.. _conv1d-example:
+
+conv1d example
+===============
+
+This example illustrates step by step how to optimize a 1D convolution
+kernel applied to 2D data.  The results obtained on the DSP are compared
+against the same computation performed on the ARM.  Optimization techniques
+include software pipelining improvement, SIMDization, and asynchronous
+data movement with double buffering into faster memory to overlap computation
+with data movement.  Details can be found in
+:doc:`../optimization/example_conv1d`.
 
 .. _edmamgr-example:
 

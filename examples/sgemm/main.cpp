@@ -149,7 +149,7 @@ int main(int argc, char *argv[])
        double total_GFLOP = 2.0*M*N*K*1.0e-9;
 
        /*---------------------------------------------------------------------
-       * Compile the Kernel Source for the devices
+       * Build kernel from pre-compiled and embedded binary
        *--------------------------------------------------------------------*/
        Program::Binaries binary(1, make_pair(kernel_dsp_bin,
                                              sizeof(kernel_dsp_bin)));
