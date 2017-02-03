@@ -53,7 +53,7 @@ category is reported here.
 +---------------------+--------------+--------------+--------------+--------------+--------------+--------------+
 
 .. Note::
-    This example probably hit the memory bandwidth constraint on K2H after
+    This example hit the memory bandwidth constraint on K2H after
     2 DSP cores.  In other words, there simply isn't enough computation to
     go around more DSP cores and keep them all busy, per maximum of data that
     can be transferred to the chip at a time.  If the computation to data

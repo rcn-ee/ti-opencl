@@ -92,16 +92,13 @@ int main(int argc, char *argv[])
     Program             program = Program(context, devices, binary);
     program.build(devices);
 
+    // The OpenCL runtime will lazily load the device program upon the first
+    // enqueue of a kernel from the program, so the elapsed time overall from
+    // the first enqueue will be longer to account for the loading of the
+    // program.  To remove program loading overhead from kernel performance,
+    // enqueue a null kernel before running other kernels.
     Kernel kernel(program, "null");
     KernelFunctor null = kernel.bind(Q, NDRange(1), NDRange(1));
-
-    //printf("The OpenCL runtime will lazily load the device program upon\n");
-    //printf("  the first enqueue of a kernel from the program, so the\n");
-    //printf("  elapsed time overall from the first enqueue will be longer\n");
-    //printf("  to account for the loading of the program.  To remove\n");
-    //printf("  program loading overhead from kernel performance,\n");
-    //printf("  enqueue a null kernel before running other kernels.\n\n");
-
     clock_gettime(CLOCK_MONOTONIC, &t0);
     null().wait();
     clock_gettime(CLOCK_MONOTONIC, &t1);
@@ -112,7 +109,11 @@ int main(int argc, char *argv[])
     Buffer bufInput( context, CL_MEM_READ_ONLY, bufSize);
     Buffer bufOutput(context, CL_MEM_WRITE_ONLY, bufSize);
     Buffer bufFilter(context, CL_MEM_READ_ONLY, FILTERSIZE * sizeof(float));
+#ifndef _TI_RTOS
     float *pGolden = (float *) malloc(bufSize);
+#else
+    float *pGolden = (float *) __malloc_ddr(bufSize);
+#endif
     if (pGolden == NULL) 
     {
       printf("Failed to allocate memory for golden results\n");
@@ -258,6 +259,12 @@ int main(int argc, char *argv[])
       printf("Elapsed (k_loop_simd_db_extc): %d usecs\n", us_diff(t0, t1));
       num_errors += VerifyResults(Q, bufOutput, pGolden, COLS, ROWS);
     }
+
+#ifndef _TI_RTOS
+    free(pGolden);
+#else
+    __free_ddr(pGolden);
+#endif
   }
   catch (Error err) 
   {

@@ -114,15 +114,6 @@ void c_loop_simd_db_extc(int row_begin, int row_end,
                                     _dmpysp(v2_self, vf2)),
                                   _dmpysp(v2_right_1, vf3)),
                                 _dmpysp(v2_right_2, vf4));
-#if 0
-                                _daddsp(
-                                  _daddsp(
-                                    _daddsp(_dmpysp(v2_left_2, vf0),
-                                            _dmpysp(v2_left_1, vf1)),
-                                    _dmpysp(v2_self, vf2)),
-                                  _daddsp(_dmpysp(v2_right_1, vf3),
-                                          _dmpysp(v2_right_2, vf4)));
-#endif
 
         v2_left_2 = v2_self;
         v2_left_1 = v2_right_1;
