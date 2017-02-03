@@ -16,6 +16,7 @@ applications that perform well. It targets TI SoCs with DSPs as accelerator devi
    host_code
    dsp_code
    typical_steps
+   example_conv1d
    examples
    performance_data
 
