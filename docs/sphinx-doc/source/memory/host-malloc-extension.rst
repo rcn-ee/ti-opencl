@@ -144,3 +144,8 @@ underlying subbuffer memory residing in :ref:`CMEM<CMEM>`.
     Calling __free_ddr() or __free_msmc() on memory that is underlying an
     OpenCL Buffer while the buffer is still in use is undefined behavior.
 
+
+Memory Alignment
+==================
+Similar to global buffers and local buffers, memory allocated by
+``__malloc_ddr`` and ``__malloc_msmc`` are always aligned at 128-byte boundary.

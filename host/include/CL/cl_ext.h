@@ -161,6 +161,7 @@ typedef CL_API_ENTRY cl_int (CL_API_CALL *clIcdGetPlatformIDsKHR_fn)(
 
 #define CL_MEM_USE_MSMC_TI                          (1 << 20)
 
+/* __malloc_ddr and __malloc_msmc return pointers to 128-byte aligned memory */
 extern CL_API_ENTRY void*  CL_API_CALL
 __malloc_ddr(size_t size)  CL_EXT_SUFFIX__VERSION_1_1;
 extern CL_API_ENTRY void   CL_API_CALL

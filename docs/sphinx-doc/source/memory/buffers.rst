@@ -319,3 +319,10 @@ Buffer buf.::
 
     K.setArg(0, buf_half2);
     Q.enqueueTask(K);
+
+Buffer Alignment
+=======================
+
+In TI's implementation, global buffers (both DDR and TI extended MSMC)
+and local buffers are always aligned at 128-byte memory boundary.  Sub-buffers
+are aligned accordingly to their origin/offset in the existing global buffers.
