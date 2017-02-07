@@ -84,8 +84,6 @@ set(POCL_SOURCE_FILES
     ${POCL_SOURCE_DIR}/DebugHelpers.cc
     ${POCL_SOURCE_DIR}/Flatten.cc
     ${POCL_SOURCE_DIR}/GenerateHeader.cc
-    ${POCL_SOURCE_DIR}/ImplicitLoopBarriers.cc
-    ${POCL_SOURCE_DIR}/ImplicitConditionalBarriers.cc
     ${POCL_SOURCE_DIR}/IsolateRegions.cc
     ${POCL_SOURCE_DIR}/Kernel.cc
     ${POCL_SOURCE_DIR}/LLVMUtils.cc
@@ -94,13 +92,11 @@ set(POCL_SOURCE_FILES
     ${POCL_SOURCE_DIR}/PHIsToAllocas.cc
     ${POCL_SOURCE_DIR}/TargetAddressSpaces.cc
     ${POCL_SOURCE_DIR}/VariableUniformityAnalysis.cc
-    ${POCL_SOURCE_DIR}/WIVectorize.cc
     ${POCL_SOURCE_DIR}/Workgroup.cc
     ${POCL_SOURCE_DIR}/WorkItemAliasAnalysis.cc
     ${POCL_SOURCE_DIR}/WorkitemHandler.cc
     ${POCL_SOURCE_DIR}/WorkitemHandlerChooser.cc
     ${POCL_SOURCE_DIR}/WorkitemLoops.cc
-    ${POCL_SOURCE_DIR}/WorkitemReplication.cc
     ${POCL_SOURCE_DIR}/SimplifyShuffleBIFCall.cpp
     ${POCL_SOURCE_DIR}/PrivatizationAliasAnalysis.cpp)
 

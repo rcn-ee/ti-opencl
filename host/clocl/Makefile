@@ -56,13 +56,12 @@ WGADIR          = ../src/core/dsp
 POCLDIR         = ../src/llvmopencl
 OBJS        = AllocasToEntry.o BarrierBlock.o BarrierTailReplication.o \
               BreakConstantGEPs.o CanonicalizeBarriers.o DebugHelpers.o \
-              Flatten.o GenerateHeader.o ImplicitLoopBarriers.o \
-              ImplicitConditionalBarriers.o IsolateRegions.o \
+              Flatten.o GenerateHeader.o IsolateRegions.o \
               Kernel.o LLVMUtils.o LoopBarriers.o ParallelRegion.o \
               PHIsToAllocas.o TargetAddressSpaces.o \
-              VariableUniformityAnalysis.o WIVectorize.o Workgroup.o \
+              VariableUniformityAnalysis.o Workgroup.o \
               WorkItemAliasAnalysis.o WorkitemHandler.o \
-              WorkitemHandlerChooser.o WorkitemLoops.o WorkitemReplication.o\
+              WorkitemHandlerChooser.o WorkitemLoops.o \
               SimplifyShuffleBIFCall.o PrivatizationAliasAnalysis.o \
               main.o compiler.o wga.o program.o file_manip.o options.o \
               util.o
