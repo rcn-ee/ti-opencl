@@ -28,7 +28,7 @@
 
 #include "CanonicalizeBarriers.h"
 #include "BarrierTailReplication.h"
-#include "WorkitemReplication.h"
+//#include "WorkitemReplication.h"
 #include "llvm/Analysis/ConstantFolding.h"
 #include "llvm/Pass.h"
 #include "llvm/Support/CommandLine.h"
