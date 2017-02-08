@@ -514,6 +514,8 @@ if (debugging_on)
                   strlen(argv[arg]) + 1); 
    }
 
+  DLIF_free(targ_argv_pointers);
+
   return TRUE;
 }
 
