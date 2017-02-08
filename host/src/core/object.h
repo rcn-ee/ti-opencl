@@ -73,6 +73,11 @@ class Object
         Object(Type type, Object *parent = 0);
         virtual ~Object();
 
+        // Disable default constructor, copy constuction and assignment
+        Object()                         =delete;
+        Object(const Object&)            =delete;
+        Object& operator=(const Object&) =delete;
+
         /**
          * \brief Increments the reference counter
          */

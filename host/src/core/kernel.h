@@ -136,6 +136,9 @@ class Kernel : public _cl_kernel, public Object
                 Arg(unsigned short vec_dim, File file, Kind kind, bool is_subword_int_uns);
                 ~Arg();
 
+                // Disable assignment
+                Arg& operator=(const Arg&) =delete;
+
                 /**
                  * \brief Allocate the argument
                  * 

@@ -1178,7 +1178,10 @@ cl_int DSPKernelEvent::setup_stack_based_arguments()
         // 3. copy args_on_stack and args_of_argref
         void *mapped_addr = shm->Map(args_addr, args_in_mem_size, false);
         if (rounded_args_on_stack_size > 0)
+        {
+            assert (rounded_args_on_stack_size <= sizeof(args_on_stack));
             memcpy(mapped_addr, args_on_stack, rounded_args_on_stack_size);
+        }
 
         if (argref_offset > 0)
             memcpy(((char*)mapped_addr)+rounded_args_on_stack_size, 

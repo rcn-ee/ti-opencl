@@ -59,6 +59,11 @@ class CPUBuffer : public DeviceBuffer
         CPUBuffer(CPUDevice *device, MemObject *buffer, cl_int *rs);
         ~CPUBuffer();
 
+        // Disable default constructor, copy constuction and assignment
+        CPUBuffer()                            =delete;
+        CPUBuffer(const CPUBuffer&)            =delete;
+        CPUBuffer& operator=(const CPUBuffer&) =delete;
+
         bool allocate();
         DeviceInterface *device() const;
         void *data() const;                 /*!< \brief Pointer to the buffer's data */

@@ -229,7 +229,7 @@ bool llvm_xforms(Module *module, bool optimize)
         for (unsigned int i=0; kern_meta && i < kern_meta->getNumOperands(); ++i)
         {
             llvm::MDNode *node  = kern_meta->getOperand(i);
-            llvm::Value  *value = dyn_cast<llvm::ValueAsMetadata>(node->getOperand(0))->getValue();
+            llvm::Value  *value = cast<llvm::ValueAsMetadata>(node->getOperand(0))->getValue();
             if (!llvm::isa<llvm::Function>(value)) continue;
 
             llvm::Function *f = llvm::cast<llvm::Function>(value);
