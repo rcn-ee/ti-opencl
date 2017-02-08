@@ -1189,6 +1189,7 @@ WorkitemLoops::AddContextSaveRestore
           */          
 
           /* PHINodes at region entries are broken down earlier. */
+          assert (phi->getParent() != NULL);
           assert ("Cannot add context restore for a PHI node at the region entry!" &&
                   RegionOfBlock(phi->getParent())->entryBB() != phi->getParent());
 #ifdef DEBUG_WORK_ITEM_LOOPS

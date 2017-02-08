@@ -89,6 +89,9 @@ bool TIOpenCLSimplifyShuffleBIFCall::simplify_shuffle_call(llvm::CallInst *ins)
     /*-----------------------------------------------------------------
     * Get Function Name, see if it matches
     *----------------------------------------------------------------*/
+    if (ins->getCalledFunction() == NULL)
+        return false;
+
     SHUFFLE_BIFS_MAP::iterator it = shuffleBifs.find(
                                           ins->getCalledFunction()->getName());
     if (it == shuffleBifs.end())  return false;
@@ -99,8 +102,12 @@ bool TIOpenCLSimplifyShuffleBIFCall::simplify_shuffle_call(llvm::CallInst *ins)
     * convert to <n x i32> as demanded by ShuffleVectorInst
     *----------------------------------------------------------------*/
     llvm::Value *vec1       = ins->getOperand(0);
+    assert (vec1 != NULL);
+
     llvm::Value *vec2       = (it->second == 3) ? ins->getOperand(1)
                                       : llvm::UndefValue::get(vec1->getType());
+    assert (vec2 != NULL);
+
     llvm::Constant *oldmask = llvm::dyn_cast<llvm::Constant>(
                                        ins->getArgOperand(it->second - 1));
     if (oldmask == NULL)  return false;

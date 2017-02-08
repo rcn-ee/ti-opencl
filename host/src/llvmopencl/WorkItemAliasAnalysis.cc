@@ -81,6 +81,9 @@ WorkItemAliasAnalysis::alias(const Location &LocA,
         if (valA->getMetadata("wi") && valB->getMetadata("wi")) {
             const MDNode* mdA = valA->getMetadata("wi");
             const MDNode* mdB = valB->getMetadata("wi");
+
+            assert ((mdA != NULL) && (mdB != NULL));
+
             // Compare region ID. If they are same, different work items
             // imply no aliasing. If regions are different or work items
             // are same anything can happen.
