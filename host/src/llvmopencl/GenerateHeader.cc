@@ -142,13 +142,13 @@ GenerateHeader::ProcessReqdWGSize(Function *F,
       if (dyn_cast<ValueAsMetadata>(KernelSizeInfo->getOperand(0).get())->getValue() != F) 
         continue;
       LocalSizeX = (llvm::cast<ConstantInt>(
-                     llvm::dyn_cast<ConstantAsMetadata>(
+                     llvm::cast<ConstantAsMetadata>(
                        KernelSizeInfo->getOperand(1))->getValue()))->getLimitedValue();
       LocalSizeY = (llvm::cast<ConstantInt>(
-                     llvm::dyn_cast<ConstantAsMetadata>(
+                     llvm::cast<ConstantAsMetadata>(
                        KernelSizeInfo->getOperand(2))->getValue()))->getLimitedValue();
       LocalSizeZ = (llvm::cast<ConstantInt>(
-                     llvm::dyn_cast<ConstantAsMetadata>(
+                     llvm::cast<ConstantAsMetadata>(
                        KernelSizeInfo->getOperand(3))->getValue()))->getLimitedValue();
       break;
     }
@@ -173,6 +173,9 @@ GenerateHeader::ProcessPointers(Function *F,
   bool *is_local = (bool*)calloc(num_args, sizeof(bool));
   bool *is_image = (bool*)calloc(num_args, sizeof(bool));
   bool *is_sampler = (bool*)calloc(num_args, sizeof(bool));
+
+  assert ((is_pointer != NULL) && (is_local != NULL) &&
+          (is_image != NULL) && (is_sampler != NULL));
 
   int i = 0;
   for (Function::const_arg_iterator ii = F->arg_begin(),

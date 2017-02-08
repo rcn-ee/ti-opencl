@@ -71,18 +71,18 @@ WorkitemHandler::Initialize(Kernel *K) {
   if (size_info) {
     for (unsigned i = 0, e = size_info->getNumOperands(); i != e; ++i) {
       llvm::MDNode *KernelSizeInfo = size_info->getOperand(i);
-      if (dyn_cast<ValueAsMetadata>(
+      if (cast<ValueAsMetadata>(
         KernelSizeInfo->getOperand(0).get())->getValue() != K) 
         continue;
 
       LocalSizeX = (llvm::cast<ConstantInt>(
-                     llvm::dyn_cast<ConstantAsMetadata>(
+                     llvm::cast<ConstantAsMetadata>(
                        KernelSizeInfo->getOperand(1))->getValue()))->getLimitedValue();
       LocalSizeY = (llvm::cast<ConstantInt>(
-                     llvm::dyn_cast<ConstantAsMetadata>(
+                     llvm::cast<ConstantAsMetadata>(
                        KernelSizeInfo->getOperand(2))->getValue()))->getLimitedValue();
       LocalSizeZ = (llvm::cast<ConstantInt>(
-                     llvm::dyn_cast<ConstantAsMetadata>(
+                     llvm::cast<ConstantAsMetadata>(
                        KernelSizeInfo->getOperand(3))->getValue()))->getLimitedValue();
       break;
     }

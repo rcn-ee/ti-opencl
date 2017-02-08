@@ -279,7 +279,7 @@ Kernel::addLocalSizeInitCode(size_t LocalSizeX, size_t LocalSizeY, size_t LocalS
          /*Params=*/   IntegerType::get(M->getContext(), 32),
          /*isVarArg=*/ false);
   Function *localsize =
-        dyn_cast<Function>(M->getOrInsertFunction("get_local_size", ft));
+        cast<Function>(M->getOrInsertFunction("get_local_size", ft));
   gv = M->getGlobalVariable("_local_size_x");
   builder.CreateStore(builder.CreateCall(localsize, 
         ConstantInt::get(IntegerType::get(M->getContext(), size_t_width), 0)),

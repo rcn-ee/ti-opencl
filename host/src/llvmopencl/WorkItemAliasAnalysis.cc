@@ -76,8 +76,8 @@ WorkItemAliasAnalysis::alias(const Location &LocA,
     }
     // In case code is created by pocl, we can also use metadata.
     if (isa<Instruction>(LocA.Ptr) && isa<Instruction>(LocB.Ptr)) {
-        const Instruction* valA = dyn_cast<Instruction>(LocA.Ptr);
-        const Instruction* valB = dyn_cast<Instruction>(LocB.Ptr);
+        const Instruction* valA = cast<Instruction>(LocA.Ptr);
+        const Instruction* valB = cast<Instruction>(LocB.Ptr);
         if (valA->getMetadata("wi") && valB->getMetadata("wi")) {
             const MDNode* mdA = valA->getMetadata("wi");
             const MDNode* mdB = valB->getMetadata("wi");
@@ -85,45 +85,45 @@ WorkItemAliasAnalysis::alias(const Location &LocA,
             // imply no aliasing. If regions are different or work items
             // are same anything can happen.
             // Fall back to other AAs.
-            const MDNode* mdRegionA = dyn_cast<MDNode>(mdA->getOperand(1));
-            const MDNode* mdRegionB = dyn_cast<MDNode>(mdB->getOperand(1)); 
-            ConstantInt* C1 = dyn_cast<ConstantInt>(
-              dyn_cast<ConstantAsMetadata>(mdRegionA->getOperand(1))->getValue());
-            ConstantInt* C2 = dyn_cast<ConstantInt>(
-              dyn_cast<ConstantAsMetadata>(mdRegionB->getOperand(1))->getValue());
+            const MDNode* mdRegionA = cast<MDNode>(mdA->getOperand(1));
+            const MDNode* mdRegionB = cast<MDNode>(mdB->getOperand(1)); 
+            ConstantInt* C1 = cast<ConstantInt>(
+              cast<ConstantAsMetadata>(mdRegionA->getOperand(1))->getValue());
+            ConstantInt* C2 = cast<ConstantInt>(
+              cast<ConstantAsMetadata>(mdRegionB->getOperand(1))->getValue());
             if (C1->getValue() == C2->getValue()) {
                 // Now we have both locations from same region. Check for different
                 // work items.
-                MDNode* iXYZ= dyn_cast<MDNode>(mdA->getOperand(2));
-                MDNode* jXYZ= dyn_cast<MDNode>(mdB->getOperand(2));
+                MDNode* iXYZ= cast<MDNode>(mdA->getOperand(2));
+                MDNode* jXYZ= cast<MDNode>(mdB->getOperand(2));
                 assert(iXYZ->getNumOperands() == 4);
                 assert(jXYZ->getNumOperands() == 4);
                 
                 ConstantInt *CIX = 
-                  dyn_cast<ConstantInt>(
-                      dyn_cast<ConstantAsMetadata>(
+                  cast<ConstantInt>(
+                      cast<ConstantAsMetadata>(
                         iXYZ->getOperand(1))->getValue());
                 ConstantInt *CJX = 
-                  dyn_cast<ConstantInt>(
-                    dyn_cast<ConstantAsMetadata>(
+                  cast<ConstantInt>(
+                    cast<ConstantAsMetadata>(
                       jXYZ->getOperand(1))->getValue());
 
                 ConstantInt *CIY = 
-                  dyn_cast<ConstantInt>(
-                    dyn_cast<ConstantAsMetadata>(
+                  cast<ConstantInt>(
+                    cast<ConstantAsMetadata>(
                       iXYZ->getOperand(2))->getValue());
                 ConstantInt *CJY = 
-                  dyn_cast<ConstantInt>(
-                    dyn_cast<ConstantAsMetadata>(
+                  cast<ConstantInt>(
+                    cast<ConstantAsMetadata>(
                       jXYZ->getOperand(2))->getValue());
                 
                 ConstantInt *CIZ = 
-                  dyn_cast<ConstantInt>(
-                    dyn_cast<ConstantAsMetadata>(
+                  cast<ConstantInt>(
+                    cast<ConstantAsMetadata>(
                       iXYZ->getOperand(3))->getValue());
                 ConstantInt *CJZ = 
-                  dyn_cast<ConstantInt>(
-                    dyn_cast<ConstantAsMetadata>(
+                  cast<ConstantInt>(
+                    cast<ConstantAsMetadata>(
                       jXYZ->getOperand(3))->getValue());
 
                 if ( !(CIX->getValue() == CJX->getValue()

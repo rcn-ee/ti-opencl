@@ -289,7 +289,7 @@ TargetAddressSpaces::runOnModule(llvm::Module &M) {
 
           // The old unconverted functions are still there, skip them.
           if (instr->getOperand(0)->getType()->getPointerAddressSpace() !=
-              dyn_cast<CastInst>(instr)->getDestTy()->getPointerAddressSpace())
+              cast<CastInst>(instr)->getDestTy()->getPointerAddressSpace())
             continue;
 
           llvm::ReplaceInstWithInst
@@ -305,7 +305,7 @@ TargetAddressSpaces::runOnModule(llvm::Module &M) {
         
         if (!isa<CallInst>(instr)) continue;
 
-        llvm::CallInst *call = dyn_cast<CallInst>(instr);
+        llvm::CallInst *call = cast<CallInst>(instr);
         llvm::Function *calledF = call->getCalledFunction();
         if (funcReplacements.find(calledF) == funcReplacements.end()) continue;
          
