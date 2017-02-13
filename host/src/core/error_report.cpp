@@ -155,9 +155,12 @@ void tiocl::ReportError(const ErrorType et, const ErrorKind ek, ...)
 }
 
 #if defined(TRACE_ENABLED)
+#include "../tiocl_thread.h"
 void tiocl::ReportTrace(const char *fmt, ...)
 {
-    std::string trace_fmt = "TIOCL Trace: ";
+    std::string trace_fmt = "TIOCL Trace: (";
+    trace_fmt += std::to_string(pthread_self());
+    trace_fmt += ") ";
     trace_fmt += fmt;
     va_list ap;
     va_start(ap, fmt);

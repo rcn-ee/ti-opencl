@@ -43,6 +43,7 @@
 #include "../kernel.h"
 #include "../program.h"
 #include "../util.h"
+#include "../error_report.h"
 
 #include "device_info.h"
 
@@ -549,6 +550,9 @@ int DSPDevice::numHostMails(Msg_t &msg) const
 void DSPDevice::mail_to(Msg_t &msg, unsigned int core)
 {
     msg.pid = p_pid;
+
+    ReportTrace("Sending message %d, pid %d\n", msg.command, msg.pid);
+
     if(hostSchedule())
     {
         switch(msg.command)
@@ -625,6 +629,8 @@ int DSPDevice::mail_from(int *retcode)
     uint8_t  core;
 
     trans_id_rx = p_mb->from((uint8_t*)&rxmsg, &size_rx, &core);
+
+    ReportTrace("Received message %d, for pid %d\n", rxmsg.command, rxmsg.pid);
 
     if (rxmsg.command == ERROR)
     {

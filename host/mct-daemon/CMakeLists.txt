@@ -11,6 +11,7 @@ set (DAEMON_SRC mctd.cpp)
 
 if (K2X_BUILD OR K2G_BUILD)
     list(APPEND DAEMON_SRC mpm_load.cpp)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DENABLE_SLEEP")
 endif()
 
 if (K2H_BUILD)

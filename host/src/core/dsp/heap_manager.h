@@ -45,7 +45,7 @@
 #include <iostream>
 #include <iomanip>
 
-const size_t HEAP_MANAGER_SIZE = (64 << 10);
+const size_t HEAP_MANAGER_SIZE = (128 << 10);
 
 namespace utility { 
 

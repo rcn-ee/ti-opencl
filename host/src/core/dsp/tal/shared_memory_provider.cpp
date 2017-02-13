@@ -84,6 +84,7 @@ AllocateMSMC(size_t size)
 {
     uint64_t ret = HeapPolicy::msmc_heap_->malloc(size,true);
     if (ret) dsptop_msmc();
+    ReportTrace("AllocateMSMC (0x%llx, %d)\n", ret, size);
     return ret;
 }
 
@@ -91,6 +92,7 @@ template <class MIPolicy, class RWPolicy, class HeapPolicy>
 void SharedMemoryProvider<MIPolicy, RWPolicy, HeapPolicy>::
 FreeMSMC(uint64_t addr)
 {
+    ReportTrace("FreeMSMC(0x%llx)\n", addr);
     HeapPolicy::msmc_heap_->free(addr);
     dsptop_msmc();
 }
@@ -101,14 +103,11 @@ template <class MIPolicy, class RWPolicy, class HeapPolicy>
 uint64_t SharedMemoryProvider<MIPolicy, RWPolicy, HeapPolicy>::
 AllocateGlobal(size_t size, bool prefer_32bit)
 {
-    ReportTrace("->AllocateGlobal with %d bytes (prefer_32bit: %d)\n",
-                size, prefer_32bit);
-
     if (prefer_32bit)
     {
         uint64_t ret = HeapPolicy::ddr_heap1_->malloc(size, true);
         if (ret) dsptop_ddr_fixed();
-        ReportTrace("<-AllocateGlobal (%llx)\n", ret);
+        ReportTrace("AllocateGlobal (0x%llx, %d, %d)\n", ret, size, prefer_32bit);
         return ret;
     }
 
@@ -134,7 +133,7 @@ AllocateGlobal(size_t size, bool prefer_32bit)
         if (addr) dsptop_ddr_fixed();
     }
 
-    ReportTrace("<-AllocateGlobal (%llx)\n", addr);
+    ReportTrace("AllocateGlobal (0x%llx, %d, %d)\n", addr, size, prefer_32bit);
     return addr;
 }
 
@@ -142,6 +141,7 @@ template <class MIPolicy, class RWPolicy, class HeapPolicy>
 void SharedMemoryProvider<MIPolicy, RWPolicy, HeapPolicy>::
 FreeGlobal(uint64_t addr)
 {
+    ReportTrace("FreeGlobal(0x%llx)\n", addr);
     if (addr < DSP_36BIT_ADDR)
     {
         HeapPolicy::ddr_heap1_->free(addr);

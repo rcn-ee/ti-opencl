@@ -74,7 +74,15 @@ extern void run_dsps()   __attribute__((weak));
 ******************************************************************************/
 int main()
 {
+    /*-------------------------------------------------------------------------
+    * On K2x devices, sleep to ensure mpm daemon has completed setup. systemd
+    * unit dependencies between mpmd and ti-mctd do not work as expected
+    * because the mpmd daemon forks before completing its setup.
+    *------------------------------------------------------------------------*/
+    #if defined(ENABLE_SLEEP)
     sleep(1);
+    #endif
+
     openlog("ti-mctd", LOG_CONS | LOG_PID | LOG_NDELAY, LOG_DAEMON);
     syslog (LOG_INFO, "started");
 
