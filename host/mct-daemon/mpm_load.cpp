@@ -84,6 +84,27 @@ static std::string get_ocl_dsp()
 void reset_dsps()
 {
     syslog(LOG_INFO, "Resetting DSPs");
+
+    /*-------------------------------------------------------------------------
+    * On K2x devices, sleep to ensure mpm daemon has completed setup. systemd
+    * unit dependencies between mpmd and ti-mctd do not work as expected
+    * because the mpmd daemon forks before completing its setup.
+    * mpm_ping() returns 0 if the mpm server is functional. If it does not
+    * succeed after 8 attempts, abort.
+    *------------------------------------------------------------------------*/
+    int count = 0;
+    while (mpm_ping() != 0 && count < 8)
+    {
+        usleep(5000000); // 0.5 seconds
+        count++;
+    }
+
+    if (mpm_ping() != 0)
+    {
+        syslog(LOG_ERR, "Internal Error: Cannot ping mpm server");
+        abort();
+    }
+
     for (uint8_t core=0; core < NUM_DSPS; core++)
     {
         std::string curr_core("dsp" + std::to_string(core));

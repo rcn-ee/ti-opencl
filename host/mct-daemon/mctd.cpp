@@ -74,17 +74,7 @@ extern void run_dsps()   __attribute__((weak));
 ******************************************************************************/
 int main()
 {
-    /*-------------------------------------------------------------------------
-    * On K2x devices, sleep to ensure mpm daemon has completed setup. systemd
-    * unit dependencies between mpmd and ti-mctd do not work as expected
-    * because the mpmd daemon forks before completing its setup.
-    *------------------------------------------------------------------------*/
-    #if defined(ENABLE_SLEEP)
-    sleep(1);
-    #endif
-
     openlog("ti-mctd", LOG_CONS | LOG_PID | LOG_NDELAY, LOG_DAEMON);
-    syslog (LOG_INFO, "started");
 
     /*-------------------------------------------------------------------------
     * Create or find handles to the multicore tools device heaps
@@ -102,6 +92,9 @@ int main()
        std::cout << ex.what() << std::endl; 
        exit(EXIT_FAILURE); 
     }
+
+    syslog (LOG_INFO, "Shared Memory heaps created, size %d bytes",
+            HEAP_MANAGER_SIZE);
 
     if (reset_dsps) reset_dsps();
     if (load_dsps)  load_dsps();
