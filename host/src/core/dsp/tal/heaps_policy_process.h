@@ -63,7 +63,7 @@ public:
     *------------------------------------------------------------------------*/
     HeapsMultiProcessPolicy() :
        segment_(boost::interprocess::open_or_create, "HeapManager",
-                HEAP_MANAGER_SIZE),
+                HEAP_MANAGER_DEFAULT_SIZE),
        ddr_heap1_(segment_.find_or_construct<Heap64Bit>("ddr_heap1")(segment_)),
        ddr_heap2_(segment_.find_or_construct<Heap64Bit>("ddr_heap2")(segment_)),
        msmc_heap_(segment_.find_or_construct<Heap64Bit>("msmc_heap")(segment_))
