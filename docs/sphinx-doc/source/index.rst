@@ -16,11 +16,12 @@ TI |OpenCL (TM)| Runtime Documentation Contents:
    execution/index
    extensions/index
    environment_variables
+   multiprocess
    optimization/index
-   examples/index
    debug/index
    profiling
    rtos/index
+   examples/index
    faq/index
    readme/index
    disclaimer
