@@ -1,4 +1,4 @@
-CPPFLAGS   = -O3 -Wall -Werror -fpic 
+CXX_FLAGS  = -O3 -Wall -Werror -fpic 
 CL6X_FLAGS = -o3 --omp -mv6600 --abi=eabi -I$(TARGET_ROOTDIR)/usr/share/ti/opencl -I$(TI_OCL_CGT_INSTALL)/include -I$(TARGET_ROOTDIR)/usr/share/ti/cgt-c6x/include
 
 include ../../make.inc

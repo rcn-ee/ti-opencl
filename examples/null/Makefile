@@ -1,7 +1,7 @@
 EXE       = null
-CPP_FLAGS = -O3
+CXX_FLAGS = -O3
 
 include ../make.inc
 
 $(EXE): main.o 
-	@$(CPP) $(CPP_FLAGS) main.o $(LD_FLAGS) $(LIBS) -lrt -o $@
+	@$(CXX) $(CXX_FLAGS) main.o $(LD_FLAGS) $(LIBS) -lrt -o $@

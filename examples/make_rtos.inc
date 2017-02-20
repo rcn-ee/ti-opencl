@@ -126,12 +126,12 @@ bin/$(PROFILE)/$(EXE).xa15fg: $(objs) $(CONFIG)/linker.cmd
 bin/$(PROFILE)/%.oa15fg: %.cpp $(CONFIG)/compiler.opt
 	@$(ECHO) "#"
 	@$(ECHO) "# Making $@ ..."
-	$(CXX) $(CPPFLAGS) $(CFLAGS) -o $@ $<
+	$(CXX) $(CXX_FLAGS) $(CFLAGS) -o $@ $<
 
 bin/$(PROFILE)/%.oa15fg: %.c $(CONFIG)/compiler.opt
 	@$(ECHO) "#"
 	@$(ECHO) "# Making $@ ..."
-	$(CXX) $(CPPFLAGS) $(CFLAGS) -o $@ $<
+	$(CXX) $(CXX_FLAGS) $(CFLAGS) -o $@ $<
 
 %.obj: %.c
 	@$(ECHO) "#"
@@ -195,7 +195,7 @@ endif
 
 #  ======== toolchain macros ========
 
-CPPFLAGS += -Dfar= -D__DYNAMIC_REENT__ -D_TI_RTOS -fpermissive -std=c++0x
+CXX_FLAGS += -Dfar= -D__DYNAMIC_REENT__ -D_TI_RTOS -fpermissive -std=c++0x
 CFLAGS   += -c -MD -MF $@.dep -MMD -MP -mcpu=cortex-a15 -mtune=cortex-a15 -mfloat-abi=hard -ffunction-sections -fdata-sections $(CCPROFILE_$(PROFILE)) @$(CONFIG)/compiler.opt -I"$(GCC_ARM_NONE_TOOLCHAIN)/arm-none-eabi/include" -I. -I$(TI_OCL_INSTALL)/usr/include
 
 LDFLAGS += $(LDPROFILE_$(PROFILE)) -mfloat-abi=hard -nostartfiles -Wl,-static -Wl,--gc-sections -Wl,-Map=$(@D)/$(@F).map
