@@ -182,11 +182,11 @@ if (${BUILD_OUTPUT} STREQUAL "all" OR ${BUILD_OUTPUT} STREQUAL "lib")
 
   if (NOT (${BUILD_OS} MATCHES "SYS_BIOS"))
     install(DIRECTORY DESTINATION /usr/share/doc/ti-opencl ${OCL_DPERMS})
-    install(FILES opencl-manifest.html  DESTINATION /usr/share/doc/ti-opencl 
+    install(FILES ../opencl-manifest.html  DESTINATION /usr/share/doc/ti-opencl
                                                                  ${OCL_FPERMS})
   else()
     install(DIRECTORY DESTINATION ${DESTDIR}/../../../doc  ${OCL_DPERMS})
-    install(FILES opencl-manifest.html  DESTINATION ${DESTDIR}/../../../doc
+    install(FILES ../opencl-manifest.html  DESTINATION ${DESTDIR}/../../../doc
                                                                  ${OCL_FPERMS})
   endif()
 
