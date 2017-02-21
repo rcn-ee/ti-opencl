@@ -81,14 +81,28 @@ int main(int argc, char *argv[])
      program.build(devices); 
 
      CommandQueue  IOQ (context, devices[0]);
-     CommandQueue  OOQ (context, devices[0], CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE);
+     CommandQueue  OOQ (context, devices[0],
+                                       CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE);
+     CommandQueue  *tIOQ = NULL;
+     CommandQueue  *tOOQ = NULL;
+     cl_command_queue_properties devq_prop;
+     devices[0].getInfo(CL_DEVICE_QUEUE_PROPERTIES, &devq_prop);
+     if ((devq_prop & CL_QUEUE_KERNEL_TIMEOUT_COMPUTE_UNIT_TI) != 0)
+     {
+       tIOQ = new CommandQueue(context, devices[0],
+                                     CL_QUEUE_KERNEL_TIMEOUT_COMPUTE_UNIT_TI);
+       tOOQ = new CommandQueue(context, devices[0],
+                                     CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE |
+                                     CL_QUEUE_KERNEL_TIMEOUT_COMPUTE_UNIT_TI);
+     }
+
      Kernel        K (program, "devset");
      Kernel        T (program, "devset_t");
      KernelFunctor k_io = K.bind(IOQ, NDRange(size), NDRange(wgsize));
      KernelFunctor k_oo = K.bind(OOQ, NDRange(size), NDRange(wgsize));
      KernelFunctor t_io = T.bind(IOQ, NDRange(1), NDRange(1));
      KernelFunctor t_oo = T.bind(OOQ, NDRange(1), NDRange(1));
-     
+
      srand(time(NULL));
      printf ("# k_io w   error:\n");
      run_kernel_wait(k_io, buf, rand() % size);
@@ -98,10 +112,16 @@ int main(int argc, char *argv[])
      run_kernel_wait(k_oo, buf, rand() % size);
      printf ("# k_oo w/o error:\n");
      run_kernel_wait(k_oo, buf, -1);
-     printf ("# k_io w   timeout:\n");
-     run_kernel_wait(k_io, buf, 70);
-     printf ("# k_oo w   timeout:\n");
-     run_kernel_wait(k_oo, buf, 70);
+     if (tIOQ != NULL && tOOQ != NULL)
+     {
+         __ti_set_kernel_timeout_ms(K(), 100);
+         KernelFunctor k_io_t = K.bind(*tIOQ, NDRange(size), NDRange(wgsize));
+         KernelFunctor k_oo_t = K.bind(*tOOQ, NDRange(size), NDRange(wgsize));
+         printf ("# k_io w   timeout:\n");
+         run_kernel_wait(k_io_t, buf, 70);
+         printf ("# k_oo w   timeout:\n");
+         run_kernel_wait(k_oo_t, buf, 70);
+     }
 
      printf ("# t_io w/o error:\n");
      run_task_nowait(t_io, buf, size, -1);
@@ -111,14 +131,23 @@ int main(int argc, char *argv[])
      run_task_nowait(t_oo, buf, size, -1);
      printf ("# t_oo w   error:\n");
      run_task_nowait(t_oo, buf, size, 0);
-     printf ("# t_io w   timeout:\n");
-     run_task_nowait(t_io, buf, size, 70);
-     printf ("# t_oo w   timeout:\n");
-     run_task_nowait(t_oo, buf, size, 70);
+     if (tIOQ != NULL && tOOQ != NULL)
+     {
+         __ti_set_kernel_timeout_ms(T(), 100);
+         KernelFunctor t_io_t = T.bind(*tIOQ, NDRange(1), NDRange(1));
+         KernelFunctor t_oo_t = T.bind(*tOOQ, NDRange(1), NDRange(1));
+         printf ("# t_io w   timeout:\n");
+         run_task_nowait(t_io_t, buf, size, 70);
+         printf ("# t_oo w   timeout:\n");
+         run_task_nowait(t_oo_t, buf, size, 70);
+     }
 
      run_kernel_wait(k_io, buf, -1);
      IOQ.enqueueReadBuffer(buf, CL_TRUE, 0, size, ary);
      OOQ.finish();
+
+     delete tIOQ;
+     delete tOOQ;
    }
    catch (Error err) 
    {

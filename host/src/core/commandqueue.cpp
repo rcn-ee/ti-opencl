@@ -182,7 +182,8 @@ cl_int CommandQueue::checkProperties() const
     // Check that all the properties are valid
     cl_command_queue_properties properties =
         CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE |
-        CL_QUEUE_PROFILING_ENABLE;
+        CL_QUEUE_PROFILING_ENABLE |
+        CL_QUEUE_KERNEL_TIMEOUT_COMPUTE_UNIT_TI;
 
     if ((p_properties & properties) != p_properties)
         return CL_INVALID_VALUE;

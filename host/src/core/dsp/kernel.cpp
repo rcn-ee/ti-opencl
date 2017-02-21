@@ -411,8 +411,12 @@ DSPKernelEvent::DSPKernelEvent(DSPDevice *device, KernelEvent *event)
     char *dbg = getenv("TI_OCL_DEBUG");
     if (dbg) p_debug_kernel = (strcmp(dbg, "ccs") == 0) ? CCS : GDBC6X;
 
-    char *timeout = getenv("TI_OCL_KERNEL_TIMEOUT_COMPUTE_UNIT");
-    if (timeout) p_timeout_ms = atoi(timeout);
+    if (event->getTimeout() > 0)  p_timeout_ms = event->getTimeout();
+    else
+    {
+        char *timeout = getenv("TI_OCL_KERNEL_TIMEOUT_COMPUTE_UNIT");
+        if (timeout) p_timeout_ms = atoi(timeout);
+    }
 
     p_ret_code = callArgs(MAX_ARGS_TOTAL_SIZE);
 

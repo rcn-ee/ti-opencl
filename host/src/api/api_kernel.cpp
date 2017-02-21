@@ -213,3 +213,14 @@ clGetKernelWorkGroupInfo(cl_kernel                  d_kernel,
                                  param_value_size, param_value,
                                  param_value_size_ret);
 }
+
+cl_int
+__ti_set_kernel_timeout_ms(cl_kernel    d_kernel,
+                           cl_uint      timeout_in_ms)
+{
+    auto kernel = pobj(d_kernel);
+    if (!kernel->isA(Coal::Object::T_Kernel))
+        return CL_INVALID_KERNEL;
+
+    return kernel->setTimeout(timeout_in_ms);
+}

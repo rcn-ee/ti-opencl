@@ -56,7 +56,8 @@
 
 using namespace Coal;
 Kernel::Kernel(Program *program)
-: Object(Object::T_Kernel, program), p_has_locals(false), wi_alloca_size(0)
+: Object(Object::T_Kernel, program), p_has_locals(false), wi_alloca_size(0),
+  p_timeout_ms(0)
 {
     // TODO: Say a kernel is attached to the program (that becomes unalterable)
 

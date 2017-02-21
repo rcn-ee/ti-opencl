@@ -38,6 +38,7 @@
 #include "icd.h"
 
 #include <CL/cl.h>
+#include <CL/cl_ext.h>
 #include "tiocl_thread.h"
 
 #include <map>

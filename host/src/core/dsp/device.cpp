@@ -1007,7 +1007,8 @@ cl_int DSPDevice::info(cl_device_info param_name,
         case CL_DEVICE_QUEUE_PROPERTIES:
             SIMPLE_ASSIGN(cl_command_queue_properties,
                           CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE |
-                          CL_QUEUE_PROFILING_ENABLE);
+                          CL_QUEUE_PROFILING_ENABLE |
+                          CL_QUEUE_KERNEL_TIMEOUT_COMPUTE_UNIT_TI);
             break;
 
         case CL_DEVICE_NAME:
@@ -1039,7 +1040,8 @@ cl_int DSPDevice::info(cl_device_info param_name,
                               " cl_khr_local_int32_extended_atomics"
                               " cl_khr_fp64"
                               " cl_ti_msmc_buffers"
-                              " cl_ti_clmalloc")
+                              " cl_ti_clmalloc"
+                              " cl_ti_kernel_timeout_compute_unit")
             else
                 STRING_ASSIGN("cl_khr_byte_addressable_store"
                               " cl_khr_global_int32_base_atomics"
@@ -1047,7 +1049,8 @@ cl_int DSPDevice::info(cl_device_info param_name,
                               " cl_khr_local_int32_base_atomics"
                               " cl_khr_local_int32_extended_atomics"
                               " cl_ti_msmc_buffers"
-                              " cl_ti_clmalloc")
+                              " cl_ti_clmalloc"
+                              " cl_ti_kernel_timeout_compute_unit")
             break;
 
         case CL_DEVICE_PLATFORM:

@@ -656,7 +656,7 @@ KernelEvent::KernelEvent(CommandQueue *parent,
                          const cl_event *event_wait_list,
                          cl_int *errcode_ret)
 : Event(parent, Queued, num_events_in_wait_list, event_wait_list, errcode_ret),
-  p_work_dim(work_dim), p_kernel(kernel)
+  p_work_dim(work_dim), p_kernel(kernel), p_timeout_ms(0)
 {
     clRetainKernel(desc(p_kernel));
 
@@ -882,6 +882,18 @@ KernelEvent::KernelEvent(CommandQueue *parent,
             clRetainMemObject(desc(image));
             p_mem_objects.push_back((MemObject *) image);
         }
+    }
+
+    // Check if kernel has timeout specified and CommandQueue allows it
+    if (kernel->getTimeout() > 0)
+    {
+        cl_command_queue_properties queue_props;
+        *errcode_ret = parent->info(CL_QUEUE_PROPERTIES,
+                                    sizeof(cl_command_queue_properties),
+                                    &queue_props, 0);
+        if (*errcode_ret != CL_SUCCESS)  return;
+        if ((queue_props & CL_QUEUE_KERNEL_TIMEOUT_COMPUTE_UNIT_TI) != 0)
+            p_timeout_ms = kernel->getTimeout();
     }
 }
 

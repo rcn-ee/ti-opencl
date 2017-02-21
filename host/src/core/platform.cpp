@@ -222,9 +222,9 @@ namespace Coal
             case CL_PLATFORM_EXTENSIONS:
                 // TODO add cl_khr_icd  when it works
                 if (getenv("TI_OCL_ENABLE_FP64"))
-                    STRING_ASSIGN("cl_khr_byte_addressable_store cl_khr_fp64 cl_ti_msmc_buffers cl_ti_clmalloc")
+                    STRING_ASSIGN("cl_khr_byte_addressable_store cl_khr_fp64 cl_ti_msmc_buffers cl_ti_clmalloc cl_ti_kernel_timeout")
                 else
-                    STRING_ASSIGN("cl_khr_byte_addressable_store cl_ti_msmc_buffers cl_ti_clmalloc cl_khr_icd")
+                    STRING_ASSIGN("cl_khr_byte_addressable_store cl_ti_msmc_buffers cl_ti_clmalloc cl_khr_icd cl_ti_kernel_timeout")
                 break;
 
             case CL_PLATFORM_ICD_SUFFIX_KHR:
