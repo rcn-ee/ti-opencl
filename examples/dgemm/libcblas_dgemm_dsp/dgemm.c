@@ -125,8 +125,8 @@ void dgemm(int transa, int transb,
     nCnt = (n < NPARTITION) ? n : NPARTITION;
 
     /* Initialize EDMA Manager */
-    if (MSMC_buf != NULL)  chan0 = EdmaMgr_alloc(1);
-    chan1 = EdmaMgr_alloc(1);
+    if (MSMC_buf != NULL)  chan0 = __ocl_EdmaMgr_alloc_intrakernel(1);
+    chan1 = __ocl_EdmaMgr_alloc_intrakernel(1);
     if ((MSMC_buf != NULL && !chan0) || !chan1)
     {
         printf("Failed to alloc edma handle.\n");

@@ -152,6 +152,7 @@ SECTIONS
         "*monitor_pe66.oe66" (.far)
     } run=DDR3_VIRT, load=DDR3_PER_CORE
      */
+    .localddr: run=DDR3_VIRT, load=DDR3_PER_CORE
 
     .fardata: load >> DDR3
     .far: load >> DDR3

@@ -136,6 +136,7 @@ SECTIONS
 		"rman.ae66"	    (.far)
     } > L2SRAM
 */
+    .localddr: load >> DDR3
     .fardata: load >> DDR3
     .far: load >> DDR3
     .gdb_server: >> DDR3

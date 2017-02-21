@@ -127,6 +127,7 @@ class DSPKernelEvent
         uint32_t                  p_kernel_id;
         enum DebugMode            p_debug_kernel;
         int                       p_num_arg_words;
+        uint32_t                  p_timeout_ms;
         Msg_t                     p_msg;
         DSPDevicePtr64            p_WG_alloca_start;
         std::vector<DSPMemRange>  p_flush_bufs;

@@ -33,8 +33,8 @@
 extern uint32_t ocl_l1d_mem_start;
 extern uint32_t ocl_l1d_mem_size;
 
-far void*     l1d_start = (void*)    &ocl_l1d_mem_start;
-far uint32_t l1d_size   = (uint32_t) &ocl_l1d_mem_size;
+far void*    l1d_start = (void*)    &ocl_l1d_mem_start;
+far uint32_t l1d_size  = (uint32_t) &ocl_l1d_mem_size;
 
 /******************************************************************************
 * __core_num()
@@ -44,7 +44,7 @@ EXPORT int __core_num() { return DNUM; }
 /*-----------------------------------------------------------------------------
 * Variant across DSP cores, so place in L2.
 *----------------------------------------------------------------------------*/
-static far PRIVATE(size_t, l1d_scratch_size) = 0;
+static far PRIVATE_NOALIGN(size_t, l1d_scratch_size) = 0;
 
 EXPORT void*  __scratch_l1d_start() { return l1d_start; }
 EXPORT size_t __scratch_l1d_size()  { return l1d_scratch_size; }

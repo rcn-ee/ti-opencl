@@ -94,6 +94,7 @@ SECTIONS
     .ddr: load > DDR3
     .private: load > L2SRAM, fill = 0x0
     .fast_shared_noncached: load > L2SRAM, fill = 0x0
+    .localddr: load >> DDR3
 }
 
 SECTIONS

@@ -92,6 +92,7 @@ typedef struct
     uint32_t        args_in_reg[MAX_ARGS_IN_REG_SIZE];
     uint32_t        args_on_stack_addr;
     uint32_t        args_on_stack_size;
+    uint32_t        timeout_ms;
 } kernel_msg_t;
 
 typedef struct

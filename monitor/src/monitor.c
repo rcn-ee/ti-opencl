@@ -95,12 +95,22 @@
 
 DDR (Registry_Desc, Registry_CURDESC);
 
-PRIVATE (MessageQ_QueueId,  enable_printf)       = MessageQ_INVALIDMESSAGEQ;
-PRIVATE (bool,              edmamgr_initialized) = false;
-PRIVATE (MessageQ_Handle,   dspQue);
-PRIVATE (int,               n_cores);
-PRIVATE (jmp_buf,           monitor_jmp_buf);
-PRIVATE (int,               command_retcode);
+/* printfs are enabled ony for the duration of an OpenCL kernel */
+PRIVATE_NOALIGN (MessageQ_QueueId,    enable_printf) = MessageQ_INVALIDMESSAGEQ;
+PRIVATE_NOALIGN (bool,                edmamgr_initialized) = false;
+PRIVATE_NOALIGN (MessageQ_Handle,     dspQue)              = NULL;
+PRIVATE_NOALIGN (int,                 n_cores);
+PRIVATE_NOALIGN (jmp_buf,             monitor_jmp_buf);
+PRIVATE_NOALIGN (int,                 command_retcode)     = CL_SUCCESS;
+PRIVATE_NOALIGN (int,                 monitor_priority)    = 7; // lower priori
+PRIVATE_NOALIGN (Task_Handle,         ocl_main_task);
+PRIVATE_NOALIGN (Task_Handle,         omp_main_task);
+PRIVATE_NOALIGN (Clock_Handle,        timeout_clock);
+PRIVATE_NOALIGN (Semaphore_Handle,    sem_timeout);
+PRIVATE_NOALIGN (ocl_msgq_message_t*, ocl_msgq_pkt)        = NULL;
+PRIVATE_NOALIGN (ocl_msgq_message_t*, omp_msgq_pkt)        = NULL;
+PRIVATE_NOALIGN (char*,               omp_stack);
+
 
 /******************************************************************************
 * Defines a fixed area of 64 bytes at the start of L2, where the kernels will
@@ -124,6 +134,8 @@ static void flush_buffers(flush_msg_t *Msg);
 * External prototypes
 ******************************************************************************/
 extern void*    dsp_rpc(void* p, void *more_args, uint32_t more_args_size);
+extern int      ocl_get_dp();
+extern void     ocl_set_dp(int dp);
 
 /******************************************************************************
 * Workgroup dispatch routines
@@ -140,6 +152,7 @@ static void service_workgroup     (Msg_t* msg);
 static bool setup_ndr_chunks      (int dims, uint32_t* limits, uint32_t* offsets,
                                    uint32_t *gsz, uint32_t* lsz);
 static void process_configuration_message(ocl_msgq_message_t* msgq_pkt);
+static void timeout_clock_handler(UArg arg);
 
 
 /* BIOS_TASKS */
@@ -147,12 +160,15 @@ static void process_configuration_message(ocl_msgq_message_t* msgq_pkt);
 * Bios Task and helper routines
 ******************************************************************************/
 static void ocl_main(UArg arg0, UArg arg1);
+static void ocl_timeout(UArg arg0, UArg arg1);
+static Task_Handle create_task(Task_FuncPtr fxn, char *name, int priority,
+                               int stack_size, void *stack);
 
 static bool create_mqueue(void);
 static void ocl_monitor();
 
 #if defined(OMP_ENABLED)
-static void ocl_service_omp();
+static void ocl_service_omp(UArg arg0, UArg arg1);
 extern tomp_initOpenMPforOpenCLPerApp(int master_core, int num_cores);
 extern tomp_exitOpenMPforOpenCL(void);
 extern void tomp_dispatch_once(void);
@@ -176,6 +192,10 @@ void _minit(void) { }
 #define LISTEN_STACK_SIZE 0x2800
 #define SERVICE_STACK_SIZE 0x10000
 PRIVATE_1D(char, lstack, LISTEN_STACK_SIZE);
+#define TIMEOUT_STACK_SIZE 0x1000
+// .localddr is private ddr to each core, this stack is used infrequently
+char tstack[TIMEOUT_STACK_SIZE] __attribute__((aligned(CACHE_L2_LINESIZE)))
+                                __attribute((section(".localddr"))) = { 0 };
 
 
 /******************************************************************************
@@ -187,14 +207,12 @@ int main(int argc, char* argv[])
 int rtos_init_ocl_dsp_monitor(UArg argc, UArg argv)
 #endif
 {
-    edmamgr_initialized = false;
-
     /* register with xdc.runtime to get a diags mask */
     Registry_Result result = Registry_addModule(&Registry_CURDESC, MODULE_NAME);
     assert(result == Registry_SUCCESS);
 
     /* enable ENTRY/EXIT/INFO log events */
-    Diags_setMask(MODULE_NAME"-EXF");
+    Diags_setMask(MODULE_NAME"+EXF");
 
     Log_print0(Diags_ENTRY, "--> main:");
 
@@ -229,46 +247,59 @@ int rtos_init_ocl_dsp_monitor(UArg argc, UArg argv)
     initialize_ipcpower_callbacks();
 #endif
 
-    Task_Params     taskParams;
-    Error_Block     eb;
+#if defined(_SYS_BIOS)
+    monitor_priority = ti_opencl_get_OCL_monitor_priority();
+#endif
 
     /* Create main thread (interrupts not enabled in main on BIOS) */
-    Error_init(&eb);
-    Task_Params_init(&taskParams);
-    taskParams.instance->name = "ocl_main";
-    taskParams.arg0 = (UArg)argc;
-    taskParams.arg1 = (UArg)argv;
-#if !defined(_SYS_BIOS)
-    taskParams.priority = 7; // LOWER_PRIORITY
-#else
-    taskParams.priority = ti_opencl_get_OCL_monitor_priority();
-#endif
-    taskParams.stackSize = LISTEN_STACK_SIZE;
-    taskParams.stack = (xdc_Ptr)lstack; // L2 private
-    Task_create(ocl_main, &taskParams, &eb);
-    if (Error_check(&eb)) {
-        System_abort("main: failed to create ocl_main thread");
-    }
+    ocl_main_task = create_task(ocl_main, "ocl_main", monitor_priority,
+                                LISTEN_STACK_SIZE, lstack);
 
     #if defined(OMP_ENABLED)
     /* Create a task to service OpenMP kernels */
     extern uint32_t service_stack_start;
-    uint32_t stack_start = (uint32_t) &service_stack_start;
-
-    Error_init(&eb);
-    Task_Params_init(&taskParams);
-    taskParams.instance->name = "ocl_service_omp";
-    taskParams.priority = 8; // HIGHER_PRIORITY
-    taskParams.stackSize = SERVICE_STACK_SIZE;
-    taskParams.stack = (xdc_Ptr) (stack_start + DNUM * SERVICE_STACK_SIZE);
-    Task_create(ocl_service_omp, &taskParams, &eb);
-    if (Error_check(&eb))
-    {
-        System_abort("main: failed to create ocl_service_omp thread");
-    }
-
+    omp_stack = ((char*) &service_stack_start) + DNUM * SERVICE_STACK_SIZE;
+    omp_main_task = create_task(ocl_service_omp, "ocl_service_omp",
+                                monitor_priority + 1,
+                                SERVICE_STACK_SIZE, omp_stack);
     Log_print0(Diags_ENTRY | Diags_INFO, "main: created omp task");
     #endif
+
+    /* Create timeout thread (interrupts not enabled in main on BIOS) */
+    create_task(ocl_timeout, "ocl_timeout", monitor_priority + 2,
+                TIMEOUT_STACK_SIZE, tstack);
+
+    Error_Block  eb;
+    Clock_Params clockParams;
+    Error_init(&eb);
+    Clock_Params_init(&clockParams);
+    clockParams.period = 0;            // single shot clock
+    clockParams.startFlag = false;     // do not automatically start
+    timeout_clock = Clock_create(&timeout_clock_handler, 0, &clockParams, &eb);
+    if (Error_check(&eb))
+        System_abort("main: failed to create timeout clock");
+    Clock_setTicks(0);
+
+    /* Create timeout semaphore with initial count = 0 and default params */
+    Semaphore_Params semParams;
+    Error_init(&eb);
+    Semaphore_Params_init(&semParams);
+    semParams.mode = Semaphore_Mode_BINARY;
+    sem_timeout = Semaphore_create(0, &semParams, &eb);
+    if (Error_check(&eb))
+        System_abort("main: failed to create ocl_timeout semaphore");
+
+    #if defined(DEVICE_AM572x) && defined(OMP_ENABLED)
+    // On AM57x, indicate that heaps must be initialized. It's ok to set this
+    // on both DSP cores because there is a barrier hit before the heap
+    // is initialized.
+    extern int need_mem_init;
+    need_mem_init = 1;
+    #endif
+
+    /* create the dsp queue */
+    if (!create_mqueue())
+        System_abort("main: create_mqueue() failed");
 
 #if !defined(_SYS_BIOS)
     /* Start scheduler, this never returns */
@@ -287,24 +318,6 @@ int rtos_init_ocl_dsp_monitor(UArg argc, UArg argv)
 void ocl_main(UArg arg0, UArg arg1)
 {
     Log_print0(Diags_ENTRY | Diags_INFO, "--> ocl_main:");
-
-    /* create the dsp queue */
-    if (!create_mqueue())
-        System_abort("main: create_mqueue() failed");
-
-#if !defined(DEVICE_AM572x)
-    initialize_gdbserver();
-#else
-    #if defined(OMP_ENABLED)
-    // On AM57x, indicate that heaps must be initialized. It's ok to set this on both
-    // DSP cores because there is a barrier hit before the heap is initialized.
-    extern int need_mem_init;
-    need_mem_init = 1;
-    #endif
-#endif
-
-    /* printfs are enabled ony for the duration of an OpenCL kernel */
-    enable_printf = MessageQ_INVALIDMESSAGEQ;
 
     /* OpenCL monitor loop - does not return */
     ocl_monitor();
@@ -332,21 +345,18 @@ void ocl_monitor()
 
     while (true)
     {
-                
         Log_print0(Diags_INFO, "ocl_monitor: Waiting for message");
 
-        ocl_msgq_message_t *msgq_pkt;
-
-        status = MessageQ_get(dspQue, (MessageQ_Msg *)&msgq_pkt,
+        status = MessageQ_get(dspQue, (MessageQ_Msg *)&ocl_msgq_pkt,
                                   MessageQ_FOREVER);
 
         if (status < 0)
             goto error;
 
-        enable_printf = MessageQ_getReplyQueue(msgq_pkt);
+        enable_printf = MessageQ_getReplyQueue(ocl_msgq_pkt);
 
         /* Get a pointer to the OpenCL payload in the message */
-        Msg_t *ocl_msg =  &(msgq_pkt->message);
+        Msg_t *ocl_msg =  &(ocl_msgq_pkt->message);
         command_retcode =  CL_SUCCESS;
         uint32_t pid   = ocl_msg->pid;
 
@@ -354,41 +364,42 @@ void ocl_monitor()
         {
             case TASK: 
                 Log_print1(Diags_INFO, "TASK(%u)\n", pid);
-                process_task_command(msgq_pkt);
+                process_task_command(ocl_msgq_pkt);
                 break;
 
             case NDRKERNEL: 
                 Log_print1(Diags_INFO, "NDRKERNEL(%u)\n", pid);
-                process_kernel_command(msgq_pkt);
-                process_cache_command(ocl_msg->u.k.kernel.Kernel_id, msgq_pkt);
+                process_kernel_command(ocl_msgq_pkt);
+                process_cache_command(ocl_msg->u.k.kernel.Kernel_id,
+                                      ocl_msgq_pkt);
                 TRACE(ULM_OCL_NDR_CACHE_COHERENCE_COMPLETE,
                       ocl_msg->u.k.kernel.Kernel_id, 0);
                 break;
 
             case CACHEINV: 
                 Log_print1(Diags_INFO, "CACHEINV(%u)\n", pid);
-                process_cache_command(-1, msgq_pkt); 
+                process_cache_command(-1, ocl_msgq_pkt);
                 break; 
 
             case EXIT:     
                 Log_print1(Diags_INFO, "EXIT(%u)\n", pid);
                 TRACE(ULM_OCL_EXIT, 0, 0);
-                process_exit_command(msgq_pkt);
+                process_exit_command(ocl_msgq_pkt);
                 break;
 
             case SETUP_DEBUG:
                 Log_print1(Diags_INFO, "SETUP_DEBUG(%u)\n", pid);
-                process_setup_debug_command(msgq_pkt);
+                process_setup_debug_command(ocl_msgq_pkt);
                 break;
 
             case FREQUENCY:
                 Log_print1(Diags_INFO, "FREQUENCY(%u)\n", pid);
-                respond_to_host(msgq_pkt, dsp_speed());
+                respond_to_host(ocl_msgq_pkt, dsp_speed());
                 break;
 
             case CONFIGURE_MONITOR:
                 Log_print1(Diags_INFO, "CONFIGURE_MONITOR(%u)\n", pid);
-                process_configuration_message(msgq_pkt);
+                process_configuration_message(ocl_msgq_pkt);
                 break;
 
             default:
@@ -405,8 +416,6 @@ void ocl_monitor()
 }
 
 
-PRIVATE(ocl_msgq_message_t*, omp_msgq_pkt) = NULL;
-
 /******************************************************************************
 * process_task_command
 ******************************************************************************/
@@ -417,6 +426,7 @@ static void process_task_command(ocl_msgq_message_t* msgq_pkt)
     kernel_config_t * kcfg  = &Msg->u.k.config;
     uint32_t  kernel_id = Msg->u.k.kernel.Kernel_id;
     int      is_inorder = (kcfg->global_size[0] == IN_ORDER_TASK_SIZE);
+    reset_intra_kernel_edma_channels();
 
     /*---------------------------------------------------------
     * Copy the configuration in L2, where the kernel wants it
@@ -460,8 +470,7 @@ static void process_task_command(ocl_msgq_message_t* msgq_pkt)
     #endif
     {
        #if !defined(OMP_ENABLED)
-       // If OpenMP has been disabled, only the master core runs
-       // in order tasks
+       // If OpenMP has been disabled, only the master core runs inorder tasks
        if (is_inorder && !MASTER_CORE)
        {
            respond_to_host(msgq_pkt, kernel_id);
@@ -475,20 +484,30 @@ static void process_task_command(ocl_msgq_message_t* msgq_pkt)
 
        if (!setjmp(monitor_jmp_buf))
        {
+           if (Msg->u.k.kernel.timeout_ms > 0)
+           {
+               Clock_setTimeout(timeout_clock, Msg->u.k.kernel.timeout_ms);
+               Clock_start(timeout_clock);
+           }
+
            dsp_rpc(&((kernel_msg_t * ) & Msg->u.k.kernel)->entry_point,
                    more_args, more_args_size);
+
+           if (Msg->u.k.kernel.timeout_ms > 0)
+               Clock_stop(timeout_clock);
        }
        else
            printf("Abnormal termination of Out-of-order Task at 0x%08x\n",
                   Msg->u.k.kernel.entry_point);
 
        TRACE(is_inorder ? ULM_OCL_IOT_KERNEL_COMPLETE :
-                         ULM_OCL_OOT_KERNEL_COMPLETE, kernel_id, 0);
+                          ULM_OCL_OOT_KERNEL_COMPLETE, kernel_id, 0);
        respond_to_host(msgq_pkt, kernel_id);
 
        flush_msg_t*  flushMsgPtr  = &Msg->u.k.flush;
        flush_buffers(flushMsgPtr);
-       TRACE(ULM_OCL_OOT_CACHE_COHERENCE_COMPLETE, kernel_id, 0);
+       TRACE(is_inorder ? ULM_OCL_IOT_CACHE_COHERENCE_COMPLETE :
+                          ULM_OCL_OOT_CACHE_COHERENCE_COMPLETE, kernel_id, 0);
     }
 
     return;
@@ -498,7 +517,7 @@ static void process_task_command(ocl_msgq_message_t* msgq_pkt)
 /******************************************************************************
 * ocl_service_omp - This is it's own task to switch the stack to DDR.
 ******************************************************************************/
-void ocl_service_omp()
+void ocl_service_omp(UArg arg0, UArg arg1)
 {
     Log_print0(Diags_ENTRY | Diags_INFO, "--> ocl_service_omp:");
 
@@ -522,20 +541,38 @@ void ocl_service_omp()
 
              if (!setjmp(monitor_jmp_buf))
              {
+                if (Msg->u.k.kernel.timeout_ms > 0)
+                {
+                    Clock_setTimeout(timeout_clock, Msg->u.k.kernel.timeout_ms);
+                    Clock_start(timeout_clock);
+                }
+
                 dsp_rpc(&((kernel_msg_t *)&Msg->u.k.kernel)->entry_point,
                          more_args, more_args_size);
+                tomp_dispatch_finish();
+
+                if (Msg->u.k.kernel.timeout_ms > 0)
+                    Clock_stop(timeout_clock);
              }
              else
+             {
                 printf("Abnormal termination of In-order Task at 0x%08x\n",
                         Msg->u.k.kernel.entry_point);
+                tomp_dispatch_finish();
+             }
 
              TRACE(ULM_OCL_IOT_KERNEL_COMPLETE, kernel_id, 0);
-             tomp_dispatch_finish();
 
              respond_to_host(omp_msgq_pkt, kernel_id);
           }
           else
           {
+             if (Msg->u.k.kernel.timeout_ms > 0)
+             {
+                Clock_setTimeout(timeout_clock, Msg->u.k.kernel.timeout_ms);
+                Clock_start(timeout_clock);
+             }
+
              do
              {
                 if (!setjmp(monitor_jmp_buf))
@@ -545,6 +582,9 @@ void ocl_service_omp()
                             Msg->u.k.kernel.entry_point);
              }
              while (!tomp_dispatch_is_finished());
+
+             if (Msg->u.k.kernel.timeout_ms > 0)
+                 Clock_stop(timeout_clock);
 
              /* Not sending a response to host, delete the msg */
              MessageQ_free((MessageQ_Msg)omp_msgq_pkt);
@@ -582,6 +622,7 @@ static void process_kernel_command(ocl_msgq_message_t *msgq_pkt)
 
     memcpy(limits,  cfg->global_size,   sizeof(limits));
     memcpy(offsets, cfg->global_offset, sizeof(offsets));
+    reset_intra_kernel_edma_channels();
 
     bool is_debug_mode = (cfg->WG_gid_start[0] == DEBUG_MODE_WG_GID_START);
     if (is_debug_mode)
@@ -593,6 +634,12 @@ static void process_kernel_command(ocl_msgq_message_t *msgq_pkt)
         bool any_work = setup_ndr_chunks(cfg->num_dims, limits, offsets,
                                         cfg->global_size, cfg->local_size);
         if (!any_work) return;
+    }
+
+    if (msg->u.k.kernel.timeout_ms > 0)
+    {
+        Clock_setTimeout(timeout_clock, msg->u.k.kernel.timeout_ms);
+        Clock_start(timeout_clock);
     }
 
     int factor = (n_cores > 1) ? DNUM : 0;
@@ -619,7 +666,7 @@ static void process_kernel_command(ocl_msgq_message_t *msgq_pkt)
         else
         {
             done = true;
-            printf("Abnormal termination of NDRange kernel at 0x%08x\n",
+            printf("Abnormal termination of NDRange Kernel at 0x%08x\n",
                    msg->u.k.kernel.entry_point);
         }
 
@@ -627,6 +674,9 @@ static void process_kernel_command(ocl_msgq_message_t *msgq_pkt)
               cfg->WG_id);
 
     } while (!done);
+
+    if (msg->u.k.kernel.timeout_ms > 0)
+        Clock_stop(timeout_clock);
 }
 
 /******************************************************************************
@@ -879,7 +929,7 @@ static bool create_mqueue()
 
     /* Create DSP message queue (inbound messages from ARM) */
     MessageQ_Params_init(&msgqParams);
-    dspQue = MessageQ_create(Ocl_DspMsgQueueName[DNUM], &msgqParams);
+    dspQue = MessageQ_create((String)Ocl_DspMsgQueueName[DNUM], &msgqParams);
 
     if (dspQue == NULL) 
     {
@@ -888,7 +938,8 @@ static bool create_mqueue()
         return false;
     }
 
-    Log_print1(Diags_INFO,"create_mqueue: %s ready", Ocl_DspMsgQueueName[DNUM]);
+    Log_print1(Diags_INFO,"create_mqueue: %s ready",
+               (xdc_IArg) Ocl_DspMsgQueueName[DNUM]);
 
 #if defined(_SYS_BIOS)
     /* get the SR_0 heap handle */
@@ -914,7 +965,7 @@ static void process_configuration_message(ocl_msgq_message_t* msgq_pkt)
     #if defined(OMP_ENABLED)
     int master_core = (n_cores > 1) ? 0 : DNUM;
 
-    Log_print2(Diags_INFO,"Configuring OpenMP (%d, %d)\n", master_core, n_cores);
+    Log_print2(Diags_INFO,"Configuring OpenMP (%d, %d)\n", master_core,n_cores);
 
     if (tomp_initOpenMPforOpenCLPerApp(master_core, n_cores) < 0)
         System_abort("main: tomp_initOpenMPforOpenCL() failed");
@@ -934,6 +985,7 @@ static void process_configuration_message(ocl_msgq_message_t* msgq_pkt)
 
 void __kernel_exit(int status)
 {
+    Clock_stop(timeout_clock);
     printf("Exit (%d). ", status);
     command_retcode = CL_ERROR_KERNEL_EXIT_TI;
     longjmp(monitor_jmp_buf, 1);
@@ -941,7 +993,113 @@ void __kernel_exit(int status)
 
 void __kernel_abort()
 {
+    Clock_stop(timeout_clock);
     printf("Abort. ");
     command_retcode = CL_ERROR_KERNEL_ABORT_TI;
     longjmp(monitor_jmp_buf, 1);
+}
+
+// Called from SWI stack
+void timeout_clock_handler(UArg arg)
+{
+    Log_print0(Diags_ENTRY | Diags_INFO, "Swi: TIMEOUT");
+    Semaphore_post(sem_timeout);
+}
+
+/******************************************************************************
+* ocl_timeout
+******************************************************************************/
+void ocl_timeout(UArg arg0, UArg arg1)
+{
+    Log_print0(Diags_ENTRY | Diags_INFO, "--> ocl_timeout:");
+    while (1)
+    {
+        Semaphore_pend(sem_timeout, BIOS_WAIT_FOREVER);
+        Log_print0(Diags_ENTRY | Diags_INFO, "--> ocl_timeout: kill&restart");
+
+        uint32_t  kernel_id = ocl_msgq_pkt->message.u.k.kernel.Kernel_id;
+        int       is_task   = (ocl_msgq_pkt->message.command == TASK);
+        int       is_inorder = (ocl_msgq_pkt->message.u.k.config.global_size[0]
+                                == IN_ORDER_TASK_SIZE);
+
+        // Reply to host on timeout
+        if (!is_task || !is_inorder || MASTER_CORE)
+            printf("Timeout. Abnormal termination of %s at 0x%08x\n",
+                   (is_task ? (is_inorder ? "In-order Task"
+                                          : "Out-of-order Task")
+                            : "NDRange Kernel"),
+                   ocl_msgq_pkt->message.u.k.kernel.entry_point);
+        TRACE(is_task ? (is_inorder ? ULM_OCL_IOT_KERNEL_COMPLETE
+                                    : ULM_OCL_OOT_KERNEL_COMPLETE)
+                      : ULM_OCL_NDR_KERNEL_COMPLETE,  kernel_id, 0);
+        #if defined(OMP_ENABLED)
+        if (is_task && is_inorder && !MASTER_CORE)
+        {
+            MessageQ_free((MessageQ_Msg)omp_msgq_pkt);
+        }
+        else
+        #endif
+        {
+            command_retcode = CL_ERROR_KERNEL_TIMEOUT_TI;
+            respond_to_host(ocl_msgq_pkt, kernel_id);
+        }
+        enable_printf = MessageQ_INVALIDMESSAGEQ;
+
+        // Wait for all on-the-fly edma to complete, free channels NOT intended
+        //     for cross-kernel use so that they are not "leaked"
+        wait_and_free_edma_channels();
+
+        // Flush cache
+        flush_buffers(NULL);
+        TRACE(is_task ? (is_inorder ? ULM_OCL_IOT_CACHE_COHERENCE_COMPLETE
+                                    : ULM_OCL_OOT_CACHE_COHERENCE_COMPLETE)
+                      : ULM_OCL_NDR_CACHE_COHERENCE_COMPLETE,  kernel_id, 0);
+
+        #if defined(OMP_ENABLED)
+        if (is_task && is_inorder)
+        {
+            // Kill and re-start omp task, switch back to ocl task
+            Task_delete(&omp_main_task);
+            omp_main_task = create_task(ocl_service_omp, "ocl_service_omp",
+                                        monitor_priority + 1,
+                                        SERVICE_STACK_SIZE, omp_stack);
+            omp_msgq_pkt = NULL;
+            Semaphore_post(runOmpSem_complete);
+        }
+        else
+        #endif
+        {
+            // Kill and re-start ocl task
+            Task_delete(&ocl_main_task);
+            ocl_main_task = create_task(ocl_main, "ocl_main", monitor_priority,
+                                        LISTEN_STACK_SIZE, lstack);
+        }
+    }
+}
+
+
+/******************************************************************************
+* create_task
+******************************************************************************/
+Task_Handle create_task(Task_FuncPtr fxn, char *name, int priority,
+                        int stack_size, void *stack)
+{
+    Task_Params     taskParams;
+    Error_Block     eb;
+    Task_Handle     task;
+
+    /* Create main thread (interrupts not enabled in main on BIOS) */
+    Error_init(&eb);
+    Task_Params_init(&taskParams);
+    taskParams.instance->name = name;
+    taskParams.priority = priority;
+    taskParams.stackSize = stack_size;
+    taskParams.stack = (xdc_Ptr) stack;
+    task = Task_create(fxn, &taskParams, &eb);
+    if (Error_check(&eb)) {
+        char err_msg[64];
+        snprintf(err_msg, 64, "create_task: failed to create %s", name);
+        System_abort(err_msg);
+    }
+    return task;
 }

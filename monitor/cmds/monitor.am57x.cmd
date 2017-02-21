@@ -170,6 +170,7 @@ SECTIONS
                 "nullres.ae66"      (.fardata)
                 "nullres.ae66"      (.far)
     } > L2SRAM
+    .localddr: load >> DDR3
 
     .fardata: load >> DDR3
     .far: load >> DDR3

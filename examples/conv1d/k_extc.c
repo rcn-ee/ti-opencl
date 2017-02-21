@@ -54,8 +54,8 @@ void c_loop_simd_db_extc(int row_begin, int row_end,
   float *out_buf1 = lOutput + BLOCK_HEIGHT * outPitch;
 
   EdmaMgr_Handle chan_in, chan_out;
-  chan_in  = EdmaMgr_alloc(1);
-  chan_out = EdmaMgr_alloc(1);
+  chan_in  = __ocl_EdmaMgr_alloc_intrakernel(1);
+  chan_out = __ocl_EdmaMgr_alloc_intrakernel(1);
   if (! chan_in || ! chan_out)
   {
     printf("Failed to allocate edma handle.\n");

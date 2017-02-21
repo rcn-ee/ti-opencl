@@ -126,8 +126,8 @@ void sgemm(
 #if USE_EDMA
     /* Initialize EDMA Manager */
     EdmaMgr_Handle chan0, chan1;
-    if (pMsmc != NULL)  chan0 = EdmaMgr_alloc(1);
-    chan1 = EdmaMgr_alloc(1);
+    if (pMsmc != NULL)  chan0 = __ocl_EdmaMgr_alloc_intrakernel(1);
+    chan1 = __ocl_EdmaMgr_alloc_intrakernel(1);
     if ((pMsmc != NULL && !chan0) || !chan1) 
     {  
         printf("Failed to alloc edma handle.\n");

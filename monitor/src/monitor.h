@@ -80,6 +80,9 @@ extern cregister volatile unsigned int DNUM;
                    __attribute__((aligned(CACHE_L2_LINESIZE))) \
                    __attribute((section(".private")))
 
+#define PRIVATE_NOALIGN(type, var) type var \
+                   __attribute((section(".private")))
+
 #define PRIVATE_1D(type, var, size) type var[size] \
                    __attribute__((aligned(CACHE_L2_LINESIZE))) \
                    __attribute((section(".private")))

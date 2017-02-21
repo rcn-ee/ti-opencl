@@ -34,9 +34,9 @@
 #include <signal.h>
 #include <time.h>
 #include "ocl_util.h"
+#include "kernel.dsp_h"
 
 #ifdef _TI_RTOS
-#include "kernel.dsp_h"
 #include "../rtos_main.c"
 #endif
 
@@ -44,7 +44,7 @@ using namespace cl;
 using namespace std;
 
 const int size   = 1 << 23; 
-const int wgsize = 1 << 14;
+const int wgsize = 1 << 20;
 
 void run_kernel_wait(KernelFunctor&, Buffer&, int);
 void run_task_nowait(KernelFunctor&, Buffer&, int, int);
@@ -75,17 +75,9 @@ int main(int argc, char *argv[])
      std::vector<Device> devices = context.getInfo<CL_CONTEXT_DEVICES>();
      Buffer              buf (context, CL_MEM_WRITE_ONLY, size);
 
-#ifndef _TI_RTOS
-     ifstream t("kernel.cl");
-     std::string         kSrc((istreambuf_iterator<char>(t)),
-                               istreambuf_iterator<char>());
-     Program::Sources    source(1, make_pair(kSrc.c_str(), kSrc.length()));
-     Program             program = Program(context, source);
-#else
      Program::Binaries   binary(1, make_pair(kernel_dsp_bin,
                                              sizeof(kernel_dsp_bin)));
      Program             program = Program(context, devices, binary);
-#endif
      program.build(devices); 
 
      CommandQueue  IOQ (context, devices[0]);
@@ -106,6 +98,10 @@ int main(int argc, char *argv[])
      run_kernel_wait(k_oo, buf, rand() % size);
      printf ("# k_oo w/o error:\n");
      run_kernel_wait(k_oo, buf, -1);
+     printf ("# k_io w   timeout:\n");
+     run_kernel_wait(k_io, buf, 70);
+     printf ("# k_oo w   timeout:\n");
+     run_kernel_wait(k_oo, buf, 70);
 
      printf ("# t_io w/o error:\n");
      run_task_nowait(t_io, buf, size, -1);
@@ -115,6 +111,10 @@ int main(int argc, char *argv[])
      run_task_nowait(t_oo, buf, size, -1);
      printf ("# t_oo w   error:\n");
      run_task_nowait(t_oo, buf, size, 0);
+     printf ("# t_io w   timeout:\n");
+     run_task_nowait(t_io, buf, size, 70);
+     printf ("# t_oo w   timeout:\n");
+     run_task_nowait(t_oo, buf, size, 70);
 
      run_kernel_wait(k_io, buf, -1);
      IOQ.enqueueReadBuffer(buf, CL_TRUE, 0, size, ary);
