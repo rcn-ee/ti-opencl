@@ -1,3 +1,13 @@
+
+# ----------------------------------------------------------------------------
+# Used by persistent_* examples
+# ----------------------------------------------------------------------------
+PRSDK_INSTALL_PATH ?= /cgnas/ti-processor-sdk-rtos-am57xx-evm-03.02.00.05-release
+XDC_DIR                ?= $(wildcard $(PRSDK_INSTALL_PATH)/xdc*)/packages
+BIOS_DIR               ?= $(wildcard $(PRSDK_INSTALL_PATH)/bios*)/packages
+IPC_DIR                ?= $(wildcard $(PRSDK_INSTALL_PATH)/ipc*)/packages
+
+
 DSP_INCLUDE  = -I$(TI_OCL_CGT_INSTALL)/include 
 DSP_INCLUDE += -I$(TI_OCL_INSTALL)/usr/share/ti/opencl
 DSP_INCLUDE += -I$(TARGET_ROOTDIR)/usr/share/ti/opencl

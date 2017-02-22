@@ -37,6 +37,11 @@ if (${BUILD_OS} MATCHES "SYS_BIOS")
             offline_embed platforms simple vecadd matmpy ooo_callback edmamgr sgemm vecadd_openmp vecadd_openmp_t)
 else()
     SET(OCL_EXAMPLES_INSTALL_LIST edmamgr matmpy simple dsplib_fft mandelbrot mandelbrot_native offline offline_embed platforms ccode conv1d null ooo vecadd dspheap float_compute sgemm monte_carlo)
+
+    # Add persistent examples for AM57/Linux
+    if (AM57_BUILD)
+        set (OCL_EXAMPLES_INSTALL_LIST ${OCL_EXAMPLES_INSTALL_LIST} persistent_clock_concurrent persistent_clock_spanning persistent_kernel_timeout persistent_messageq_concurrent persistent_task_concurrent persistent_task_spanning persistent_common)
+    endif()
 endif()
 SET(OCL_OMP_EXAMPLES_INSTALL_LIST vecadd_openmp vecadd_openmp_t dgemm)
 
