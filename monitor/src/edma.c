@@ -370,7 +370,9 @@ void restore_edma_hw_channels()
 /******************************************************************************
 * OpenCL runtime version of EdmaMgr functions with SOFTWARE INTERRUPTS DISABLED
 *     Added for TIMEOUT (SWi) feature: kernels can be preempted and killed
-*     Disable SWi to avoid incomplete EDMA state
+*     Disable SWi to avoid incomplete EDMA state.
+*     Posted SWis will be delayed until Swi_restore().  Since timeout handler
+*     is only a SWi, hardware interrupts do not need to be disabled.
 ******************************************************************************/
 // Allocated channels intended for single-kernel use will be freed
 // if kernel gets killed by timeout.

@@ -102,7 +102,6 @@ PRIVATE_NOALIGN (MessageQ_Handle,     dspQue)              = NULL;
 PRIVATE_NOALIGN (int,                 n_cores);
 PRIVATE_NOALIGN (jmp_buf,             monitor_jmp_buf);
 PRIVATE_NOALIGN (int,                 command_retcode)     = CL_SUCCESS;
-PRIVATE_NOALIGN (int,                 monitor_priority)    = 7; // lower priori
 PRIVATE_NOALIGN (Task_Handle,         ocl_main_task);
 PRIVATE_NOALIGN (Task_Handle,         omp_main_task);
 PRIVATE_NOALIGN (Clock_Handle,        timeout_clock);
@@ -134,8 +133,6 @@ static void flush_buffers(flush_msg_t *Msg);
 * External prototypes
 ******************************************************************************/
 extern void*    dsp_rpc(void* p, void *more_args, uint32_t more_args_size);
-extern int      ocl_get_dp();
-extern void     ocl_set_dp(int dp);
 
 /******************************************************************************
 * Workgroup dispatch routines
@@ -189,6 +186,13 @@ void _minit(void) { }
 *******************************************************************************/
 #define MASTER_CORE (DNUM == 0 || n_cores == 1)
 
+/*******************************************************************************
+* Task Priorities increase by 1 in this order: monitor, openmp, timeout
+* MONITOR_PRIORITY is for non-configurable linux build.  RTOS build should
+* query the OpenCL monitor module for the configured priority.
+*******************************************************************************/
+#define MONITOR_PRIORITY 7  // lower priority
+
 #define LISTEN_STACK_SIZE 0x2800
 #define SERVICE_STACK_SIZE 0x10000
 PRIVATE_1D(char, lstack, LISTEN_STACK_SIZE);
@@ -212,7 +216,7 @@ int rtos_init_ocl_dsp_monitor(UArg argc, UArg argv)
     assert(result == Registry_SUCCESS);
 
     /* enable ENTRY/EXIT/INFO log events */
-    Diags_setMask(MODULE_NAME"+EXF");
+    Diags_setMask(MODULE_NAME"-EXF");
 
     Log_print0(Diags_ENTRY, "--> main:");
 
@@ -236,7 +240,11 @@ int rtos_init_ocl_dsp_monitor(UArg argc, UArg argv)
             status = Ipc_attach(remoteProcId);
         } while ((status < 0) && (status == Ipc_E_NOTREADY));
 
-        if (status < 0) System_abort("Ipc_attach failed\n");
+        if (status < 0)
+        {
+            Log_print0(Diags_INFO, "Ipc_attach failed");
+            System_abort("Ipc_attach failed\n");
+        }
     }
 #endif
 
@@ -247,9 +255,10 @@ int rtos_init_ocl_dsp_monitor(UArg argc, UArg argv)
     initialize_ipcpower_callbacks();
 #endif
 
-#if defined(_SYS_BIOS)
+    int monitor_priority = MONITOR_PRIORITY;
+    #if defined(_SYS_BIOS)
     monitor_priority = ti_opencl_get_OCL_monitor_priority();
-#endif
+    #endif
 
     /* Create main thread (interrupts not enabled in main on BIOS) */
     ocl_main_task = create_task(ocl_main, "ocl_main", monitor_priority,
@@ -277,7 +286,10 @@ int rtos_init_ocl_dsp_monitor(UArg argc, UArg argv)
     clockParams.startFlag = false;     // do not automatically start
     timeout_clock = Clock_create(&timeout_clock_handler, 0, &clockParams, &eb);
     if (Error_check(&eb))
+    {
+        Log_print0(Diags_INFO, "failed to create timeout clock");
         System_abort("main: failed to create timeout clock");
+    }
     Clock_setTicks(0);
 
     /* Create timeout semaphore with initial count = 0 and default params */
@@ -287,7 +299,10 @@ int rtos_init_ocl_dsp_monitor(UArg argc, UArg argv)
     semParams.mode = Semaphore_Mode_BINARY;
     sem_timeout = Semaphore_create(0, &semParams, &eb);
     if (Error_check(&eb))
+    {
+        Log_print0(Diags_INFO, "failed to create ocl_timeout semaphore");
         System_abort("main: failed to create ocl_timeout semaphore");
+    }
 
     #if defined(DEVICE_AM572x) && defined(OMP_ENABLED)
     // On AM57x, indicate that heaps must be initialized. It's ok to set this
@@ -299,7 +314,10 @@ int rtos_init_ocl_dsp_monitor(UArg argc, UArg argv)
 
     /* create the dsp queue */
     if (!create_mqueue())
+    {
+        Log_print0(Diags_INFO, "failed to create message queues");
         System_abort("main: create_mqueue() failed");
+    }
 
 #if !defined(_SYS_BIOS)
     /* Start scheduler, this never returns */
@@ -968,13 +986,19 @@ static void process_configuration_message(ocl_msgq_message_t* msgq_pkt)
     Log_print2(Diags_INFO,"Configuring OpenMP (%d, %d)\n", master_core,n_cores);
 
     if (tomp_initOpenMPforOpenCLPerApp(master_core, n_cores) < 0)
+    {
+        Log_print0(Diags_INFO, "tomp_initOpenMPforOpenCL() failed");
         System_abort("main: tomp_initOpenMPforOpenCL() failed");
+    }
     #endif
 
     if (!edmamgr_initialized)
     {
         if (!initialize_edmamgr())
+        {
+            Log_print0(Diags_INFO, "failed to initialize EdmaMgr");
             System_abort("EDMAMgr initialization failed\n");
+        }
 
         Log_print0(Diags_INFO, "Initialized EdmaMgr.\n");
         edmamgr_initialized = true;
@@ -988,6 +1012,9 @@ void __kernel_exit(int status)
     Clock_stop(timeout_clock);
     printf("Exit (%d). ", status);
     command_retcode = CL_ERROR_KERNEL_EXIT_TI;
+    // In case user forgets to clean up: wait for all on-the-fly edma to
+    // complete, free intra-kernel channels so that they are not "leaked"
+    wait_and_free_edma_channels();
     longjmp(monitor_jmp_buf, 1);
 }
 
@@ -996,6 +1023,9 @@ void __kernel_abort()
     Clock_stop(timeout_clock);
     printf("Abort. ");
     command_retcode = CL_ERROR_KERNEL_ABORT_TI;
+    // In case user forgets to clean up: wait for all on-the-fly edma to
+    // complete, free intra-kernel channels so that they are not "leaked"
+    wait_and_free_edma_channels();
     longjmp(monitor_jmp_buf, 1);
 }
 
@@ -1015,7 +1045,7 @@ void ocl_timeout(UArg arg0, UArg arg1)
     while (1)
     {
         Semaphore_pend(sem_timeout, BIOS_WAIT_FOREVER);
-        Log_print0(Diags_ENTRY | Diags_INFO, "--> ocl_timeout: kill&restart");
+        Log_print0(Diags_INFO, "--> ocl_timeout: kill&restart");
 
         uint32_t  kernel_id = ocl_msgq_pkt->message.u.k.kernel.Kernel_id;
         int       is_task   = (ocl_msgq_pkt->message.command == TASK);
@@ -1024,11 +1054,11 @@ void ocl_timeout(UArg arg0, UArg arg1)
 
         // Reply to host on timeout
         if (!is_task || !is_inorder || MASTER_CORE)
-            printf("Timeout. Abnormal termination of %s at 0x%08x\n",
-                   (is_task ? (is_inorder ? "In-order Task"
-                                          : "Out-of-order Task")
-                            : "NDRange Kernel"),
-                   ocl_msgq_pkt->message.u.k.kernel.entry_point);
+            Log_print2(Diags_INFO, "Timeout. Termination of %s at 0x%08x\n",
+                       (is_task ? (is_inorder ? "In-order Task"
+                                              : "Out-of-order Task")
+                                : "NDRange Kernel"),
+                       ocl_msgq_pkt->message.u.k.kernel.entry_point);
         TRACE(is_task ? (is_inorder ? ULM_OCL_IOT_KERNEL_COMPLETE
                                     : ULM_OCL_OOT_KERNEL_COMPLETE)
                       : ULM_OCL_NDR_KERNEL_COMPLETE,  kernel_id, 0);
@@ -1055,6 +1085,10 @@ void ocl_timeout(UArg arg0, UArg arg1)
                                     : ULM_OCL_OOT_CACHE_COHERENCE_COMPLETE)
                       : ULM_OCL_NDR_CACHE_COHERENCE_COMPLETE,  kernel_id, 0);
 
+        int monitor_priority = MONITOR_PRIORITY;
+        #if defined(_SYS_BIOS)
+        monitor_priority = ti_opencl_get_OCL_monitor_priority();
+        #endif
         #if defined(OMP_ENABLED)
         if (is_task && is_inorder)
         {
@@ -1088,7 +1122,6 @@ Task_Handle create_task(Task_FuncPtr fxn, char *name, int priority,
     Error_Block     eb;
     Task_Handle     task;
 
-    /* Create main thread (interrupts not enabled in main on BIOS) */
     Error_init(&eb);
     Task_Params_init(&taskParams);
     taskParams.instance->name = name;
@@ -1097,9 +1130,8 @@ Task_Handle create_task(Task_FuncPtr fxn, char *name, int priority,
     taskParams.stack = (xdc_Ptr) stack;
     task = Task_create(fxn, &taskParams, &eb);
     if (Error_check(&eb)) {
-        char err_msg[64];
-        snprintf(err_msg, 64, "create_task: failed to create %s", name);
-        System_abort(err_msg);
+        Log_print1(Diags_INFO, "create_task: failed to create %s", name);
+        System_abort("create_task failed");
     }
     return task;
 }

@@ -414,6 +414,8 @@ DSPKernelEvent::DSPKernelEvent(DSPDevice *device, KernelEvent *event)
     if (event->getTimeout() > 0)  p_timeout_ms = event->getTimeout();
     else
     {
+        // For internal testing use only: testing timeout on existing apps
+        // without modifying apps' source code
         char *timeout = getenv("TI_OCL_KERNEL_TIMEOUT_COMPUTE_UNIT");
         if (timeout) p_timeout_ms = atoi(timeout);
     }

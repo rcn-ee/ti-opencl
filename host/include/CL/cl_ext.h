@@ -155,8 +155,6 @@ typedef CL_API_ENTRY cl_int (CL_API_CALL *clIcdGetPlatformIDsKHR_fn)(
 #define CL_DEVICE_LOCAL_MEM_MAX_ALLOC_TI            0x4067
 
 #define CL_QUEUE_KERNEL_TIMEOUT_COMPUTE_UNIT_TI     (1 << 20)
-#define CL_QUEUE_KERNEL_TIMEOUT_COMPUTE_DEVICE_TI   (1 << 21)
-#define CL_QUEUE_KERNEL_TIMEOUT_HOST_TI             (1 << 22)
 
 /* Following CL_MEM_HOST_* variants backported from OpenCL 1.2 */
 #define CL_MEM_HOST_WRITE_ONLY                      (1 << 7)
@@ -165,7 +163,7 @@ typedef CL_API_ENTRY cl_int (CL_API_CALL *clIcdGetPlatformIDsKHR_fn)(
 
 #define CL_MEM_USE_MSMC_TI                          (1 << 20)
 
-/* __malloc_ddr and __malloc_msmc return pointers to 128-byte aligned memory */
+/* __ti_set_kernel_timeout_ms sets kernel timeout limit in milliseconds */
 extern CL_API_ENTRY int    CL_API_CALL
 __ti_set_kernel_timeout_ms(cl_kernel d_kernel, cl_uint timeout_in_ms)
                            CL_EXT_SUFFIX__VERSION_1_1;
