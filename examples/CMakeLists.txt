@@ -33,10 +33,10 @@ endif()
 # of the target platform.  Use the target build specific blocks below to add to
 # this list
 if (${BUILD_OS} MATCHES "SYS_BIOS")
-    SET(OCL_EXAMPLES_INSTALL_LIST buffer ccode conv1d
+    SET(OCL_EXAMPLES_INSTALL_LIST abort_exit buffer ccode conv1d
         dsplib_fft edmamgr float_compute
         matmpy null
-        offline_embed ooo_callback platforms sgemm simple
+        offline_embed ooo_callback platforms sgemm simple timeout
         vecadd vecadd_openmp vecadd_openmp_t)
 else()
     SET(OCL_EXAMPLES_INSTALL_LIST abort_exit ccode conv1d

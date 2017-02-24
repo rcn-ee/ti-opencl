@@ -634,13 +634,14 @@ int DSPDevice::mail_from(int *retcode)
 
     if (rxmsg.command == ERROR)
     {
-        printf("%s", rxmsg.u.message);
+        std::cout << rxmsg.u.message;
         return -1;
     }
 
     if (rxmsg.command == PRINT)
     {
-        printf("[core %c] %s", rxmsg.u.message[0], rxmsg.u.message+1);
+        std::cout << "[core " << rxmsg.u.message[0] << "] "
+                              << rxmsg.u.message+1;
         return -1;
     }
 

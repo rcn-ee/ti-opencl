@@ -173,15 +173,14 @@ void ev_complete_func(cl_event e, cl_int status, void *data)
     char *kernel_name = ((callback_data_t *) data)->kernel_name;
     if ((expect_timeout && status != CL_ERROR_KERNEL_TIMEOUT_TI) ||
         (!expect_timeout && status < 0)) {
-      printf("%s Expecting kernel excution timeout: %s, but got %d\n",
-             kernel_name, expect_timeout ? "true" : "false", status);
+      cout << kernel_name << " Expecting kernel execution timeout: "
+           << (expect_timeout ? "true" : "false") << ", but got "
+           << status << endl;
       free(data);
       exit(-1);
     }
-    if (expect_timeout)
-      printf("%s terminated due to timeout\n", kernel_name);
-    else
-      printf("%s finished\n", kernel_name);
+    cout << kernel_name << (expect_timeout ? " terminated due to timeout"
+                                           : " finished") << endl;
     free(data);
   }
 }

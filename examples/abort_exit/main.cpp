@@ -112,7 +112,7 @@ int main(int argc, char *argv[])
 
     IOQ.finish();
     OOQ.finish();
-    run_kernel_wait(k_io, buf, -1, "# final k_io w/0 error:");
+    run_kernel_wait(k_io, buf, -1, "# final k_io w/o error:");
     IOQ.enqueueReadBuffer(buf, CL_TRUE, 0, size, ary);
   }
   catch (Error err)
@@ -146,16 +146,16 @@ void ev_complete_func(cl_event e, cl_int status, void *data)
     if ((expect_error && (status != CL_ERROR_KERNEL_ABORT_TI &&
                           status != CL_ERROR_KERNEL_EXIT_TI)) ||
         (!expect_error && status < 0)) {
-      printf("%s Expecting kernel excution abort/exit error: %s, but got %d\n",
-             kernel_name, expect_error ? "true" : "false", status);
+      cout << kernel_name << " Expecting kernel excution abort/exit error: "
+           << (expect_error ? "true" : "false") << ", but got "
+           << status << endl;
       free(data);
       exit(-1);
     }
-    if (expect_error)
-      printf("%s %s\n", kernel_name,
-             (status == CL_ERROR_KERNEL_ABORT_TI) ? "aborted" : "exited");
-    else
-      printf("%s finished\n", kernel_name);
+    cout << kernel_name << " "
+         << (expect_error ?
+             ((status == CL_ERROR_KERNEL_ABORT_TI) ? "aborted" : "exited") :
+            "finished") << endl;
     free(data);
   }
 }

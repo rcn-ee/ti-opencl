@@ -759,7 +759,7 @@ static void process_cache_command (int pkt_id, ocl_msgq_message_t *msgq_pkt)
 ******************************************************************************/
 static void process_exit_command(ocl_msgq_message_t *msg_pkt)
 {
-    enable_printf = false;
+    enable_printf = MessageQ_INVALIDMESSAGEQ;
 
     #if defined( OMP_ENABLED)
     tomp_exitOpenMPforOpenCL();

@@ -164,7 +164,7 @@ typedef CL_API_ENTRY cl_int (CL_API_CALL *clIcdGetPlatformIDsKHR_fn)(
 #define CL_MEM_USE_MSMC_TI                          (1 << 20)
 
 /* __ti_set_kernel_timeout_ms sets kernel timeout limit in milliseconds */
-extern CL_API_ENTRY int    CL_API_CALL
+extern CL_API_ENTRY cl_int CL_API_CALL
 __ti_set_kernel_timeout_ms(cl_kernel d_kernel, cl_uint timeout_in_ms)
                            CL_EXT_SUFFIX__VERSION_1_1;
 
