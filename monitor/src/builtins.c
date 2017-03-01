@@ -41,13 +41,7 @@ far uint32_t l1d_size  = (uint32_t) &ocl_l1d_mem_size;
 ******************************************************************************/
 EXPORT int __core_num() { return DNUM; }
 
-/*-----------------------------------------------------------------------------
-* Variant across DSP cores, so place in L2.
-*----------------------------------------------------------------------------*/
-static far PRIVATE_NOALIGN(size_t, l1d_scratch_size) = 0;
-
 EXPORT void*  __scratch_l1d_start() { return l1d_start; }
-EXPORT size_t __scratch_l1d_size()  { return l1d_scratch_size; }
 
 EXPORT uint32_t __cache_l1d_size()
 {
@@ -61,6 +55,8 @@ EXPORT uint32_t __cache_l1d_size()
         default:                return (32 << 10);
     }
 }
+
+EXPORT size_t __scratch_l1d_size()  { return l1d_size - __cache_l1d_size(); }
 
 EXPORT uint32_t __cache_l2_size()
 {
@@ -83,7 +79,6 @@ EXPORT int __cache_l1d_none()
     __mfence();
     CACHE_setL1DSize(CACHE_L1_0KCACHE);
     CACHE_getL1DSize();
-    l1d_scratch_size = l1d_size;
     return 1;
 }
 
@@ -91,7 +86,6 @@ EXPORT int __cache_l1d_all()
 {
     CACHE_setL1DSize(CACHE_L1_32KCACHE);
     CACHE_getL1DSize();
-    l1d_scratch_size = 0;
     return 1;
 }
 
@@ -101,7 +95,6 @@ EXPORT int __cache_l1d_4k()
     __mfence();
     CACHE_setL1DSize(CACHE_L1_4KCACHE);
     CACHE_getL1DSize();
-    l1d_scratch_size = l1d_size - (4 << 10);
     return 1;
 }
 
@@ -111,7 +104,6 @@ EXPORT int __cache_l1d_8k()
     __mfence();
     CACHE_setL1DSize(CACHE_L1_8KCACHE);
     CACHE_getL1DSize();
-    l1d_scratch_size = l1d_size - (8 << 10);
     return 1;
 }
 
@@ -121,7 +113,6 @@ EXPORT int __cache_l1d_16k()
     __mfence();
     CACHE_setL1DSize(CACHE_L1_16KCACHE);
     CACHE_getL1DSize();
-    l1d_scratch_size = l1d_size - (16 << 10);
     return 1;
 }
 
