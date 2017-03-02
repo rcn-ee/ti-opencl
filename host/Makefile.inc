@@ -31,9 +31,9 @@ endif
 # TI C6x CGT
 
 ifeq (,$(findstring arm, $(UNAME_M)))
-    TI_OCL_CGT_INSTALL?=$(SDOMC_SHARED)/ti-cgt-c6000-8.1.0-release-linux
+    TI_OCL_CGT_INSTALL?=$(SDOMC_SHARED)/ti-cgt-c6000-8.1.3-release-linux
 else
-    TI_OCL_CGT_INSTALL?=$(SDOMC_SHARED)/ti-cgt-c6000-8.1.0-release-armlinuxa8hf
+    TI_OCL_CGT_INSTALL?=$(SDOMC_SHARED)/ti-cgt-c6000-8.1.3-release-armlinuxa8hf
 endif
 
 # LLVM
@@ -52,13 +52,14 @@ endif
 
 # OMP 
 
-OMP_DIR_K2X?=$(SDOMC_SHARED)/openmp_dsp_k2x_02_06_00_00-20170202
-OMP_DIR_K2G?=$(SDOMC_SHARED)/openmp_dsp_k2g_02_06_00_00-20170202
-OMP_DIR_AM57?=$(SDOMC_SHARED)/openmp_dsp_am57xx_02_06_00_00-20170202
+OMP_DIR_K2X?=$(SDOMC_SHARED)/scratch/psdk-03.03.00.01-20170228/openmp_dsp_k2x_02_06_00_00-20170302
+OMP_DIR_K2G?=$(SDOMC_SHARED)/NOTAVAILABLE
+OMP_DIR_AM57?=$(SDOMC_SHARED)/scratch/psdk-03.03.00.01-20170228/openmp_dsp_am57xx_02_06_00_00-20170302
 
 # SOC PSDK
 
-PSDK_VERSION ?= 03.02.00.05-release
+# NOTE: Also update in examples/make*.inc
+PSDK_VERSION ?= 03.03.00.01-20170228
 
 ifeq ($(BUILD_K2H),1)
     DEFAULT_PSDK_RTOS?=$(SDOMC_SHARED)/ti-processor-sdk-rtos-k2hk-evm-$(PSDK_VERSION)
