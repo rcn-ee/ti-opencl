@@ -8,7 +8,8 @@ In this :ref:`conv1d-example` shipped with OpenCL product, we show how to
 optimize an OpenCL 1D convolution kernel step by step.  In general, there
 are three areas that we want to optimize:
 
-#. Instruction pipeline: has the loop been software pipelined at a low II?
+#. Instruction pipeline: has the loop been software pipelined at a low II
+   (initiation interval)?
 #. SIMD efficiency: has the available SIMD instructions (e.g. C66x) been
    fully utilized?
 #. Memory hierarchy performance: can the input and output data be EDMAed
@@ -139,7 +140,7 @@ Summary
 Alternatively, you may pad the input data or reduce the output size so that
 the boundary conditions go away.
 
-With reduced ii, we didn't see much performnace improvement from execution
+With reduced ii, we didn't see much performance improvement from execution
 when compared to the baseline version.  One possible reason is that the
 software pipeline stalls due to cache misses have dominated the execution.
 It is time to optimize for the memory hierarchy.  Before doing that, let's
@@ -204,7 +205,7 @@ which we use the number of compute units, when enqueuing the ND range kernel.
 
 We added three additional arguments to the kernel: block height, local
 buffer for input and local buffer for output.  Local buffers are allocated
-automatically by OpenCL runtime, user's application code only needs to specify
+automatically by OpenCL runtime, OpenCL application code only needs to specify
 the sizes.
 
 With all these transformation, we see that non-SIMDized ``k_loop_db``
@@ -242,7 +243,7 @@ We use this version as an example how to incorporate standard C functions
 into OpenCL.  We move the body of ``k_loop_simd_db`` into an external C
 function, and treat the OpenCL C function as a simple wrapper function.
 The external C function is compiled with C66 C compiler and you can use C66
-C intrinsics.  Similarly, user can re-utilize existing optimized C
+C intrinsics.  Similarly, you can re-utilize existing optimized C
 implementations and libraries developed by themselves or TI. 
 Of course, this is a TI's extension and is not applicable to OpenCL platforms
 from other vendors.

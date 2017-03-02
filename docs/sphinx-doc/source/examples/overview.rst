@@ -16,6 +16,7 @@ The key to the codes in the table are in subsequent tables.
 ================== ======= =============== ============== ============ ========= ========================= ==================
 Name               Purpose Execute Model   Kernel Compile Buffer Model Profiling Extensions                Techniques
 ================== ======= =============== ============== ============ ========= ========================= ==================
+abort_exit         simp    ndr, iot, oot   B/E            read                   abort,exit
 blas               simp    iot             B/F            map                    C
 ccode              simp    1wi             S/F            read                   C
 conv1d             perf    ndr,1wi         B/E            map          host      C, edma                   async, local, query, vec
@@ -37,6 +38,7 @@ openmpbench_C_v3   info    iot             B/F            read                  
 platforms          info                                   query
 sgemm              perf    1wi             B/E            map          host      C, msmc, edma, cache      local, vec
 simple             simp    ndr             S/E            read                                             functor
+timeout            simp    ndr,iot,oot     B/E            read                   timeout
 vecadd             simp    ndr             S/E            host                                             vec
 vecadd_mpax        simp    ndr             S/E            map                                              extMem, query, vec
 vecadd_mpax_openmp simp    iot             S/F            map          event     C, omp                    extMem, query
@@ -95,6 +97,9 @@ msmc       Buffers created in on-chip MSMC memory are used
 edma       Kernels use the EdmaMgr builtin functions for DMA control
 cache      Kernels use the cache re-configuration builtin functions
 dspheap    Kernels create user defined heaps on the DSP
+abort      Kernels call abort() to terminate execution
+exit       Kernels call exit() to terminate execution
+timeout    Kernels terminate if the set timeout limit expires
 ========== ============================================================
 
 ========== ===========================================================================================
@@ -340,6 +345,28 @@ dspheap example
 This application illustrates how to use the user defined heaps feature to allow 
 C code called from OpenCL C code to define custom and use custom heaps on the DSP
 devices.  See :doc:`../memory/dsp-malloc-extension`
+
+.. _abort_exit-example:
+
+abort_exit example
+==================
+This example illustrates how to call abort() or exit() in kernel code
+for early kernel termination, and how to check corresponding kernel
+event status to determine if abort() or exit() has been called.
+Two extended kernel event status are ``CL_ERROR_KERNEL_ABORT_TI`` and
+``CL_ERROR_KERNEL_EXIT_TI``.
+Note that these two functions can be called from either OpenCL C code
+or standard C code.
+
+.. _timeout-example:
+
+timeout example
+=================
+This example illustrates how to query the OpenCL device queue properties
+for timeout extension, how to create a command queue with timeout
+property, how to set a timeout on a kernel, and how to query kernel
+event status to determine if a timeout has occurred.  Details of timeout
+extension can be found in :doc:`../extensions/kernel-timeout`.
 
 .. note:: 
 
