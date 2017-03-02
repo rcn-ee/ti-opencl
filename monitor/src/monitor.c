@@ -700,7 +700,6 @@ static void process_kernel_command(ocl_msgq_message_t *msgq_pkt)
 /******************************************************************************
 * setup_ndr_chunks
 ******************************************************************************/
-#define IS_MULTIPLE(x, y)       ((y) % (x) == 0)
 static bool setup_ndr_chunks(int dims, uint32_t* limits, uint32_t* offsets,
                                       uint32_t *gsz, uint32_t* lsz)
 {
@@ -708,19 +707,37 @@ static bool setup_ndr_chunks(int dims, uint32_t* limits, uint32_t* offsets,
     if (n_cores == 1)
         return true;
 
-    // Try to split across cores along the first dimension where global and local sz is
-    // a multiple of chunk size
+    // Try to split across cores along the first dimension whose number of
+    // workgroups is bigger than 1, from outermost to innermost.  For example,
+    // #wgs[12, 6, 1]   on 8 cores: core 0-5 each get 1 of 6 in the second dim,
+    //                              core 6-7 get nothing and return false
+    // #wgs[24, 24, 15] on 8 cores: core 0-6 each get 2 of 15 in the third dim,
+    //                              core 7 gets 1 of 15 in the third dim
+    // #wgs[] = gsz[] / lsz[], OpenCL spec 1.2 requires even divisibility
     int num_chunks = n_cores;
     while (--dims >= 0)
-        if (IS_MULTIPLE(num_chunks, gsz[dims]) && 
-            IS_MULTIPLE(lsz[dims], gsz[dims] / num_chunks))
+    {
+        int num_wgs = gsz[dims] / lsz[dims];
+        if (num_wgs > 1)
         {
-            limits[dims] /= num_chunks;
-            offsets[dims] += (DNUM * limits[dims]);
-            return true;
+            int wgs_core = num_wgs / num_chunks;
+            int leftover = num_wgs % num_chunks;
+            // each of first "leftover" cores will get one extra wg
+            limits[dims] = (wgs_core + (DNUM < leftover ? 1 : 0)) * lsz[dims];
+            // each core before me will get "wgs_core" wgs, plus 1 wg in the
+            // leftover if (DNUM < leftover)
+            // For example, if there are 2 wgs in the leftover, core 0 will
+            // get 1, core 1 will get 1, core 2-7 will get nothing, thus,
+            // offsets for core 1 is (1 * wgs_core + 1), offsets for core 2
+            // is (2 * wgs_core + 2), offsets for core 2-7 are
+            // (DNUM * wgs_core + 2) because there are only 2 wgs in leftover
+            offsets[dims] += (DNUM * wgs_core +
+                              (DNUM < leftover ? DNUM : leftover)) * lsz[dims];
+            return (DNUM < num_wgs);
         }
+    }
 
-    // If we failed to split, execute on one of the cores
+    // If only 1 workgroup, execute on one of the cores
     return (MASTER_CORE);
 }
 
@@ -1063,7 +1080,7 @@ void ocl_timeout(UArg arg0, UArg arg1)
                                     : ULM_OCL_OOT_KERNEL_COMPLETE)
                       : ULM_OCL_NDR_KERNEL_COMPLETE,  kernel_id, 0);
         #if defined(OMP_ENABLED)
-        if (is_task && is_inorder && !MASTER_CORE)
+        if (omp_msgq_pkt != NULL && !MASTER_CORE)  // is_task && is_inorder
         {
             MessageQ_free((MessageQ_Msg)omp_msgq_pkt);
         }
