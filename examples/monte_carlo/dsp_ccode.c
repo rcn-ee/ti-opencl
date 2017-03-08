@@ -455,13 +455,6 @@ void generateRandomGauss(float *outBuffer, int size, struct initial1_t *vector,
 }
 
 /******************************************************************************
-* __scratch_l1d_start() is defined in OpenCL version 01.01.05.00 and later.
-******************************************************************************/
-#if (__TI_OCL_VERSION < 0x01010500)
-void  *__scratch_l1d_start() { return (char*)0x00F00000; }
-#endif
-
-/******************************************************************************
 * l1d_alloc - Simple allocate of available l1d.
 ******************************************************************************/
 #define ROUNDUP(val, pow2)   (((val) + (pow2) - 1) & ~((pow2) - 1))

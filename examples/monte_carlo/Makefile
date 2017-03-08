@@ -3,8 +3,7 @@ CXX_FLAGS    = -O3  -mfpu=neon -ftree-vectorize -funsafe-math-optimizations
 
 include ../make.inc
 
-OCL_VER := $(shell clocl --version | awk '/ver/ {print gensub(/\./, "", "G", $$6) }')
-CL6X_FLAGS   = -O3 -D__TI_OCL_VERSION=0x$(OCL_VER)
+CL6X_FLAGS   = -O3
 
 
 cpu_main.o: 	   dsp_kernels.dsp_h initial.h 
