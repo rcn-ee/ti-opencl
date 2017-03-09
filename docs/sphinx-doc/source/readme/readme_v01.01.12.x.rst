@@ -2,27 +2,24 @@
 v01.01.12.x
 *************************
 
-Platforms supported
-===================
+New Features
+=============
+* Multiprocess support on Linux (refer :doc:`../multiprocess` for details)
+* Added the ability to specify a timeout for OpenCL kernels (refer :doc:`../extensions/kernel-timeout` for details)
+* Switched K2H, K2L and K2E to using IPC message queues for ARM-DSP communication
 
-* `AM572 EVM`_ (Linux and RTOS)
+Defect Fixes
+============
+* [MCT-692] Fixed wrong results with sgemm example on K2H due to EDMA operations exceeding boundaries of matrices.
+
+Supported Evaluation Modules (EVMs)
+===================================
+* `AM572 EVM`_ (Linux and TI-RTOS hosts)
 * `AM571 EVM`_ 
 * `66AK2H EVM`_
 * `66AK2L EVM`_
 * `66AK2E EVM`_
 * `66AK2G EVM`_
-
-
-Release Notes
-=============
-* Multiprocess support on Linux (see :doc:`../multiprocess` for details)
-* Added the ability to specify a timeout for OpenCL kernels
-* Switched K2H, K2L and K2E to using IPC message queues for ARM-DSP communication
-
-Defect Fixes
-------------
-* [MCT-692] Wrong results with sgemm example on K2H
-
 
 Compiler Versions
 =================
