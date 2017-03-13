@@ -136,6 +136,9 @@ class Kernel : public _cl_kernel, public Object
                 Arg(unsigned short vec_dim, File file, Kind kind, bool is_subword_int_uns);
                 ~Arg();
 
+                // Disable assignment
+                Arg& operator=(const Arg&) =delete;
+
                 /**
                  * \brief Allocate the argument
                  * 
@@ -303,10 +306,15 @@ class Kernel : public _cl_kernel, public Object
 
         int get_wi_alloca_size() { return wi_alloca_size; }
 
+        unsigned int getTimeout() { return p_timeout_ms; }
+        int          setTimeout(unsigned int timeout_in_ms)
+                          { p_timeout_ms = timeout_in_ms;  return CL_SUCCESS; }
+
     private:
         std::string p_name;
         bool p_has_locals;
         int wi_alloca_size;
+        unsigned int p_timeout_ms;
 
         struct DeviceDependent
         {

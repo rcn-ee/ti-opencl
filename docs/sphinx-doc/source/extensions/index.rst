@@ -19,6 +19,8 @@ better map to TI's devices.
    msmc-buffers
    opencl-c-builtin-function-extensions
    ../memory/cache-operations.rst
+   bios-apis
+   kernel-timeout
 ..   ../memory/host-malloc-extension
 ..   ../memory/dsp-malloc-extension
 ..   ../memory/cache-operations

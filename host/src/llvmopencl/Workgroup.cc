@@ -28,7 +28,7 @@
 
 #include "CanonicalizeBarriers.h"
 #include "BarrierTailReplication.h"
-#include "WorkitemReplication.h"
+//#include "WorkitemReplication.h"
 #include "llvm/Analysis/ConstantFolding.h"
 #include "llvm/Pass.h"
 #include "llvm/Support/CommandLine.h"
@@ -583,7 +583,7 @@ Workgroup::isKernelToProcess(const Function &F)
       continue; // globaldce might have removed uncalled kernels
     Function *k = 
       cast<Function>(
-        dyn_cast<ValueAsMetadata>(kernels->getOperand(i)->getOperand(0))
+        cast<ValueAsMetadata>(kernels->getOperand(i)->getOperand(0))
           ->getValue());
     if (&F == k)
       return true;

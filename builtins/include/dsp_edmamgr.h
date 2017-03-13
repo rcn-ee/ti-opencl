@@ -81,6 +81,21 @@ typedef void *EdmaMgr_Handle;
 #define EdmaMgr_ERROR_INVHANDLE  -4  /**< Failure, Invalid Handle */
 #define EdmaMgr_ERROR_FREE       -5  /**< Failure to free a resource */
 
+/******************************************************************************
+* OpenCL runtime version of EdmaMgr functions with SOFTWARE INTERRUPTS DISABLED
+*     Added for TIMEOUT (SWi) feature: kernels can be preempted and killed
+*     Disable SWi to avoid incomplete EDMA state
+******************************************************************************/
+
+// Allocated channels intended for single-kernel use will be freed
+// if kernel gets killed by timeout.
+// Otherwise, they should be freed when kernel finishes or before abort/exit.
+EdmaMgr_Handle __ocl_EdmaMgr_alloc_intrakernel(int32_t max_linked_transfers);
+
+// Pre-allocated channels intended for cross-kernel use will NOT be freed
+// if kernel gets killed by timeout.
+// They should be freed when no longer needed.
+EdmaMgr_Handle __ocl_EdmaMgr_alloc_crosskernel(int32_t max_linked_transfers);
 
 /**
  *  @brief      Allocate an EdmaMgr channel
@@ -93,10 +108,11 @@ typedef void *EdmaMgr_Handle;
  *  @pre        EdmaMgr_init() already handled by OpenCL runtime
  *
  */
-EdmaMgr_Handle EdmaMgr_alloc
-(
-  int32_t max_linked_transfers
-);
+//EdmaMgr_Handle EdmaMgr_alloc
+//(
+//  int32_t max_linked_transfers
+//);
+#define EdmaMgr_alloc __ocl_EdmaMgr_alloc_crosskernel
 
 
 /**
@@ -110,10 +126,11 @@ EdmaMgr_Handle EdmaMgr_alloc
  *
  *  @pre        @c h must be a handle successfully returned from EdmaMgr_alloc().
  */
-int32_t EdmaMgr_free
+int32_t __ocl_EdmaMgr_free
 (
   EdmaMgr_Handle    h
 );
+#define EdmaMgr_free __ocl_EdmaMgr_free
 
 
 /**
@@ -126,10 +143,11 @@ int32_t EdmaMgr_free
  *  @remarks    This function waits for all transfers on a specific channel
  *              to complete.  It is a blocking call.
  */
-void EdmaMgr_wait
+void __ocl_EdmaMgr_wait
 (
   EdmaMgr_Handle    h
 );
+#define EdmaMgr_wait __ocl_EdmaMgr_wait
 
 
 /**
@@ -147,13 +165,14 @@ void EdmaMgr_wait
  *
  *  @sa EdmaMgr_copy1D1DLinked
  */
-int32_t EdmaMgr_copy1D1D
+int32_t __ocl_EdmaMgr_copy1D1D
 (
   EdmaMgr_Handle    h,
   void *restrict    src,
   void *restrict    dst,
   int32_t           num_bytes
 );
+#define EdmaMgr_copy1D1D __ocl_EdmaMgr_copy1D1D
 
 /**
  *  @brief      Perform a 1D->2D transfer
@@ -174,7 +193,7 @@ int32_t EdmaMgr_copy1D1D
  *              address is incremented by @c num_bytes and the @c dst address
  *              is incremented by @c pitch bytes.
  */
-int32_t EdmaMgr_copy1D2D
+int32_t __ocl_EdmaMgr_copy1D2D
 (
   EdmaMgr_Handle    h,
   void *restrict    src,
@@ -183,6 +202,7 @@ int32_t EdmaMgr_copy1D2D
   int32_t           num_lines,
   int32_t           pitch
 );
+#define EdmaMgr_copy1D2D __ocl_EdmaMgr_copy1D2D
 
 /**
  *  @brief      Perform a 2D->1D transfer
@@ -203,7 +223,7 @@ int32_t EdmaMgr_copy1D2D
  *              address is incremented by @c pitch and the @c dst address
  *              is incremented by @c num_bytes bytes.
  */
-int32_t EdmaMgr_copy2D1D
+int32_t __ocl_EdmaMgr_copy2D1D
 (
   EdmaMgr_Handle    h,
   void *restrict    src,
@@ -212,6 +232,7 @@ int32_t EdmaMgr_copy2D1D
   int32_t           num_lines,
   int32_t           pitch
 );
+#define EdmaMgr_copy2D1D __ocl_EdmaMgr_copy2D1D
 
 /**
  *  @brief      Perform a 2D->2D transfer of buffers with the same pitch
@@ -231,7 +252,7 @@ int32_t EdmaMgr_copy2D1D
  *  @remarks    After every line of @c num_bytes is transferred, the @c src
  *              address and @c dst address is incremented by @c pitch bytes.
  */
-int32_t EdmaMgr_copy2D2D
+int32_t __ocl_EdmaMgr_copy2D2D
 (
   EdmaMgr_Handle    h,
   void *restrict    src,
@@ -240,6 +261,7 @@ int32_t EdmaMgr_copy2D2D
   int32_t           num_lines,
   int32_t           pitch
 );
+#define EdmaMgr_copy2D2D __ocl_EdmaMgr_copy2D2D
 
 /**
  *  @brief      Perform a 2D->2D transfer of buffers with different pitches
@@ -261,7 +283,7 @@ int32_t EdmaMgr_copy2D2D
  *              address is incremented by @c src_pitch bytes and the @c dst
  *              address is incremented by @c dst_pitch bytes.
  */
-int32_t EdmaMgr_copy2D2DSep
+int32_t __ocl_EdmaMgr_copy2D2DSep
 (
   EdmaMgr_Handle    h,
   void *restrict    src,
@@ -271,6 +293,7 @@ int32_t EdmaMgr_copy2D2DSep
   int32_t           src_pitch,
   int32_t           dst_pitch
 );
+#define EdmaMgr_copy2D2DSep __ocl_EdmaMgr_copy2D2DSep
 
 /**
  *  @brief      Perform a group of linked 1D->1D transfers
@@ -285,7 +308,7 @@ int32_t EdmaMgr_copy2D2DSep
  *
  *  @sa EdmaMgr_copy1D1D
  */
-int32_t EdmaMgr_copy1D1DLinked
+int32_t __ocl_EdmaMgr_copy1D1DLinked
 (
   EdmaMgr_Handle    h,
   void *restrict    src[],
@@ -293,6 +316,7 @@ int32_t EdmaMgr_copy1D1DLinked
   int32_t           num_bytes[],
   int32_t           num_transfers
 );
+#define EdmaMgr_copy1D1DLinked __ocl_EdmaMgr_copy1D1DLinked
 
 /**
  *  @brief      Perform a group of linked 1D->2D transfers
@@ -309,7 +333,7 @@ int32_t EdmaMgr_copy1D1DLinked
  *
  *  @sa EdmaMgr_copy1D2D
  */
-int32_t EdmaMgr_copy1D2DLinked
+int32_t __ocl_EdmaMgr_copy1D2DLinked
 (
   EdmaMgr_Handle    h,
   void *restrict    src[],
@@ -319,6 +343,7 @@ int32_t EdmaMgr_copy1D2DLinked
   int32_t           pitch[],
   int32_t           num_transfers
 );
+#define EdmaMgr_copy1D2DLinked __ocl_EdmaMgr_copy1D2DLinked
 
 /**
  *  @brief      Perform a group of linked 2D->1D transfers
@@ -335,7 +360,7 @@ int32_t EdmaMgr_copy1D2DLinked
  *
  *  @sa EdmaMgr_copy2D1D
  */
-int32_t EdmaMgr_copy2D1DLinked
+int32_t __ocl_EdmaMgr_copy2D1DLinked
 (
   EdmaMgr_Handle    h,
   void *restrict    src[],
@@ -345,6 +370,7 @@ int32_t EdmaMgr_copy2D1DLinked
   int32_t           pitch[],
   int32_t           num_transfers
 );
+#define EdmaMgr_copy2D1DLinked __ocl_EdmaMgr_copy2D1DLinked
 
 /**
  *  @brief      Perform a group of linked 2D->2D transfers
@@ -361,7 +387,7 @@ int32_t EdmaMgr_copy2D1DLinked
  *
  *  @sa EdmaMgr_copy2D2D
  */
-int32_t EdmaMgr_copy2D2DLinked
+int32_t __ocl_EdmaMgr_copy2D2DLinked
 (
   EdmaMgr_Handle    h,
   void *restrict    src[],
@@ -371,6 +397,7 @@ int32_t EdmaMgr_copy2D2DLinked
   int32_t           pitch[],
   int32_t           num_transfers
 );
+#define EdmaMgr_copy2D2DLinked __ocl_EdmaMgr_copy2D2DLinked
 
 /**
  *  @brief      Perform a group of linked 2D->2D transfers with different
@@ -389,7 +416,7 @@ int32_t EdmaMgr_copy2D2DLinked
  *
  *  @sa EdmaMgr_copy2D2DSep
  */
-int32_t EdmaMgr_copy2D2DSepLinked
+int32_t __ocl_EdmaMgr_copy2D2DSepLinked
 (
   EdmaMgr_Handle    h,
   void *restrict    src[],
@@ -400,6 +427,7 @@ int32_t EdmaMgr_copy2D2DSepLinked
   int32_t           dst_pitch[],
   int32_t           num_transfers
 );
+#define EdmaMgr_copy2D2DSepLinked __ocl_EdmaMgr_copy2D2DSepLinked
 
 /**
  *  @brief      Perform a 1D->2D large transfer
@@ -424,7 +452,7 @@ int32_t EdmaMgr_copy2D2DSepLinked
  *  @remarks    This should be used when the pitch is outside the range of
  *              [-32768,32767].
  */
-int32_t EdmaMgr_copy1D2DLarge
+int32_t __ocl_EdmaMgr_copy1D2DLarge
 (
   EdmaMgr_Handle    h,
   void *restrict    src,
@@ -433,6 +461,7 @@ int32_t EdmaMgr_copy1D2DLarge
   int32_t           num_lines,
   int32_t           pitch
 );
+#define EdmaMgr_copy1D2DLarge __ocl_EdmaMgr_copy1D2DLarge
 
 /**
  *  @brief      Perform a 2D->1D large transfer
@@ -457,7 +486,7 @@ int32_t EdmaMgr_copy1D2DLarge
  *  @remarks    This should be used when the pitch is outside the range of
  *              [-32768,32767].
  */
-int32_t EdmaMgr_copy2D1DLarge
+int32_t __ocl_EdmaMgr_copy2D1DLarge
 (
   EdmaMgr_Handle    h,
   void *restrict    src,
@@ -466,6 +495,7 @@ int32_t EdmaMgr_copy2D1DLarge
   int32_t           num_lines,
   int32_t           pitch
 );
+#define EdmaMgr_copy2D1DLarge __ocl_EdmaMgr_copy2D1DLarge
 
 
 /**
@@ -484,12 +514,13 @@ int32_t EdmaMgr_copy2D1DLarge
  *
  *  @sa EdmaMgr_copyLinkedFast
  */
-int32_t EdmaMgr_copyFast
+int32_t __ocl_EdmaMgr_copyFast
 (
   EdmaMgr_Handle    h,
   void *restrict    src,
   void *restrict    dst
 );
+#define EdmaMgr_copyFast __ocl_EdmaMgr_copyFast
 
 /**
  *  @brief      Perform a linked fast copy. This API inherits the transfer
@@ -508,13 +539,14 @@ int32_t EdmaMgr_copyFast
  *
  *  @sa EdmaMgr_copyLinkedFast
  */
-int32_t EdmaMgr_copyLinkedFast
+int32_t __ocl_EdmaMgr_copyLinkedFast
 (
   EdmaMgr_Handle    h,
   void *restrict    src[],
   void *restrict    dst[],
   int32_t           num_transfers
 );
+#define EdmaMgr_copyLinkedFast __ocl_EdmaMgr_copyLinkedFast
 
 
 #ifdef __cplusplus

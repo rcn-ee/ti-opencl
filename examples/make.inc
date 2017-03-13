@@ -1,9 +1,19 @@
+
+# ----------------------------------------------------------------------------
+# Used by persistent_* examples
+# ----------------------------------------------------------------------------
+PRSDK_INSTALL_PATH     ?= /cgnas/ti-processor-sdk-rtos-am57xx-evm-03.03.00.01-20170305
+XDC_DIR                ?= $(wildcard $(PRSDK_INSTALL_PATH)/xdc*)/packages
+BIOS_DIR               ?= $(wildcard $(PRSDK_INSTALL_PATH)/bios*)/packages
+IPC_DIR                ?= $(wildcard $(PRSDK_INSTALL_PATH)/ipc*)/packages
+
+
 DSP_INCLUDE  = -I$(TI_OCL_CGT_INSTALL)/include 
 DSP_INCLUDE += -I$(TI_OCL_INSTALL)/usr/share/ti/opencl
 DSP_INCLUDE += -I$(TARGET_ROOTDIR)/usr/share/ti/opencl
 DSP_INCLUDE += -I$(TARGET_ROOTDIR)/usr/share/ti/cgt-c6x/include
 
-CPP   = g++ 
+CXX   = g++ 
 CL6X  = cl6x -mv6600 --abi=eabi $(DSP_INCLUDE)
 CLOCL = clocl
 
@@ -15,8 +25,8 @@ UNAME_M :=$(shell uname -m)
 # If TI_OCL_INSTALL is set, setup make from that location
 # ----------------------------------------------------------------------------
 ifneq ($(TI_OCL_INSTALL),)
-    CPP        = g++
-    CPP_FLAGS += -I$(TI_OCL_INSTALL)/usr/include
+    CXX        = g++
+    CXX_FLAGS += -I$(TI_OCL_INSTALL)/usr/include
     LD_FLAGS  += -L$(TI_OCL_INSTALL)/usr/lib 
     LIBS      += -lbfd
 
@@ -37,8 +47,8 @@ else ifneq (,$(findstring 86, $(UNAME_M)))
 
     # gcc ARM cross compiler will not, by default, search the host's
     # /usr/include.  Explicitly specify here to find dependent vendor headers
-    cross: override CPP = arm-linux-gnueabihf-g++ 
-    cross: CPP_FLAGS += -I$(TARGET_ROOTDIR)/usr/include -idirafter /usr/include
+    cross: override CXX = arm-linux-gnueabihf-g++ 
+    cross: CXX_FLAGS += -I$(TARGET_ROOTDIR)/usr/include -idirafter /usr/include
 
     # If cross-compilineg, provide path to dependent ARM libraries on the 
     # target filesystem
@@ -47,11 +57,11 @@ endif
 
 %.o: %.cpp
 	@echo Compiling $<
-	@$(CPP) -c $(CPP_FLAGS) $<
+	@$(CXX) -c $(CXX_FLAGS) $<
 
 %.o: %.c
 	@echo Compiling $<
-	@$(CPP) -c $(CPP_FLAGS) $<
+	@$(CXX) -c $(CXX_FLAGS) $<
 
 %.obj: %.c
 	@echo Compiling $<

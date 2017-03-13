@@ -64,7 +64,7 @@ CommandQueue::CommandQueue(Context *ctx,
                            cl_command_queue_properties properties,
                            cl_int *errcode_ret)
 : Object(Object::T_CommandQueue, ctx), p_device(device),
-  p_num_events_in_queue(0), p_num_events_on_device(0),
+  p_num_events_on_device(0),
   p_num_events_completed(0),
   p_properties(properties), p_flushed(true)
 {
@@ -182,7 +182,8 @@ cl_int CommandQueue::checkProperties() const
     // Check that all the properties are valid
     cl_command_queue_properties properties =
         CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE |
-        CL_QUEUE_PROFILING_ENABLE;
+        CL_QUEUE_PROFILING_ENABLE |
+        CL_QUEUE_KERNEL_TIMEOUT_COMPUTE_UNIT_TI;
 
     if ((p_properties & properties) != p_properties)
         return CL_INVALID_VALUE;
@@ -226,7 +227,7 @@ void CommandQueue::finish()
     // deleted from the command queue, so simply wait for it to become empty.
     pthread_mutex_lock(&p_event_list_mutex);
 
-    while (p_num_events_in_queue != 0)
+    while (p_events.size() != 0)
         pthread_cond_wait(&p_event_list_cond, &p_event_list_mutex);
 
     pthread_mutex_unlock(&p_event_list_mutex);
@@ -250,7 +251,6 @@ cl_int CommandQueue::queueEvent(Event *event)
     pthread_mutex_lock(&p_event_list_mutex);
 
     p_events.push_back(event);
-    p_num_events_in_queue += 1;
     p_flushed = false;
 
     pthread_mutex_unlock(&p_event_list_mutex);
@@ -295,7 +295,7 @@ void CommandQueue::cleanEvents()
     // save on the event traversal time.  16 is a number that can be tuned 
     // (e.g. using ooo example).
     if (p_num_events_completed < 16 && p_num_events_on_device > 0 &&
-        p_num_events_in_queue - p_num_events_completed > 0)
+        p_events.size() - p_num_events_completed > 0)
     {
         pthread_mutex_unlock(&p_event_list_mutex);
         return;
@@ -314,7 +314,6 @@ void CommandQueue::cleanEvents()
             oldit = it;
             ++it;
 
-            p_num_events_in_queue -= 1;
             p_num_events_completed -= 1;
             p_events.erase(oldit);
             // put Completed events into another list
@@ -337,7 +336,7 @@ void CommandQueue::cleanEvents()
     }
 
     // We have cleared the list, so wake up the sleeping threads
-    if (p_num_events_in_queue == 0)
+    if (p_events.size() == 0)
         pthread_cond_broadcast(&p_event_list_cond);
 
     pthread_mutex_unlock(&p_event_list_mutex);
@@ -435,7 +434,6 @@ void CommandQueue::pushEventsOnDevice(Event *ready_event,
             ++it;
 
             p_num_events_completed -= 1;
-            p_num_events_in_queue -= 1;
             p_events.erase(oldit);
             // put Completed events into another list
             // let main thread release/delete them
@@ -501,9 +499,8 @@ void CommandQueue::pushEventsOnDevice(Event *ready_event,
         {
             // Remove event from the queue, otherwise, another thread may
             // come in and try to set the event status to Complete again
-            p_num_events_in_queue -= 1;
             p_events.erase(it);
-            p_flushed = (p_num_events_in_queue == 0);
+            p_flushed = (p_events.size() == 0);
             // Pretend begin pushed to device, to maintain proper counting
             p_num_events_on_device += 1;
 
@@ -527,7 +524,7 @@ void CommandQueue::pushEventsOnDevice(Event *ready_event,
     }
 
     if (ready_event != NULL && p_flushed)
-        p_flushed = (p_num_events_in_queue == 0);
+        p_flushed = (p_events.size() == 0);
 
     if (p_flushed)
         pthread_cond_broadcast(&p_event_list_cond);
@@ -545,33 +542,35 @@ Event **CommandQueue::events(unsigned int &count,
 
     pthread_mutex_lock(&p_event_list_mutex);
 
-    count = p_num_events_in_queue;
+    count = p_events.size();
     if (count > 0)
+    {
         result = (Event **)std::malloc(count * sizeof(Event *));
 
-    // Copy each event of the list into result, retaining them
-    unsigned int index = 0;
-    std::list<Event *>::iterator it = p_events.begin();
+        // Copy each event of the list into result, retaining them
+        unsigned int index = 0;
+        std::list<Event *>::iterator it = p_events.begin();
 
-    while (it != p_events.end())
-    {
-        if (! include_completed_events)
+        while (it != p_events.end())
         {
-            Event *e = *it;
-            if (e->status() == Event::Complete)
+            if (! include_completed_events)
             {
-                ++it;
-                continue;
+                Event *e = *it;
+                if (e->status() == Event::Complete)
+                {
+                    ++it;
+                    continue;
+                }
             }
+
+            result[index] = *it;
+            result[index]->reference();
+
+            ++it;
+            ++index;
         }
-
-        result[index] = *it;
-        result[index]->reference();
-
-        ++it;
-        ++index;
+        count = index;
     }
-    count = index;
 
     // Now result contains an immutable list of events. Even if the events
     // become completed in another thread while result is used, the events

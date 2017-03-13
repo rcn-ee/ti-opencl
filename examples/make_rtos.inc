@@ -1,5 +1,5 @@
 #
-#  Copyright (c) 2012-2015 Texas Instruments Incorporated - http://www.ti.com
+#  Copyright (c) 2012-2017 Texas Instruments Incorporated - http://www.ti.com
 #  All rights reserved.
 #
 #  Redistribution and use in source and binary forms, with or without
@@ -34,20 +34,20 @@
 #  ======== make_rtos.inc ========
 #
 ifeq ($(OS), Windows_NT)
-DEFAULT_PSDK_RTOS      ?= C:\ti\ti-processor-sdk-rtos-am57xx-evm-03.01.00.06
+DEFAULT_PSDK_RTOS      ?= C:\ti\ti-processor-sdk-rtos-am57xx-evm-03.03.00.01-20170305
 GCC_ARM_NONE_TOOLCHAIN ?= C:\ti\ccsv6\tools\compiler\gcc-arm-none-eabi-4_9-2015q3
 
-TI_OCL_CGT_INSTALL     ?= C:\ti\ccsv6\tools\compiler\ti-cgt-c6000_8.1.1
-TI_OCL_INSTALL         ?= $(DEFAULT_PSDK_RTOS)\opencl_rtos_am57xx_01_01_10_00\packages\ti\opencl
+TI_OCL_CGT_INSTALL     ?= C:\ti\ccsv6\tools\compiler\ti-cgt-c6000_8.1.3
+TI_OCL_INSTALL         ?= $(DEFAULT_PSDK_RTOS)\opencl_rtos_am57xx_01_01_12_00\packages\ti\opencl
 DSS_CMD                 = $(CCS_INSTALL_DIR)\ccs_base\scripting\bin\dss.bat
 NULLFILE                = NUL
 
 else  # Linux
-DEFAULT_PSDK_RTOS      ?= /cgnas/ti-processor-sdk-rtos-am57xx-evm-03.01.00.06-release
+DEFAULT_PSDK_RTOS      ?= /cgnas/ti-processor-sdk-rtos-am57xx-evm-03.03.00.01-20170305
 GCC_ARM_NONE_TOOLCHAIN ?= /cgnas/gcc-arm-none-eabi-4_9-2015q3
 
-TI_OCL_CGT_INSTALL     ?= /cgnas/ti-cgt-c6000-8.1.0-release-linux
-TI_OCL_INSTALL         ?= $(DEFAULT_PSDK_RTOS)/opencl_rtos_am57xx_01_01_10_00/packages/ti/opencl
+TI_OCL_CGT_INSTALL     ?= /cgnas/ti-cgt-c6000-8.1.3-release-linux
+TI_OCL_INSTALL         ?= $(DEFAULT_PSDK_RTOS)/opencl_rtos_am57xx_01_01_12_00/packages/ti/opencl
 DSS_CMD                 = $(CCS_INSTALL_DIR)/ccs_base/scripting/bin/dss.sh
 NULLFILE                = /dev/null
 endif
@@ -126,12 +126,12 @@ bin/$(PROFILE)/$(EXE).xa15fg: $(objs) $(CONFIG)/linker.cmd
 bin/$(PROFILE)/%.oa15fg: %.cpp $(CONFIG)/compiler.opt
 	@$(ECHO) "#"
 	@$(ECHO) "# Making $@ ..."
-	$(CXX) $(CPPFLAGS) $(CFLAGS) -o $@ $<
+	$(CXX) $(CXX_FLAGS) $(CFLAGS) -o $@ $<
 
 bin/$(PROFILE)/%.oa15fg: %.c $(CONFIG)/compiler.opt
 	@$(ECHO) "#"
 	@$(ECHO) "# Making $@ ..."
-	$(CXX) $(CPPFLAGS) $(CFLAGS) -o $@ $<
+	$(CXX) $(CXX_FLAGS) $(CFLAGS) -o $@ $<
 
 %.obj: %.c
 	@$(ECHO) "#"
@@ -195,7 +195,7 @@ endif
 
 #  ======== toolchain macros ========
 
-CPPFLAGS += -Dfar= -D__DYNAMIC_REENT__ -D_TI_RTOS -fpermissive -std=c++0x
+CXX_FLAGS += -Dfar= -D__DYNAMIC_REENT__ -D_TI_RTOS -fpermissive -std=c++0x
 CFLAGS   += -c -MD -MF $@.dep -MMD -MP -mcpu=cortex-a15 -mtune=cortex-a15 -mfloat-abi=hard -ffunction-sections -fdata-sections $(CCPROFILE_$(PROFILE)) @$(CONFIG)/compiler.opt -I"$(GCC_ARM_NONE_TOOLCHAIN)/arm-none-eabi/include" -I. -I$(TI_OCL_INSTALL)/usr/include
 
 LDFLAGS += $(LDPROFILE_$(PROFILE)) -mfloat-abi=hard -nostartfiles -Wl,-static -Wl,--gc-sections -Wl,-Map=$(@D)/$(@F).map

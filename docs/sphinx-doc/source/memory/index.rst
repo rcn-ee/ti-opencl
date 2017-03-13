@@ -7,9 +7,9 @@ Memory Usage
 
    device-memory
    ddr-partition
-   host-malloc-extension
    memory-model
    buffers
+   host-malloc-extension
    access-model
    discovery
    cache-operations

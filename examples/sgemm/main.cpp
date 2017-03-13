@@ -149,7 +149,7 @@ int main(int argc, char *argv[])
        double total_GFLOP = 2.0*M*N*K*1.0e-9;
 
        /*---------------------------------------------------------------------
-       * Compile the Kernel Source for the devices
+       * Build kernel from pre-compiled and embedded binary
        *--------------------------------------------------------------------*/
        Program::Binaries binary(1, make_pair(kernel_dsp_bin,
                                              sizeof(kernel_dsp_bin)));
@@ -363,7 +363,7 @@ void PrintMatrix(float *mat, int rows, int cols, enum CBLAS_ORDER mem_order)
     cout << endl;
 }
 
-#define EPISILON 0.00001
+#define EPISILON 0.01  // we have all integer inputs
 int CheckForErrors(const float *Mat, const float *Golden, int M, int N, int K,
                     enum CBLAS_ORDER mem_order)
 {

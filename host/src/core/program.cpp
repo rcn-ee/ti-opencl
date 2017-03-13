@@ -44,6 +44,7 @@
 #include <string>
 #include <cstring>
 #include <cstdlib>
+#include <cassert>
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -192,6 +193,8 @@ std::vector<llvm::Function *> Program::kernelFunctions(DeviceDependent &dep)
     for (unsigned int i=0; i<kernels->getNumOperands(); ++i)
     {
         llvm::MDNode *node = kernels->getOperand(i);
+
+        assert (node->getNumOperands() > 0);
 
         /*---------------------------------------------------------------------
         * Each node has only one operand : a llvm::Function

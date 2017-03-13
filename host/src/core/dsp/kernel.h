@@ -40,9 +40,11 @@
 #include <vector>
 #include <string>
 #include "../tiocl_thread.h"
+#include "../tiocl_types.h"
 #include <stdint.h>
 
-inline uint32_t xlog2(uint32_t val) { return sizeof(val)*8 - 1 - __builtin_clz(val); }
+inline uint32_t xlog2(uint32_t val) 
+    { return sizeof(val)*8 - 1 - __builtin_clz(val); }
 inline uint32_t round_down_power2(uint32_t val) { return 1 << xlog2(val); }
 
 namespace llvm
@@ -68,11 +70,13 @@ class DSPKernel : public DeviceKernel
         DSPKernel(DSPDevice *device, Kernel *kernel, llvm::Function *function);
         ~DSPKernel();
 
-        size_t       workGroupSize()          const ;
+        size_t       workGroupSize()   const ;
 
         
-        cl_ulong     localMemSize()           const ;
-        cl_ulong     privateMemSize()         const { return p_kernel->get_wi_alloca_size(); }
+        cl_ulong     localMemSize()    const ;
+        cl_ulong     privateMemSize()  const 
+                     { return p_kernel->get_wi_alloca_size(); }
+
         size_t       preferredWorkGroupSizeMultiple() const ;
 
         size_t       guessWorkGroupSize(cl_uint num_dims, cl_uint dim,
@@ -123,6 +127,7 @@ class DSPKernelEvent
         uint32_t                  p_kernel_id;
         enum DebugMode            p_debug_kernel;
         int                       p_num_arg_words;
+        uint32_t                  p_timeout_ms;
         Msg_t                     p_msg;
         DSPDevicePtr64            p_WG_alloca_start;
         std::vector<DSPMemRange>  p_flush_bufs;
@@ -140,7 +145,8 @@ class DSPKernelEvent
         * Helpers for run member function
         *--------------------------------------------------------------------*/
         cl_int allocate_and_assign_local_buffers(uint32_t &, DSPDevicePtr &);
-        cl_int init_kernel_runtime_variables(Event::Type evtype, uint32_t, DSPDevicePtr);
+        cl_int init_kernel_runtime_variables(Event::Type evtype, uint32_t, 
+                                             DSPDevicePtr);
         cl_int allocate_temp_global (void);
         cl_int flush_special_use_host_ptr_buffers(void);
         cl_int setup_extended_memory_mappings(void);

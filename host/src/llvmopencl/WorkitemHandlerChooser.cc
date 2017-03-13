@@ -26,7 +26,7 @@
 
 #include "WorkitemHandlerChooser.h"
 #include "WorkitemLoops.h"
-#include "WorkitemReplication.h"
+//#include "WorkitemReplication.h"
 #include "Workgroup.h"
 #include "CanonicalizeBarriers.h"
 #include "Kernel.h"

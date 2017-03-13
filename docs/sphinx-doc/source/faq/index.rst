@@ -10,7 +10,6 @@ Frequently Asked Questions
    pyopencl
    standalone-app-diffs
    host-omp-interop
-   mcsdk-hpc-version-map
    images
    icd
    lock

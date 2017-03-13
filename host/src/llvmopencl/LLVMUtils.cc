@@ -57,7 +57,7 @@ regenerate_kernel_metadata(llvm::Module &M, FunctionMapping &kernels)
               Function *new_kernel = (*i).second;
               Function *func_from_md;
               func_from_md = dyn_cast<Function>(
-                dyn_cast<ValueAsMetadata>(wgsizeMD->getOperand(0))->getValue());
+                cast<ValueAsMetadata>(wgsizeMD->getOperand(0))->getValue());
               if (old_kernel == new_kernel || wgsizeMD->getNumOperands() == 0 ||
                   func_from_md != old_kernel) 
                 continue;

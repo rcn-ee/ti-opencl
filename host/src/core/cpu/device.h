@@ -66,6 +66,10 @@ class CPUDevice : public DeviceInterface
         CPUDevice();
         ~CPUDevice();
 
+        // Disable copy constuction and assignment
+        CPUDevice(const CPUDevice&)            =delete;
+        CPUDevice& operator=(const CPUDevice&) =delete;
+
         /**
          * \brief Initialize the CPU device
          *

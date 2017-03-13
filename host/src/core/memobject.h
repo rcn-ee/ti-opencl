@@ -87,6 +87,11 @@ class MemObject : public _cl_mem, public Object
                   cl_int *errcode_ret);
         virtual ~MemObject();
 
+        // Disable default constructor, copy constuction and assignment
+        MemObject()                            =delete;
+        MemObject(const MemObject&)            =delete;
+        MemObject& operator=(const MemObject&) =delete;
+
         /**
          * \brief Initialize the memory object
          * 

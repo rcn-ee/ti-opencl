@@ -52,8 +52,8 @@ TIOpenCLPrivatizationAliasAnalysis::alias(const Location &LocA,
     // Based on two different ocl privatized memory: no alias
     // One based ocl privatized memory, the other not: no alias
     if (memA != memB && isa<AllocaInst>(memA) && isa<AllocaInst>(memB))
-      if (dyn_cast<AllocaInst>(memA)->getMetadata("ocl.restrict") != nullptr ||
-          dyn_cast<AllocaInst>(memB)->getMetadata("ocl.restrict") != nullptr)
+      if (cast<AllocaInst>(memA)->getMetadata("ocl.restrict") != nullptr ||
+          cast<AllocaInst>(memB)->getMetadata("ocl.restrict") != nullptr)
         return NoAlias;
 
     // One based on ocl privatized memory, the other loads a pointer: no alias
@@ -62,8 +62,8 @@ TIOpenCLPrivatizationAliasAnalysis::alias(const Location &LocA,
     //    privatized memory (i.e. privatization process is NOT recursive)
     if (memA != memB && ((isa<AllocaInst>(memA) && isa<LoadInst>(memB)) ||
                          (isa<AllocaInst>(memB) && isa<LoadInst>(memA))) )
-      if (dyn_cast<Instruction>(memA)->getMetadata("ocl.restrict") != nullptr ||
-          dyn_cast<Instruction>(memB)->getMetadata("ocl.restrict") != nullptr)
+      if (cast<Instruction>(memA)->getMetadata("ocl.restrict") != nullptr ||
+          cast<Instruction>(memB)->getMetadata("ocl.restrict") != nullptr)
         return NoAlias;
   }
 

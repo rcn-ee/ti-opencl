@@ -517,8 +517,12 @@ __free_msmc(void *p)
 int
 __is_in_malloced_region(void *p)
 {
-    Coal::DSPDevice *dspdevice = getDspDevice();
-    return dspdevice->isInClMallocedRegion(p);
+    Coal::DSPDevice *device = getDspDevice();
+
+    if (device == NULL)
+        return false;
+
+    return device->isInClMallocedRegion(p);
 }
 
 uint64_t __device_malloc(int32_t dsp, size_t size)

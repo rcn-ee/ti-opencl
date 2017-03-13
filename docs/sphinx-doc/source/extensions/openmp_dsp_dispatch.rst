@@ -172,8 +172,8 @@ for DSP code.
 .. code:: make
 
     # Host compiler and compile flags/options. Used to compile host code
-    CPP   = g++ $(HOST_INCLUDE)
-    CPP_FLAGS  = -O3
+    CXX   = g++ $(HOST_INCLUDE)
+    CXX_FLAGS  = -O3
     HOST_INCLUDE = -I$(TI_OCL_INSTALL)/include
 
     # Device OpenMP compiler and compile flags/options. Used to compile OpenMP code for device
@@ -187,14 +187,14 @@ for DSP code.
     # rule for building final executable
     EXE        = vecadd_openmp
     $(EXE): main.o vadd_openmp.obj
-            @$(CPP) $(CPP_FLAGS) main.o $(LIBS) -o $@
+            @$(CXX) $(CXX_FLAGS) main.o $(LIBS) -o $@
 
     # rules for compiling host C/C++ code
     %.o: %.cpp
-            @$(CPP) -c $(CPP_FLAGS) $<
+            @$(CXX) -c $(CXX_FLAGS) $<
             @echo Compiling $<
     %.o: %.c
-            @$(CPP) -c $(CPP_FLAGS) $<
+            @$(CXX) -c $(CXX_FLAGS) $<
             @echo Compiling $<
 
     # rule for compiling OpenMP C code for device

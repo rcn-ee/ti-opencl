@@ -36,6 +36,7 @@
 #include <llvm/Bitcode/ReaderWriter.h>
 #include <llvm/PassManager.h>
 #include <llvm/Analysis/Passes.h>
+#include <llvm/Analysis/PostDominators.h>
 #include <llvm/IR/Verifier.h>
 #include <llvm/Transforms/Scalar.h>
 #include <llvm/Transforms/IPO.h>
@@ -66,13 +67,13 @@
 #include <PHIsToAllocas.h>
 #include <IsolateRegions.h>
 #include <VariableUniformityAnalysis.h>
-#include <ImplicitLoopBarriers.h>
-#include <ImplicitConditionalBarriers.h>
+//#include <ImplicitLoopBarriers.h>
+//#include <ImplicitConditionalBarriers.h>
 #include <LoopBarriers.h>
 #include <BarrierTailReplication.h>
 #include <CanonicalizeBarriers.h>
 #include <WorkItemAliasAnalysis.h>
-#include <WorkitemReplication.h>
+//#include <WorkitemReplication.h>
 #include <WorkitemLoops.h>
 #include <AllocasToEntry.h>
 #include <Workgroup.h>
@@ -228,7 +229,7 @@ bool llvm_xforms(Module *module, bool optimize)
         for (unsigned int i=0; kern_meta && i < kern_meta->getNumOperands(); ++i)
         {
             llvm::MDNode *node  = kern_meta->getOperand(i);
-            llvm::Value  *value = dyn_cast<llvm::ValueAsMetadata>(node->getOperand(0))->getValue();
+            llvm::Value  *value = cast<llvm::ValueAsMetadata>(node->getOperand(0))->getValue();
             if (!llvm::isa<llvm::Function>(value)) continue;
 
             llvm::Function *f = llvm::cast<llvm::Function>(value);

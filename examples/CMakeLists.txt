@@ -33,10 +33,26 @@ endif()
 # of the target platform.  Use the target build specific blocks below to add to
 # this list
 if (${BUILD_OS} MATCHES "SYS_BIOS")
-    SET(OCL_EXAMPLES_INSTALL_LIST buffer ccode dsplib_fft float_compute null
-            offline_embed platforms simple vecadd matmpy ooo_callback edmamgr sgemm vecadd_openmp vecadd_openmp_t)
+    SET(OCL_EXAMPLES_INSTALL_LIST abort_exit buffer ccode conv1d
+        dsplib_fft edmamgr float_compute
+        matmpy null
+        offline_embed ooo_callback platforms sgemm simple timeout
+        vecadd vecadd_openmp vecadd_openmp_t)
 else()
-    SET(OCL_EXAMPLES_INSTALL_LIST edmamgr matmpy simple dsplib_fft mandelbrot mandelbrot_native offline offline_embed platforms ccode null ooo vecadd dspheap float_compute sgemm monte_carlo)
+    SET(OCL_EXAMPLES_INSTALL_LIST abort_exit ccode conv1d
+        dspheap dsplib_fft edmamgr float_compute
+        mandelbrot mandelbrot_native matmpy monte_carlo null
+        offline offline_embed ooo platforms sgemm simple timeout
+        vecadd)
+
+    # Add persistent examples for AM57/Linux
+    if (AM57_BUILD)
+        set (OCL_EXAMPLES_INSTALL_LIST ${OCL_EXAMPLES_INSTALL_LIST}
+            persistent_clock_concurrent persistent_clock_spanning
+            persistent_kernel_timeout persistent_messageq_concurrent
+            persistent_task_concurrent persistent_task_spanning
+            persistent_common)
+    endif()
 endif()
 SET(OCL_OMP_EXAMPLES_INSTALL_LIST vecadd_openmp vecadd_openmp_t dgemm)
 

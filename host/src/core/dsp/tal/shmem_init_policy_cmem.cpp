@@ -73,7 +73,7 @@ void cmem_init(std::vector<MemoryRange>& ranges)
     int num_Blocks = 0;
     CMEM_getNumBlocks(&num_Blocks);
     if (num_Blocks < CMEM_MIN_BLOCKS)
-        ReportError(ErrorType::Fatal, ErrorKind::CMEMMinBlocks, CMEM_MIN_BLOCKS);
+       ReportError(ErrorType::Fatal, ErrorKind::CMEMMinBlocks, CMEM_MIN_BLOCKS);
 
     CMEM_BlockAttrs pattrs0 = {0, 0};
     CMEM_getBlockAttrs(0, &pattrs0);
@@ -91,12 +91,16 @@ void cmem_init(std::vector<MemoryRange>& ranges)
     params.flags            = CMEM_CACHED;
     params.type             = CMEM_POOL;
 
-    DSPDevicePtr64 alloc_dsp_addr = CMEM_allocPoolPhys2(0, 0, &params);
-
-    if (!alloc_dsp_addr || alloc_dsp_addr != ddr_addr)
-        ReportError(ErrorType::Fatal, ErrorKind::CMEMAllocFromBlockFailed,
-               ddr_size, 0, alloc_dsp_addr);
-
+    /*-------------------------------------------------------------------------
+    * Register alloc CMEM block already allocated by the mct daemon
+    * Note: We need an abort because this error is encountered during platform
+    * construction. Calling exit will call delete on the_platform via
+    * __delete_theplatform. This results in a deadlock as the reference to 
+    * the_platform::Instance() attempts to construct the_platform. Calling
+    * abort() bypasses atexit processing, including __delete_theplatform.
+    *------------------------------------------------------------------------*/
+    if (CMEM_registerAlloc(ddr_addr) == NULL)
+        ReportError(ErrorType::Abort, ErrorKind::DaemonNotRunning);
 
     DSPDevicePtr64 addr1 = ddr_addr;
     uint64_t       size1 = ddr_size;
@@ -112,7 +116,8 @@ void cmem_init(std::vector<MemoryRange>& ranges)
         size1 = ddr_size - size2;
         addr2 = ddr_addr + size1;
 
-        ReportTrace("CMEM splitting into 2 chunks: (0x%llx, %lld MB), (0x%llx, %lld MB)\n",
+        ReportTrace("CMEM splitting into 2 chunks: (0x%llx, %lld MB), "
+                    "(0x%llx, %lld MB)\n",
                     addr1, size1 >> 20, addr2, size2 >> 20);
     }
 
@@ -160,16 +165,15 @@ void cmem_init(std::vector<MemoryRange>& ranges)
             ReportError(ErrorType::Fatal, ErrorKind::CMEMAllocFailed,
                         "On-chip Shared Memory", pattrs1.phys_base);
 
-
         params.type    = CMEM_HEAP;
-        alloc_dsp_addr = CMEM_allocPhys2(1, onchip_shared_size, &params);
-        if (!alloc_dsp_addr || alloc_dsp_addr != onchip_shared_addr)
-            ReportError(ErrorType::Fatal, ErrorKind::CMEMAllocFromBlockFailed,
-                   onchip_shared_size, 0, alloc_dsp_addr);
+
+        /*---------------------------------------------------------------------
+        * Register alloc CMEM block already allocated by the mct daemon
+        *--------------------------------------------------------------------*/
+        CMEM_registerAlloc(onchip_shared_addr);
 
         ranges.emplace_back(onchip_shared_addr, onchip_shared_size,
                             MemoryRange::Kind::CMEM_PERSISTENT,
                             MemoryRange::Location::ONCHIP);
     }
 }
-

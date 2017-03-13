@@ -479,7 +479,7 @@ void WorkitemLoops::FindKernelDim(Function &F)
            /*Params=*/   Int32,
            /*isVarArg=*/ false);
     Function *f_localsize =
-          dyn_cast<Function>(M->getOrInsertFunction("get_local_size", ft));
+          cast<Function>(M->getOrInsertFunction("get_local_size", ft));
     SmallVector<Value *, 4> argsx, argsy, argsz;
     argsx.push_back(ConstantInt::get(Int32, 0));
     lsizeX = CallInst::Create(f_localsize, ArrayRef<Value *>(argsx));
@@ -982,8 +982,8 @@ WorkitemLoops::AddContextRestore
     }
   else if (isa<Instruction>(val))
     {
-      builder.SetInsertPoint(dyn_cast<Instruction>(val));
-      before = dyn_cast<Instruction>(val);
+      builder.SetInsertPoint(cast<Instruction>(val));
+      before = cast<Instruction>(val);
     }
   else 
     {
@@ -1065,7 +1065,7 @@ WorkitemLoops::GetContextArray(llvm::Instruction *instruction)
          unique stack space to all the work-items when its wiloop
          iteration is executed. */
       elementType = 
-        dyn_cast<AllocaInst>(instruction)->getType()->getElementType();
+        cast<AllocaInst>(instruction)->getType()->getElementType();
     } 
   else 
     {
@@ -1189,6 +1189,7 @@ WorkitemLoops::AddContextSaveRestore
           */          
 
           /* PHINodes at region entries are broken down earlier. */
+          assert (phi->getParent() != NULL);
           assert ("Cannot add context restore for a PHI node at the region entry!" &&
                   RegionOfBlock(phi->getParent())->entryBB() != phi->getParent());
 #ifdef DEBUG_WORK_ITEM_LOOPS
@@ -1358,7 +1359,7 @@ WorkitemLoops::genLinearIndex(IRBuilder<> &builder, Function *F)
          /*Params=*/   Int32,
          /*isVarArg=*/ false);
   Function *f_localid =
-        dyn_cast<Function>(M->getOrInsertFunction("get_local_id", ft));
+        cast<Function>(M->getOrInsertFunction("get_local_id", ft));
   Value *lidX = builder.CreateCall(f_localid, ConstantInt::get(Int32, 0));
   Value *lidY=NULL, *lidZ=NULL;
 

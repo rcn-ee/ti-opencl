@@ -50,6 +50,9 @@ AllocasToEntry::AllocasToEntry() : FunctionPass(ID)
 bool
 AllocasToEntry::runOnFunction(Function &F)
 {
+  if (F.empty())
+    return false;
+
   // This solves problem with dynamic stack objects that are 
   // not supported by some targets (TCE).
   Function::iterator I = F.begin();

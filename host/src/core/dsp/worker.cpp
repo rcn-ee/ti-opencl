@@ -34,6 +34,7 @@
 #include "../memobject.h"
 #include "../kernel.h"
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <iostream>
 #include <string.h>
@@ -58,13 +59,7 @@ using namespace Coal;
 
 #define ERR(status, msg) if (status) { printf("OCL ERROR: %s\n", msg); exit(-1); }
 
-#if defined(DEVICE_AM57) || defined(DEVICE_K2G)
-#define MAX_NUM_COMPLETION_PENDING  16
-#elif defined(DEVICE_K2X) || defined(DSPC868X)
-#define MAX_NUM_COMPLETION_PENDING  32
-#else
-#error  MAX_NUM_COMPLETION_PENDING not determined for the platform.
-#endif
+#define MAX_NUM_COMPLETION_PENDING  (16)
 
 /******************************************************************************
 * handle_event_completion
@@ -93,14 +88,13 @@ bool handle_event_completion(DSPDevice *device)
     if (device->stop() && !device->any_complete_pending())  return true;
 
     /*---------------------------------------------------------------------
-    * When we can make mail_from() blocking wait on mpm mailbox (K2X), there
-    * will be no need to mail_query and sleep here.  Stay tuned. (TODO)
-    *--------------------------------------------------------------------*/
+     * mail_query() returns false for non-blocking and true for blocking
+     * mailboxes. We need to sleep between mailbox requests only for
+     * non blocking mailboxes.
+     *--------------------------------------------------------------------*/
     if (! device->mail_query())
     {
-#if defined(DEVICE_K2X) || defined(DSPC868X)
         usleep(1);
-#endif
         return false;
     }
 
@@ -212,10 +206,14 @@ bool handle_event_dispatch(DSPDevice *device)
     *    and will be waiting for mails from DSP.
     *--------------------------------------------------------------------*/
     pthread_mutex_lock(device->get_worker_mutex());
-    while ((t == Event::NDRangeKernel || t == Event::TaskKernel) &&
-           device->num_complete_pending() >= MAX_NUM_COMPLETION_PENDING)
-        pthread_cond_wait(device->get_worker_cond(),
-                          device->get_worker_mutex());
+
+    if (t == Event::NDRangeKernel || t == Event::TaskKernel)
+    {
+        while (device->num_complete_pending() >= MAX_NUM_COMPLETION_PENDING)
+            pthread_cond_wait(device->get_worker_cond(),
+                              device->get_worker_mutex());
+    }
+
     pthread_mutex_unlock(device->get_worker_mutex());
 
     CommandQueue *              queue = 0;
@@ -627,6 +625,8 @@ void *dsp_worker_event_dispatch(void *data)
 
         if (env_sleep >= 0) usleep(env_sleep);
     }
+
+    return NULL;
 }
 
 /******************************************************************************
@@ -657,4 +657,6 @@ void *dsp_worker_event_completion(void *data)
 
         if (env_sleep >= 0) usleep(env_sleep);
     }
+
+    return NULL;
 }

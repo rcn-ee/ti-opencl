@@ -126,8 +126,6 @@ namespace Coal
     {
         ReportTrace("Platform()\n");
 #ifndef _SYS_BIOS
-        p_lock_fd = begin_file_lock_crit_section("/var/lock/opencl");
-
 	    // For now, don't add the CPU device on K2X platforms unless it is
 	    // asserted that we want to enable it (eg. the ooo example)
 	    if (getenv("TI_OCL_CPU_DEVICE_ENABLE") != NULL)
@@ -158,11 +156,6 @@ namespace Coal
 	        delete pobj(p_devices[i]);
 
         p_shmFactory.DestroySharedMemoryProviders();
-
-#ifndef _SYS_BIOS
-        flock(p_lock_fd, LOCK_UN);
-        close(p_lock_fd);
-#endif
     }
 
     cl_uint Platform::getDevices(cl_device_type device_type, 
@@ -229,9 +222,9 @@ namespace Coal
             case CL_PLATFORM_EXTENSIONS:
                 // TODO add cl_khr_icd  when it works
                 if (getenv("TI_OCL_ENABLE_FP64"))
-                    STRING_ASSIGN("cl_khr_byte_addressable_store cl_khr_fp64 cl_ti_msmc_buffers cl_ti_clmalloc")
+                    STRING_ASSIGN("cl_khr_byte_addressable_store cl_khr_fp64 cl_ti_msmc_buffers cl_ti_clmalloc cl_ti_kernel_timeout")
                 else
-                    STRING_ASSIGN("cl_khr_byte_addressable_store cl_ti_msmc_buffers cl_ti_clmalloc cl_khr_icd")
+                    STRING_ASSIGN("cl_khr_byte_addressable_store cl_ti_msmc_buffers cl_ti_clmalloc cl_khr_icd cl_ti_kernel_timeout")
                 break;
 
             case CL_PLATFORM_ICD_SUFFIX_KHR:

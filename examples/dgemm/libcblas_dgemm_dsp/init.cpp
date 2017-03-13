@@ -14,7 +14,7 @@ using namespace std;
 ocl_t ocl = {0,0,0,0,0};
 dgemm_params_t dparams = {0, 0, 0, 0, 0};
 
-static bool SetDgemmParams(Device& device, bool calc_check);
+static void SetDgemmParams(Device& device, bool calc_check);
 
 extern "C" DLL_PUBLIC
 void ocl_init(bool calc_check, int *NUMCOMPUNITS)
@@ -73,7 +73,7 @@ static ulong roundDownPower2(ulong value)
 /*-----------------------------------------------------------------------------
 * Check platform name, set dgemm blocking/tiling parameters accordingly
 *----------------------------------------------------------------------------*/
-bool SetDgemmParams(Device& device, bool calc_check)
+void SetDgemmParams(Device& device, bool calc_check)
 {
    int APanelSz        = 16 << 10;
    int BPanelSz        = 16 << 10;

@@ -442,6 +442,10 @@ bool TIOpenclWorkGroupAggregation::rewrite_ocl_funcs(Function &F)
     for (I = wi_calls.begin(), E = wi_calls.end(); I != E; ++I)
     {
         call = *I;
+
+        if (call->getCalledFunction() == NULL)
+            continue;
+
         string name(call->getCalledFunction()->getName());
 
         if (name == "get_local_id") 
@@ -557,6 +561,8 @@ BasicBlock* TIOpenclWorkGroupAggregation::findExitBlock(Function &F)
             if (!exit) exit = &(*B);
             else assert(false);
         }
+
+    assert (exit != 0);
 
     /*-------------------------------------------------------------------------
     * Split the return off into it's own block
@@ -721,7 +727,8 @@ bool TIOpenclWorkGroupAggregation::implicit_long_conv_use_bif(Function &F)
             if (!isa<SIToFPInst>(cast) && !isa<UIToFPInst>(cast))  continue;
             Type *ty = cast->getType();
             if (ty != FP32 && ty != FP64)  continue;
-            if (cast->getOperand(0)->getType() != Int64)  continue;
+            if (cast->getOperand(0) &&
+                   (cast->getOperand(0)->getType() != Int64))  continue;
             cast_list.push_back(cast);
         }
 
@@ -731,13 +738,13 @@ bool TIOpenclWorkGroupAggregation::implicit_long_conv_use_bif(Function &F)
     Module       *M      = F.getParent();
     FunctionType *l2f_ft = FunctionType::get(FP32, Int64, false);
     FunctionType *l2d_ft = FunctionType::get(FP64, Int64, false);
-    Function     *l2f_f  = dyn_cast<Function>(M->getOrInsertFunction(
+    Function     *l2f_f  = cast<Function>(M->getOrInsertFunction(
                                               "_Z13convert_floatl", l2f_ft));
-    Function     *l2d_f  = dyn_cast<Function>(M->getOrInsertFunction(
+    Function     *l2d_f  = cast<Function>(M->getOrInsertFunction(
                                               "_Z14convert_doublel", l2d_ft));
-    Function     *ul2f_f = dyn_cast<Function>(M->getOrInsertFunction(
+    Function     *ul2f_f = cast<Function>(M->getOrInsertFunction(
                                               "_Z13convert_floatm", l2f_ft));
-    Function     *ul2d_f = dyn_cast<Function>(M->getOrInsertFunction(
+    Function     *ul2d_f = cast<Function>(M->getOrInsertFunction(
                                               "_Z14convert_doublem", l2d_ft));
 
     for (std::list<CastInst*>::iterator I = cast_list.begin(),

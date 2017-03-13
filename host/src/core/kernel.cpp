@@ -56,7 +56,8 @@
 
 using namespace Coal;
 Kernel::Kernel(Program *program)
-: Object(Object::T_Kernel, program), p_has_locals(false), wi_alloca_size(0)
+: Object(Object::T_Kernel, program), p_has_locals(false), wi_alloca_size(0),
+  p_timeout_ms(0)
 {
     // TODO: Say a kernel is attached to the program (that becomes unalterable)
 
@@ -442,6 +443,8 @@ void Kernel::reqdWorkGroupSize(llvm::Module *module, cl_uint dims[3]) const
     for (unsigned int i = 0, e = kernels->getNumOperands(); i != e; ++i){
        llvm::MDNode *kernel_iter = kernels->getOperand(i);
 
+       assert (kernel_iter->getNumOperands() > 0);
+
        /*---------------------------------------------------------------------
        * Each node has only one operand : a llvm::Function
        *--------------------------------------------------------------------*/
@@ -453,6 +456,8 @@ void Kernel::reqdWorkGroupSize(llvm::Module *module, cl_uint dims[3]) const
        if(f->getName().str() != p_name) continue;
        kernel = kernel_iter;
     }
+
+    if (!kernel) return;
 
     unsigned e = kernel->getNumOperands();
     for (unsigned int i=1; i != e; ++i)
@@ -467,13 +472,13 @@ void Kernel::reqdWorkGroupSize(llvm::Module *module, cl_uint dims[3]) const
             (meta_name == "reqd_work_group_size"))
         {
 	    dims[0] = (llvm::cast<llvm::ConstantInt>(
-               llvm::dyn_cast<llvm::ConstantAsMetadata>(
+               llvm::cast<llvm::ConstantAsMetadata>(
                   meta->getOperand(1))->getValue()))->getLimitedValue();
 	    dims[1] = (llvm::cast<llvm::ConstantInt>(
-               llvm::dyn_cast<llvm::ConstantAsMetadata>(
+               llvm::cast<llvm::ConstantAsMetadata>(
                   meta->getOperand(2))->getValue()))->getLimitedValue();
 	    dims[2] = (llvm::cast<llvm::ConstantInt>(
-               llvm::dyn_cast<llvm::ConstantAsMetadata>(
+               llvm::cast<llvm::ConstantAsMetadata>(
                   meta->getOperand(3))->getValue()))->getLimitedValue();
 
             return;

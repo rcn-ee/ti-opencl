@@ -119,6 +119,9 @@ static const std::map<const ErrorKind, const std::string> ErrorStrings =
     {ErrorKind::LostDSP,
      "Communication to a DSP has been lost (likely due to an MMU fault).%s"},
 
+    {ErrorKind::DaemonNotRunning,
+     "The TI Multicore Tools daemon (/usr/bin/ti-mctd) is not running. Re-run application after starting the daemon. Refer User Guide for details."},
+
 };
 
 void tiocl::ReportError(const ErrorType et, const ErrorKind ek, ...)
@@ -127,6 +130,7 @@ void tiocl::ReportError(const ErrorType et, const ErrorKind ek, ...)
 
     switch (et)
     {
+        case ErrorType::Abort:
         case ErrorType::Fatal:
         case ErrorType::FatalNoExit:
             error_format = "TIOCL FATAL: "; break;
@@ -146,12 +150,17 @@ void tiocl::ReportError(const ErrorType et, const ErrorKind ek, ...)
 
     if (et == ErrorType::Fatal)
         exit(EXIT_FAILURE);
+    else if (et == ErrorType::Abort)
+        abort();
 }
 
 #if defined(TRACE_ENABLED)
+#include "../tiocl_thread.h"
 void tiocl::ReportTrace(const char *fmt, ...)
 {
-    std::string trace_fmt = "TIOCL Trace: ";
+    std::string trace_fmt = "TIOCL Trace: (";
+    trace_fmt += std::to_string(pthread_self());
+    trace_fmt += ") ";
     trace_fmt += fmt;
     va_list ap;
     va_start(ap, fmt);

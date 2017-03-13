@@ -140,7 +140,7 @@ namespace pocl {
            i != e; ++i)
         {
           if (llvm::isa<Barrier>(i) &&
-              llvm::dyn_cast<llvm::CallInst>(i)->getCalledFunction()->getName()
+              llvm::cast<llvm::CallInst>(i)->getCalledFunction()->getName()
                                                    == BARRIER_FUNCTION_NAME)
             return true;
         }

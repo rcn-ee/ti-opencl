@@ -8,12 +8,15 @@ if (${BUILD_TARGET} MATCHES "DSPC868x")
     MESSAGE(STATUS "Build Target Is C6678")
 elseif (${BUILD_TARGET} MATCHES "ARM_K2H")
     set(K2X_BUILD on)
+    set(K2H_BUILD on)
     MESSAGE(STATUS "Build Target Is K2x (Hawking)")
 elseif (${BUILD_TARGET} MATCHES "ARM_K2L")
     set(K2X_BUILD on)
+    set(K2L_BUILD on)
     MESSAGE(STATUS "Build Target Is K2x (Lamarr)")
 elseif (${BUILD_TARGET} MATCHES "ARM_K2E")
     set(K2X_BUILD on)
+    set(K2E_BUILD on)
     MESSAGE(STATUS "Build Target Is K2x (Edison)")
 elseif (${BUILD_TARGET} MATCHES "ARM_K2G")
     set(K2G_BUILD on)
@@ -127,11 +130,7 @@ set(OCL_EXAMPLES_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../examples)
 endif()
 
 if (NOT OCL_MONITOR_DIR)
-    if (K2X_BUILD OR C6678_BUILD)
      set(OCL_MONITOR_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../monitor)
-    else()
-     set(OCL_MONITOR_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../monitor_vayu)
-    endif()
 endif()
 
 if (NOT OCL_BUILTINS_DIR)
@@ -172,6 +171,10 @@ if (${BUILD_OUTPUT} STREQUAL "all")
   add_subdirectory(${OCL_MONITOR_DIR} ${CMAKE_CURRENT_BINARY_DIR}/monitor)
 endif()
 
+if (NOT (${BUILD_OS} MATCHES "SYS_BIOS"))
+  add_subdirectory(mct-daemon)
+endif()
+
 if (${BUILD_OUTPUT} STREQUAL "all" OR ${BUILD_OUTPUT} STREQUAL "lib")
   add_subdirectory(src)
   add_subdirectory(util)
@@ -179,11 +182,11 @@ if (${BUILD_OUTPUT} STREQUAL "all" OR ${BUILD_OUTPUT} STREQUAL "lib")
 
   if (NOT (${BUILD_OS} MATCHES "SYS_BIOS"))
     install(DIRECTORY DESTINATION /usr/share/doc/ti-opencl ${OCL_DPERMS})
-    install(FILES opencl-manifest.html  DESTINATION /usr/share/doc/ti-opencl 
+    install(FILES ../opencl-manifest.html  DESTINATION /usr/share/doc/ti-opencl
                                                                  ${OCL_FPERMS})
   else()
     install(DIRECTORY DESTINATION ${DESTDIR}/../../../doc  ${OCL_DPERMS})
-    install(FILES opencl-manifest.html  DESTINATION ${DESTDIR}/../../../doc
+    install(FILES ../opencl-manifest.html  DESTINATION ${DESTDIR}/../../../doc
                                                                  ${OCL_FPERMS})
   endif()
 

@@ -50,6 +50,11 @@ class DSPProgram : public DeviceProgram
         DSPProgram(DSPDevice *device, Program *program);
         ~DSPProgram();
 
+        // Disable default constructor, copy constuction and assignment
+        DSPProgram()                             =delete;
+        DSPProgram(const DSPProgram&)            =delete;
+        DSPProgram& operator=(const DSPProgram&) =delete;
+
         bool linkStdLib() const;
         const char* outfile_name() const;
         void createOptimizationPasses(llvm::PassManager *manager,

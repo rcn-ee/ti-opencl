@@ -16,9 +16,11 @@ The key to the codes in the table are in subsequent tables.
 ================== ======= =============== ============== ============ ========= ========================= ==================
 Name               Purpose Execute Model   Kernel Compile Buffer Model Profiling Extensions                Techniques
 ================== ======= =============== ============== ============ ========= ========================= ==================
+abort_exit         simp    ndr, iot, oot   B/E            read                   abort,exit
 blas               simp    iot             B/F            map                    C
 ccode              simp    1wi             S/F            read                   C
-dgemm              perf    iot             S/F            host         host      C, omp, msmc, edma, cache
+conv1d             perf    ndr,1wi         B/E            map          host      C, edma                   async, local, query, vec
+dgemm              perf    iot             B/E            host         host      C, omp, msmc, edma, cache
 dspheap            simp    1wi             B/F                                   dspheap, msmc             functor
 dsplib_fft         simp    iot             S/E            read         event     C
 edmamgr            simp    1wi             B/E            read                   C, edma
@@ -34,8 +36,9 @@ ooo_callback       simp    oot             S/E            read         host     
 ooo_map            simp    oot             S/E            map          host                                event, native
 openmpbench_C_v3   info    iot             B/F            read                   C, omp
 platforms          info                                   query
-sgemm              perf    1wi             S/F            map          host      C, msmc, edma, cache      local, vec
+sgemm              perf    1wi             B/E            map          host      C, msmc, edma, cache      local, vec
 simple             simp    ndr             S/E            read                                             functor
+timeout            simp    ndr,iot,oot     B/E            read                   timeout
 vecadd             simp    ndr             S/E            host                                             vec
 vecadd_mpax        simp    ndr             S/E            map                                              extMem, query, vec
 vecadd_mpax_openmp simp    iot             S/F            map          event     C, omp                    extMem, query
@@ -94,6 +97,9 @@ msmc       Buffers created in on-chip MSMC memory are used
 edma       Kernels use the EdmaMgr builtin functions for DMA control
 cache      Kernels use the cache re-configuration builtin functions
 dspheap    Kernels create user defined heaps on the DSP
+abort      Kernels call abort() to terminate execution
+exit       Kernels call exit() to terminate execution
+timeout    Kernels terminate if the set timeout limit expires
 ========== ============================================================
 
 ========== ===========================================================================================
@@ -309,6 +315,19 @@ This example illustrates how to efficiently offload the CBLAS DGEMM routine
 obtained on the DSP are compared against a cblas_dgemm call on the ARM. The
 example reports performance in GFlops for both DSP and ARM variants.
 
+.. _conv1d-example:
+
+conv1d example
+===============
+
+This example illustrates step by step how to optimize a 1D convolution
+kernel applied to 2D data.  The results obtained on the DSP are compared
+against the same computation performed on the ARM.  Optimization techniques
+include software pipelining improvement, SIMDization, and asynchronous
+data movement with double buffering into faster memory to overlap computation
+with data movement.  Details can be found in
+:doc:`../optimization/example_conv1d`.
+
 .. _edmamgr-example:
 
 edmamgr example
@@ -326,6 +345,28 @@ dspheap example
 This application illustrates how to use the user defined heaps feature to allow 
 C code called from OpenCL C code to define custom and use custom heaps on the DSP
 devices.  See :doc:`../memory/dsp-malloc-extension`
+
+.. _abort_exit-example:
+
+abort_exit example
+==================
+This example illustrates how to call abort() or exit() in kernel code
+for early kernel termination, and how to check corresponding kernel
+event status to determine if abort() or exit() has been called.
+Two extended kernel event status are ``CL_ERROR_KERNEL_ABORT_TI`` and
+``CL_ERROR_KERNEL_EXIT_TI``.
+Note that these two functions can be called from either OpenCL C code
+or standard C code.
+
+.. _timeout-example:
+
+timeout example
+=================
+This example illustrates how to query the OpenCL device queue properties
+for timeout extension, how to create a command queue with timeout
+property, how to set a timeout on a kernel, and how to query kernel
+event status to determine if a timeout has occurred.  Details of timeout
+extension can be found in :doc:`../extensions/kernel-timeout`.
 
 .. note:: 
 

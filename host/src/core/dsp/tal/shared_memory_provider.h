@@ -33,7 +33,7 @@
 #include "u_lockable.h"
 #include "core/shared_memory_interface.h"
 #include "memory_provider_factory.h"
-#include "dspheap.h"
+#include "../../tiocl_types.h"
 
 #pragma once
 
@@ -49,9 +49,10 @@ typedef std::map<void*, PhysAddrSizeFlagsTriple>           clMallocMapping;
  *           ranges are discovered
  * RWPolicy: Handles variations in Read/Write and Map/Unmap functions
  ***************************************************************************/
-template <class MIPolicy, class RWPolicy>
+template <class MIPolicy, class RWPolicy, class HeapPolicy>
 class SharedMemoryProvider : public SharedMemory,
-                             private MIPolicy, private RWPolicy,
+                             private MIPolicy, private RWPolicy, 
+                             public HeapPolicy,
                              public Lockable
 {
 public:
@@ -95,9 +96,6 @@ private:
     std::vector<MemoryRange>     memory_ranges_;
     tiocl::MemoryProviderFactory mp_factory_;
 
-    dspheap            ddr_heap1_;  // persistently mapped off-chip memory
-    dspheap            ddr_heap2_;  // ondemand mapped off-chip memory
-    dspheap            msmc_heap_;  // on-chip memory
     clMallocMapping    clMalloc_mapping_;
 };
 

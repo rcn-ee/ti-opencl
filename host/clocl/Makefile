@@ -25,6 +25,7 @@ ifneq (,$(findstring 86, $(UNAME_M)))
         LLVM_CONFIG_NAME = llvm-config-host
         HOST_USR_INCLUDE = -idirafter/usr/include
    else ifeq ($(findstring x86, $(MAKECMDGOALS)), x86) 
+        CXX = g++-5
         TARGET := x86
         LLVM_DIR = $(X86_LLVM_DIR)
         LLVM_CONFIG_NAME = llvm-config
@@ -55,13 +56,12 @@ WGADIR          = ../src/core/dsp
 POCLDIR         = ../src/llvmopencl
 OBJS        = AllocasToEntry.o BarrierBlock.o BarrierTailReplication.o \
               BreakConstantGEPs.o CanonicalizeBarriers.o DebugHelpers.o \
-              Flatten.o GenerateHeader.o ImplicitLoopBarriers.o \
-              ImplicitConditionalBarriers.o IsolateRegions.o \
+              Flatten.o GenerateHeader.o IsolateRegions.o \
               Kernel.o LLVMUtils.o LoopBarriers.o ParallelRegion.o \
               PHIsToAllocas.o TargetAddressSpaces.o \
-              VariableUniformityAnalysis.o WIVectorize.o Workgroup.o \
+              VariableUniformityAnalysis.o Workgroup.o \
               WorkItemAliasAnalysis.o WorkitemHandler.o \
-              WorkitemHandlerChooser.o WorkitemLoops.o WorkitemReplication.o\
+              WorkitemHandlerChooser.o WorkitemLoops.o \
               SimplifyShuffleBIFCall.o PrivatizationAliasAnalysis.o \
               main.o compiler.o wga.o program.o file_manip.o options.o \
               util.o
@@ -70,6 +70,8 @@ OBJS := $(patsubst %.o, $(TARGET)/%.o, $(OBJS))
 
 CXXFLAGS := $(LLVM_CXXFLAGS) -I$(UTILDIR) -I$(WGADIR) -I$(POCLDIR) \
             $(HOST_USR_INCLUDE) -O3 -fexceptions -std=c++0x \
+	    -DBOOST_SYSTEM_NO_DEPRECATED=1 \
+	    -DBOOST_SYSTEM_NO_LIB=1 \
             -D_PRODUCT_VERSION=$(_PRODUCT_VERSION) $(CXXFLAGS) 
 
 LIBS      = $(CLANG_LIBS)  $(LLVM_LIBS)

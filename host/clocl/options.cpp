@@ -268,7 +268,8 @@ void process_options(int argc, char **argv)
         ver[i] = atoi(token);
         if (ver[i] > 99) ver[i] = 99;  // report error?
     }
-    sprintf(tiocl_ver, " -D__TI_OCL_VERSION=0x%02d%02d%02d%02dU",
+    snprintf(tiocl_ver, sizeof(tiocl_ver),
+            " -D__TI_OCL_VERSION=0x%02d%02d%02d%02dU",
             ver[0], ver[1], ver[2], ver[3]);
     cl_incdef += tiocl_ver;
     // Otherwise, clang at -O0 will throw those inline function away

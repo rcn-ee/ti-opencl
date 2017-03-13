@@ -87,7 +87,7 @@ PHIsToAllocas::runOnFunction(Function &F) {
   for (InstructionVec::iterator i = PHIs.begin(); i != PHIs.end();
        ++i) {
       Instruction *instr = *i;
-      BreakPHIToAllocas(dyn_cast<PHINode>(instr));
+      BreakPHIToAllocas(cast<PHINode>(instr));
       changed = true;
   }  
   return changed;

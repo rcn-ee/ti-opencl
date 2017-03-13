@@ -31,7 +31,7 @@ kernel void oclEcpy(global const char* src, global char* dst, int size)
 {
    int offset  = get_group_id(0) * size;
 
-   EdmaMgr_Handle ev = EdmaMgr_alloc(1);
+   EdmaMgr_Handle ev = __ocl_EdmaMgr_alloc_intrakernel(1);
    if (!ev) { printf("Failed to alloc edma handle.\n"); return; }
 
    EdmaMgr_copy1D1D(ev, (void*)(src+offset), (void*)(dst+offset), size);

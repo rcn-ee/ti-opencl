@@ -171,6 +171,9 @@ int main (int argc, char *argv[])
         Q.finish ();
 
         output_data (ary1, ELEMENTS, "dataOut.txt");
+
+        __free_ddr(ary1);
+        __free_ddr(ary2);
     }
 
     /*----------------------------------------------------------------------

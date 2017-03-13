@@ -74,7 +74,7 @@ void sgemm(
     int kCntPrev, nCntPrev, mCntPrev;
 #endif
     int innerIndex_m, innerIndex_n;
-    int flagLastK, flagLastM, flagLastN;
+    int flagLastK, flagLastM, flagLastN, flagLastMXfers, flagLastNXfers;
     float * restrict ptrA, * restrict ptrB, * restrict ptrC;
     float * restrict ptrASeg1, * restrict ptrASeg2;
     float * restrict ptrBSeg1, * restrict ptrBSeg2;
@@ -126,8 +126,8 @@ void sgemm(
 #if USE_EDMA
     /* Initialize EDMA Manager */
     EdmaMgr_Handle chan0, chan1;
-    if (pMsmc != NULL)  chan0 = EdmaMgr_alloc(1);
-    chan1 = EdmaMgr_alloc(1);
+    if (pMsmc != NULL)  chan0 = __ocl_EdmaMgr_alloc_intrakernel(1);
+    chan1 = __ocl_EdmaMgr_alloc_intrakernel(1);
     if ((pMsmc != NULL && !chan0) || !chan1) 
     {  
         printf("Failed to alloc edma handle.\n");
@@ -185,8 +185,11 @@ void sgemm(
         {
             mCnt = ((m-mIndex) < MPARTITION) ? (m-mIndex) : MPARTITION;
             flagLastM = ((mIndex+MPARTITION)<m) ? 0 : 1;
+            flagLastMXfers = ((mIndex+2*MPARTITION)<m) ? 0 : 1;
             mCntNext = ((m-mIndex-MPARTITION) < MPARTITION) ?
                        (m-mIndex-MPARTITION) : MPARTITION;
+            mCntNext = (mCntNext <= 0) ? (m < MPARTITION ? m : MPARTITION)
+                                       :  mCntNext;
             if(flagLastM) mCntNext = (m < MPARTITION) ? m : MPARTITION;
 
             // bring in A into MSMC SRAM (a new parallel transfer)
@@ -215,7 +218,7 @@ void sgemm(
             {
                 if ((!flagLastM) || (!flagLastK))
                 {
-                    if (mIndex == 0)
+                    if (mIndex == 0 || flagLastMXfers)
                     {
 #if USE_EDMA
                         EdmaMgr_copy2D2DSep(chan0,
@@ -280,7 +283,10 @@ void sgemm(
             {
                 nCnt = ((n-nIndex) < NPARTITION) ? (n-nIndex) : NPARTITION;
                 nCntNext = ((n-nIndex-NPARTITION) < NPARTITION) ? (n-nIndex-NPARTITION) : NPARTITION;
+                nCntNext = (nCntNext <= 0) ? (n < NPARTITION ? n : NPARTITION)
+                                           : nCntNext;
                 flagLastN = ((nIndex+NPARTITION)<n) ? 0 : 1;
+                flagLastNXfers = ((nIndex+2*NPARTITION)<n) ? 0 : 1;
                 if(flagLastN) nCntNext = (n < NPARTITION) ? n : NPARTITION;
 
                 // bring in B into L1 SRAM (a new parallel transfer)
@@ -297,7 +303,7 @@ void sgemm(
                     nXferIndex = (!flagLastN) ? nXferIndex: kIndex;
                     nXferIndex = ((!flagLastN) || (!flagLastM)) ? nXferIndex: (kIndex+kCnt);
                     ptrB = (indexBNext == 0) ? ptrBSeg1: ptrBSeg2;
-                    if (nIndex == 0)
+                    if (nIndex == 0 || flagLastNXfers)
                     {
 #if USE_EDMA
                         EdmaMgr_copy2D2DSep(chan1,

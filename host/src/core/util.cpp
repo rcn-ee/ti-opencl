@@ -151,9 +151,15 @@ bool isKernelFunction(llvm::Function &F)
     llvm::NamedMDNode *ks = F.getParent()->getNamedMetadata("opencl.kernels");
     if (ks == NULL)  return false;
     for (unsigned int i = 0; i < ks->getNumOperands(); ++i)
-        if (llvm::Value *value = dyn_cast<llvm::ValueAsMetadata>(ks->getOperand(i)->getOperand(0))->getValue())
-            if (llvm::cast<llvm::Function>(value) == &F)
-                return true;
+    {
+        MDNode *ker = ks->getOperand(i);
+
+        if (ker->getOperand(0))
+            if (llvm::Value *value =
+                        dyn_cast<llvm::ValueAsMetadata>(ker->getOperand(0))->getValue())
+                if (llvm::cast<llvm::Function>(value) == &F)
+                    return true;
+    }
     return false;
 }
 
@@ -167,6 +173,9 @@ bool getReqdWGSize(llvm::Function &F, int wgsizes[3])
     for (unsigned int i = 0; i < ks->getNumOperands(); ++i)
     {
         MDNode *ker = ks->getOperand(i);
+
+        assert (ker->getNumOperands() > 0);
+
         if (llvm::Value *value = dyn_cast<llvm::ValueAsMetadata>(ker->getOperand(0))->getValue())
         {
             if (llvm::cast<llvm::Function>(value) == &F)

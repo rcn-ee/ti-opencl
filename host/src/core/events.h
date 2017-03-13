@@ -577,6 +577,11 @@ class NativeKernelEvent : public Event
                           cl_int *errcode_ret);
         ~NativeKernelEvent();
 
+        // Disable default constructor, copy constuction and assignment
+        NativeKernelEvent()                                    =delete;
+        NativeKernelEvent(const NativeKernelEvent&)            =delete;
+        NativeKernelEvent& operator=(const NativeKernelEvent&) =delete;
+
         Type type() const;      /*!< \brief Say the event is a \c Coal::Event::NativeKernel one */
 
         void *function() const; /*!< \brief Host function to call */
@@ -613,8 +618,11 @@ class KernelEvent : public Event
 
         virtual Type type() const;                    /*!< \brief Say the event is a \c Coal::Event::NDRangeKernel one */
 
+        cl_uint getTimeout() const { return p_timeout_ms; }
+
     private:
         cl_uint p_work_dim;
+        cl_uint p_timeout_ms;
         size_t p_global_work_offset[MAX_WORK_DIMS],
                p_global_work_size[MAX_WORK_DIMS],
                p_local_work_size[MAX_WORK_DIMS],
