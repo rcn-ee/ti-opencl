@@ -122,7 +122,7 @@ int main(int argc, char *argv[])
      cl_ulong gmem_size = 0;
      cl_ulong gmem_size_ext1 = 0;
      cl_ulong gmem_size_ext2 = 0;
-     devices[d].getInfo(CL_DEVICE_GLOBAL_MEM_SIZE, &gmem_size);
+     devices[d].getInfo(CL_DEVICE_MAX_MEM_ALLOC_SIZE, &gmem_size);
      try
      {
         devices[d].getInfo(CL_DEVICE_GLOBAL_EXT1_MEM_SIZE_TI, &gmem_size_ext1);

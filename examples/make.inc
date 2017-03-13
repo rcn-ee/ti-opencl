@@ -2,7 +2,7 @@
 # ----------------------------------------------------------------------------
 # Used by persistent_* examples
 # ----------------------------------------------------------------------------
-PRSDK_INSTALL_PATH ?= /cgnas/ti-processor-sdk-rtos-am57xx-evm-03.02.00.05-release
+PRSDK_INSTALL_PATH     ?= /cgnas/ti-processor-sdk-rtos-am57xx-evm-03.03.00.01-20170305
 XDC_DIR                ?= $(wildcard $(PRSDK_INSTALL_PATH)/xdc*)/packages
 BIOS_DIR               ?= $(wildcard $(PRSDK_INSTALL_PATH)/bios*)/packages
 IPC_DIR                ?= $(wildcard $(PRSDK_INSTALL_PATH)/ipc*)/packages
