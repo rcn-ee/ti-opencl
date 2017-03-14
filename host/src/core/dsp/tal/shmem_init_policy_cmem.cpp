@@ -138,9 +138,6 @@ void cmem_init(std::vector<MemoryRange>& ranges)
     // TODO: Define a separate region in the dts file for use by monitor
     addr1 += RESERVED_CMEM_SIZE;
     size1 -= RESERVED_CMEM_SIZE;
-
-    // Also adjust for DSP virtual to physical translation
-    addr1 = addr1 - AM57_DSP_V2P_OFFSET;
     #endif
 
     ranges.emplace_back(addr1, size1,

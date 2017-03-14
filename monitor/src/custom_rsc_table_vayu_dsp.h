@@ -117,8 +117,11 @@
 #define DSP_MEM_DDR_SIZE        (SZ_1M * 5)
 
 // CMEM buffers mapped by MMU to PHYS_MEM_IOBUFS
-#define DSP_MEM_IOBUFS          0x80000000
-#define DSP_MEM_IOBUFS_SIZE     (SZ_1M * 1023)
+// If DSP_MEM_IOBUFS is modified, corresponding changes must be made
+// to  DDR3_NC, DDR3_STACK and DDR3_HEAP in am57x/Platform.xdc
+#define PHYS_MEM_IOBUFS         0xA0000000
+#define DSP_MEM_IOBUFS          PHYS_MEM_IOBUFS
+#define DSP_MEM_IOBUFS_SIZE     (SZ_1M * 256)
 
 // Must be marked non-cached by monitor
 #define DSP_MEM_IPC_VRING       0xFFF00000
@@ -140,7 +143,6 @@
 #elif DSP_CORE_ID == 1
 #define PHYS_MEM_IPC_VRING      0x9F000000
 #endif
-#define PHYS_MEM_IOBUFS         0xA0000000
 
 /*
  * Sizes of the virtqueues (expressed in number of buffers supported,

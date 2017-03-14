@@ -125,11 +125,7 @@ void CMEMMapPolicyPersistent::Configure(DSPDevicePtr64 dsp_addr, uint64_t size)
 
     DSPDevicePtr64 cmem_addr = dsp_addr_;
 
-#if defined (DEVICE_AM57)
-    // Undo the adjustment performed in cmem_init before CMEM_map
-    if (dsp_addr_ >= AM57_DSP_VIRT_ADDR)
-        cmem_addr = dsp_addr_ + AM57_DSP_V2P_OFFSET;
-#else
+#if !defined (DEVICE_AM57)
     if (dsp_addr_ >= 0x80000000 && dsp_addr_ < 0xFFFFFFFF)
         cmem_addr = dsp_addr_ - 0x80000000 + 0x800000000ULL;
 #endif
@@ -159,8 +155,9 @@ CMEMMapPolicyPersistent::~CMEMMapPolicyPersistent()
     DSPDevicePtr64 cmem_addr = dsp_addr_;
 
 #if defined (DEVICE_AM57)
-    if (dsp_addr_ >= AM57_DSP_VIRT_ADDR)
-        cmem_addr = dsp_addr_ - RESERVED_CMEM_SIZE + AM57_DSP_V2P_OFFSET;
+    // Do not subtract RESERVED_CMEM_SIZE for OCMC CMEM block
+    if (dsp_addr_ > MSMC_OCL_END_ADDR)
+        cmem_addr = dsp_addr_ - RESERVED_CMEM_SIZE;
 #else
     if (dsp_addr_ >= 0x80000000 && dsp_addr_ < 0xFFFFFFFF)
         cmem_addr = dsp_addr_ - 0x80000000 + 0x800000000ULL;
