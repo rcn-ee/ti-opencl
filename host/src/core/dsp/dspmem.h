@@ -59,15 +59,6 @@
  *****************************************************************************/
 #define RESERVED_CMEM_SIZE      (0x02000000)
 
-#if !defined (DEVICE_AM57)
-#define MSMC_OCL_START_ADDR		0x0C000000
-#define MSMC_OCL_END_ADDR		0x0C600000
-#else
-#define MSMC_OCL_START_ADDR		0x40300000
-#define MSMC_OCL_END_ADDR		0x40600000
-#endif
-
-
 #define ROUNDUP(val, pow2)   (((val) + (pow2) - 1) & ~((pow2) - 1))
 #define MIN_BLOCK_SIZE                 128
 #define MIN_CMEM_ONDEMAND_BLOCK_SIZE  4096
