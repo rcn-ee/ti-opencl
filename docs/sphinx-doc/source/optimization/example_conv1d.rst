@@ -2,6 +2,9 @@
 Example: Optimizing 1D convolution kernel
 *****************************************
 
+.. note::
+   This example is available in Processor SDK version >= 3.3
+
 Overview
 ========
 In this :ref:`conv1d-example` shipped with OpenCL product, we show how to

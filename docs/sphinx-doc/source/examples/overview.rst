@@ -328,6 +328,10 @@ data movement with double buffering into faster memory to overlap computation
 with data movement.  Details can be found in
 :doc:`../optimization/example_conv1d`.
 
+.. note::
+
+   The conv1d example is available in Processor SDK version >= 3.3.
+
 .. _edmamgr-example:
 
 edmamgr example
