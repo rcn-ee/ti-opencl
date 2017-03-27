@@ -159,7 +159,7 @@ The 'mandelbrot_native' example is non-OpenCL native implementation (no
 dispatch to the DSPs) that can be used for comparison purposes. It uses OpenMP
 for dispatch to each ARM core. Note: The display of the resulting
 Mandelbrot images is currently disabled when run on the default EVM Linux
-file system included in the MCSDK. Instead it will output frame information. 
+file system included in the Processor SDK. Instead it will output frame information. 
 
 .. _ccode-example:
 

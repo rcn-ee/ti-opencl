@@ -79,6 +79,9 @@ static const std::map<const ErrorKind, const std::string> ErrorStrings =
     {ErrorKind::InvalidPointerToClFree,
      "Invalid pointer %p to clFree"},
 
+    {ErrorKind::InvalidPointerToFree,
+     "Invalid pointer %p to %s"},
+
     {ErrorKind::ELFLibraryInitFailed,
      "Failed to initialize DSP binary symbol reader"},
 

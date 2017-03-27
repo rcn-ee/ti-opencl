@@ -142,16 +142,19 @@ void SharedMemoryProvider<MIPolicy, RWPolicy, HeapPolicy>::
 FreeGlobal(uint64_t addr)
 {
     ReportTrace("FreeGlobal(0x%llx)\n", addr);
-    if (addr < DSP_36BIT_ADDR)
+    if (HeapPolicy::ddr_heap1_->contains(addr))
     {
         HeapPolicy::ddr_heap1_->free(addr);
         dsptop_ddr_fixed();
     }
-    else
+    else if (HeapPolicy::ddr_heap2_->contains(addr))
     {
         HeapPolicy::ddr_heap2_->free(addr);
         dsptop_ddr_extended();
     }
+    else
+        ReportError(ErrorType::Fatal, ErrorKind::InvalidPointerToFree,
+                    addr, "FreeGlobal");
 }
 
 template <class MIPolicy, class RWPolicy, class HeapPolicy>
@@ -165,7 +168,8 @@ FreeMSMCorGlobal(uint64_t addr)
              HeapPolicy::ddr_heap2_->contains(addr) )
         FreeGlobal(addr);
     else
-        ReportError(ErrorType::Fatal, ErrorKind::InvalidPointerToClFree, addr);
+        ReportError(ErrorType::Fatal, ErrorKind::InvalidPointerToFree,
+                    addr, "FreeMSMCorGlobal");
 }
 
 template <class MIPolicy, class RWPolicy, class HeapPolicy>

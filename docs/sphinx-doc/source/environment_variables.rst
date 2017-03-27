@@ -105,6 +105,11 @@ These environment variables can be used to control OpenCL behavior and provide v
     DDR memory. If this environment variable is set, kernel related code and
     global data is allocated out of MSMC memory. 
 
+    ..Warning::
+
+        Rarely used K2x only feature, will be deprecated starting with OpenCL version 1.1.13.0.
+
+
 .. envvar::  TI_OCL_CPU_DEVICE_ENABLE   
 
     Currently, OpenCL ARM CPU devices only support native kernels (see the

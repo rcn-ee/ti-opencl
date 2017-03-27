@@ -47,6 +47,7 @@ enum class ErrorKind
     CMEMAllocFailed,
     CMEMAllocFromBlockFailed,
     InvalidPointerToClFree,
+    InvalidPointerToFree,
     ELFLibraryInitFailed,
     ELFBeginFailed,
     ELFSymbolAddressNotCached,

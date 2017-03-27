@@ -90,7 +90,6 @@ class DSPDevice : public DeviceInterface, public Lockable
         unsigned char dspID() const;
 
         bool addr_is_l2  (DSPDevicePtr addr) const ;
-        bool addr_is_msmc(DSPDevicePtr addr) const ;
 
         DSPDevicePtr   get_L2_extent(uint32_t &size);
 

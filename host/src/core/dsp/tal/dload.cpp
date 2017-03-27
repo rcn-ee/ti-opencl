@@ -143,11 +143,6 @@ void DLOAD::SetProgramLoadAddress(DSPDevicePtr address)
 extern "C"
 {
 
-static bool load_kernels_onchip()
-{
-   return (getenv("TI_OCL_LOAD_KERNELS_ONCHIP") != NULL);
-}
-
 /*****************************************************************************/
 /* DLIF_ALLOCATE() - Return the load address of the segment/section          */
 /*      described in its parameters and record the run address in            */
@@ -167,8 +162,6 @@ BOOL DLIF_allocate(void* client_handle, struct DLOAD_MEMORY_REQUEST *targ_req)
 
    if (device->addr_is_l2(obj_desc->target_address))
         addr = obj_desc->target_address; // do not allocate L2
-   else if (device->addr_is_msmc(obj_desc->target_address) || load_kernels_onchip())
-        addr = (uint32_t)shm->AllocateMSMC(obj_desc->memsz_in_bytes);
    else addr = (uint32_t)shm->AllocateGlobal(obj_desc->memsz_in_bytes, true);
 
 #if DEBUG
@@ -198,8 +191,6 @@ BOOL DLIF_release(void* client_handle, struct DLOAD_MEMORY_SEGMENT* ptr)
 
    if (device->addr_is_l2(ptr->target_address))
         ; // local was not allocated
-   else if (device->addr_is_msmc(ptr->target_address) || load_kernels_onchip())
-        shm->FreeMSMC((DSPDevicePtr)ptr->target_address);
    else shm->FreeGlobal((DSPDevicePtr)ptr->target_address);
 
 #if DEBUG

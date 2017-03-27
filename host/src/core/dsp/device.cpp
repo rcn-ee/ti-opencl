@@ -1111,11 +1111,10 @@ cl_int DSPDevice::info(cl_device_info param_name,
 }
 
 bool DSPDevice::addr_is_l2  (DSPDevicePtr addr)const 
-    { return (addr >> 20 == 0x008); }
-
-// TODO: Fix msmc address for AM57
-bool DSPDevice::addr_is_msmc(DSPDevicePtr addr)const 
-    { return (addr >> 24 == 0x0C); }
+{
+    return (addr >= p_addr_local_mem &&
+            addr <  (p_addr_local_mem + p_size_local_mem));
+}
 
 void dump_hex(char *addr, int bytes)
 {
