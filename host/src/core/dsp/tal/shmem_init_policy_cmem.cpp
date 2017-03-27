@@ -63,6 +63,16 @@ void cmem_init(std::vector<MemoryRange>& ranges)
 {
     const int CMEM_MIN_BLOCKS = 1;
 
+    // On AM57, reserve The first 32MB for the monitor.  We use this memory
+    // for a shared heap and nocache DDR memory.
+    // TODO: Define a separate region in the dts file for use by monitor
+    const int CMEM_ADJUST =
+        #if defined (DEVICE_AM57)
+        RESERVED_CMEM_SIZE;
+        #else
+        0;
+        #endif
+
     // Initialize the CMEM module
     if (CMEM_init() == -1)
         ReportError(ErrorType::Fatal, ErrorKind::CMEMInitFailed);
@@ -132,17 +142,13 @@ void cmem_init(std::vector<MemoryRange>& ranges)
             size1 = ddr_size_limit;
     }
 
-    #if defined (DEVICE_AM57)
-    // On AM57, reserve The first 32MB for the monitor.  We use this memory
-    // for a shared heap and nocache DDR memory.
-    // TODO: Define a separate region in the dts file for use by monitor
-    addr1 += RESERVED_CMEM_SIZE;
-    size1 -= RESERVED_CMEM_SIZE;
-    #endif
+    addr1 += CMEM_ADJUST;
+    size1 -= CMEM_ADJUST;
 
     ranges.emplace_back(addr1, size1,
                         MemoryRange::Kind::CMEM_PERSISTENT,
-                        MemoryRange::Location::OFFCHIP);
+                        MemoryRange::Location::OFFCHIP,
+                        CMEM_ADJUST);
 
     if (size2 > 0)
         ranges.emplace_back(addr2, size2,
@@ -157,10 +163,6 @@ void cmem_init(std::vector<MemoryRange>& ranges)
 
         DSPDevicePtr64 onchip_shared_addr = pattrs1.phys_base;
         uint64_t       onchip_shared_size = pattrs1.size;
-        if (onchip_shared_addr < MSMC_OCL_START_ADDR ||
-            onchip_shared_addr >= MSMC_OCL_END_ADDR)
-            ReportError(ErrorType::Fatal, ErrorKind::CMEMAllocFailed,
-                        "On-chip Shared Memory", pattrs1.phys_base);
 
         params.type    = CMEM_HEAP;
 

@@ -14,13 +14,15 @@ public:
                       RTOS_HOSTMEM };
     enum class Location {ONCHIP, OFFCHIP};
 
-    MemoryRange(DSPDevicePtr64 a, uint64_t sz, Kind k, Location l):
-                start(a), size(sz), kind(k), loc(l)
+    MemoryRange(DSPDevicePtr64 a, uint64_t sz, Kind k, Location l,
+                uint64_t adjust=0):
+                start(a), size(sz), kind(k), loc(l), start_adjust(adjust)
     {}
 
-    DSPDevicePtr64 GetBase() const { return start; }
-    uint64_t       GetSize() const { return size; }
-    Kind           GetKind() const { return kind; }
+    DSPDevicePtr64 GetBase()     const { return start; }
+    uint64_t       GetAdjust()   const { return start_adjust; }
+    uint64_t       GetSize()     const { return size; }
+    Kind           GetKind()     const { return kind; }
     Location       GetLocation() const { return loc; }
 
     bool IsAddressInRange(DSPDevicePtr64 addr) const {
@@ -32,6 +34,7 @@ public:
 
 private:
     DSPDevicePtr64 start;
+    uint64_t       start_adjust;
     uint64_t       size;
     Kind           kind;
     Location       loc;

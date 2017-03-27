@@ -156,6 +156,20 @@ FreeGlobal(uint64_t addr)
 
 template <class MIPolicy, class RWPolicy, class HeapPolicy>
 void SharedMemoryProvider<MIPolicy, RWPolicy, HeapPolicy>::
+FreeMSMCorGlobal(uint64_t addr)
+{
+    ReportTrace("FreeMSMCorGlobal(0x%llx)\n", addr);
+    if (HeapPolicy::msmc_heap_->contains(addr))
+        FreeMSMC(addr);
+    else if (HeapPolicy::ddr_heap1_->contains(addr) ||
+             HeapPolicy::ddr_heap2_->contains(addr) )
+        FreeGlobal(addr);
+    else
+        ReportError(ErrorType::Fatal, ErrorKind::InvalidPointerToClFree, addr);
+}
+
+template <class MIPolicy, class RWPolicy, class HeapPolicy>
+void SharedMemoryProvider<MIPolicy, RWPolicy, HeapPolicy>::
 dsptop_msmc()
 {
     uint64_t k64block_size = HeapPolicy::msmc_heap_->size() >> 16;

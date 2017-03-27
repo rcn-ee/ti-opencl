@@ -274,6 +274,14 @@ template <typename Address, typename Length, typename Scope> class HeapManager
             { std::cout << ex.what() << std::endl; exit(EXIT_FAILURE); }
     }
 
+    bool contains(Address addr)
+    {
+        if (addr >= start_addr_ && addr < start_addr_ + length_)
+            return true;
+
+        return false;
+    }
+
    /*-------------------------------------------------------------------------
     * max_block_size - What is the largest block of memory that can be allocated
     *------------------------------------------------------------------------*/

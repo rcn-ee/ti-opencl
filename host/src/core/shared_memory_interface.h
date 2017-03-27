@@ -61,6 +61,9 @@ public:
     virtual uint64_t  AllocateGlobal(size_t size, bool prefer_32bit) =0;
     virtual void      FreeGlobal(uint64_t addr) =0;
 
+    // Determine which memory the pointer was allocated from and free it
+    virtual void      FreeMSMCorGlobal(uint64_t addr)  =0;
+
     // Allocate/Free functions with ability to query whether an address
     // has been allocated by the clMalloc method
     virtual void* clMalloc     (size_t size, MemoryRange::Location l) =0;

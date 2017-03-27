@@ -1247,22 +1247,10 @@ void DSPKernelEvent::free_tmp_bufs()
     SharedMemory *shm = p_device->GetSHMHandler();
 
     if (p_WG_alloca_start > 0)
-    {
-        if (   p_WG_alloca_start >= MSMC_OCL_START_ADDR
-            && p_WG_alloca_start < MSMC_OCL_END_ADDR)
-            shm->FreeMSMC(p_WG_alloca_start);
-        else
-            shm->FreeGlobal(p_WG_alloca_start);
-    }
+        shm->FreeMSMCorGlobal(p_WG_alloca_start);
 
     if (p_msg.u.k.kernel.args_on_stack_addr > 0)
-    {
-        if (   p_msg.u.k.kernel.args_on_stack_addr >= MSMC_OCL_START_ADDR
-            && p_msg.u.k.kernel.args_on_stack_addr < MSMC_OCL_END_ADDR)
-            shm->FreeMSMC(p_msg.u.k.kernel.args_on_stack_addr);
-        else
-            shm->FreeGlobal(p_msg.u.k.kernel.args_on_stack_addr);
-    }
+        shm->FreeMSMCorGlobal(p_msg.u.k.kernel.args_on_stack_addr);
 
     for (int i = 0; i < p_hostptr_tmpbufs.size(); ++i)
     {
