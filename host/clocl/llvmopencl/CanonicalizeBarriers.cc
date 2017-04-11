@@ -27,7 +27,7 @@
 #include "BarrierBlock.h"
 #include "Barrier.h"
 #include "Workgroup.h"
-#include "../core/util.h"
+#include "../llvm_util.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include <iostream>
 

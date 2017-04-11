@@ -30,17 +30,27 @@
  * \brief misc utils
  */
 
+#include <llvm/IR/Function.h>
+#include <llvm/IR/Module.h>
+#include <llvm/IR/DebugInfo.h>
+
 #ifndef _UTIL_H
 #define _UTIL_H
 
-#ifndef _SYS_BIOS
-// Parse first line in a file, read integer immediately following a string
-uint32_t parse_file_line_value(const char *fname, const char *sname,
-                               uint32_t default_val);
-#endif
+// OpenCL/LLVM utils
+bool          isKernelFunction(llvm::Function &F);
+bool          getReqdWGSize(llvm::Function &F, int wgsizes[3]);
+bool          isReqdWGSize111(llvm::Function &F);
+bool          containsBarrierCall(llvm::Module &M);
+bool          canLocalsFitInReg(llvm::BasicBlock *bb);
+bool          canLocalsFitInReg(llvm::Function &F);
 
-// For OpenCL error reporting, number to meaning mapping
-const char* ocl_error_str(int ocl_error_num);
+llvm::MDNode* getDebugInfo(llvm::Function &F, unsigned int &scope_line_num);
+unsigned int  findFirstDebugLine(llvm::BasicBlock *bb);
+unsigned int  findLastDebugLine(llvm::BasicBlock *bb);
+
+int           getKernelConfigGEPInstIndex(llvm::Instruction *instr);
+int           getKernelConfigLoadInstIndex(llvm::Instruction *instr);
 
 #endif // _UTIL_H
 

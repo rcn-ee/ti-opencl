@@ -51,9 +51,7 @@ LLVM_LDFLAGS += -lpthread -lrt -ldl -lm
 LLVM_LIBS = `$(LLVM_CONFIG_EXE) --libs`
 endif
 
-UTILDIR         = ../src/core
-WGADIR          = ../src/core/dsp
-POCLDIR         = ../src/llvmopencl
+POCLDIR         = ./llvmopencl
 OBJS        = AllocasToEntry.o BarrierBlock.o BarrierTailReplication.o \
               BreakConstantGEPs.o CanonicalizeBarriers.o DebugHelpers.o \
               Flatten.o GenerateHeader.o IsolateRegions.o \
@@ -64,11 +62,11 @@ OBJS        = AllocasToEntry.o BarrierBlock.o BarrierTailReplication.o \
               WorkitemHandlerChooser.o WorkitemLoops.o \
               SimplifyShuffleBIFCall.o PrivatizationAliasAnalysis.o \
               main.o compiler.o wga.o program.o file_manip.o options.o \
-              util.o
+              llvm_util.o
 
 OBJS := $(patsubst %.o, $(TARGET)/%.o, $(OBJS))
 
-CXXFLAGS := $(LLVM_CXXFLAGS) -I$(UTILDIR) -I$(WGADIR) -I$(POCLDIR) \
+CXXFLAGS := $(LLVM_CXXFLAGS) -I$(POCLDIR) \
             $(HOST_USR_INCLUDE) -O3 -fexceptions -std=c++0x \
 	    -DBOOST_SYSTEM_NO_DEPRECATED=1 \
 	    -DBOOST_SYSTEM_NO_LIB=1 \
@@ -86,12 +84,6 @@ $(TARGET)/$(EXE): $(OBJS)
 	$(CXX) $^ $(STATIC) $(LIBS) $(LDFLAGS) -o $@
 
 $(TARGET)/%.o: %.cpp | $(TARGET)/.touch
-	$(CXX) $(CXXFLAGS) -c $< -o $@
-
-$(TARGET)/%.o: $(UTILDIR)/%.cpp | $(TARGET)/.touch
-	$(CXX) $(CXXFLAGS) -c $< -o $@
-
-$(TARGET)/%.o: $(WGADIR)/%.cpp | $(TARGET)/.touch
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 $(TARGET)/%.o: $(POCLDIR)/%.cpp | $(TARGET)/.touch

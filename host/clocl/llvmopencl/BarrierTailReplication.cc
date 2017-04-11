@@ -29,7 +29,7 @@
 #include "llvm/Transforms/Utils/Cloning.h"
 #include "llvm/IR/InstrTypes.h"
 #include "llvm/IR/Instructions.h"
-#include "../core/util.h"
+#include "../llvm_util.h"
 
 #include "VariableUniformityAnalysis.h"
 

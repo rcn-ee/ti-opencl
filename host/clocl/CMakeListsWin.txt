@@ -61,18 +61,9 @@ foreach(flag_var
    endif(${flag_var} MATCHES "/MD")
 endforeach(flag_var)
 
-set(UTIL_SOURCE_DIR ../src/core)
-set(WGA_SOURCE_DIR ../src/core/dsp)
-set(POCL_SOURCE_DIR ../src/llvmopencl)
+set(POCL_SOURCE_DIR ./llvmopencl)
 
-include_directories(${LLVM_INCLUDE_DIRS} ${UTIL_SOURCE_DIR} ${WGA_SOURCE_DIR}
-                    ${POCL_SOURCE_DIR})
-
-set(UTIL_SOURCE_FILES
-    ${UTIL_SOURCE_DIR}/util.cpp)
-
-set(WGA_SOURCE_FILES
-    ${WGA_SOURCE_DIR}/wga.cpp)
+include_directories(${LLVM_INCLUDE_DIRS} ${POCL_SOURCE_DIR})
 
 set(POCL_SOURCE_FILES
     ${POCL_SOURCE_DIR}/AllocasToEntry.cc
@@ -111,9 +102,9 @@ set(SOURCE_FILES
     options.cpp
     options.h
     program.cpp
-    ${WGA_SOURCE_FILES}
-    ${POCL_SOURCE_FILES}
-    ${UTIL_SOURCE_FILES})
+    wga.cpp
+    llvm_util.cpp
+    ${POCL_SOURCE_FILES})
 
 add_executable(clocl ${SOURCE_FILES})
 

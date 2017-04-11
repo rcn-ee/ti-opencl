@@ -47,7 +47,7 @@
 #include "llvm/IR/DebugInfo.h"
 #include <llvm/IR/Dominators.h>
 #include <llvm/Analysis/LoopInfo.h>
-#include "../util.h"
+#include "llvm_util.h"
 #include "boost/assign/std/set.hpp"
 #include <stdio.h>
 

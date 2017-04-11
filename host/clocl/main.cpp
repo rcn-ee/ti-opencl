@@ -57,7 +57,7 @@
 
 #include "compiler.h"
 #include "wga.h"
-#include "util.h"
+#include "llvm_util.h"
 #include "file_manip.h"
 #include "options.h"
 
