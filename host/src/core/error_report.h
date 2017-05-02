@@ -43,6 +43,7 @@ enum class ErrorKind
     IllegalMemoryRegion,
     CMEMInitFailed,
     CMEMMinBlocks,
+    CMEMInvalidBlockId,
     CMEMMapFailed,
     CMEMAllocFailed,
     CMEMAllocFromBlockFailed,
@@ -63,6 +64,9 @@ enum class ErrorKind
     MessageQueueCountMismatch,
     LostDSP,
     DaemonNotRunning,
+    DaemonAlreadyRunning,
+    DaemonConfigOpenError,
+    InfoMessage2,
 };
 
 // Types of error messages, used to control behavior of ReportError

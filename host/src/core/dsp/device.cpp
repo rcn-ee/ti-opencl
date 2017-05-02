@@ -162,6 +162,12 @@ DSPDevice::DSPDevice(unsigned char dsp_id, SharedMemory* shm)
      *------------------------------------------------------------------------*/
     Msg_t msg = {CONFIGURE_MONITOR};
     msg.u.configure_monitor.n_cores = dspCores();
+    uint8_t local_core_num = 0;
+    for (auto core : device_info.GetComputeUnits())
+    {
+      if (local_core_num == 0)  msg.u.configure_monitor.master_core = core;
+      msg.u.configure_monitor.local_core_nums[core] = local_core_num++;
+    }
 
     mail_to(msg);
 

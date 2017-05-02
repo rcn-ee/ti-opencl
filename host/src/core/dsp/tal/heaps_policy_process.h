@@ -31,6 +31,7 @@
 #include <unistd.h>
 #include "heap_manager.h"
 #include "heap_manager_policy_process.h"
+#include "core/error_report.h"
 
 /******************************************************************************
 * This file contains a policy classes for controlling typedefs, construction
@@ -39,6 +40,12 @@
 * processes.  The actual underlying memory managed by the HeapManager is 
 * currently being allocated by a daemon for OpenCL under Linux.
 ******************************************************************************/
+
+/*-----------------------------------------------------------------------------
+* Create the alias BIP for boost:interprocess, but make it only visible in this 
+* translation unit by placing it in an anonymous namespace.
+*----------------------------------------------------------------------------*/
+namespace { namespace BIP = boost::interprocess; }
 
 /******************************************************************************
 * class HeapsMultiProcessPolicy
@@ -58,16 +65,29 @@ public:
     * contain the heap managers for all needed OpenCL buffer heaps. It will 
     * reside on the file system at /dev/shm/HeapManager. It is assumed this 
     * shared memory is created by a pre-existing daemon on Linux systems.
-    * Note: Using open_or_create to avoid a throw from the constructor when
-    * the opencl application is run without starting ti-mctd.
     *------------------------------------------------------------------------*/
-    HeapsMultiProcessPolicy() :
-       segment_(boost::interprocess::open_or_create, "HeapManager",
-                HEAP_MANAGER_DEFAULT_SIZE),
-       ddr_heap1_(segment_.find_or_construct<Heap64Bit>("ddr_heap1")(segment_)),
-       ddr_heap2_(segment_.find_or_construct<Heap64Bit>("ddr_heap2")(segment_)),
-       msmc_heap_(segment_.find_or_construct<Heap64Bit>("msmc_heap")(segment_))
-    {}
+    HeapsMultiProcessPolicy()
+    {
+        try
+        {
+            segment_ = new BIP::managed_shared_memory(BIP::open_only,
+                                                      "HeapManager");
+        }
+        catch (BIP::interprocess_exception &ex)
+        {
+            ReportError(tiocl::ErrorType::Warning,
+                        tiocl::ErrorKind::InfoMessage2,
+                        "Opening Linux shared memory: ",ex.what());
+            ReportError(tiocl::ErrorType::Abort,
+                        tiocl::ErrorKind::DaemonNotRunning);
+        }
+        ddr_heap1_ = segment_->find_or_construct<Heap64Bit>("ddr_heap1")(
+                                                                    *segment_);
+        ddr_heap2_ = segment_->find_or_construct<Heap64Bit>("ddr_heap2")(
+                                                                    *segment_);
+        msmc_heap_ = segment_->find_or_construct<Heap64Bit>("mscm_heap")(
+                                                                    *segment_);
+    }
 
     /*-------------------------------------------------------------------------
     * When this class is destructed, we guarantee that no allocations by this 
@@ -79,10 +99,17 @@ public:
 	msmc_heap_->free_all_pid(pid);
 	ddr_heap1_->free_all_pid(pid);
 	ddr_heap2_->free_all_pid(pid);
+        delete segment_;
     }
 
+    /*-------------------------------------------------------------------------
+    * Disable copy construction and assignment
+    *------------------------------------------------------------------------*/
+    HeapsMultiProcessPolicy           (const HeapsMultiProcessPolicy&) =delete;
+    HeapsMultiProcessPolicy& operator=(const HeapsMultiProcessPolicy&) =delete;
+
 private:
-    boost::interprocess::managed_shared_memory segment_;
+    BIP::managed_shared_memory *segment_;
 
 protected:
     Heap64Bit*  ddr_heap1_;  // persistently mapped off-chip memory

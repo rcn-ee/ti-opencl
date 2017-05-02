@@ -1,0 +1,6 @@
+{
+        "cmem-block-offchip" : "0",
+        "cmem-block-onchip" : "1",
+        "compute-unit-list" : "0,1",
+        "linux-shmem-size-KB" : "128",
+}

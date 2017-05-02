@@ -37,6 +37,7 @@ typedef enum
     SETUP_DEBUG
 } command_codes;
 
+#define MAX_NUM_CORES        (8)
 #define MAX_NDR_DIMENSIONS   3
 #define MAX_IN_REG_ARGUMENTS 10
 #define MAX_ARGS_IN_REG_SIZE (MAX_IN_REG_ARGUMENTS*2)
@@ -97,7 +98,9 @@ typedef struct
 
 typedef struct
 {
-    int n_cores;
+    uint8_t n_cores;
+    uint8_t master_core;
+    uint8_t local_core_nums[MAX_NUM_CORES];
 
     int ocl_qmss_hw_queue_base_idx;
     int ocl_qmss_first_desc_idx_in_linking_ram;

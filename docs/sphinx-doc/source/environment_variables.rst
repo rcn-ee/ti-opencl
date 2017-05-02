@@ -72,9 +72,12 @@ These environment variables can be used to control OpenCL behavior and provide v
 .. envvar::  TI_OCL_COMPUTE_UNIT_LIST
 
     Specify the compute units available to the OpenCL runtime as a comma
-    separated list of compute unit indices starting at 0. If the 
-    environment variable is not specified, the runtime defaults to using all 
-    the compute units available on the device.
+    separated list of compute unit indices starting at 0.  The specified
+    compute unit list must be consecutive, e.g. ``"1,2,3,4"`` on K2H.
+    If the environment variable is not specified, the runtime defaults to
+    using all the compute units available on the device (or starting from
+    OpenCL product version 1.1.13, all available compute units specified in
+    ``/etc/ti-mctd/ti_mctd_config.json``).
 
     Example usage on AM572x:
 
@@ -97,7 +100,8 @@ These environment variables can be used to control OpenCL behavior and provide v
 
     .. Warning::
 
-        This environment variable is available only on AM572x.
+        Prior to OpenCL product version 1.1.13, this environment variable is
+        available only on AM572x.
 
 .. envvar::  TI_OCL_LOAD_KERNELS_ONCHIP 
 

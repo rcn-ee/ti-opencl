@@ -267,8 +267,9 @@ set (LIBS
 find_library(FFI_LIB ffi)
 find_library(SQLITE3_LIB sqlite3)
 find_library(ELF_LIB elf)
+find_library(JSON_LIB json-c)
 
-LIST (APPEND LIBS ${FFI_LIB} ${SQLITE3_LIB} ${ELF_LIB})
+LIST (APPEND LIBS ${FFI_LIB} ${SQLITE3_LIB} ${ELF_LIB} ${JSON_LIB})
 
 # Add target dependent libraries
 if(K2X_BUILD OR K2G_BUILD)

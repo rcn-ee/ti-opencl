@@ -99,7 +99,9 @@ DDR (Registry_Desc, Registry_CURDESC);
 PRIVATE_NOALIGN (MessageQ_QueueId,    enable_printf) = MessageQ_INVALIDMESSAGEQ;
 PRIVATE_NOALIGN (bool,                edmamgr_initialized) = false;
 PRIVATE_NOALIGN (MessageQ_Handle,     dspQue)              = NULL;
-PRIVATE_NOALIGN (int,                 n_cores);
+PRIVATE_NOALIGN (uint8_t,             n_cores);
+PRIVATE_NOALIGN (uint8_t,             master_core);
+PRIVATE_1D_NOALIGN(uint8_t,           local_core_nums, MAX_NUM_CORES);
 PRIVATE_NOALIGN (jmp_buf,             monitor_jmp_buf);
 PRIVATE_NOALIGN (int,                 command_retcode)     = CL_SUCCESS;
 PRIVATE_NOALIGN (Task_Handle,         ocl_main_task);
@@ -184,7 +186,7 @@ void _minit(void) { }
 /*******************************************************************************
 * MASTER_CORE : One core acts as a master.  This macro identifies that thread
 *******************************************************************************/
-#define MASTER_CORE (DNUM == 0 || n_cores == 1)
+#define MASTER_CORE (DNUM == master_core)
 
 /*******************************************************************************
 * Task Priorities increase by 1 in this order: monitor, openmp, timeout
@@ -660,10 +662,26 @@ static void process_kernel_command(ocl_msgq_message_t *msgq_pkt)
         Clock_start(timeout_clock);
     }
 
-    int factor = (n_cores > 1) ? DNUM : 0;
+    /*---------------------------------------------------------
+    * Flattened workgroup id used in trace messages
+    * e.g. num_wgs = [10, 4, 8], the 3rd dim, 8 is partitioned among 8 cores,
+    * then flattened workgroup id on core 0 should start from 0*4*10 = 0,
+    * on core 1 should start from 1*4*10 = 40, and so on.
+    * e.g. num_wgs = [ 10, 4, 1 ], and 4 is partitioned among first 4 cores,
+    * then flattened workgroup id on core 0 should start from 0*10 = 0,
+    * on core 1 should start from 1*10 = 10. and so on.
+    *--------------------------------------------------------*/
+    uint32_t wg_start[3], num_wgs[3];
+    int i;
+    for (i = 0; i < 3; i++)
+    {
+        wg_start[i] = (offsets[i] - cfg->global_offset[i]) / cfg->local_size[i];
+        num_wgs[i]  = cfg->global_size[i] / cfg->local_size[i];
+    }
+    workgroup = wg_start[2] * num_wgs[1] * num_wgs[0] +
+                wg_start[1] * num_wgs[0] +
+                wg_start[0];
 
-    workgroup = factor * (limits[0] * limits[1] * limits[2]) /
-                (cfg->local_size[0] * cfg->local_size[1] * cfg->local_size[2]);
     /*---------------------------------------------------------
     * Iterate over each Work Group
     *--------------------------------------------------------*/
@@ -722,18 +740,19 @@ static bool setup_ndr_chunks(int dims, uint32_t* limits, uint32_t* offsets,
         {
             int wgs_core = num_wgs / num_chunks;
             int leftover = num_wgs % num_chunks;
+            int ldnum    = local_core_nums[DNUM];
             // each of first "leftover" cores will get one extra wg
-            limits[dims] = (wgs_core + (DNUM < leftover ? 1 : 0)) * lsz[dims];
+            limits[dims] = (wgs_core + (ldnum < leftover ? 1 : 0)) * lsz[dims];
             // each core before me will get "wgs_core" wgs, plus 1 wg in the
-            // leftover if (DNUM < leftover)
+            // leftover if (ldnum < leftover)
             // For example, if there are 2 wgs in the leftover, core 0 will
             // get 1, core 1 will get 1, core 2-7 will get nothing, thus,
             // offsets for core 1 is (1 * wgs_core + 1), offsets for core 2
             // is (2 * wgs_core + 2), offsets for core 2-7 are
-            // (DNUM * wgs_core + 2) because there are only 2 wgs in leftover
-            offsets[dims] += (DNUM * wgs_core +
-                              (DNUM < leftover ? DNUM : leftover)) * lsz[dims];
-            return (DNUM < num_wgs);
+            // (ldnum * wgs_core + 2) because there are only 2 wgs in leftover
+            offsets[dims] += (ldnum * wgs_core +
+                            (ldnum < leftover ? ldnum : leftover)) * lsz[dims];
+            return (ldnum < num_wgs);
         }
     }
 
@@ -993,13 +1012,14 @@ static void process_configuration_message(ocl_msgq_message_t* msgq_pkt)
     Msg_t *ocl_msg = &(msgq_pkt->message);
 
     n_cores = ocl_msg->u.configure_monitor.n_cores;
+    master_core = ocl_msg->u.configure_monitor.master_core;
+    memcpy(local_core_nums, ocl_msg->u.configure_monitor.local_core_nums,
+           sizeof(ocl_msg->u.configure_monitor.local_core_nums));
 
     MessageQ_free((MessageQ_Msg)msgq_pkt);
 
     /* Do this early since the heap is initialized by OpenMP */
     #if defined(OMP_ENABLED)
-    int master_core = (n_cores > 1) ? 0 : DNUM;
-
     Log_print2(Diags_INFO,"Configuring OpenMP (%d, %d)\n", master_core,n_cores);
 
     if (tomp_initOpenMPforOpenCLPerApp(master_core, n_cores) < 0)

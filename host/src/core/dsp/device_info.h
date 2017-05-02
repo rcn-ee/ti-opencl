@@ -48,6 +48,8 @@ public:
     DeviceInfo& operator=(const DeviceInfo&) =delete;
 
     uint8_t      GetNumDevices() const { return num_devices_; } // was num_dsps
+    int32_t      GetCmemBlockOffChip() const { return cmem_block_offchip_; }
+    int32_t      GetCmemBlockOnChip()  const { return cmem_block_onchip_; }
     std::string  FullyQualifiedPathToDspMonitor() const;
     uint8_t      GetComputeUnitsPerDevice(int device) const; // was cores_per_dsp(int dsp);
     DSPDevicePtr GetSymbolAddress(const std::string &name) const;
@@ -58,10 +60,12 @@ public:
 
 private:
 
-    void ComputeUnitsAvailable();
+    void ComputeUnits_CmemBlocks_Available();
 
     uint8_t num_devices_;
     uint8_t num_compute_units_;
+    int32_t cmem_block_offchip_;
+    int32_t cmem_block_onchip_;
     std::set<uint8_t> available_compute_units_;
     const SymbolAddressLookup* symbol_lookup_;
 };

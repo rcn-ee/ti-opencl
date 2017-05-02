@@ -63,8 +63,11 @@ static const std::map<const ErrorKind, const std::string> ErrorStrings =
      "Guide at http://software-dl.ti.com/mctools/esd/docs/opencl/index.html"},
 
     {ErrorKind::CMEMMinBlocks,
-     "OpenCL needs %d CMEM blocks to operate - one each for off-chip (DDR)"
-     " and on-chip (MSMC SRAM or OCMC RAM) memory."},
+     "OpenCL needs at least one CMEM block in off-chip DDR to operate,"
+     " plus optional CMEM block in on-chip (MSMC SRAM or OCMC RAM) memory."},
+
+    {ErrorKind::CMEMInvalidBlockId,
+     "Invalid CMEM block id, %d, is specified."},
 
     {ErrorKind::CMEMMapFailed,
      "Cannot map CMEM physical memory (0x%llx, %lld MB) into the Host virtual address space.\n"
@@ -123,8 +126,16 @@ static const std::map<const ErrorKind, const std::string> ErrorStrings =
      "Communication to a DSP has been lost (likely due to an MMU fault).%s"},
 
     {ErrorKind::DaemonNotRunning,
-     "The TI Multicore Tools daemon (/usr/bin/ti-mctd) is not running. Re-run application after starting the daemon. Refer User Guide for details."},
+     "The TI Multicore Tools daemon (/usr/bin/ti-mctd) is not running. To start daemon, rm /dev/shm/HeapManager (if exists); ti-mctd. Re-run application. Refer User Guide for details."},
 
+    {ErrorKind::DaemonAlreadyRunning,
+     "The TI Multicore Tools daemon (/usr/bin/ti-mctd) is already running. If a restart is needed, pkill ti-mctd; rm /dev/shm/HeapManager (if exists); ti-mctd. Refer User Guide for details."},
+
+    {ErrorKind::DaemonConfigOpenError,
+     "Cannot parse mctd config file /etc/ti-mctd/ti_mctd_config.json. It is either missing or incorrect. Please check."},
+
+    {ErrorKind::InfoMessage2,
+     "%s%s."},
 };
 
 void tiocl::ReportError(const ErrorType et, const ErrorKind ek, ...)

@@ -44,6 +44,9 @@
 
 #include "../error_report.h"
 #include "device_info.h"
+#ifndef _SYS_BIOS
+#include "../../../mct-daemon/mctd_config.h"
+#endif
 
 using namespace tiocl;
 
@@ -72,7 +75,7 @@ DeviceInfo::DeviceInfo()
     symbol_lookup_ = CreateSymbolAddressLookup(FullyQualifiedPathToDspMonitor());
     #endif
 
-    ComputeUnitsAvailable();
+    ComputeUnits_CmemBlocks_Available();
 
 }
 
@@ -81,13 +84,15 @@ DeviceInfo::~DeviceInfo()
     delete symbol_lookup_;
 }
 
+#ifdef _SYS_BIOS
 extern "C" {
-const char* ti_opencl_getComputeUnitList();
+extern const char* ti_opencl_getComputeUnitList();
 }
+#endif
 
 // Device and OS specific approach to determining the number of compute units
 // available to the OpenCL runtime.
-void DeviceInfo::ComputeUnitsAvailable()
+void DeviceInfo::ComputeUnits_CmemBlocks_Available()
 {
     const char* comp_unit = nullptr;
 
@@ -100,68 +105,46 @@ void DeviceInfo::ComputeUnitsAvailable()
     comp_unit = ti_opencl_getComputeUnitList();
     #endif
 
-    if (!comp_unit)
+    // Parse the comma separated string to determine the compute units available
+    if (comp_unit)
     {
-
-        #if defined (_SYS_BIOS)
-            num_compute_units_ = 0;
-            ReportError(ErrorType::Fatal, ErrorKind::NumComputeUnitDetectionFailed);
-        #elif defined (DSPC868X)
-            num_compute_units_ = 8;
-        #elif defined (DEVICE_AM57)
-            num_compute_units_ = 0;
-            DIR *dir = opendir("/proc/device-tree/ocp");
-            if (!dir)
-                ReportError(ErrorType::Fatal, ErrorKind::NumComputeUnitDetectionFailed);
-
-            while (dirent * entry = readdir(dir))
-            {
-                if (entry->d_name[0] && entry->d_name[0] == 'd' &&
-                    entry->d_name[1] && entry->d_name[1] == 's' &&
-                    entry->d_name[2] && entry->d_name[2] == 'p' &&
-                    entry->d_name[3] && entry->d_name[3] == '@')
-                    ++num_compute_units_;
-            }
-
-            closedir(dir);
-        #else
-            num_compute_units_ = 0;
-            DIR *dir = opendir("/dev");
-            if (!dir)
-                ReportError(ErrorType::Fatal, ErrorKind::NumComputeUnitDetectionFailed);
-
-            while (dirent * entry = readdir(dir))
-            {
-                if (entry->d_name[0] && entry->d_name[0] == 'd' &&
-                    entry->d_name[1] && entry->d_name[1] == 's' &&
-                    entry->d_name[2] && entry->d_name[2] == 'p' &&
-                    entry->d_name[3] && isdigit(entry->d_name[3]))
-                    ++num_compute_units_;
-            }
-
-            closedir(dir);
-        #endif
-
-        for (int x = 0; x < num_compute_units_; x++)
-            available_compute_units_.insert(x);
-    }
-    else
-    {
-        // Parse the comma separated string to determine the compute units available
         const std::string cu = comp_unit;
         std::stringstream ss(cu);
-        num_compute_units_ = 0;
 
         int i;
         while (ss >> i)
         {
             available_compute_units_.insert(i);
-            num_compute_units_++;
 
             if (ss.peek() == ',')
                 ss.ignore();
         }
     }
+
+    // Linux: from system wide OpenCL configuration,
+    //        get cmem blocks, update user compute unit list
+    #if !defined (_SYS_BIOS)
+    MctDaemonConfig oclcfg;
+    cmem_block_offchip_ = oclcfg.GetCmemBlockOffChip();
+    cmem_block_onchip_  = oclcfg.GetCmemBlockOnChip();
+
+    std::set<uint8_t> sysdsps = oclcfg.GetCompUnits();
+    if (comp_unit)
+    {
+      std::set<uint8_t> userdsps = available_compute_units_;
+      available_compute_units_.clear();
+      std::set_intersection(userdsps.begin(), userdsps.end(),
+                            sysdsps.begin(), sysdsps.end(),
+                            std::inserter(available_compute_units_,
+                                          available_compute_units_.begin()));
+    }
+    else
+    {
+      available_compute_units_ = sysdsps;
+    }
+    #endif
+
+    num_compute_units_ = available_compute_units_.size();
 }
 
 #include <sys/stat.h>

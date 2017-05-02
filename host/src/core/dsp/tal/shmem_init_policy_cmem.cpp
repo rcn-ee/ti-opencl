@@ -33,6 +33,7 @@
 #include "dspmem.h"
 #include "shmem_init_policy_cmem.h"
 #include "core/error_report.h"
+#include "core/dsp/device_info.h"
 
 using namespace tiocl;
 
@@ -61,8 +62,6 @@ InitializationPolicyCMEM::Destroy()
  ***************************************************************************/
 void cmem_init(std::vector<MemoryRange>& ranges)
 {
-    const int CMEM_MIN_BLOCKS = 1;
-
     // On AM57, reserve The first 32MB for the monitor.  We use this memory
     // for a shared heap and nocache DDR memory.
     // TODO: Define a separate region in the dts file for use by monitor
@@ -77,16 +76,15 @@ void cmem_init(std::vector<MemoryRange>& ranges)
     if (CMEM_init() == -1)
         ReportError(ErrorType::Fatal, ErrorKind::CMEMInitFailed);
 
-    // Valid CMEM configurations: last block for MPI (hyperlink/SRIO) buffers
-    //     DDR1(OCL), MSMC2(OCL)
-    // or  DDR1(OCL), MSMC2(OCL), DDR3(MPI)
+    // Valid OpenCL CMEM blocks specified in /etc/ti-mctd/ti_mctd_config.json
+    int cmem_block_offchip = DeviceInfo::Instance().GetCmemBlockOffChip();
     int num_Blocks = 0;
     CMEM_getNumBlocks(&num_Blocks);
-    if (num_Blocks < CMEM_MIN_BLOCKS)
-       ReportError(ErrorType::Fatal, ErrorKind::CMEMMinBlocks, CMEM_MIN_BLOCKS);
+    if (cmem_block_offchip < 0 || cmem_block_offchip >= num_Blocks)
+       ReportError(ErrorType::Fatal, ErrorKind::CMEMMinBlocks);
 
     CMEM_BlockAttrs pattrs0 = {0, 0};
-    CMEM_getBlockAttrs(0, &pattrs0);
+    CMEM_getBlockAttrs(cmem_block_offchip, &pattrs0);
 
     DSPDevicePtr64 ddr_addr = pattrs0.phys_base;
     uint64_t       ddr_size = pattrs0.size;
@@ -155,11 +153,12 @@ void cmem_init(std::vector<MemoryRange>& ranges)
                             MemoryRange::Kind::CMEM_ONDEMAND,
                             MemoryRange::Location::OFFCHIP);
 
-    if(num_Blocks > 1)
+    int cmem_block_onchip = DeviceInfo::Instance().GetCmemBlockOnChip();
+    if(cmem_block_onchip >= 0 && cmem_block_onchip < num_Blocks)
     {
-        // Handle CMEM Block 1 - on chip shared memory
+        // Handle on chip CMEM Block - on chip shared memory
         CMEM_BlockAttrs pattrs1 = {0, 0};
-        CMEM_getBlockAttrs(1, &pattrs1);
+        CMEM_getBlockAttrs(cmem_block_onchip, &pattrs1);
 
         DSPDevicePtr64 onchip_shared_addr = pattrs1.phys_base;
         uint64_t       onchip_shared_size = pattrs1.size;

@@ -30,13 +30,12 @@
 
 #include <stdlib.h>
 #include <stdint.h>
-#include <assert.h>
+#include "../src/core/error_report.h"
 
 extern "C"
 {
 #include "ti/cmem.h"
 }
-
 
 /******************************************************************************
 * class CmemAllocator 
@@ -51,7 +50,7 @@ class CmemAllocator
 {
 public:
 
-    CmemAllocator() :
+    CmemAllocator(int32_t offchip_block, int32_t onchip_block) :
             ddr_size_(0),
             ddr_alloc_dsp_addr_(0),
             ddr_host_addr_(nullptr),
@@ -60,14 +59,21 @@ public:
             msmc_host_addr_(nullptr)
     {
         int32_t status = CMEM_init();
-        assert(status != -1);
+        if (status == -1)
+            ReportError(tiocl::ErrorType::Fatal,
+                        tiocl::ErrorKind::CMEMInitFailed);
 
         int32_t num_blocks;
         CMEM_getNumBlocks(&num_blocks);
-        assert(num_blocks > 0 && num_blocks <= 3);
+        if (num_blocks <= 0)
+            ReportError(tiocl::ErrorType::Fatal,
+                        tiocl::ErrorKind::CMEMMinBlocks);
+        if (offchip_block < 0 || offchip_block >= num_blocks)
+            ReportError(tiocl::ErrorType::Fatal,
+                        tiocl::ErrorKind::CMEMInvalidBlockId, offchip_block);
 
         CMEM_BlockAttrs pattrs0 = {0, 0};
-        CMEM_getBlockAttrs(0, &pattrs0);
+        CMEM_getBlockAttrs(offchip_block, &pattrs0);
 
         uint64_t ddr_addr  = pattrs0.phys_base;
                  ddr_size_ = pattrs0.size;
@@ -76,25 +82,38 @@ public:
         params.flags            = CMEM_CACHED;
         params.type             = CMEM_POOL;
 
-        ddr_alloc_dsp_addr_ = CMEM_allocPoolPhys2(0, 0, &params);
-        assert(ddr_alloc_dsp_addr_ == ddr_addr);
+        ddr_alloc_dsp_addr_ = CMEM_allocPoolPhys2(offchip_block, 0, &params);
+        if (ddr_alloc_dsp_addr_ != ddr_addr)
+            ReportError(tiocl::ErrorType::Fatal,
+                        tiocl::ErrorKind::CMEMAllocFailed,
+                        "Persistent", ddr_addr);
 
         ddr_host_addr_ = CMEM_map(ddr_alloc_dsp_addr_, ddr_size_);
-        assert (nullptr != ddr_host_addr_);
+        if (nullptr == ddr_host_addr_)
+            ReportError(tiocl::ErrorType::Fatal,
+                        tiocl::ErrorKind::CMEMMapFailed,
+                        ddr_alloc_dsp_addr_, ddr_size_);
 
-        if  (num_blocks == 1) return;
+        if  (onchip_block < 0 || onchip_block >= num_blocks) return;
 
-        CMEM_getBlockAttrs(1, &pattrs0);
+        CMEM_getBlockAttrs(onchip_block, &pattrs0);
 
         uint64_t msmc_addr  = pattrs0.phys_base;
                  msmc_size_ = pattrs0.size;
 
         params.type          = CMEM_HEAP;
-        msmc_alloc_dsp_addr_ = CMEM_allocPhys2(1, msmc_size_, &params);
-        assert(msmc_alloc_dsp_addr_ == msmc_addr);
+        msmc_alloc_dsp_addr_ = CMEM_allocPhys2(onchip_block, msmc_size_,
+                                               &params);
+        if (msmc_alloc_dsp_addr_ != msmc_addr)
+            ReportError(tiocl::ErrorType::Fatal,
+                        tiocl::ErrorKind::CMEMAllocFailed,
+                        "On-chip", msmc_addr);
 
         msmc_host_addr_  = CMEM_map(msmc_alloc_dsp_addr_, msmc_size_);
-        assert (nullptr != msmc_host_addr_);
+        if (nullptr == msmc_host_addr_)
+            ReportError(tiocl::ErrorType::Fatal,
+                        tiocl::ErrorKind::CMEMMapFailed,
+                        msmc_alloc_dsp_addr_, msmc_size_);
     }
                 
     ~CmemAllocator() 
@@ -132,10 +151,11 @@ private:
     void*    msmc_host_addr_;
 
     /*-------------------------------------------------------------------------
-    * Prevent copy construction or assignment
+    * Prevent default constructor or copy construction or assignment
     *------------------------------------------------------------------------*/
-    CmemAllocator            (const CmemAllocator &) = delete;
-    CmemAllocator& operator= (const CmemAllocator &) = delete;
+    CmemAllocator            ()                      =delete;
+    CmemAllocator            (const CmemAllocator &) =delete;
+    CmemAllocator& operator= (const CmemAllocator &) =delete;
 };
 
 #endif // CMEM_ALLOCATOR_H_

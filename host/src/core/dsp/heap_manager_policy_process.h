@@ -48,7 +48,7 @@ namespace utility {
 
 /*-----------------------------------------------------------------------------
 * Create the alias BIP for boost:interprocess, but make it only visible in this 
-* header by placing it in an anonymous namespace.
+* translation unit by placing it in an anonymous namespace.
 *----------------------------------------------------------------------------*/
 namespace { namespace BIP = boost::interprocess; }
 
