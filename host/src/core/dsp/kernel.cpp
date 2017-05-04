@@ -1246,7 +1246,8 @@ void DSPKernelEvent::free_tmp_bufs()
 {
     SharedMemory *shm = p_device->GetSHMHandler();
 
-    if (p_WG_alloca_start > 0)
+    // L2 scratch memory is allocated per-kernel-invocation, no need to free
+    if (p_WG_alloca_start > 0 && ! p_device->addr_is_l2(p_WG_alloca_start))
         shm->FreeMSMCorGlobal(p_WG_alloca_start);
 
     if (p_msg.u.k.kernel.args_on_stack_addr > 0)
