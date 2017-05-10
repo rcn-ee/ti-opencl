@@ -1,5 +1,5 @@
 EXE         = ../persistent_messageq_concurrent
-CXX_FLAGS   = -O2 --std=c++11 -I ../../persistent_common
+CXXFLAGS   = -O2 --std=c++11 -I ../../persistent_common
 
 VPATH = ../../persistent_common
 
@@ -7,6 +7,6 @@ include ../../make.inc
 
 $(EXE): host.o host_assist.o
 	@echo Linking $(EXE)
-	$(CXX) $(CXX_FLAGS) $^ $(LD_FLAGS) $(LIBS) -ltiipc -o $@
+	$(CXX) $(CXXFLAGS) $^ $(LDFLAGS) $(LIBS) -ltiipc -o $@
 
 host.o: ../dsp/kernel.dsp_h msgq.h

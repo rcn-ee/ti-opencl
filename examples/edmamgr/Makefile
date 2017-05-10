@@ -1,8 +1,8 @@
 EXE        = edmamgr
-CXX_FLAGS  = -O3 
+CXXFLAGS  = -O3 
 include ../make.inc
 
 $(EXE): main.o 
-	@$(CXX) $(CXX_FLAGS) main.o $(LD_FLAGS) $(LIBS) -o $@
+	@$(CXX) $(CXXFLAGS) main.o $(LDFLAGS) $(LIBS) -o $@
 
 main.o: kernel.dsp_h

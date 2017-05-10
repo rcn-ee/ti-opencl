@@ -1,11 +1,9 @@
-CXX_FLAGS  = -O3 -Wall -Werror -fpic 
-CL6X_FLAGS = -o3 --omp -mv6600 --abi=eabi -I$(TARGET_ROOTDIR)/usr/share/ti/opencl -I$(TI_OCL_CGT_INSTALL)/include -I$(TARGET_ROOTDIR)/usr/share/ti/cgt-c6x/include
-
-include ../../make.inc
-
+CXXFLAGS  = -O3 -Wall -Werror -fpic 
+CL6XFLAGS = -o3 --omp -mv6600 --abi=eabi -I$(TARGET_ROOTDIR)/usr/share/ti/opencl -I$(TI_OCL_CGT_INSTALL)/include -I$(TARGET_ROOTDIR)/usr/share/ti/cgt-c6x/include
 
 all: libcblas_dgemm_dsp.a
-cross: all
+
+include ../../make.inc
 
 libcblas_dgemm_dsp.a: cblas_dgemm.o init.o
 	ar r $@ $^
@@ -13,10 +11,10 @@ libcblas_dgemm_dsp.a: cblas_dgemm.o init.o
 init.o : init.cpp kernel.dsp_h
 
 kernel.dsp_h: kernel.cl dgemm.obj dgemm_kernel.obj data_move.obj dgemm_omp.obj
-	clocl --txt $^
+	$(CLOCL) --txt $^
 
 %.obj: %.c
-	cl6x -c $(CL6X_FLAGS) $<
+	$(CL6X) -c $(CL6XFLAGS) $<
 
 clean::
 	rm -f *.o*  *.dsp_h *.a

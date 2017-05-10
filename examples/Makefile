@@ -42,12 +42,14 @@ endif
 all:
 	$(call make_in_dirs, $(DIRS), )
 
+.PHONY: test
 test:
 	$(call make_in_dirs, $(DIRS), test)
 
-cross:
-	$(call make_in_dirs, $(DIRS), cross)
+.PHONY: cross
+cross: all
 
+.PHONY: clean
 clean:
 	$(call make_in_dirs, $(DIRS), clean)
 
