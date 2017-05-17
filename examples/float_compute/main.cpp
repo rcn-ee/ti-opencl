@@ -39,6 +39,8 @@
 #include <ti/sysbios/posix/_time.h>
 #include "dsp_compute.dsp_h"
 #include "../rtos_main.c"
+#else
+#include <omp.h>
 #endif
 
 using namespace cl;
@@ -87,11 +89,11 @@ int main(int argc, char *argv[])
 
     // OpenCL APIs in a try-catch block to detect errors
     try {
-    
+
     // Create an OpenCL context with the accelerator device
     Context context(CL_DEVICE_TYPE_ACCELERATOR);
     std::vector<Device> devices = context.getInfo<CL_CONTEXT_DEVICES>();
-     
+
 #ifndef _TI_RTOS
     // Create the OpenCL program using the DSP binary
     char *bin;
@@ -108,12 +110,12 @@ int main(int argc, char *argv[])
     Program             program = Program(context, devices, binary);
     program.build(devices);
 #endif
-         
+
     // Create an OpenCL command queue
     CommandQueue Q(context, devices[0]);
 
 
-    // Allocate arrays in contiguous shared memory to avoid copies when 
+    // Allocate arrays in contiguous shared memory to avoid copies when
     // dispatching from ARM to DSP
     cl_float *M = (cl_float *)__malloc_ddr(sizeof(float) * NumElements);
     cl_float *x = (cl_float *)__malloc_ddr(sizeof(float) * NumElements);
@@ -133,9 +135,9 @@ int main(int argc, char *argv[])
     for (int run = 0; run < NUM_TRIES; run++)
     {
         // Initialize inputs
-        for (int i=0; i < NumElements; ++i) 
-        { 
-           M[i] = rand(); 
+        for (int i=0; i < NumElements; ++i)
+        {
+           M[i] = rand();
            x[i] = rand();
 
            y[i]        = 0;
@@ -172,7 +174,7 @@ int main(int argc, char *argv[])
         clock_gettime(CLOCK_MONOTONIC, &tp_start);
 
         // Dispatch the kernel
-        Q.enqueueNDRangeKernel(kernel, NullRange, NDRange(NumVecElements), 
+        Q.enqueueNDRangeKernel(kernel, NullRange, NDRange(NumVecElements),
                                NDRange(WorkGroupSize), NULL, &ev1);
 
         // Wait fo the kernel to complete execution
@@ -186,7 +188,7 @@ int main(int argc, char *argv[])
 
        // Check results
        for (int i=0; i < NumElements; ++i)
-           if (fabs(y_Golden[i] - y[i]) > EPSILON) 
+           if (fabs(y_Golden[i] - y[i]) > EPSILON)
                { cout << "Failed at Element " << i << endl; RETURN(-1); }
     }
 
@@ -202,8 +204,8 @@ int main(int argc, char *argv[])
 #endif
 
     } // end try
-    catch (Error err) 
-    { 
+    catch (Error err)
+    {
         cerr << "ERROR: " << err.what() << "(" << err.err() << ", "
              << ocl_decode_error(err.err()) << ")" << endl;
         exit(1);
@@ -218,9 +220,9 @@ static void compute_on_arm(float * __restrict__ in1,
                            int                  count,
                            float                C)
 {
-    #pragma omp parallel for num_threads(2)
-    for (int i=0; i < count; ++i) 
-        out[i] = in1[i] * in2[i] + C; 
+    #pragma omp parallel for
+    for (int i=0; i < count; ++i)
+        out[i] = in1[i] * in2[i] + C;
 }
 
 /*
@@ -242,21 +244,22 @@ static double average(double *array, int count)
 
 static void print_results(double *arm_time, double *dsp_time, int count)
 {
-    double arm_ave = average(arm_time, count); 
+    double arm_ave = average(arm_time, count);
     double dsp_ave = average(dsp_time, count);
 
     cout << endl;
     cout << endl << "Average across " << NUM_TRIES << " runs: " << endl;
 #ifndef _TI_RTOS
-    cout << "ARM (2 OpenMP threads)         : " << 
+    int num_threads = omp_get_max_threads();
+    cout << "ARM (" << num_threads << " OpenMP threads)         : " <<
 #else
     cout << "ARM                            : " <<
 #endif
                             fixed << arm_ave << " secs" << endl;
 
-    cout << "DSP (OpenCL NDRange kernel)    : " << 
+    cout << "DSP (OpenCL NDRange kernel)    : " <<
                             fixed << dsp_ave << " secs" << endl;
-    cout << "OpenCL-DSP speedup             : " << 
+    cout << "OpenCL-DSP speedup             : " <<
                             fixed << arm_ave/dsp_ave << endl;
 }
 
@@ -279,8 +282,8 @@ static void print_header()
 static void print_footer()
 {
     cout << endl;
-    cout << "For more information on:" << endl;
-    cout << "  * TI's OpenCL product, http://software-dl.ti.com/mctools/esd/docs/opencl/index.html" << endl;
+    cout << "For more information on TI's OpenCL product:" << endl;
+    cout << "  http://software-dl.ti.com/mctools/esd/docs/opencl/index.html" << endl;
     cout << endl;
 }
 
