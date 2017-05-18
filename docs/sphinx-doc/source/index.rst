@@ -15,6 +15,7 @@ TI |OpenCL (TM)| Runtime Documentation Contents:
 
    intro
    reference
+   offload
    compilation
    memory/index
    execution/index
