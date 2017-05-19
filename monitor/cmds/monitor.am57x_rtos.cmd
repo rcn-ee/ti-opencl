@@ -61,6 +61,7 @@
 --retain="__realloc_*"
 --retain="__free_*"
 --retain="__memalign_*"
+--retain="__trace_print*"
 
 #define L2_LINE_SIZE 128
 

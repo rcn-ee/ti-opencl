@@ -15,7 +15,7 @@
  *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  *   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+ *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  *   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
  *   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
  *   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
@@ -41,7 +41,7 @@
 #if defined(_SYS_BIOS)
 #include <xdc/runtime/IHeap.h>
 #endif
- 
+
 /*-----------------------------------------------------------------------------
 * IPC header files
 *----------------------------------------------------------------------------*/
@@ -217,8 +217,10 @@ int rtos_init_ocl_dsp_monitor(UArg argc, UArg argv)
     Registry_Result result = Registry_addModule(&Registry_CURDESC, MODULE_NAME);
     assert(result == Registry_SUCCESS);
 
-    /* enable ENTRY/EXIT/INFO log events */
-    Diags_setMask(MODULE_NAME"-EXF");
+    /* enable ENTRY/EXIT/INFO log events. USER6 events are used by the
+     * __trace_printN functions and always enabled
+     */
+    Diags_setMask(MODULE_NAME"-EXF+6");
 
     Log_print0(Diags_ENTRY, "--> main:");
 
@@ -382,12 +384,12 @@ void ocl_monitor()
 
         switch (ocl_msg->command)
         {
-            case TASK: 
+            case TASK:
                 Log_print1(Diags_INFO, "TASK(%u)\n", pid);
                 process_task_command(ocl_msgq_pkt);
                 break;
 
-            case NDRKERNEL: 
+            case NDRKERNEL:
                 Log_print1(Diags_INFO, "NDRKERNEL(%u)\n", pid);
                 process_kernel_command(ocl_msgq_pkt);
                 process_cache_command(ocl_msg->u.k.kernel.Kernel_id,
@@ -396,12 +398,12 @@ void ocl_monitor()
                       ocl_msg->u.k.kernel.Kernel_id, 0);
                 break;
 
-            case CACHEINV: 
+            case CACHEINV:
                 Log_print1(Diags_INFO, "CACHEINV(%u)\n", pid);
                 process_cache_command(-1, ocl_msgq_pkt);
-                break; 
+                break;
 
-            case EXIT:     
+            case EXIT:
                 Log_print1(Diags_INFO, "EXIT(%u)\n", pid);
                 TRACE(ULM_OCL_EXIT, 0, 0);
                 process_exit_command(ocl_msgq_pkt);
@@ -439,7 +441,7 @@ void ocl_monitor()
 /******************************************************************************
 * process_task_command
 ******************************************************************************/
-static void process_task_command(ocl_msgq_message_t* msgq_pkt) 
+static void process_task_command(ocl_msgq_message_t* msgq_pkt)
 {
     Msg_t* Msg = &(msgq_pkt->message);
 
@@ -471,7 +473,7 @@ static void process_task_command(ocl_msgq_message_t* msgq_pkt)
     kernel_config_l2.L2_scratch_size  = kcfg->L2_scratch_size;
 
     /*--------------------------------------------------------------------
-    * Run the Task 
+    * Run the Task
     *--------------------------------------------------------------------*/
     uint32_t more_args_size = Msg->u.k.kernel.args_on_stack_size;
     void *   more_args      = (void *) Msg->u.k.kernel.args_on_stack_addr;
@@ -484,7 +486,7 @@ static void process_task_command(ocl_msgq_message_t* msgq_pkt)
        Semaphore_pend(runOmpSem_complete, BIOS_WAIT_FOREVER);
        /* in order task was completed by ocl_service_omp task*/
        if (omp_msgq_pkt != NULL)
-          /* Error */; 
+          /* Error */;
     }
     else
     #endif
@@ -498,7 +500,7 @@ static void process_task_command(ocl_msgq_message_t* msgq_pkt)
        }
        #endif
 
-       TRACE(is_inorder ? 
+       TRACE(is_inorder ?
                ULM_OCL_IOT_KERNEL_START : ULM_OCL_OOT_KERNEL_START,
           kernel_id, 0);
 
@@ -548,7 +550,7 @@ void ocl_service_omp(UArg arg0, UArg arg1)
        if (omp_msgq_pkt != NULL)
        {
           /*-------------------------------------------------------------------
-          * Run the in order Task.  OpenMP kernels run here. 
+          * Run the in order Task.  OpenMP kernels run here.
           *-------------------------------------------------------------------*/
           Msg_t* Msg = &(omp_msgq_pkt->message);
           uint32_t kernel_id = Msg->u.k.kernel.Kernel_id;
@@ -685,7 +687,7 @@ static void process_kernel_command(ocl_msgq_message_t *msgq_pkt)
     /*---------------------------------------------------------
     * Iterate over each Work Group
     *--------------------------------------------------------*/
-    do 
+    do
     {
         cfg->WG_gid_start[0] = offsets[0] + WGid[0];
         cfg->WG_gid_start[1] = offsets[1] + WGid[1];
@@ -772,7 +774,7 @@ static void service_workgroup(Msg_t* msg)
     /*---------------------------------------------------------
     * Copy the configuration in L2, where the kernel wants it
     *--------------------------------------------------------*/
-    memcpy((void*)&kernel_config_l2, (void*)&msg->u.k.config, 
+    memcpy((void*)&kernel_config_l2, (void*)&msg->u.k.config,
            sizeof(kernel_config_t));
 
     uint32_t more_args_size = msg->u.k.kernel.args_on_stack_size;
@@ -781,7 +783,7 @@ static void service_workgroup(Msg_t* msg)
 }
 
 /******************************************************************************
-* process_cache_command 
+* process_cache_command
 ******************************************************************************/
 static void process_cache_command (int pkt_id, ocl_msgq_message_t *msgq_pkt)
 {
@@ -837,9 +839,9 @@ static void process_setup_debug_command(ocl_msgq_message_t* msg_pkt)
 static void initialize_gdbserver()
 {
 #if defined(GDB_ENABLED)
-    
+
     // Dedicated DSP interrupt vector used by GDB monitor for DSP-ARM IPC
-    int error = GDB_server_init(4); 
+    int error = GDB_server_init(4);
 
     if(error != 0)
         Log_error1("GDB monitor init failed, error code:%d\n",error);
@@ -928,13 +930,13 @@ static void respond_to_host(ocl_msgq_message_t *msgq_pkt, uint32_t msgId)
 static void flush_buffers(flush_msg_t *Msg)
 {
     cacheWbInvAllL2();
-    return; 
+    return;
 }
 
 
 /******************************************************************************
 * CIO support from dispatched kernels.
-*    these low level routines are called from stdio and we use them to 
+*    these low level routines are called from stdio and we use them to
 *    redirect the io to the host for display.
 ******************************************************************************/
 _CODE_ACCESS void __TI_writemsg(               unsigned char  command,
@@ -945,7 +947,7 @@ _CODE_ACCESS void __TI_writemsg(               unsigned char  command,
     if (enable_printf == MessageQ_INVALIDMESSAGEQ)
         return;
 
-    ocl_msgq_message_t *msg = 
+    ocl_msgq_message_t *msg =
         (ocl_msgq_message_t *)MessageQ_alloc(0, sizeof(ocl_msgq_message_t));
     if (!msg) return;
 
@@ -985,7 +987,7 @@ static bool create_mqueue()
     MessageQ_Params_init(&msgqParams);
     dspQue = MessageQ_create((String)Ocl_DspMsgQueueName[DNUM], &msgqParams);
 
-    if (dspQue == NULL) 
+    if (dspQue == NULL)
     {
         Log_print1(Diags_INFO,"create_mqueue: DSP %d MessageQ creation failed",
                    DNUM);
@@ -1172,3 +1174,13 @@ Task_Handle create_task(Task_FuncPtr fxn, char *name, int priority,
     }
     return task;
 }
+
+/******************************************************************************
+* Enable kernels and C code to print to remoteproc trace file
+* Useful for debug, especially in regions where printf is not available.
+******************************************************************************/
+EXPORT void __trace_print0(const char *msg)
+{ Log_print0(Diags_USER6, msg); }
+
+EXPORT void __trace_print1(const char *msg, unsigned int val)
+{ Log_print1(Diags_USER6, msg, val); }
