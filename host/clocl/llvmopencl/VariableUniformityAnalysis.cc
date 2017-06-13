@@ -38,7 +38,7 @@
 #include "Kernel.h"
 #include "VariableUniformityAnalysis.h"
 #include "Barrier.h"
-#include "../core/util.h"
+#include "../llvm_util.h"
 
 //#define DEBUG_UNIFORMITY_ANALYSIS
 

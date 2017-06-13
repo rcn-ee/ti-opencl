@@ -70,7 +70,7 @@ class CMEMMapPolicyPersistent
 protected:
     CMEMMapPolicyPersistent();
     ~CMEMMapPolicyPersistent();
-    void  Configure (DSPDevicePtr64 dsp_addr,  uint64_t size);
+    void  Configure (const MemoryRange &r);
     void *Map       (DSPDevicePtr64 dsp_addr,  size_t   size) const;
     void  Unmap     (void*          host_addr, size_t   size) const;
 
@@ -79,6 +79,7 @@ private:
     uint64_t       size_;
     void*          host_addr_;
     int64_t        xlate_dsp_to_host_offset_;
+    int64_t        dsp_addr_adjust_;
 };
 
 /****************************************************************************
@@ -88,7 +89,7 @@ private:
 class CMEMMapPolicyOnDemand
 {
 protected:
-    void  Configure (DSPDevicePtr64 dsp_addr,  uint64_t size);
+    void  Configure (const MemoryRange &r);
     void *Map       (DSPDevicePtr64 dsp_addr,  size_t   size) const;
     void  Unmap     (void*          host_addr, size_t   size) const;
 
@@ -96,6 +97,7 @@ private:
     void*          host_addr_;
     DSPDevicePtr64 dsp_addr_;
     uint64_t       size_;
+    int64_t        dsp_addr_adjust_;
 };
 
 typedef CMEM<CMEMMapPolicyPersistent> CMEMPersistent;

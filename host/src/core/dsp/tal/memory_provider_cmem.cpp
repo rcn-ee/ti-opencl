@@ -44,7 +44,7 @@ template<typename MapPolicy>
 CMEM<MapPolicy>::CMEM(const MemoryRange& r) :
     MemoryProvider(r), threshold_ (32 << 20)
 {
-    MapPolicy::Configure(r.GetBase(), r.GetSize());
+    MapPolicy::Configure(r);
 }
 
 template<typename MapPolicy>
@@ -115,33 +115,31 @@ size_t CMEM<MapPolicy>::MinAllocationAlignment() const
 
 
 CMEMMapPolicyPersistent::CMEMMapPolicyPersistent()
-     : host_addr_(0), xlate_dsp_to_host_offset_(0)
+     : host_addr_(0), xlate_dsp_to_host_offset_(0), dsp_addr_adjust_(0)
 { }
 
-void CMEMMapPolicyPersistent::Configure(DSPDevicePtr64 dsp_addr, uint64_t size)
+void CMEMMapPolicyPersistent::Configure(const MemoryRange &r)
 {
-    dsp_addr_ = dsp_addr;
-    size_     = size;
+    dsp_addr_        = r.GetBase();
+    size_            = r.GetSize();
+    dsp_addr_adjust_ = r.GetAdjust();
+
 
     DSPDevicePtr64 cmem_addr = dsp_addr_;
 
-#if defined (DEVICE_AM57)
-    // Undo the adjustment performed in cmem_init before CMEM_map
-    if (dsp_addr_ >= AM57_DSP_VIRT_ADDR)
-        cmem_addr = dsp_addr_ + AM57_DSP_V2P_OFFSET;
-#else
+#if !defined (DEVICE_AM57)
     if (dsp_addr_ >= 0x80000000 && dsp_addr_ < 0xFFFFFFFF)
         cmem_addr = dsp_addr_ - 0x80000000 + 0x800000000ULL;
 #endif
 
-    host_addr_ = CMEM_map(cmem_addr, size);
+    host_addr_ = CMEM_map(cmem_addr, size_);
     if (! host_addr_)
         ReportError(ErrorType::Fatal, ErrorKind::CMEMMapFailed,
-                    dsp_addr, size >> 20);
-    xlate_dsp_to_host_offset_ = (int64_t)host_addr_ - dsp_addr;
+                    dsp_addr_, size_ >> 20);
+    xlate_dsp_to_host_offset_ = (int64_t)host_addr_ - dsp_addr_;
 
     ReportTrace("CMEM Persistent CMEM_map 0x%llx, %p, %lld KB\n",
-                cmem_addr, host_addr_, size >> 10);
+                cmem_addr, host_addr_, size_ >> 10);
 }
 
 CMEMMapPolicyPersistent::~CMEMMapPolicyPersistent()
@@ -156,12 +154,9 @@ CMEMMapPolicyPersistent::~CMEMMapPolicyPersistent()
     CMEM_AllocParams params = CMEM_DEFAULTPARAMS;
     params.flags = CMEM_CACHED;
 
-    DSPDevicePtr64 cmem_addr = dsp_addr_;
+    DSPDevicePtr64 cmem_addr = dsp_addr_ - dsp_addr_adjust_;
 
-#if defined (DEVICE_AM57)
-    if (dsp_addr_ >= AM57_DSP_VIRT_ADDR)
-        cmem_addr = dsp_addr_ - RESERVED_CMEM_SIZE + AM57_DSP_V2P_OFFSET;
-#else
+#if !defined (DEVICE_AM57)
     if (dsp_addr_ >= 0x80000000 && dsp_addr_ < 0xFFFFFFFF)
         cmem_addr = dsp_addr_ - 0x80000000 + 0x800000000ULL;
 #endif
@@ -187,10 +182,11 @@ void *CMEMMapPolicyPersistent::Map(DSPDevicePtr64 dsp_addr, size_t size) const
 void  CMEMMapPolicyPersistent::Unmap(void* host_addr, size_t size) const
 { }
 
-void CMEMMapPolicyOnDemand::Configure(DSPDevicePtr64 dsp_addr, uint64_t size)
+void CMEMMapPolicyOnDemand::Configure(const MemoryRange &r)
 {
-    dsp_addr_ = dsp_addr;
-    size_ = size;
+    dsp_addr_        = r.GetBase();
+    size_            = r.GetSize();
+    dsp_addr_adjust_ = r.GetAdjust();
 }
 
 void *CMEMMapPolicyOnDemand::Map(DSPDevicePtr64 dsp_addr, size_t size) const

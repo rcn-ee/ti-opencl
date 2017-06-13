@@ -51,34 +51,13 @@
 
 /*****************************************************************************
  * AM57 - DSP Device Memory Physical Addreess
- * 0x0:8000_0000 - 0x0:800F_FFFF: 16MB shared heap
- * 0x0:8010_0000 - 0x0:801F_FFFF: 16MB DDR no cache
- * 0x0:8020_0000 - 0x0:BFFF_FFFF: ~1G - 32MB General Purpose CMEM memory
+ * 0x0:A000_0000 - 0x0:A00F_FFFF: 16MB shared heap
+ * 0x0:A010_0000 - 0x0:A01F_FFFF: 16MB DDR no cache
+ * 0x0:A020_0000 - 0x0:B020_0000: 256MB - 32MB General Purpose CMEM memory
  *
  * The first 32MB of CMEM are reserved for the monitor.
  *****************************************************************************/
 #define RESERVED_CMEM_SIZE      (0x02000000)
-
-/****************************************************************************
- * AM57_DSP_PHY_ADDR - Physical address of the CMEM region on the DSP
- * AM57_DSP_VIRT_ADDR - Virtual address of the same region on the DSP
- * The phy -> virt mapping is defined in the DSP MMU by remoteproc
- * before the DSP image is loaded. The mapping is specified in the
- * resource table defined in monitor_vayu/custom_rsc_table_vayu_dsp.h
- * The values of the defines here must match definitions in the resource table.
- ***************************************************************************/
-#define AM57_DSP_PHY_ADDR       (0xA0000000)
-#define AM57_DSP_VIRT_ADDR      (0x80000000)
-#define AM57_DSP_V2P_OFFSET     (AM57_DSP_PHY_ADDR - AM57_DSP_VIRT_ADDR)
-
-#if !defined (DEVICE_AM57)
-#define MSMC_OCL_START_ADDR		0x0C000000
-#define MSMC_OCL_END_ADDR		0x0C600000
-#else
-#define MSMC_OCL_START_ADDR		0x40300000
-#define MSMC_OCL_END_ADDR		0x40600000
-#endif
-
 
 #define ROUNDUP(val, pow2)   (((val) + (pow2) - 1) & ~((pow2) - 1))
 #define MIN_BLOCK_SIZE                 128

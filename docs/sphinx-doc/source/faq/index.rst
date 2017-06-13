@@ -15,3 +15,4 @@ Frequently Asked Questions
    lock
    dload-error
    evm-logsize
+   ddr-partition

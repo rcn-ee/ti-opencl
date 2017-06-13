@@ -37,9 +37,15 @@ far void*    l1d_start = (void*)    &ocl_l1d_mem_start;
 far uint32_t l1d_size  = (uint32_t) &ocl_l1d_mem_size;
 
 /******************************************************************************
-* __core_num()
+* __core_num(): global core id (never changes in the system)
+* __local_core_num(): local core id within a compute unit list
+*                     (could change from OpenCL application to application)
+*                     e.g. cu list: 0,1,2,3  -> local core num: 0, 1, 2, 3
+*                     e.g. cu list: 4,5,6,7  -> local core num: 0, 1, 2, 3
 ******************************************************************************/
-EXPORT int __core_num() { return DNUM; }
+extern uint8_t local_core_nums[MAX_NUM_CORES];
+EXPORT int __core_num()       { return DNUM; }
+EXPORT int __local_core_num() { return local_core_nums[DNUM]; }
 
 EXPORT void*  __scratch_l1d_start() { return l1d_start; }
 

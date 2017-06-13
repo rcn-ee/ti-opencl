@@ -33,11 +33,13 @@
 #include <stdio.h>
 
 #include <boost/interprocess/managed_shared_memory.hpp>
+#include "mctd_config.h"
 #include "cmem_allocator.h"
 #include "heap_manager.h"
 #include "heap_manager_policy_process.h"
+#include "../src/core/error_report.h"
 
-namespace bipc = boost::interprocess;
+namespace BIP = boost::interprocess;
 
 typedef utility::HeapManager<uint64_t, uint64_t, 
                              utility::MultiProcess<uint64_t, uint64_t> > Heap64;
@@ -45,15 +47,7 @@ typedef utility::HeapManager<uint32_t, uint32_t,
                              utility::MultiProcess<uint32_t, uint32_t> > Heap32;
 
 /*-----------------------------------------------------------------------------
-* This will allocate all the memory in CMEM that is designated for the 
-* multicore tools.  assert calls exist in the constructor for this object
-* and so it should be constructed before the daemon call closes the 
-* stdxxx file descriptors.
-*----------------------------------------------------------------------------*/
-CmemAllocator CT;
-
-/*-----------------------------------------------------------------------------
-* Open or create the heap manager in linux shared memory
+* Create the heap manager in linux shared memory
 *----------------------------------------------------------------------------*/
 Heap64* ddr_heap1 = nullptr;
 Heap64* ddr_heap2 = nullptr;
@@ -67,11 +61,11 @@ void signal_handler(int sig) { graceful_exit = true; }
 ******************************************************************************/
 bool process_exists(uint32_t pid) { return (0 == kill(pid, 0)); }
 
-extern void reset_dsps() __attribute__((weak));
-extern void load_dsps()  __attribute__((weak));
-extern void run_dsps()   __attribute__((weak));
+extern void reset_dsps(std::set<uint8_t>&) __attribute__((weak));
+extern void load_dsps( std::set<uint8_t>&) __attribute__((weak));
+extern void run_dsps(  std::set<uint8_t>&) __attribute__((weak));
 
-static void process_options(int argc, char* argv[], size_t *heap_size);
+static void process_options(int argc, char* argv[]);
 static void print_usage();
 
 /******************************************************************************
@@ -80,33 +74,49 @@ static void print_usage();
 int main(int argc, char* argv[])
 {
     openlog("ti-mctd", LOG_CONS | LOG_PID | LOG_NDELAY, LOG_DAEMON);
-
-    size_t heap_size = HEAP_MANAGER_DEFAULT_SIZE;
-    process_options(argc, argv, &heap_size);
+    process_options(argc, argv);
 
     /*-------------------------------------------------------------------------
-    * Create or find handles to the multicore tools device heaps
+    * Read OpenCL configuration from /etc/ti-mctd/ti_mctd_config.json
     *------------------------------------------------------------------------*/
+    MctDaemonConfig oclcfg;
+
+    /*-------------------------------------------------------------------------
+    * Create handles to the multicore tools device heaps
+    *------------------------------------------------------------------------*/
+    size_t heap_size_bytes = oclcfg.GetLinuxShmemSizeKB() << 10;
     try 
     {
-       bipc::managed_shared_memory segment (bipc::open_or_create, "HeapManager",
-                                            heap_size);
+       BIP::permissions perm_reg_user_can_access;
+       perm_reg_user_can_access.set_unrestricted();
+       BIP::managed_shared_memory segment (BIP::create_only, "HeapManager",
+                                           heap_size_bytes, nullptr,
+                                           perm_reg_user_can_access);
        ddr_heap1 = segment.find_or_construct<Heap64>("ddr_heap1")(segment);
        ddr_heap2 = segment.find_or_construct<Heap64>("ddr_heap2")(segment);
        msmc_heap = segment.find_or_construct<Heap64>("msmc_heap")(segment);
     } 
-    catch (bipc::interprocess_exception &ex)
+    catch (BIP::interprocess_exception &ex)
     { 
-       std::cout << ex.what() << std::endl; 
-       exit(EXIT_FAILURE); 
+       ReportError(tiocl::ErrorType::Warning, tiocl::ErrorKind::InfoMessage2,
+                   "Creating Linux shared memory: ", ex.what());
+       ReportError(tiocl::ErrorType::Abort,
+                   tiocl::ErrorKind::DaemonAlreadyRunning);
     }
-
     syslog (LOG_INFO, "Shared Memory heaps created, size %d bytes",
-            heap_size);
+            heap_size_bytes);
 
-    if (reset_dsps) reset_dsps();
-    if (load_dsps)  load_dsps();
-    if (run_dsps)   run_dsps();
+    /*-------------------------------------------------------------------------
+    * Initialize and allocate CMEM memory for OpenCL use
+    *------------------------------------------------------------------------*/
+    CmemAllocator CT(oclcfg.GetCmemBlockOffChip(), oclcfg.GetCmemBlockOnChip());
+
+    /*-------------------------------------------------------------------------
+    * Load OpenCL dsp runtime if not already loaded by the system
+    *------------------------------------------------------------------------*/
+    if (reset_dsps) reset_dsps(oclcfg.GetCompUnits());
+    if (load_dsps)  load_dsps( oclcfg.GetCompUnits());
+    if (run_dsps)   run_dsps(  oclcfg.GetCompUnits());
 
     /*-------------------------------------------------------------------------
     * Register signal handlers
@@ -117,6 +127,8 @@ int main(int argc, char* argv[])
 
     /*-------------------------------------------------------------------------
     * Daemonize this process
+    * Finish all error handling before the daemon call closes the stdxxx file
+    * descriptors.
     *------------------------------------------------------------------------*/
     daemon(0,0);
 
@@ -130,35 +142,31 @@ int main(int argc, char* argv[])
         if (graceful_exit)
         {
             syslog (LOG_INFO, "Graceful exit");
-            bipc::shared_memory_object::remove("HeapManager");
-            if (reset_dsps) reset_dsps();
+            BIP::shared_memory_object::remove("HeapManager");
+            if (reset_dsps) reset_dsps(oclcfg.GetCompUnits());
             closelog();
             exit(EXIT_SUCCESS);
         }
     }
 }
 
-static void process_options(int argc, char* argv[], size_t *heap_size)
+static void process_options(int argc, char* argv[])
 {
 
     static struct option long_options[] = {
 
         {"help",      no_argument,       0,    'h'},
-        {"heap-size", required_argument, 0,    's'},
         {0,           0,                 0,     0 }
     };
 
     int option_index = 0;
     int c;
 
-    while ((c=getopt_long(argc, argv, "hs:", long_options,
+    while ((c=getopt_long(argc, argv, "h", long_options,
                           &option_index)) != -1)
     {
         switch (c)
         {
-            case 's': *heap_size = atoi(optarg);
-                      break;
-
             default:
             case 'h': print_usage();
                       exit(EXIT_SUCCESS);
@@ -170,9 +178,12 @@ static void process_options(int argc, char* argv[], size_t *heap_size)
 
 static void print_usage()
 {
-    printf( "ti-mctd [options]\n");
-    printf( "Options:\n");
-    printf( "    -h, --help      : Print this help screen\n");
-    printf( "    -s, --heap-size : Specify OpenCL inter process shared memory heap size in bytes\n");
-    printf( "                      Heap is created in /dev/shm/HeapManager and defaults to 128KB.\n\n");
+    printf("ti-mctd [options]\n");
+    printf("Options:\n");
+    printf("  -h, --help : Print this help screen\n");
+    printf("               Config is in /etc/ti-mctd/ti_mctd_config.json\n");
+    printf("               Modifying config will require a ti-mctd restart\n");
+    printf("               Heap is created in /dev/shm/HeapManager\n");
+    printf("               For log, grep ti-mctd /var/log/daemon.log\n");
+    printf("                or, systemctl status ti-mct-daemon.service\n\n");
 }

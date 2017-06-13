@@ -52,9 +52,12 @@ config ti.platforms.generic.Platform.Instance CPU =
 			  access: "RWX", } ],
 
 
+      /* DDR3_NC, DDR3_STACK and DDR3_HEAP placed in the first 32MB of
+         CMEM. Maps to DSP_MEM_IOBUFS in custom_rsc_table_vayu_dsp.h */
+
       /* Non-cached DDR */
       [ "DDR3_NC",   { name: "DDR3_NC",
-                          base: 0x80000000,
+                          base: 0xA0000000,
                           len:  0x01000000,
                           space: "code/data",
                           access: "RWX", } ],
@@ -63,13 +66,13 @@ config ti.platforms.generic.Platform.Instance CPU =
 
       /* Stack for ocl_service_omp task - 0x10000 for each core */
       [ "DDR3_STACK", { name: "DDR3_STACK",
-                          base: 0x81000000,
+                          base: 0xA1000000,
                           len:  0x00020000,
                           space: "data",
                           access: "RWX", } ],
 
       [ "DDR3_HEAP", { name: "DDR3_HEAP",
-                          base: 0x81020000,
+                          base: 0xA1020000,
                           len:  0x00FE0000,
                           space: "code/data",
                           access: "RWX", } ],

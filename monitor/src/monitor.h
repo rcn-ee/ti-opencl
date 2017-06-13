@@ -33,7 +33,7 @@
 #include <ti/csl/csl_cacheAux.h>
 #include "message.h"
 
-extern int n_cores;
+extern uint8_t n_cores;
 
 extern cregister volatile unsigned int DNUM;
 
@@ -85,6 +85,9 @@ extern cregister volatile unsigned int DNUM;
 
 #define PRIVATE_1D(type, var, size) type var[size] \
                    __attribute__((aligned(CACHE_L2_LINESIZE))) \
+                   __attribute((section(".private")))
+
+#define PRIVATE_1D_NOALIGN(type, var, size) type var[size] \
                    __attribute((section(".private")))
 
 #define PRIVATE_2D(type, var, sz1, sz2) type var[sz1][sz2] \

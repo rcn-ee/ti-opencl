@@ -1,6 +1,6 @@
 EXE         = persistent_task_concurrent
 CXX_FLAGS   = -O3 -I../persistent_common
-CL6X_FLAGS  = -o2 -I../persistent_common
+CL6X_FLAGS  = -o2 -I../persistent_common --mem_model:data=far --mem_model:const=data
 CLOCL_FLAGS = 
 
 VPATH = ../persistent_common

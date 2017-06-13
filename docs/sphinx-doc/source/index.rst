@@ -4,6 +4,10 @@
 TI OpenCL v01.01.xx
 ############################
 
+.. note::
+
+    If you landed on this page via http://downloads.ti.com/mctools/esd/docs/opencl (without the trailing *'/'*), reload the page by clicking `http://software-dl.ti.com/mctools/esd/docs/opencl/index.html <http://software-dl.ti.com/mctools/esd/docs/opencl/index.html>`_ to fix relative links in the OpenCL html documentation.
+
 TI |OpenCL (TM)| Runtime Documentation Contents:
 
 .. toctree::
@@ -11,6 +15,7 @@ TI |OpenCL (TM)| Runtime Documentation Contents:
 
    intro
    reference
+   offload
    compilation
    memory/index
    execution/index

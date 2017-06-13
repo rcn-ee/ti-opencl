@@ -63,6 +63,7 @@ public:
     void     FreeMSMC     (uint64_t addr) override;
     uint64_t AllocateGlobal(size_t   size, bool prefer_32bit) override;
     void     FreeGlobal  (uint64_t addr) override;
+    void     FreeMSMCorGlobal  (uint64_t addr) override;
 
     void* clMalloc     (size_t size, MemoryRange::Location l) override;
     void  clFree       (void* ptr) override;

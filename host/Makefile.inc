@@ -11,7 +11,7 @@ UNAME_M:=$(shell uname -m)
 # debian/changelog!!!
 OCL_MAJOR_VER=1
 OCL_MINOR_VER=1
-OCL_RELEASE_VER=12
+OCL_RELEASE_VER=13
 OCL_PATCH_VER=00
 OCL_VER=$(OCL_MAJOR_VER).$(OCL_MINOR_VER).$(OCL_RELEASE_VER)
 OCL_DPKG_NAME=ti-opencl
@@ -24,42 +24,42 @@ SDOMC_SHARED?=/cgnas
 # ARM GCC
 
 ifeq (,$(findstring arm, $(UNAME_M)))
-    ARM_GCC_DIR?=$(SDOMC_SHARED)/gcc-linaro-5.3-2016.02-x86_64_arm-linux-gnueabihf
+    ARM_GCC_DIR?=$(SDOMC_SHARED)/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf
     GCC_ARM_NONE_TOOLCHAIN?=$(SDOMC_SHARED)/gcc-arm-none-eabi-4_9-2015q3
 endif
 
 # TI C6x CGT
 
 ifeq (,$(findstring arm, $(UNAME_M)))
-    TI_OCL_CGT_INSTALL?=$(SDOMC_SHARED)/ti-cgt-c6000-8.1.3-release-linux
+    TI_OCL_CGT_INSTALL?=$(SDOMC_SHARED)/ti-cgt-c6000-8.2.0-release-linux
 else
-    TI_OCL_CGT_INSTALL?=$(SDOMC_SHARED)/ti-cgt-c6000-8.1.3-release-armlinuxa8hf
+    TI_OCL_CGT_INSTALL?=$(SDOMC_SHARED)/ti-cgt-c6000-8.2.0-release-armlinuxa8hf
 endif
 
 # LLVM
 
 ifeq ($(BUILD_OS), SYS_BIOS)
-    ARM_LLVM_DIR=$(SDOMC_SHARED)/llvm-3.6.0-20161107-sysbios
+    ARM_LLVM_DIR=$(SDOMC_SHARED)/llvm-3.6.0-20170608-sysbios
 else
-    ARM_LLVM_DIR=$(SDOMC_SHARED)/llvm-3.6.0-20161107-arm
+    ARM_LLVM_DIR=$(SDOMC_SHARED)/llvm-3.6.0-20170608-arm
 endif
 
 ifeq (,$(findstring x86_64, $(UNAME_M)))
-    X86_LLVM_DIR?=$(SDOMC_SHARED)/llvm-3.6.0-20161107-x86
+    X86_LLVM_DIR?=$(SDOMC_SHARED)/llvm-3.6.0-20170608-x86
 else
-    X86_LLVM_DIR?=$(SDOMC_SHARED)/llvm-3.6.0-20161107-x86_64
+    X86_LLVM_DIR?=$(SDOMC_SHARED)/llvm-3.6.0-20170608-x86_64
 endif
 
 # OMP 
 
-OMP_DIR_K2X?=$(SDOMC_SHARED)/openmp_dsp_k2x_02_06_00_00-20170308
-OMP_DIR_K2G?=$(SDOMC_SHARED)/openmp_dsp_k2g_02_06_00_00-20170308
-OMP_DIR_AM57?=$(SDOMC_SHARED)/openmp_dsp_am57xx_02_06_00_00-20170308
+OMP_DIR_K2X?=$(SDOMC_SHARED)/openmp_dsp_k2x_02_06_01_00-20170609
+OMP_DIR_K2G?=$(SDOMC_SHARED)/openmp_dsp_k2g_02_06_01_00-20170609
+OMP_DIR_AM57?=$(SDOMC_SHARED)/openmp_dsp_am57xx_02_06_01_00-20170609
 
 # SOC PSDK
 
 # NOTE: Also update in examples/make*.inc
-PSDK_VERSION ?= 03.03.00.01-20170305
+PSDK_VERSION ?= 04.00.00.01-20170530
 
 ifeq ($(BUILD_K2H),1)
     DEFAULT_PSDK_RTOS?=$(SDOMC_SHARED)/ti-processor-sdk-rtos-k2hk-evm-$(PSDK_VERSION)

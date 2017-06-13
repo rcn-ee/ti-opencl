@@ -11,12 +11,12 @@ Khronos `OpenCL 1.1 specification`_. The Texas Instruments OpenCL implementation
 SoC           System                          Khronos Conformance            Installation Instructions
 ============= =============================== ============================== =========================
 AM572_         `AM572 EVM`_                   OpenCL v1.1 Conformant         `Processor SDK for AM57x`_
-AM571_         `AM572 EVM`_                   Not submitted for conformance  `Processor SDK for AM57x`_
+DRA75x_        `DRA75x EVM`_                  OpenCL v1.1 Conformant         `Processor SDK for DRA7x`_ (`Enabling OpenCL on DRA75x`_)
+AM571_         `AM572 EVM`_                   OpenCL v1.1 Conformant         `Processor SDK for AM57x`_
 66AK2H_       `66AK2H EVM`_                   OpenCL v1.1 Conformant         `Processor SDK for K2H`_
 66AK2L_       `66AK2L EVM`_                   Not submitted for conformance  `Processor SDK for K2L`_
 66AK2E_       `66AK2E EVM`_                   Not submitted for conformance  `Processor SDK for K2E`_
 66AK2G_       `66AK2G EVM`_                   Not submitted for conformance  `Processor SDK for K2G`_
-TMS320C6678_  `Advantech DSPC8681`_           Not submitted for conformance  :doc:`dspc8681-getting-started`
 ============= =============================== ============================== =========================
 
 
@@ -28,12 +28,12 @@ TI OpenCL implementations:
 System                Host                                      Compute Device
 ===================== ========================================= =============================================
 `AM572 EVM`_          2 ARM Cortex-A15 CPUs, SMP Linux          1 device with 2 C66x DSP compute units
+`DRA75x EVM`_          2 ARM Cortex-A15 CPUs, SMP Linux          1 device with 2 C66x DSP compute units
 `AM572 EVM`_          2 ARM Cortex-A15 CPUs, TI RTOS            1 device with 2 C66x DSP compute units
 `66AK2H EVM`_         4 ARM Cortex-A15 CPUs, SMP Linux          1 device with 8 C66x DSP compute units
 `66AK2L EVM`_         2 ARM Cortex-A15 CPUs, SMP Linux          1 device with 4 C66x DSP compute units
 `66AK2E EVM`_         4 ARM Cortex-A15 CPUs, SMP Linux          1 device with 1 C66x DSP compute unit
 `66AK2G EVM`_         1 ARM Cortex-A15 CPU, SMP Linux           1 device with 1 C66x DSP compute unit
-`Advantech DSPC8681`_ x86 based CPU, Ubuntu 12.04 Linux         4 devices, each with 8 C66X DSP compute units
 ===================== ========================================= =============================================
 
 
@@ -54,9 +54,13 @@ System                Host                                      Compute Device
 .. _AM572:              http://www.ti.com/product/AM5728
 .. _AM571:              http://www.ti.com/product/AM5718
 .. _AM572 EVM:          http://www.ti.com/tool/tmdsevm572x
+.. _DRA75x:             http://www.ti.com/product/dra756
+.. _DRA75x EVM:         http://www.ti.com/tool/j6evm5777
 .. _Processor SDK for AM57x:          http://www.ti.com/tool/processor-sdk-am57x
 .. _Processor SDK for K2H:            http://www.ti.com/tool/processor-sdk-k2h
 .. _Processor SDK for K2L:            http://www.ti.com/tool/processor-sdk-k2l
 .. _Processor SDK for K2E:            http://www.ti.com/tool/processor-sdk-k2e
 .. _Processor SDK for K2G:            http://www.ti.com/tool/processor-sdk-k2g
 .. _Processor SDK:  http://www.ti.com/lsds/ti/tools-software/processor_sw.page
+.. _Processor SDK for DRA7x: http://software-dl.ti.com/infotainment/esd/jacinto6/processor-sdk-linux-automotive/latest/index_FDS.html
+.. _Enabling OpenCL on DRA75x: http://processors.wiki.ti.com/index.php/Processor_SDK_Linux_Automotive_Software_Developers_Guide#Testing_OpenCL

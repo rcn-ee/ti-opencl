@@ -15,7 +15,7 @@
  *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  *   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+ *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  *   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
  *   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
  *   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
@@ -41,7 +41,7 @@
 #if defined(_SYS_BIOS)
 #include <xdc/runtime/IHeap.h>
 #endif
- 
+
 /*-----------------------------------------------------------------------------
 * IPC header files
 *----------------------------------------------------------------------------*/
@@ -99,7 +99,9 @@ DDR (Registry_Desc, Registry_CURDESC);
 PRIVATE_NOALIGN (MessageQ_QueueId,    enable_printf) = MessageQ_INVALIDMESSAGEQ;
 PRIVATE_NOALIGN (bool,                edmamgr_initialized) = false;
 PRIVATE_NOALIGN (MessageQ_Handle,     dspQue)              = NULL;
-PRIVATE_NOALIGN (int,                 n_cores);
+PRIVATE_NOALIGN (uint8_t,             n_cores);
+PRIVATE_NOALIGN (uint8_t,             master_core);
+PRIVATE_1D_NOALIGN(uint8_t,           local_core_nums, MAX_NUM_CORES);
 PRIVATE_NOALIGN (jmp_buf,             monitor_jmp_buf);
 PRIVATE_NOALIGN (int,                 command_retcode)     = CL_SUCCESS;
 PRIVATE_NOALIGN (Task_Handle,         ocl_main_task);
@@ -184,7 +186,7 @@ void _minit(void) { }
 /*******************************************************************************
 * MASTER_CORE : One core acts as a master.  This macro identifies that thread
 *******************************************************************************/
-#define MASTER_CORE (DNUM == 0 || n_cores == 1)
+#define MASTER_CORE (DNUM == master_core)
 
 /*******************************************************************************
 * Task Priorities increase by 1 in this order: monitor, openmp, timeout
@@ -215,8 +217,10 @@ int rtos_init_ocl_dsp_monitor(UArg argc, UArg argv)
     Registry_Result result = Registry_addModule(&Registry_CURDESC, MODULE_NAME);
     assert(result == Registry_SUCCESS);
 
-    /* enable ENTRY/EXIT/INFO log events */
-    Diags_setMask(MODULE_NAME"-EXF");
+    /* enable ENTRY/EXIT/INFO log events. USER6 events are used by the
+     * __trace_printN functions and always enabled
+     */
+    Diags_setMask(MODULE_NAME"-EXF+6");
 
     Log_print0(Diags_ENTRY, "--> main:");
 
@@ -380,12 +384,12 @@ void ocl_monitor()
 
         switch (ocl_msg->command)
         {
-            case TASK: 
+            case TASK:
                 Log_print1(Diags_INFO, "TASK(%u)\n", pid);
                 process_task_command(ocl_msgq_pkt);
                 break;
 
-            case NDRKERNEL: 
+            case NDRKERNEL:
                 Log_print1(Diags_INFO, "NDRKERNEL(%u)\n", pid);
                 process_kernel_command(ocl_msgq_pkt);
                 process_cache_command(ocl_msg->u.k.kernel.Kernel_id,
@@ -394,12 +398,12 @@ void ocl_monitor()
                       ocl_msg->u.k.kernel.Kernel_id, 0);
                 break;
 
-            case CACHEINV: 
+            case CACHEINV:
                 Log_print1(Diags_INFO, "CACHEINV(%u)\n", pid);
                 process_cache_command(-1, ocl_msgq_pkt);
-                break; 
+                break;
 
-            case EXIT:     
+            case EXIT:
                 Log_print1(Diags_INFO, "EXIT(%u)\n", pid);
                 TRACE(ULM_OCL_EXIT, 0, 0);
                 process_exit_command(ocl_msgq_pkt);
@@ -437,7 +441,7 @@ void ocl_monitor()
 /******************************************************************************
 * process_task_command
 ******************************************************************************/
-static void process_task_command(ocl_msgq_message_t* msgq_pkt) 
+static void process_task_command(ocl_msgq_message_t* msgq_pkt)
 {
     Msg_t* Msg = &(msgq_pkt->message);
 
@@ -469,7 +473,7 @@ static void process_task_command(ocl_msgq_message_t* msgq_pkt)
     kernel_config_l2.L2_scratch_size  = kcfg->L2_scratch_size;
 
     /*--------------------------------------------------------------------
-    * Run the Task 
+    * Run the Task
     *--------------------------------------------------------------------*/
     uint32_t more_args_size = Msg->u.k.kernel.args_on_stack_size;
     void *   more_args      = (void *) Msg->u.k.kernel.args_on_stack_addr;
@@ -482,7 +486,7 @@ static void process_task_command(ocl_msgq_message_t* msgq_pkt)
        Semaphore_pend(runOmpSem_complete, BIOS_WAIT_FOREVER);
        /* in order task was completed by ocl_service_omp task*/
        if (omp_msgq_pkt != NULL)
-          /* Error */; 
+          /* Error */;
     }
     else
     #endif
@@ -496,7 +500,7 @@ static void process_task_command(ocl_msgq_message_t* msgq_pkt)
        }
        #endif
 
-       TRACE(is_inorder ? 
+       TRACE(is_inorder ?
                ULM_OCL_IOT_KERNEL_START : ULM_OCL_OOT_KERNEL_START,
           kernel_id, 0);
 
@@ -546,7 +550,7 @@ void ocl_service_omp(UArg arg0, UArg arg1)
        if (omp_msgq_pkt != NULL)
        {
           /*-------------------------------------------------------------------
-          * Run the in order Task.  OpenMP kernels run here. 
+          * Run the in order Task.  OpenMP kernels run here.
           *-------------------------------------------------------------------*/
           Msg_t* Msg = &(omp_msgq_pkt->message);
           uint32_t kernel_id = Msg->u.k.kernel.Kernel_id;
@@ -660,14 +664,30 @@ static void process_kernel_command(ocl_msgq_message_t *msgq_pkt)
         Clock_start(timeout_clock);
     }
 
-    int factor = (n_cores > 1) ? DNUM : 0;
+    /*---------------------------------------------------------
+    * Flattened workgroup id used in trace messages
+    * e.g. num_wgs = [10, 4, 8], the 3rd dim, 8 is partitioned among 8 cores,
+    * then flattened workgroup id on core 0 should start from 0*4*10 = 0,
+    * on core 1 should start from 1*4*10 = 40, and so on.
+    * e.g. num_wgs = [ 10, 4, 1 ], and 4 is partitioned among first 4 cores,
+    * then flattened workgroup id on core 0 should start from 0*10 = 0,
+    * on core 1 should start from 1*10 = 10. and so on.
+    *--------------------------------------------------------*/
+    uint32_t wg_start[3], num_wgs[3];
+    int i;
+    for (i = 0; i < 3; i++)
+    {
+        wg_start[i] = (offsets[i] - cfg->global_offset[i]) / cfg->local_size[i];
+        num_wgs[i]  = cfg->global_size[i] / cfg->local_size[i];
+    }
+    workgroup = wg_start[2] * num_wgs[1] * num_wgs[0] +
+                wg_start[1] * num_wgs[0] +
+                wg_start[0];
 
-    workgroup = factor * (limits[0] * limits[1] * limits[2]) /
-                (cfg->local_size[0] * cfg->local_size[1] * cfg->local_size[2]);
     /*---------------------------------------------------------
     * Iterate over each Work Group
     *--------------------------------------------------------*/
-    do 
+    do
     {
         cfg->WG_gid_start[0] = offsets[0] + WGid[0];
         cfg->WG_gid_start[1] = offsets[1] + WGid[1];
@@ -722,18 +742,19 @@ static bool setup_ndr_chunks(int dims, uint32_t* limits, uint32_t* offsets,
         {
             int wgs_core = num_wgs / num_chunks;
             int leftover = num_wgs % num_chunks;
+            int ldnum    = local_core_nums[DNUM];
             // each of first "leftover" cores will get one extra wg
-            limits[dims] = (wgs_core + (DNUM < leftover ? 1 : 0)) * lsz[dims];
+            limits[dims] = (wgs_core + (ldnum < leftover ? 1 : 0)) * lsz[dims];
             // each core before me will get "wgs_core" wgs, plus 1 wg in the
-            // leftover if (DNUM < leftover)
+            // leftover if (ldnum < leftover)
             // For example, if there are 2 wgs in the leftover, core 0 will
             // get 1, core 1 will get 1, core 2-7 will get nothing, thus,
             // offsets for core 1 is (1 * wgs_core + 1), offsets for core 2
             // is (2 * wgs_core + 2), offsets for core 2-7 are
-            // (DNUM * wgs_core + 2) because there are only 2 wgs in leftover
-            offsets[dims] += (DNUM * wgs_core +
-                              (DNUM < leftover ? DNUM : leftover)) * lsz[dims];
-            return (DNUM < num_wgs);
+            // (ldnum * wgs_core + 2) because there are only 2 wgs in leftover
+            offsets[dims] += (ldnum * wgs_core +
+                            (ldnum < leftover ? ldnum : leftover)) * lsz[dims];
+            return (ldnum < num_wgs);
         }
     }
 
@@ -753,7 +774,7 @@ static void service_workgroup(Msg_t* msg)
     /*---------------------------------------------------------
     * Copy the configuration in L2, where the kernel wants it
     *--------------------------------------------------------*/
-    memcpy((void*)&kernel_config_l2, (void*)&msg->u.k.config, 
+    memcpy((void*)&kernel_config_l2, (void*)&msg->u.k.config,
            sizeof(kernel_config_t));
 
     uint32_t more_args_size = msg->u.k.kernel.args_on_stack_size;
@@ -762,7 +783,7 @@ static void service_workgroup(Msg_t* msg)
 }
 
 /******************************************************************************
-* process_cache_command 
+* process_cache_command
 ******************************************************************************/
 static void process_cache_command (int pkt_id, ocl_msgq_message_t *msgq_pkt)
 {
@@ -818,9 +839,9 @@ static void process_setup_debug_command(ocl_msgq_message_t* msg_pkt)
 static void initialize_gdbserver()
 {
 #if defined(GDB_ENABLED)
-    
+
     // Dedicated DSP interrupt vector used by GDB monitor for DSP-ARM IPC
-    int error = GDB_server_init(4); 
+    int error = GDB_server_init(4);
 
     if(error != 0)
         Log_error1("GDB monitor init failed, error code:%d\n",error);
@@ -909,13 +930,13 @@ static void respond_to_host(ocl_msgq_message_t *msgq_pkt, uint32_t msgId)
 static void flush_buffers(flush_msg_t *Msg)
 {
     cacheWbInvAllL2();
-    return; 
+    return;
 }
 
 
 /******************************************************************************
 * CIO support from dispatched kernels.
-*    these low level routines are called from stdio and we use them to 
+*    these low level routines are called from stdio and we use them to
 *    redirect the io to the host for display.
 ******************************************************************************/
 _CODE_ACCESS void __TI_writemsg(               unsigned char  command,
@@ -926,7 +947,7 @@ _CODE_ACCESS void __TI_writemsg(               unsigned char  command,
     if (enable_printf == MessageQ_INVALIDMESSAGEQ)
         return;
 
-    ocl_msgq_message_t *msg = 
+    ocl_msgq_message_t *msg =
         (ocl_msgq_message_t *)MessageQ_alloc(0, sizeof(ocl_msgq_message_t));
     if (!msg) return;
 
@@ -966,7 +987,7 @@ static bool create_mqueue()
     MessageQ_Params_init(&msgqParams);
     dspQue = MessageQ_create((String)Ocl_DspMsgQueueName[DNUM], &msgqParams);
 
-    if (dspQue == NULL) 
+    if (dspQue == NULL)
     {
         Log_print1(Diags_INFO,"create_mqueue: DSP %d MessageQ creation failed",
                    DNUM);
@@ -993,13 +1014,14 @@ static void process_configuration_message(ocl_msgq_message_t* msgq_pkt)
     Msg_t *ocl_msg = &(msgq_pkt->message);
 
     n_cores = ocl_msg->u.configure_monitor.n_cores;
+    master_core = ocl_msg->u.configure_monitor.master_core;
+    memcpy(local_core_nums, ocl_msg->u.configure_monitor.local_core_nums,
+           sizeof(ocl_msg->u.configure_monitor.local_core_nums));
 
     MessageQ_free((MessageQ_Msg)msgq_pkt);
 
     /* Do this early since the heap is initialized by OpenMP */
     #if defined(OMP_ENABLED)
-    int master_core = (n_cores > 1) ? 0 : DNUM;
-
     Log_print2(Diags_INFO,"Configuring OpenMP (%d, %d)\n", master_core,n_cores);
 
     if (tomp_initOpenMPforOpenCLPerApp(master_core, n_cores) < 0)
@@ -1152,3 +1174,13 @@ Task_Handle create_task(Task_FuncPtr fxn, char *name, int priority,
     }
     return task;
 }
+
+/******************************************************************************
+* Enable kernels and C code to print to remoteproc trace file
+* Useful for debug, especially in regions where printf is not available.
+******************************************************************************/
+EXPORT void __trace_print0(const char *msg)
+{ Log_print0(Diags_USER6, msg); }
+
+EXPORT void __trace_print1(const char *msg, unsigned int val)
+{ Log_print1(Diags_USER6, msg, val); }

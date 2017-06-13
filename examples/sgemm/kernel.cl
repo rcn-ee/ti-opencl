@@ -38,13 +38,13 @@ K_ocl_sgemm_dsp(
         offset += (id < (m % chunks) ? id : (m % chunks));
     }
 
-    float* L1_buf = (float*) 0x00F00000;
+    float* L1_buf = (float*) __scratch_l1d_start();
     if (Msmc_buf >= (global float*) 0x80000000)  Msmc_buf = (global float*) 0;
     __cache_l1d_16k();
     sgemm(mLocal, n, k,
           alpha, a + offset, lda, b, ldb, beta, c + offset, ldc,
           NUMAPANELS, NUMBPANELS,
-          L1_buf, L2_buf, Msmc_buf, __core_num());
+          L1_buf, L2_buf, Msmc_buf, __local_core_num());
     __cache_l1d_all();
 }
 

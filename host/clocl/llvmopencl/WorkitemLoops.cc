@@ -56,7 +56,7 @@
 //#define DEBUG_WORK_ITEM_LOOPS
 
 #include "VariableUniformityAnalysis.h"
-#include "../core/util.h"
+#include "../llvm_util.h"
 
 #define CONTEXT_ARRAY_ALIGN 64
 

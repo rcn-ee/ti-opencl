@@ -93,6 +93,8 @@ for Linux system memory and 160MB of CMEM. ::
 The holes in System RAM ranges (e.g. FFE0:0000 to FFEF:FFFF, 1MB and FFFF:F000
 to FFFF:FFFF, 4KB) are reserved memory ranges.
 
+.. _CHANGE_DDR3_PARTITION_FOR_OPENCL:
+
 Changing DDR3 Partition for OpenCL
 =====================================================
 Starting from Processor SDK 2.0.1.x, DDR3 partitioned for OpenCL use is
@@ -103,8 +105,9 @@ modify the device tree with the "dtc" tool from the device-tree-compiler
 package.
 
 The following are the steps to increase DDR reserved for OpenCL from default
-368MB to either 1392MB or 4GB on K2HK, as examples (other platforms are
-similar).  You can make changes with the sizes that suit your use case.
+384MB in Processor SDK 3.3 to either 768MB or 1.25GB on K2HK, as examples
+(other platforms are similar).  You can make changes with the sizes that suit
+your use case.
 
  #. Make a copy of the original k2hk-evm.dtb (if you care)
     ::
@@ -120,34 +123,34 @@ similar).  You can make changes with the sizes that suit your use case.
     nodes
     ::
 
-      --- k2hk-evm.dts.orig	2016-03-31 15:05:58.779020849 -0500
-      +++ k2hk-evm.dts	        2016-03-31 15:06:33.083021624 -0500
+      --- k2hk-evm.dts.orig     2017-03-15 15:05:58.779020849 -0500
+      +++ k2hk-evm.dts          2017-03-15 15:06:33.083021624 -0500
       @@ -2814,7 +2814,7 @@
-       		};
+                };
        
-       		cmem_block_mem@829000000 {
-      -			reg = <0x8 0x29000000 0x0 0x17000000>;
-      +			reg = <0x8 0x29000000 0x0 0x57000000>;
-       			no-map;
-       			status = "okay";
-       			linux,phandle = <0x59>;
+                cmem_block_mem@830000000 {
+      -                 reg = <0x8 0x30000000 0x0 0x18000000>;
+      +                 reg = <0x8 0x30000000 0x0 0x30000000>;
+                        no-map;
+                        status = "okay";
+                        linux,phandle = <0x5f>;
       @@ -2872,7 +2872,7 @@
-       		cmem_block@0 {
-       			reg = <0x0>;
-       			memory-region = <0x59>;
-      -			cmem-buf-pools = <0x1 0x0 0x17000000>;
-      +			cmem-buf-pools = <0x1 0x0 0x57000000>;
-       		};
+                cmem_block@0 {
+                        reg = <0x0>;
+                        memory-region = <0x5f>;
+      -                 cmem-buf-pools = <0x1 0x0 0x18000000>;
+      +                 cmem-buf-pools = <0x1 0x0 0x30000000>;
+                };
        
-       		cmem_block@1 {
+                cmem_block@1 {
 
-    Or, if 4GB of CMEM is desired, change the sizes to
+    Or, if 1.25GB of CMEM is desired, change the sizes to
     ::
 
-      -			reg = <0x8 0x29000000 0x0 0x17000000>;
-      +			reg = <0x8 0x29000000 0x1 0x00000000>;
-      -			cmem-buf-pools = <0x1 0x0 0x17000000>;
-      +			cmem-buf-pools = <0x1 0x1 0x00000000>;
+      -                 reg = <0x8 0x30000000 0x0 0x18000000>;
+      +                 reg = <0x8 0x30000000 0x0 0x50000000>;
+      -                 cmem-buf-pools = <0x1 0x0 0x18000000>;
+      +                 cmem-buf-pools = <0x1 0x0 0x50000000>;
 
  #. Convert device tree source back to blob format
     ::
@@ -155,29 +158,27 @@ similar).  You can make changes with the sizes that suit your use case.
       dtc -I dts -O dtb tmp.dts -o /var/lib/tftpboot/k2hk-evm.dtb
 
  #. Reboot your evm, check /proc/iomem or run OpenCL "platforms" example to
-    verify the changes
+    verify the changes (use the 1.25GB cmem block as an example)
     ::
 
       # cat /proc/iomem | grep CMEM
-      0c100000-0c57ffff : CMEM
-      822000000-828ffffff : CMEM
-      829000000-928ffffff : CMEM
+      830000000-87fffffff : CMEM
 
       # /usr/share/ti/examples/opencl/platforms/platforms
       PLATFORM: TI KeyStone II
-        Version: OpenCL 1.1 TI product version 01.01.08.00 (Jan 22 2016 15:18:29)
+        Version: OpenCL 1.1 TI product version 01.01.12.0 (Mar  5 2017 00:53:44)
         Vendor : Texas Instruments, Inc.
         Profile: FULL_PROFILE
           DEVICE: TI Multicore C66 DSP
             Type       : ACCELERATOR
             CompUnits  : 8
             Frequency  : 1.2 GHz
-            Glb Mem    :  376832 KB
-            GlbExt1 Mem: 3817472 KB
+            Glb Mem    : 1310720 KB
+            GlbExt1 Mem:       0 KB
             GlbExt2 Mem:       0 KB
             Msmc Mem   :    4608 KB
-            Loc Mem    :     768 KB
-            Max Alloc  :  376832 KB
+            Loc Mem    :     864 KB
+            Max Alloc  : 1048576 KB
 
 .. Note::
     This method of changing DDR partitioning for OpenCL does NOT apply to

@@ -162,6 +162,12 @@ DSPDevice::DSPDevice(unsigned char dsp_id, SharedMemory* shm)
      *------------------------------------------------------------------------*/
     Msg_t msg = {CONFIGURE_MONITOR};
     msg.u.configure_monitor.n_cores = dspCores();
+    uint8_t local_core_num = 0;
+    for (auto core : device_info.GetComputeUnits())
+    {
+      if (local_core_num == 0)  msg.u.configure_monitor.master_core = core;
+      msg.u.configure_monitor.local_core_nums[core] = local_core_num++;
+    }
 
     mail_to(msg);
 
@@ -1111,11 +1117,10 @@ cl_int DSPDevice::info(cl_device_info param_name,
 }
 
 bool DSPDevice::addr_is_l2  (DSPDevicePtr addr)const 
-    { return (addr >> 20 == 0x008); }
-
-// TODO: Fix msmc address for AM57
-bool DSPDevice::addr_is_msmc(DSPDevicePtr addr)const 
-    { return (addr >> 24 == 0x0C); }
+{
+    return (addr >= p_addr_local_mem &&
+            addr <  (p_addr_local_mem + p_size_local_mem));
+}
 
 void dump_hex(char *addr, int bytes)
 {

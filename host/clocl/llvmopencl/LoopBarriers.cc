@@ -33,7 +33,7 @@
 #include "LoopBarriers.h"
 #include "Barrier.h"
 #include "Workgroup.h"
-#include "../core/util.h"
+#include "../llvm_util.h"
 
 //#define DEBUG_LOOP_BARRIERS
 

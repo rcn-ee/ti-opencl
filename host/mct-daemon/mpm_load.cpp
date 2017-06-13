@@ -34,6 +34,7 @@
 #include <syslog.h>
 
 #include <string>
+#include <set>
 
 extern "C"
 {
@@ -81,9 +82,9 @@ static std::string get_ocl_dsp()
 /******************************************************************************
 * reset_dsps - reset all DSP's using MPM
 ******************************************************************************/
-void reset_dsps()
+void reset_dsps(std::set<uint8_t>& dsps)
 {
-    syslog(LOG_INFO, "Resetting DSPs");
+    syslog(LOG_INFO, "Resetting %d DSPs", dsps.size());
 
     /*-------------------------------------------------------------------------
     * On K2x devices, sleep to ensure mpm daemon has completed setup. systemd
@@ -105,7 +106,7 @@ void reset_dsps()
         abort();
     }
 
-    for (uint8_t core=0; core < NUM_DSPS; core++)
+    for (uint8_t core : dsps)
     {
         std::string curr_core("dsp" + std::to_string(core));
         int error_code = 0;
@@ -125,11 +126,11 @@ void reset_dsps()
 /******************************************************************************
 * load_dsps - load monitor binaries on all DSP's using MPM
 ******************************************************************************/
-void load_dsps()
+void load_dsps(std::set<uint8_t>& dsps)
 {
-    syslog(LOG_INFO, "Loading DSPs");
+    syslog(LOG_INFO, "Loading %d DSPs", dsps.size());
     std::string monitor_dir(get_ocl_dsp() + "/");
-    for (uint8_t core=0; core < NUM_DSPS; core++)
+    for (uint8_t core : dsps)
     {
         std::string curr_core("dsp" + std::to_string(core));
         std::string dspbin   (monitor_dir + curr_core + ".out");
@@ -151,10 +152,10 @@ void load_dsps()
 /******************************************************************************
 * run_dsps - start all DSP's running
 ******************************************************************************/
-void run_dsps()
+void run_dsps(std::set<uint8_t>& dsps)
 {
-    syslog(LOG_INFO, "Running DSPs");
-    for (uint8_t core=0; core < NUM_DSPS; core++)
+    syslog(LOG_INFO, "Running %d DSPs", dsps.size());
+    for (uint8_t core : dsps)
     {
         std::string curr_core  ("dsp" + std::to_string(core));
 
