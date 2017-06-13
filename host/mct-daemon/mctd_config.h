@@ -59,7 +59,7 @@ public:
   {
     struct json_object *oclcfg = json_object_from_file(MCTD_CONFIG_FILE);
     if (oclcfg == nullptr)
-      ReportError(tiocl::ErrorType::Abort,
+      ReportError(tiocl::ErrorType::Fatal,
                   tiocl::ErrorKind::DaemonConfigOpenError);
 
     struct json_object *offchip, *onchip, *comp_unit_list, *shmem_size;
