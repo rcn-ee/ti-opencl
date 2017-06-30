@@ -327,6 +327,13 @@ public:
 #endif // __CL_USER_OVERRIDE_ERROR_STRINGS
 //! \endcond
 
+/**
+ * CL 1.2 marker and barrier commands
+ */
+#if defined(CL_VERSION_1_2)
+#define __ENQUEUE_MARKER_WAIT_LIST_ERR                __ERR_STR(clEnqueueMarkerWithWaitList)
+#endif // #if defined(CL_VERSION_1_2)
+
 /*! \class string
  * \brief Simple string class, that provides a limited subset of std::string
  * functionality but avoids many of the issues that come with that class.
@@ -1114,9 +1121,18 @@ public:
 
     Wrapper<cl_type>& operator = (const Wrapper<cl_type>& rhs)
     {
+        if (this != &rhs) {
+            if (object_ != NULL) { release(); }
+            object_ = rhs.object_;
+            if (object_ != NULL) { retain(); }
+        }
+        return *this;
+    }
+
+    Wrapper<cl_type>& operator = (const cl_type &rhs)
+    {
         if (object_ != NULL) { release(); }
-        object_ = rhs.object_;
-        if (object_ != NULL) { retain(); }
+        object_ = rhs;
         return *this;
     }
 
@@ -1544,11 +1560,14 @@ public:
 
     Event(const Event& event) : detail::Wrapper<cl_type>(event) { }
 
-    Event& operator = (const Event& rhs)
+    /*! \brief Assignment operator from cl_event - takes ownership.
+     *
+     *  This effectively transfers ownership of a refcount on the rhs and calls
+     *  clReleaseEvent() on the value previously held by this instance.
+     */
+    Event& operator = (const cl_event& rhs)
     {
-        if (this != &rhs) {
-            detail::Wrapper<cl_type>::operator=(rhs);
-        }
+        detail::Wrapper<cl_type>::operator=(rhs);
         return *this;
     }
 
@@ -2981,6 +3000,38 @@ public:
                 (cl_event*) event),
             __ENQUEUE_UNMAP_MEM_OBJECT_ERR);
     }
+
+#if defined(CL_VERSION_1_2)
+    /**
+     * Enqueues a marker command which waits for either a list of events to complete, 
+     * or all previously enqueued commands to complete.
+     *
+     * Enqueues a marker command which waits for either a list of events to complete, 
+     * or if the list is empty it waits for all commands previously enqueued in command_queue 
+     * to complete before it completes. This command returns an event which can be waited on, 
+     * i.e. this event can be waited on to insure that all events either in the event_wait_list 
+     * or all previously enqueued commands, queued before this command to command_queue, 
+     * have completed.
+     */
+    cl_int enqueueMarkerWithWaitList(
+        const VECTOR_CLASS<Event> *events = 0,
+        Event *event = 0)
+    {
+        cl_event tmp;
+        cl_int err = detail::errHandler(
+            ::clEnqueueMarkerWithWaitList(
+                object_,
+                (events != NULL) ? (cl_uint) events->size() : 0,
+                (events != NULL && events->size() > 0) ? (cl_event*) &events->front() : NULL,
+                (event != NULL) ? &tmp : NULL),
+            __ENQUEUE_MARKER_WAIT_LIST_ERR);
+
+        if (event != NULL && err == CL_SUCCESS)
+            *event = tmp;
+
+        return err;
+    }
+#endif // #if defined(CL_VERSION_1_2)
 
     cl_int enqueueNDRangeKernel(
         const Kernel& kernel,

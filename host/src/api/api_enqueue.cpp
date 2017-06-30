@@ -824,6 +824,15 @@ cl_int
 clEnqueueMarker(cl_command_queue    d_command_queue,
                 cl_event *          event)
 {
+    return clEnqueueMarkerWithWaitList(d_command_queue, 0, NULL, event);
+}
+
+cl_int
+clEnqueueMarkerWithWaitList(cl_command_queue    d_command_queue,
+                            cl_uint             num_events_in_wait_list,
+                            const cl_event *    event_wait_list,
+                            cl_event *          event)
+{
     cl_int rs = CL_SUCCESS;
     auto command_queue = pobj(d_command_queue);
 
@@ -833,23 +842,35 @@ clEnqueueMarker(cl_command_queue    d_command_queue,
     if (!event)
         return CL_INVALID_VALUE;
 
-    // Get the events in command_queue
-    unsigned int count;
-    Coal::Event **events = command_queue->events(count, false);
-    cl_event * e_wait_list = NULL;
+    // Check sanity of parameters
+    if (!event_wait_list && num_events_in_wait_list)
+        return CL_INVALID_EVENT_WAIT_LIST;
 
-    if (count != 0)
+    if (event_wait_list && !num_events_in_wait_list)
+        return CL_INVALID_EVENT_WAIT_LIST;
+
+    unsigned int count = 0;
+    Coal::Event  **events = nullptr;
+    cl_event *e_wait_list = nullptr;
+    if (num_events_in_wait_list == 0)
     {
-        e_wait_list = (cl_event *)std::malloc(count * sizeof(cl_event));
-        desc_list(e_wait_list, events, count);
+        // Get the events in command_queue
+        events = command_queue->events(count, false);
+        if (count != 0)
+        {
+            e_wait_list = (cl_event *)std::malloc(count * sizeof(cl_event));
+            desc_list(e_wait_list, events, count);
+        }
+        num_events_in_wait_list = count;
+        event_wait_list = e_wait_list;
     }
 
     Coal::MarkerEvent *command = new Coal::MarkerEvent(
-        command_queue, count, e_wait_list, &rs);
+        command_queue, num_events_in_wait_list, event_wait_list, &rs);
 
     if (rs != CL_SUCCESS)
     {
-        if (events != NULL)  { std::free(events); }
+        std::free(events);
         std::free(e_wait_list);
         delete command;
         return rs;
@@ -860,8 +881,7 @@ clEnqueueMarker(cl_command_queue    d_command_queue,
     {
         events[i]->dereference();
     }
-
-    if (events != NULL)  { std::free(events); }
+    std::free(events);
     std::free(e_wait_list);
 
     return queueEvent(command_queue, command, event, false);
