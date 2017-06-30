@@ -299,6 +299,7 @@ public:
 #define __ENQUEUE_WRITE_BUFFER_RECT_ERR     __ERR_STR(clEnqueueWriteBufferRect)
 #define __ENQEUE_COPY_BUFFER_ERR            __ERR_STR(clEnqueueCopyBuffer)
 #define __ENQEUE_COPY_BUFFER_RECT_ERR       __ERR_STR(clEnqueueCopyBufferRect)
+#define __ENQUEUE_FILL_BUFFER_ERR           __ERR_STR(clEnqueueFillBuffer)
 #define __ENQUEUE_READ_IMAGE_ERR            __ERR_STR(clEnqueueReadImage)
 #define __ENQUEUE_WRITE_IMAGE_ERR           __ERR_STR(clEnqueueWriteImage)
 #define __ENQUEUE_COPY_IMAGE_ERR            __ERR_STR(clEnqueueCopyImage)
@@ -2775,6 +2776,43 @@ public:
             __ENQEUE_COPY_BUFFER_RECT_ERR);
     }
 #endif
+
+#if defined(CL_VERSION_1_2)
+    /**
+     * Enqueue a command to fill a buffer object with a pattern
+     * of a given size. The pattern is specified a as vector.
+     * \tparam PatternType The datatype of the pattern field. 
+     *     The pattern type must be an accepted OpenCL data type.
+     */
+    template<typename PatternType>
+    cl_int enqueueFillBuffer(
+        const Buffer& buffer,
+        PatternType pattern,
+        ::size_t offset,
+        ::size_t size,
+        const VECTOR_CLASS<Event>* events = NULL,
+        Event* event = NULL) const
+    {
+        cl_event tmp;
+        cl_int err = detail::errHandler(
+            ::clEnqueueFillBuffer(
+                object_, 
+                buffer(),
+                static_cast<void*>(&pattern),
+                sizeof(PatternType), 
+                offset, 
+                size,
+                (events != NULL) ? (cl_uint) events->size() : 0,
+                (events != NULL && events->size() > 0) ? (cl_event*) &events->front() : NULL,
+                (event != NULL) ? &tmp : NULL),
+                __ENQUEUE_FILL_BUFFER_ERR);
+
+        if (event != NULL && err == CL_SUCCESS)
+            *event = tmp;
+
+        return err;
+    }
+#endif // #if defined(CL_VERSION_1_2)
 
     cl_int enqueueReadImage(
         const Image& image,

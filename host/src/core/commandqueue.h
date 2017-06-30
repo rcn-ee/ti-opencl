@@ -279,6 +279,7 @@ class Event : public _cl_event, public Object
             WriteBufferRect = CL_COMMAND_WRITE_BUFFER_RECT,
             CopyBufferRect = CL_COMMAND_COPY_BUFFER_RECT,
             User = CL_COMMAND_USER,
+            FillBuffer = CL_COMMAND_FILL_BUFFER,
             Barrier,
             WaitForEvents
         };

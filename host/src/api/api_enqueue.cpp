@@ -258,6 +258,41 @@ clEnqueueWriteBufferRect(cl_command_queue   d_command_queue,
 }
 
 cl_int
+clEnqueueFillBuffer(cl_command_queue   d_command_queue,
+                    cl_mem             d_buffer,
+                    const void *       pattern,
+                    size_t             pattern_size,
+                    size_t             offset,
+                    size_t             size,
+                    cl_uint            num_events_in_wait_list,
+                    const cl_event *   event_wait_list,
+                    cl_event *         event)
+{
+    cl_int rs = CL_SUCCESS;
+    auto command_queue = pobj(d_command_queue);
+    auto buffer = pobj(d_buffer);
+
+    if (!command_queue->isA(Coal::Object::T_CommandQueue))
+        return CL_INVALID_COMMAND_QUEUE;
+
+    Coal::FillBufferEvent *command = new Coal::FillBufferEvent(
+        command_queue,
+        buffer,
+        pattern, pattern_size,
+        offset, size,
+        num_events_in_wait_list, event_wait_list, &rs
+    );
+
+    if (rs != CL_SUCCESS)
+    {
+        delete command;
+        return rs;
+    }
+
+    return queueEvent(command_queue, command, event, false);
+}
+
+cl_int
 clEnqueueCopyBufferRect(cl_command_queue    d_command_queue,
                         cl_mem              d_src_buffer,
                         cl_mem              d_dst_buffer,

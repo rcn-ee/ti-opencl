@@ -211,6 +211,81 @@ Event::Type WriteBufferEvent::type() const
     return Event::WriteBuffer;
 }
 
+FillBufferEvent::FillBufferEvent(CommandQueue *parent,
+                                 MemObject *buffer,
+                                 const void *pattern,
+                                 size_t pattern_size,
+                                 size_t offset,
+                                 size_t cb,
+                                 cl_uint num_events_in_wait_list,
+                                 const cl_event *event_wait_list,
+                                 cl_int *errcode_ret)
+: BufferEvent(parent, buffer, num_events_in_wait_list, event_wait_list,
+              errcode_ret),
+  p_pattern(nullptr), p_pattern_size(pattern_size), p_offset(offset), p_cb(cb)
+{
+    if (*errcode_ret != CL_SUCCESS) return;
+
+    if (offset + cb > buffer->size())
+    {
+        *errcode_ret = CL_INVALID_VALUE;
+        return;
+    }
+
+    if (!pattern || pattern_size == 0 ||
+        (pattern_size != 1 && pattern_size != 2 && pattern_size != 4 &&
+         pattern_size != 8 && pattern_size != 16 && pattern_size != 32 &&
+         pattern_size != 64 && pattern_size != 128))
+    {
+        *errcode_ret = CL_INVALID_VALUE;
+        return;
+    }
+
+    if (offset % pattern_size != 0 || cb % pattern_size != 0)
+    {
+        *errcode_ret = CL_INVALID_VALUE;
+        return;
+    }
+
+    p_pattern = std::malloc(pattern_size);
+    if (p_pattern == nullptr)
+    {
+        *errcode_ret = CL_OUT_OF_HOST_MEMORY;
+        return;
+    }
+    memcpy(p_pattern, pattern, pattern_size);
+}
+
+FillBufferEvent::~FillBufferEvent()
+{
+    if (p_pattern)  std::free(p_pattern);
+}
+
+Event::Type FillBufferEvent::type() const
+{
+    return Event::FillBuffer;
+}
+
+void* FillBufferEvent::pattern() const
+{
+    return p_pattern;
+}
+
+size_t FillBufferEvent::pattern_size() const
+{
+    return p_pattern_size;
+}
+
+size_t FillBufferEvent::offset() const
+{
+    return p_offset;
+}
+
+size_t FillBufferEvent::cb() const
+{
+    return p_cb;
+}
+
 MapBufferEvent::MapBufferEvent(CommandQueue *parent,
                                MemObject *buffer,
                                size_t offset,

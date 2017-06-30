@@ -143,6 +143,35 @@ class WriteBufferEvent : public ReadWriteBufferEvent
 };
 
 /**
+ * \brief Filling a buffer with a pattern
+ */
+class FillBufferEvent : public BufferEvent
+{
+    public:
+        FillBufferEvent(CommandQueue *parent,
+                        MemObject *buffer,
+                        const void *pattern,
+                        size_t pattern_size,
+                        size_t offset,
+                        size_t cb,
+                        cl_uint num_events_in_wait_list,
+                        const cl_event *event_wait_list,
+                        cl_int *errcode_ret);
+        ~FillBufferEvent();
+
+        Type type() const; /*!< \brief Say the event is a \c Coal::Event::FillBuffer one */
+
+        void *pattern() const;       /*!< \brief Pointer to saved pattern */
+        size_t pattern_size() const; /*!< \brief pattern size, in bytes */
+        size_t offset() const;       /*!< \brief Offset in the buffer of the operation, in bytes */
+        size_t cb() const;           /*!< \brief Number of bytes to fill */
+
+    private:
+        void *p_pattern;
+        size_t p_pattern_size, p_offset, p_cb;
+};
+
+/**
  * \brief Mapping a buffer
  */
 class MapBufferEvent : public BufferEvent

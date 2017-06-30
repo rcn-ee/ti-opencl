@@ -263,6 +263,38 @@ bool handle_event_dispatch(DSPDevice *device)
             break;
         }
 
+        case Event::FillBuffer:
+        {
+            FillBufferEvent *e = (FillBufferEvent *)event;
+
+            void *pattern = e->pattern();
+            size_t pattern_size = e->pattern_size();
+            DSPDevicePtr64 dst_addr;
+            void *pdst;
+
+            if (e->buffer()->flags() & CL_MEM_USE_HOST_PTR) 
+            {
+                pdst = (char *)e->buffer()->host_ptr() + e->offset();
+            }
+            else
+            {
+                DSPBuffer *dst = (DSPBuffer*)e->buffer()->deviceBuffer(device);
+                dst_addr = (DSPDevicePtr64)dst->data() + e->offset();
+                pdst = (char *)shm->Map(dst_addr, e->cb(), false);
+            }
+
+            if (pattern_size == 1)
+                memset(pdst, *(char *)pattern, e->cb());
+            else
+                for (int i = 0; i < e->cb() / pattern_size; i++)
+                    memcpy((char *)pdst + i * pattern_size,
+                           pattern, pattern_size);
+
+            if (! (e->buffer()->flags() & CL_MEM_USE_HOST_PTR)) 
+                shm->Unmap(pdst, dst_addr, e->cb(), true);
+            break;
+        }
+
         case Event::CopyBuffer:
         {
             CopyBufferEvent *e = (CopyBufferEvent *)event;
