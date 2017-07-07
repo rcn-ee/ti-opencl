@@ -367,6 +367,79 @@ _BINARY_VEC_DECL_ALT(int,  long,  uint, upsample)
 _BINARY_VEC_DECL_ALT(uint, ulong, uint, upsample)
 
 
+_CLC_OVERLOAD _CLC_INLINE uchar    popcount(uchar    __x)
+{ return (uchar) _bitc4((uint) __x); }
+_CLC_OVERLOAD _CLC_INLINE uchar2   popcount(uchar2   __x)
+{ return as_uchar2((ushort) _bitc4((uint) as_ushort(__x))); }
+_CLC_OVERLOAD _CLC_INLINE uchar4   popcount(uchar4   __x)
+{ return as_uchar4(_bitc4(as_uint(__x))); }
+_CLC_OVERLOAD _CLC_INLINE uchar3   popcount(uchar3   __x)
+{ return as_uchar3(popcount(as_uchar4(__x))); }
+_CLC_OVERLOAD _CLC_INLINE uchar8   popcount(uchar8   __x)
+{ return (uchar8) (popcount(__x.lo), popcount(__x.hi)); }
+_CLC_OVERLOAD _CLC_INLINE uchar16  popcount(uchar16  __x)
+{ return (uchar16) (popcount(__x.lo.lo), popcount(__x.lo.hi),
+                    popcount(__x.hi.lo), popcount(__x.hi.hi)); }
+
+_CLC_OVERLOAD _CLC_INLINE ushort   popcount(ushort   __x)
+{ return (ushort) _dotpu4(_bitc4((uint) __x), 0x0101); }
+_CLC_OVERLOAD _CLC_INLINE ushort2  popcount(ushort2  __x)
+{ uint count = _bitc4(as_uint(__x));
+  return (ushort2) ((ushort) _dotpu4(count, 0x0101),
+                    (ushort) _dotpu4(count, 0x01010000));     // Little-Endian
+}
+_CLC_OVERLOAD _CLC_INLINE ushort4  popcount(ushort4  __x)
+{ return (ushort4) (popcount(__x.lo), popcount(__x.hi)); }
+_CLC_OVERLOAD _CLC_INLINE ushort3  popcount(ushort3  __x)
+{ return as_ushort3(popcount(as_ushort4(__x))); }
+_CLC_OVERLOAD _CLC_INLINE ushort8  popcount(ushort8  __x)
+{ return (ushort8) (popcount(__x.lo), popcount(__x.hi)); }
+_CLC_OVERLOAD _CLC_INLINE ushort16 popcount(ushort16 __x)
+{ return (ushort16) (popcount(__x.lo), popcount(__x.hi)); }
+
+_CLC_OVERLOAD _CLC_INLINE uint     popcount(uint     __x)
+{ return _dotpu4(_bitc4(__x), 0x01010101); }
+_CLC_OVERLOAD _CLC_INLINE uint2    popcount(uint2    __x)
+{ return (uint2) (popcount(__x.lo), popcount(__x.hi)); }
+_CLC_OVERLOAD _CLC_INLINE uint3    popcount(uint3    __x)
+{ return (uint3) (popcount(__x.s0), popcount(__x.s1), popcount(__x.s2)); }
+_CLC_OVERLOAD _CLC_INLINE uint4    popcount(uint4    __x)
+{ return (uint4) (popcount(__x.lo), popcount(__x.hi)); }
+_CLC_OVERLOAD _CLC_INLINE uint8    popcount(uint8    __x)
+{ return (uint8) (popcount(__x.lo), popcount(__x.hi)); }
+_CLC_OVERLOAD _CLC_INLINE uint16   popcount(uint16   __x)
+{ return (uint16) (popcount(__x.lo), popcount(__x.hi)); }
+
+_CLC_OVERLOAD _CLC_INLINE ulong    popcount(ulong    __x)
+{ return (ulong) (popcount(as_uint2(__x).lo) + popcount(as_uint2(__x).hi)); }
+_CLC_OVERLOAD _CLC_INLINE ulong2   popcount(ulong2   __x)
+{ return (ulong2) (popcount(__x.lo), popcount(__x.hi)); }
+_CLC_OVERLOAD _CLC_INLINE ulong3   popcount(ulong3   __x)
+{ return (ulong3) (popcount(__x.s0), popcount(__x.s1), popcount(__x.s2)); }
+_CLC_OVERLOAD _CLC_INLINE ulong4   popcount(ulong4   __x)
+{ return (ulong4) (popcount(__x.lo), popcount(__x.hi)); }
+_CLC_OVERLOAD _CLC_INLINE ulong8   popcount(ulong8   __x)
+{ return (ulong8) (popcount(__x.lo), popcount(__x.hi)); }
+_CLC_OVERLOAD _CLC_INLINE ulong16  popcount(ulong16  __x)
+{ return (ulong16) (popcount(__x.lo), popcount(__x.hi)); }
+
+#define _SIGNED_INLINE(__type,__utype,__name)\
+_CLC_OVERLOAD _CLC_INLINE __type     __name(__type    __x)   \
+{ return as_##__type(__name(as_##__utype(__x))); }
+#define _SIGNED_VEC_INLINE(__type,__utype,__name)\
+_SIGNED_INLINE(__type,__utype,__name)\
+_SIGNED_INLINE(__type##2,__utype##2,__name)\
+_SIGNED_INLINE(__type##3,__utype##3,__name)\
+_SIGNED_INLINE(__type##4,__utype##4,__name)\
+_SIGNED_INLINE(__type##8,__utype##8,__name)\
+_SIGNED_INLINE(__type##16,__utype##16,__name)
+
+_SIGNED_VEC_INLINE(char,uchar,popcount)
+_SIGNED_VEC_INLINE(short,ushort,popcount)
+_SIGNED_VEC_INLINE(int,uint,popcount)
+_SIGNED_VEC_INLINE(long,ulong,popcount)
+
+
 _CLC_OVERLOAD _CLC_INLINE char mad_sat(char __a, char __b, char __c)
 {
     int __tmp = _mpy32(__a,__b);
