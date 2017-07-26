@@ -1,0 +1,48 @@
+diff -r -u aet/src.orig/aet_aeg_manager.c aet/src/aet_aeg_manager.c
+--- aet/src.orig/aet_aeg_manager.c	2017-07-18 10:22:45.052160969 -0500
++++ aet/src/aet_aeg_manager.c	2017-07-18 10:25:26.582799191 -0500
+@@ -49,6 +49,7 @@
+ #include <aet_resource.h>
+ extern _AET_globalVars _AET_globalParams;
+ 
++#pragma DATA_SECTION(aegDatabase, ".localddr")
+ _AET_aegDatabase aegDatabase;
+ 
+ /*******************************************************************************
+diff -r -u aet/src.orig/aet.c aet/src/aet.c
+--- aet/src.orig/aet.c	2017-07-18 10:22:45.052160969 -0500
++++ aet/src/aet.c	2017-07-18 10:24:40.727185774 -0500
+@@ -100,6 +100,7 @@
+ 
+ 
+ /* Global Variables */
++#pragma DATA_SECTION(_AET_globalParams, ".localddr")
+ _AET_globalVars _AET_globalParams;  /* Global Structure for Parameters */
+ 
+ const _AET_debugInfo _AET_debugInfoDatabase[] = { _AET_DEBUG_TABLE };
+@@ -126,12 +127,12 @@
+ /* 
+  Base Address for AET Memory Mapped Registers
+  */
+-CSL_Aet_mmrRegs *AET_mmrRegs = (CSL_Aet_mmrRegs*)0x1bc0020;
++static CSL_Aet_mmrRegs *AET_mmrRegs = (CSL_Aet_mmrRegs*)0x1bc0020;
+ 
+ /*
+  Pseudo Base Address for the indirect registers.  This turns into the offset
+  */
+-CSL_Aet_iarRegs *AET_iarRegs = (CSL_Aet_iarRegs*)0x0;
++static CSL_Aet_iarRegs *AET_iarRegs = (CSL_Aet_iarRegs*)0x0;
+ 
+ /*
+  Pointers to the AEGMUX registers in the interrupt controller
+diff -r -u aet/src.orig/aet_trigger_builders.c aet/src/aet_trigger_builders.c
+--- aet/src.orig/aet_trigger_builders.c	2017-07-18 10:22:45.052160969 -0500
++++ aet/src/aet_trigger_builders.c	2017-07-18 10:26:57.006036880 -0500
+@@ -60,6 +60,7 @@
+ 
+ 
+ // Create Global Settings Database
++#pragma DATA_SECTION(_tb_settings_db, ".localddr")
+ TB_SETTING_DATABASE _tb_settings_db;
+ 
+ const _AET_triggerBuilderInfo AET_triggerBuilderDatabase[] = 

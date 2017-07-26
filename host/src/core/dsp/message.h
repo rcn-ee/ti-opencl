@@ -94,6 +94,24 @@ typedef struct
     uint32_t        args_on_stack_addr;
     uint32_t        args_on_stack_size;
     uint32_t        timeout_ms;
+    
+    /* -1: no event
+        0: stall event
+        1: 1 General Memory Event (cache miss)
+        2: 2 General Memory Events (2 different kinds of cache misses)
+     */ 
+    int8_t          event_type;
+    /*  event_number1 is the offset from the general event. For example, if event_type is 1,
+    and event_number1 is 0, then the single stall event to count will be Stall_Cpu_Pipeline.
+    
+    event_number2 is similar to event_number1, and is used only if counting two general memory events
+    (event_type=2)*/
+    uint8_t         event_number1;
+    uint8_t         event_number2;
+
+    /* Threshold to count stall cycles */
+    uint32_t        STALL_CYCLE_THRESHOLD;
+
 } kernel_msg_t;
 
 typedef struct
@@ -110,7 +128,18 @@ typedef struct
 typedef struct
 {
     int retcode;
-} command_retcode_t;
+    
+    // whether profiling failed
+    int8_t          has_failed;
+    
+    /* Threshold to count stall cycles */
+    uint32_t        STALL_CYCLE_THRESHOLD;
+
+    /* Harware Counter0 and Counter1 reading differences */
+    uint32_t        counter0_diff;
+    uint32_t        counter1_diff;
+
+} command_retcode_t; // put here
 
 typedef struct 
 {

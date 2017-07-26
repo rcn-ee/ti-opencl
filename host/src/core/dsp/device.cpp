@@ -242,7 +242,6 @@ void DSPDevice::init_ulm()
 void DSPDevice::init()
 {
     if (p_initialized) return;
-
     /*-------------------------------------------------------------------------
     * Initialize the locking machinery and create worker threads
     *------------------------------------------------------------------------*/
@@ -523,7 +522,6 @@ float         DSPDevice::dspMhz()       const { return p_dsp_mhz; }
 unsigned char DSPDevice::dspID()        const { return p_dsp_id;  }
 
 
-
 DSPDevicePtr DSPDevice::get_L2_extent(uint32_t &size)
 {
     size       = (uint32_t) p_size_local_mem;
@@ -627,6 +625,66 @@ bool DSPDevice::mail_query()
     return p_mb->query();
 }
 
+void DSPDevice::record_profiling_data(command_retcode_t * profiling_data, uint core)
+{
+    /* profiling is enabled if user set event_type to be 0, 1, or 2.
+    if this env variable is not set correctly, then profiling will be skipped*/
+    int8_t event_type = -1;
+    char *s_env = (char *) getenv("TI_OCL_EVENT_TYPE");
+    if (s_env != nullptr)
+        event_type = atoi(s_env);
+    int8_t profiling_enabled = (event_type==0) || (event_type==1) ||
+                               (event_type==2);        
+    if(!profiling_enabled) 
+        return;
+    
+    /* record profiling event information */
+    int8_t event_number1 = -1;
+    int8_t event_number2 = -1;
+    uint32_t STALL_CYCLE_THRESHOLD = 0;    
+    s_env = (char *) getenv("TI_OCL_EVENT_NUMBER1");
+    if (s_env != nullptr)  event_number1 = atoi(s_env);
+    s_env = (char *) getenv("TI_OCL_EVENT_NUMBER2");
+    if (s_env != nullptr)  event_number2 = atoi(s_env);
+    s_env = (char *) getenv("TI_OCL_STALL_CYCLE_THRESHOLD");
+    if (s_env != nullptr)  STALL_CYCLE_THRESHOLD = atoi(s_env);    
+         
+    /* write profiling data to file if on linux or output stream
+    if on TI_RTOS   */
+    #if defined(_SYS_BIOS)
+        ostream & outfile = std::cout;
+    #else
+        std::ofstream outfile;
+        outfile.open("data/data.txt", std::ios_base::app);
+    #endif
+    outfile << (uint) event_type << '\n';
+    outfile << (uint) event_number1 << '\n';
+    outfile << (uint) event_number2 << '\n';
+    outfile << (uint) STALL_CYCLE_THRESHOLD<< '\n';
+    outfile << (uint) core << '\n';
+
+    /* if AET failure, set hardware counter values to -1. Note, -1 is 
+            signed, while hardware counters are unsigned. 
+    
+       else (if AET success), print success message and record hardware 
+            counter values */
+    int8_t has_failed  =  profiling_data -> has_failed;
+    if(has_failed==1) {
+        std::cout << "Profiling Failed on core:" << (uint) core 
+            << std::endl;
+        outfile << (int) -1 << '\n';
+        outfile << (int) -1 << '\n';
+    } else {
+        std::cout << "Profiling Successful on core:" << (uint) core 
+            << std::endl;
+        outfile << (uint) profiling_data -> counter0_diff << '\n';
+        outfile << (uint) profiling_data -> counter1_diff << '\n';
+    }
+    // mark end of core's data
+    outfile << "~~~~End Core" <<  '\n';
+    return;
+}
+
 int DSPDevice::mail_from(int *retcode)
 {
     uint32_t size_rx;
@@ -649,6 +707,12 @@ int DSPDevice::mail_from(int *retcode)
         std::cout << "[core " << rxmsg.u.message[0] << "] "
                               << rxmsg.u.message+1;
         return -1;
+    }
+
+    if ((rxmsg.command == NDRKERNEL) || (rxmsg.command == TASK))
+    {  
+        command_retcode_t * profiling_data = &(rxmsg.u.command_retcode);
+        record_profiling_data(profiling_data, core);        
     }
 
     if (rxmsg.command == EXIT)
