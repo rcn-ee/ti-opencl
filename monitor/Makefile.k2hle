@@ -4,43 +4,16 @@ include ../host/Makefile.inc
 # monitor
 OPENCL_SRC_DIR ?= ../host
 
-# If not specified, pick a default location for TI dependent packages
-DEFAULT_DEV_INSTALL_DIR ?= $(DEFAULT_PSDK_RTOS)
-LINUX_DEVKIT_ROOT ?= $(PSDK_LINUX_DEVKIT_ROOT)
-
 ifeq ($(TI_OCL_CGT_INSTALL),)
   $(error Monitor requires TI_OCL_CGT_INSTALL to point to C6000 Codegen tools)
 endif
 
-C6636_PDK_DIR  ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/pdk_k2*)
-IPC_DIR        ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/ipc_*)
-XDC_DIR        ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/xdctools_*)
-BIOS_DIR       ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/bios_*)
-FC_DIR         ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/framework_components*)
-EDMA3LLD_DIR   ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/edma3_lld_*)
-XDAIS_DIR      ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/xdais_*)
-ULM_DIR        ?= $(LINUX_DEVKIT_ROOT)/usr/share/ti/ulm
-GDB_SERVER_DIR ?= $(LINUX_DEVKIT_ROOT)/usr/share/ti/gdbc6x
-SDK_DIR        ?= $(DEFAULT_DLSDK)
-AET_DIR        ?= $(LINUX_DEVKIT_ROOT)/usr/share/ti/ctoolslib/aet
-
 export XDC = $(XDC_DIR)
-export XDC_DIR
-export BIOS_DIR
 
 # Verify that the dependencies exist where stated
 ifneq ($(MAKECMDGOALS),clean)
-    ifeq ($(BUILD_TARGET),DSPC868x)
-      ifeq (,$(wildcard $(SDK_DIR)/.)) 
-         $(error Path specified for SDK_DIR(=$(SDK_DIR)) is not valid)
-      endif
-      ifeq (,$(wildcard $(C6678_PDK_DIR)/.))
-       $(error Path specified for C6678_PDK_DIR(=$(C6678_PDK_DIR)) is not valid)
-      endif
-   else
-      ifeq (,$(wildcard $(C6636_PDK_DIR)/.))
-       $(error Path specified for C6636_PDK_DIR(=$(C6636_PDK_DIR)) is not valid)
-      endif
+   ifeq (,$(wildcard $(PDK_DIR)/.))
+      $(error Path specified for PDK_DIR(=$(PDK_DIR)) is not valid)
    endif
    ifeq (,$(wildcard $(BIOS_DIR)/.)) 
       $(error Path specified for BIOS_DIR(=$(BIOS_DIR)) is not valid)
@@ -79,7 +52,7 @@ BUILD_TYPE = release
 INCLUDES=  -i $(OPENCL_SRC_DIR)/src/core/dsp
 
 XDCTARGET= ti.targets.elf.C66
-XDCPATH_K2X=./;$(C6636_PDK_DIR)/packages;$(BIOS_DIR)/packages;$(OMP_DIR)/packages;$(EDMA3LLD_DIR)/packages;$(IPC_DIR)/packages;$(FC_DIR)/packages;$(XDAIS_DIR)/packages;
+XDCPATH_K2X=./;$(PDK_DIR)/packages;$(BIOS_DIR)/packages;$(OMP_DIR)/packages;$(EDMA3LLD_DIR)/packages;$(IPC_DIR)/packages;$(FC_DIR)/packages;$(XDAIS_DIR)/packages;
 
 LIBS_K2X  = cmds/monitor.cmd \
 	    $(ULM_DIR)/libtiulm.ae66 \

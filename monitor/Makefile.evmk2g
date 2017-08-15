@@ -1,56 +1,8 @@
-include ../host/Makefile.inc
-
-# If not specified, assume the opencl source directory is at same location as
-# monitor
-OPENCL_SRC_DIR ?= ../host
-
-# If not specified, pick a default location for TI dependent packages
-DEFAULT_DEV_INSTALL_DIR ?= $(DEFAULT_PSDK_RTOS)
-LINUX_DEVKIT_ROOT ?= $(PSDK_LINUX_DEVKIT_ROOT)
-
-ifeq ($(TI_OCL_CGT_INSTALL),)
-  $(error Monitor requires TI_OCL_CGT_INSTALL to point to C6000 Codegen tools)
-endif
-
-C6636_PDK_DIR  ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/pdk_k2*)
-IPC_DIR        ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/ipc_*)
-XDC_DIR        ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/xdctools_*)
-BIOS_DIR       ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/bios_*)
-OMP_DIR        ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/openmp_dsp_*)
-FC_DIR         ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/framework_components*)
-EDMA3LLD_DIR   ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/edma3_lld_*)
-XDAIS_DIR      ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/xdais_*)
-#MPM_DIR        ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/multiprocmgr_*)
-#ULM_DIR        ?= $(LINUX_DEVKIT_ROOT)/usr/share/ti/ulm
-#GDB_SERVER_DIR ?= $(LINUX_DEVKIT_ROOT)/usr/share/ti/gdbc6x
-AET_DIR        ?= $(LINUX_DEVKIT_ROOT)/usr/share/ti/ctoolslib/aet
-SDK_DIR        ?= $(DEFAULT_DLSDK)
-
-#$(warning $(DEFAULT_DEV_INSTALL_DIR))
-#$(warning $(OMP_DIR))
-#$(warning $(FC_DIR))
-#$(error x)
-
-export XDC_DIR
-export BIOS_DIR
-
 # Verify that the dependencies exist where stated
 ifneq ($(MAKECMDGOALS),clean)
-    ifeq ($(BUILD_TARGET),DSPC868x)
-      ifeq (,$(wildcard $(SDK_DIR)/.)) 
-         $(error Path specified for SDK_DIR(=$(SDK_DIR)) is not valid)
-      endif
-      ifeq (,$(wildcard $(C6678_PDK_DIR)/.))
-       $(error Path specified for C6678_PDK_DIR(=$(C6678_PDK_DIR)) is not valid)
-      endif
-   else
-      ifeq (,$(wildcard $(C6636_PDK_DIR)/.))
-       $(error Path specified for C6636_PDK_DIR(=$(C6636_PDK_DIR)) is not valid)
-      endif
+   ifeq (,$(wildcard $(PDK_DIR)/.))
+      $(error Path specified for PDK_DIR(=$(PDK_DIR)) is not valid)
    endif
-#   ifeq (,$(wildcard $(MPM_DIR)/.)) 
-#      $(error Path specified for MPM_DIR(=$(MPM_DIR)) is not valid)
-#   endif
    ifeq (,$(wildcard $(BIOS_DIR)/.)) 
       $(error Path specified for BIOS_DIR(=$(BIOS_DIR)) is not valid)
    endif
@@ -87,7 +39,7 @@ INCLUDES += -DOMP_ENABLED
 INCLUDES += -i $(AET_DIR)/include
 
 XDCTARGET= ti.targets.elf.C66
-XDCPATH_K2X = ./;$(C6636_PDK_DIR)/packages;$(BIOS_DIR)/packages;$(OMP_DIR)/packages;$(EDMA3LLD_DIR)/packages;$(IPC_DIR)/packages;$(FC_DIR)/packages;$(XDAIS_DIR)/packages;
+XDCPATH_K2X = ./;$(PDK_DIR)/packages;$(BIOS_DIR)/packages;$(OMP_DIR)/packages;$(EDMA3LLD_DIR)/packages;$(IPC_DIR)/packages;$(FC_DIR)/packages;$(XDAIS_DIR)/packages;
 LIBS_K2X = $(AET_DIR)/lib/libaet.ae66 #$(MPM_DIR)/lib_c66x/mpmmailbox.ae66 #$(ULM_DIR)/libtiulm.ae66 $(GDB_SERVER_DIR)/lib/gdb_server.ae66
 
 ifeq ($(BUILD_TARGET),ARM_K2G)

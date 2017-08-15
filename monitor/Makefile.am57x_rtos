@@ -1,36 +1,7 @@
-include ../host/Makefile.inc
-
-# If not specified, assume the opencl source directory is at same location as
-# monitor
-OPENCL_SRC_DIR ?= ../host
-
-# If not specified, pick a default location for TI dependent packages
-DEFAULT_DEV_INSTALL_DIR ?= $(DEFAULT_PSDK_RTOS)
-
-# And for the devkit, when doing an x86 build ...
-UNAME_M :=$(shell uname -m)
-
-ifeq ($(TI_OCL_CGT_INSTALL),)
-  $(error Monitor requires TI_OCL_CGT_INSTALL to point to C6000 Codegen tools)
-endif
 
 # Enabling OpenMP in the monitor by default
 OMP_ENABLED    ?= 1
 export OMP_ENABLED
-
-AM57_PDK_DIR   ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/pdk_am57xx_*)
-IPC_DIR        ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/ipc_*)
-XDC_DIR        ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/xdctools_*)
-BIOS_DIR       ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/bios_*)
-FC_DIR         ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/framework_components*)
-EDMA3LLD_DIR   ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/edma3_lld_*)
-XDAIS_DIR      ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/xdais_*)
-#ULM_DIR        ?= $(LINUX_DEVKIT_ROOT)/usr/share/ti/ulm
-#GDB_SERVER_DIR ?= $(LINUX_DEVKIT_ROOT)/usr/share/ti/gdbc6x
-AET_DIR        ?= $(PSDK_LINUX_DEVKIT_ROOT)/usr/share/ti/ctoolslib/aet
-
-export XDC_DIR
-export BIOS_DIR
 
 PLATFORM  = am57x_rtos
 PROJECT   = monitor_$(PLATFORM)
@@ -42,7 +13,7 @@ CC= $(TI_OCL_CGT_INSTALL)/bin/cl6x -o3 -mv6600 --abi=eabi --gcc --mem_model:cons
 AR= $(TI_OCL_CGT_INSTALL)/bin/ar6x
 
 INCLUDES  = -i. -i $(OPENCL_SRC_DIR)/src/core/dsp
-INCLUDES += -i $(AM57_PDK_DIR)/packages -i $(TI_OCL_CGT_INSTALL)/include \
+INCLUDES += -i $(PDK_DIR)/packages -i $(TI_OCL_CGT_INSTALL)/include \
 	    -i $(IPC_DIR)/packages -i $(XDC_DIR)/packages           \
 	    -i $(BIOS_DIR)/packages -i $(EDMA3LLD_DIR)/packages     \
 	    -i $(FC_DIR)/packages -i $(XDAIS_DIR)/packages -i ../packages
@@ -81,7 +52,7 @@ MSMC_SIZE    = 0x00100000
 #----------------------------------------------------------------------------
 # XDC stuff
 #----------------------------------------------------------------------------
-XDCPATH = ./;$(IPC_DIR)/packages;$(BIOS_DIR)/packages;$(OMP_DIR)/packages;$(EDMA3LLD_DIR)/packages;$(FC_DIR)/packages;$(XDAIS_DIR)/packages;$(AM57_PDK_DIR)/packages;../packages
+XDCPATH = ./;$(IPC_DIR)/packages;$(BIOS_DIR)/packages;$(OMP_DIR)/packages;$(EDMA3LLD_DIR)/packages;$(FC_DIR)/packages;$(XDAIS_DIR)/packages;$(PDK_DIR)/packages;../packages
 MONITOR_CONFIG = ../packages/ti/opencl/Dsp.cfg
 
 XDCTARGET = ti.targets.elf.C66

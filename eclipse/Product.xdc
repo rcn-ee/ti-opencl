@@ -39,7 +39,7 @@ metaonly module Product inherits IProduct {
 
     override config String id   = "com.ti.opencl";
 
-    override config String version = "1.1.13.00";
+    override config String version = "1.1.14.00";
 
     override config String companyName = "Texas Instruments Incorporated";
 

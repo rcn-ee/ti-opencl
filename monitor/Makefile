@@ -29,6 +29,39 @@
 ##  EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ##
 
+include ../host/Makefile.inc
+
+# If not specified, assume the opencl source directory is at same location as
+# monitor
+OPENCL_SRC_DIR ?= ../host
+
+PDK_DIR        ?= $(RTOS_INSTALL_DIR)/ti-pdk-tree
+IPC_DIR        ?= $(RTOS_INSTALL_DIR)/ti-ipc-tree
+BIOS_DIR       ?= $(RTOS_INSTALL_DIR)/ti-sysbios-tree
+FC_DIR         ?= $(RTOS_INSTALL_DIR)/ti-framework-components-tree
+EDMA3LLD_DIR   ?= $(RTOS_INSTALL_DIR)/ti-edma3lld-tree
+XDAIS_DIR      ?= $(RTOS_INSTALL_DIR)/ti-xdais-tree
+ULM_DIR        ?= $(RTOS_INSTALL_DIR)/ulm
+GDB_SERVER_DIR ?= $(RTOS_INSTALL_DIR)/gdbc6x
+AET_DIR        ?= $(RTOS_INSTALL_DIR)/ctoolslib/aet
+
+export XDC_DIR
+export BIOS_DIR
+
+# And for the devkit, when doing an x86 build ...
+UNAME_M :=$(shell uname -m)
+
+ifneq (,$(findstring 86, $(UNAME_M)))
+    ifeq ($(LINUX_DEVKIT_ROOT),)
+      $(error Monitor requires LINUX_DEVKIT_ROOT to point to AM57 linux-devkit root)
+    endif
+endif
+
+ifeq ($(TI_OCL_CGT_INSTALL),)
+  $(error Monitor requires TI_OCL_CGT_INSTALL to point to C6000 Codegen tools)
+endif
+
+
 ifeq ($(BUILD_TARGET), ARM_AM57)
     ifeq ($(BUILD_OS), SYS_BIOS)
     	include Makefile.am57x_rtos
