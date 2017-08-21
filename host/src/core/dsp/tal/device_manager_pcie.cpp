@@ -27,7 +27,8 @@
  *****************************************************************************/
 
 #include "device_manager_pcie.h"
-#include "../error_report.h"
+#include "../../error_report.h"
+#include "../../oclenv.h"
 #include "cmem.h"
 
 #define BOOT_ENTRY_LOCATION_ADDR   0x87FFFC
@@ -98,14 +99,16 @@ DeviceManagerPCIe::~DeviceManagerPCIe()
 
 bool DeviceManagerPCIe::Reset() const
 {
-    char *installation = getenv("TI_OCL_INSTALL");
+    EnvVar& env = EnvVar::Instance();
+    char *installation = env.GetEnv<EnvVar::Var::TI_OCL_INSTALL>(nullptr);
     if (! installation)  ERR(1, "TI_OCL_INSTALL env variable not set");
 
     /*------------------------------------------------------------------------
     * Determine DSP speed. 1 Ghz by default. Set Env Var for  1.25Ghz Oper
     *-----------------------------------------------------------------------*/
     uint32_t pll_multiplier = 0x00000014; // 1.00 Ghz by default
-    if (getenv("TI_OCL_DSP_1_25GHZ")) pll_multiplier = 0x00000019;
+    if (env.GetEnv<EnvVar::Var::TI_OCL_DSP_1_25GHZ>(nullptr))
+        pll_multiplier = 0x00000019;
 
     /*-------------------------------------------------------------------------
     * Configure boot config

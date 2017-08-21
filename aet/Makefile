@@ -5,8 +5,8 @@ ifeq ($(TI_OCL_CGT_INSTALL),)
 endif
 
 AR=$(TI_OCL_CGT_INSTALL)/bin/ar6x
-CC=$(TI_OCL_CGT_INSTALL)/bin/cl6x 
-CFLAGS=-o3 -mv6600 --use_g3 --abi=eabi --mem_model:data=far -I$(TI_OCL_CGT_INSTALL)/include -Iaet/src -Iaet/include -eoo --visibility=protected 
+CC=$(TI_OCL_CGT_INSTALL)/bin/cl6x
+CFLAGS=-o3 -mv6600 --abi=eabi --mem_model:data=far -I$(TI_OCL_CGT_INSTALL)/include -Iaet/src -Iaet/include -eoo --visibility=protected 
 
 VPATH = aet/src
 

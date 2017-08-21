@@ -1,23 +1,56 @@
+"""
+/******************************************************************************
+ * Copyright (c) 2017, Texas Instruments Incorporated - http://www.ti.com/
+ *  All rights reserved.
+ *
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions are met:
+ *      * Redistributions of source code must retain the above copyright
+ *        notice, this list of conditions and the following disclaimer.
+ *      * Redistributions in binary form must reproduce the above copyright
+ *        notice, this list of conditions and the following disclaimer in the
+ *        documentation and/or other materials provided with the distribution.
+ *      * Neither the name of Texas Instruments Incorporated nor the
+ *        names of its contributors may be used to endorse or promote products
+ *        derived from this software without specific prior written permission.
+ *
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGE.
+ *****************************************************************************/
+"""
+
+import sys
+sys.path.append('/usr/share/ti/opencl/profiling')
 from classes.core import core_data
 from classes.event import event_data
 from classes.kernel import kernel_data
 from classes.graph import plot
 from classes.table import table
-import sys
+
 import json
 import os
 import glob
 
-"""Ensures data.txt is the only file in ../profiling_data"""
+"""Ensures data.txt is the only file in specified profiling aetdata"""
 def cleanup_files():
-    file_path = "../data/data.txt"
+    file_path = sys.argv[len(sys.argv)-1]
     if not os.path.isfile(file_path):
-        print "Ensure valid data is in ../data/data.txt"
+        print "Ensure valid data is in " + file_path
         exit(0)
 
-    """ remove all files except data.txt """
-    for old_file in glob.glob('../data/*.*'):
-        if not old_file.endswith('data.txt'):
+    """ remove all files except aetdata.txt """
+    file_dir = os.path.dirname(file_path)
+    for old_file in glob.glob(file_dir + '/*.*'):
+        if not old_file.endswith('aetdata.txt'):
             os.remove(old_file)
 
 
@@ -38,7 +71,7 @@ def print_json(aggregated_kernels):
     profiling_data['Profiling Data'] = kernels_info
 
     """ Dump JSON profiling data to file """
-    with open('../data/data.json', 'w') as outfile:
+    with open('profiling/aetdata.json', 'w') as outfile:
         json.dump(profiling_data, outfile, sort_keys=False, indent=4, ensure_ascii=False)
 
 
@@ -46,8 +79,8 @@ def print_json(aggregated_kernels):
 
 Args:
     lines:  raw profile dump. This stream has a separator ---End Kernel which divides core data
-    
-Returns: 
+
+Returns:
     kernel_name_to_event:   dictionary of kernel name to event object
 """
 def mark_events_and_cores(lines):
@@ -69,7 +102,7 @@ def mark_events_and_cores(lines):
             """ Get event data for core """
             event1.process_core_data(lines)
             event1.update_event_names()
-            
+
             """ Add event info to dictionary """
             try:
                 kernel_name_to_event[event1.name].append(event1)
@@ -80,13 +113,14 @@ def mark_events_and_cores(lines):
     return kernel_name_to_event
 
 
-"""Read all profiling data into lines and consume '\n' 
+"""Read all profiling data into lines and consume '\n'
 
 Returns:
     lines: list of raw data dump
 """
 def read_profiling_dump():
-    with open('../data/data.txt') as f:
+    file_path = sys.argv[len(sys.argv)-1]
+    with open(file_path) as f:
         lines = f.readlines()
         for index, line in enumerate(lines):
             lines[index] = line.strip('\n')
@@ -95,9 +129,9 @@ def read_profiling_dump():
 
 """Forms list of kernels from dictionary of kernel name to events
 
-Args: 
+Args:
     name_to_events: dictionary of kernel name to event list
-    
+
 Returns:
     kernel_list:    list of kernel objects
 """
@@ -111,10 +145,10 @@ def form_kernels(name_to_events):
     return kernel_list
 
 
-"""Analyzes kernel data according to user arguments. If the -t arg or -g arg is given, 
+"""Analyzes kernel data according to user arguments. If the -t arg or -g arg is given,
 then a table or plot of kernel data will be formed..
- 
-Args: 
+
+Args:
     kernel_list: list of kernel objects
 """
 def analyze_kernel_data(kernel_list):
@@ -143,7 +177,7 @@ def main():
     kernel_list = form_kernels(kernel_name_to_event)
     print_json(kernel_list)
     analyze_kernel_data(kernel_list)
-    print "Done! Check data in profiling/data/"
+    print "Done! Check data in profiling/"
 
 
 if __name__ == '__main__':

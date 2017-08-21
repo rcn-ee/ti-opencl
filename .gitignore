@@ -60,4 +60,3 @@ packages/ti/opencl/OpenCL.h
 packages/ti/opencl/DSPMonitor.h
 
 
-*.pyc

@@ -311,15 +311,12 @@ class Kernel : public _cl_kernel, public Object
                           { p_timeout_ms = timeout_in_ms;  return CL_SUCCESS; }
 
         /**
-        Getter method to get kernel name
+        * \brief Get kernel name
         */
-        std::string get_name();
-        
-
-
+        std::string getName() { return p_name; }
 
     private:
-        std::string p_name; // kernel name
+        std::string p_name;
         bool p_has_locals;
         int wi_alloca_size;
         unsigned int p_timeout_ms;

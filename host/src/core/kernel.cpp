@@ -432,11 +432,6 @@ cl_int Kernel::info(cl_kernel_info param_name,
     return CL_SUCCESS;
 }
 
-std::string Kernel::get_name(){
-    return p_name;
-}
-
-
 void Kernel::reqdWorkGroupSize(llvm::Module *module, cl_uint dims[3]) const
 {
     llvm::NamedMDNode *kernels = module->getNamedMetadata("opencl.kernels");
@@ -642,6 +637,4 @@ const void *Kernel::Arg::value(unsigned short index) const
 
     return (const void *)data;
 }
-
-
 
