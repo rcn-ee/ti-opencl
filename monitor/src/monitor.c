@@ -92,11 +92,6 @@
 #include "GDB_server.h"
 #endif
 
-/*-----------------------------------------------------------------------------
-* AET header
-*----------------------------------------------------------------------------*/
-#include "../../aet/aet/include/aet.h"
-
 
 DDR (Registry_Desc, Registry_CURDESC);
 
@@ -208,35 +203,6 @@ PRIVATE_1D(char, lstack, LISTEN_STACK_SIZE);
 char tstack[TIMEOUT_STACK_SIZE] __attribute__((aligned(CACHE_L2_LINESIZE)))
                                 __attribute((section(".localddr"))) = { 0 };
 
-/******************************************************************************
-* Profiling Variables and prototypes
-******************************************************************************/
-#pragma DATA_SECTION(counter0, ".localddr")
-AET_counterConfigParams counter0;
-#pragma DATA_SECTION(counter1, ".localddr")
-AET_counterConfigParams counter1;
-#pragma DATA_SECTION(aet_job_1_params, ".localddr")
-AET_jobParams   aet_job_1_params;
-#pragma DATA_SECTION(aet_job_1_index, ".localddr")
-AET_jobIndex    aet_job_1_index;
-#pragma DATA_SECTION(aet_job_2_params, ".localddr")
-AET_jobParams   aet_job_2_params;
-#pragma DATA_SECTION(aet_job_2_index, ".localddr")
-AET_jobIndex    aet_job_2_index;
-
-PRIVATE_NOALIGN (int8_t,   has_failed) = 0;
-PRIVATE_NOALIGN (int8_t,   event_type);
-PRIVATE_NOALIGN (uint8_t,  event_number1);
-PRIVATE_NOALIGN (uint8_t,  event_number2);
-PRIVATE_NOALIGN (uint32_t, STALL_CYCLE_THRESHOLD);
-PRIVATE_NOALIGN (uint32_t, counter0_diff) = 0;
-PRIVATE_NOALIGN (uint32_t, counter1_diff) = 0;
-
-static void count_first_event              (kernel_msg_t * krnl_msg);
-static void count_second_event             (kernel_msg_t * krnl_msg);
-static void start_counting_stall_cycles    (kernel_msg_t * krnl_msg);
-static void start_counting                 (kernel_msg_t * krnl_msg);
-static void stop_counting                  (kernel_msg_t * krnl_msg);
 
 /******************************************************************************
 * main
@@ -478,6 +444,7 @@ void ocl_monitor()
 static void process_task_command(ocl_msgq_message_t* msgq_pkt)
 {
     Msg_t* Msg = &(msgq_pkt->message);
+
     kernel_config_t * kcfg  = &Msg->u.k.config;
     uint32_t  kernel_id = Msg->u.k.kernel.Kernel_id;
     int      is_inorder = (kcfg->global_size[0] == IN_ORDER_TASK_SIZE);
@@ -505,12 +472,6 @@ static void process_task_command(ocl_msgq_message_t* msgq_pkt)
     kernel_config_l2.L2_scratch_start = kcfg->L2_scratch_start;
     kernel_config_l2.L2_scratch_size  = kcfg->L2_scratch_size;
 
-    /*-------------------------------------------------------
-    * Get struct and start counting if neccessary
-    *------------------------------------------------------*/
-    kernel_msg_t * krnl_msg = &(Msg->u.k.kernel);
-    start_counting(krnl_msg);
-
     /*--------------------------------------------------------------------
     * Run the Task
     *--------------------------------------------------------------------*/
@@ -534,7 +495,6 @@ static void process_task_command(ocl_msgq_message_t* msgq_pkt)
        // If OpenMP has been disabled, only the master core runs inorder tasks
        if (is_inorder && !MASTER_CORE)
        {
-           stop_counting(krnl_msg);	
            respond_to_host(msgq_pkt, kernel_id);
            return;
        }
@@ -564,7 +524,6 @@ static void process_task_command(ocl_msgq_message_t* msgq_pkt)
 
        TRACE(is_inorder ? ULM_OCL_IOT_KERNEL_COMPLETE :
                           ULM_OCL_OOT_KERNEL_COMPLETE, kernel_id, 0);
-       stop_counting(krnl_msg);
        respond_to_host(msgq_pkt, kernel_id);
 
        flush_msg_t*  flushMsgPtr  = &Msg->u.k.flush;
@@ -594,7 +553,6 @@ void ocl_service_omp(UArg arg0, UArg arg1)
           * Run the in order Task.  OpenMP kernels run here.
           *-------------------------------------------------------------------*/
           Msg_t* Msg = &(omp_msgq_pkt->message);
-          kernel_msg_t * krnl_msg = &(Msg->u.k.kernel); 
           uint32_t kernel_id = Msg->u.k.kernel.Kernel_id;
           uint32_t more_args_size = Msg->u.k.kernel.args_on_stack_size;
           void* more_args = (void *) Msg->u.k.kernel.args_on_stack_addr;
@@ -626,7 +584,7 @@ void ocl_service_omp(UArg arg0, UArg arg1)
              }
 
              TRACE(ULM_OCL_IOT_KERNEL_COMPLETE, kernel_id, 0);
-             stop_counting(krnl_msg);
+
              respond_to_host(omp_msgq_pkt, kernel_id);
           }
           else
@@ -725,13 +683,7 @@ static void process_kernel_command(ocl_msgq_message_t *msgq_pkt)
     workgroup = wg_start[2] * num_wgs[1] * num_wgs[0] +
                 wg_start[1] * num_wgs[0] +
                 wg_start[0];
-	
-    /*-------------------------------------------------------
-    * Get struct and start counting if neccessary
-    *------------------------------------------------------*/
-    kernel_msg_t * krnl_msg = &(msg->u.k.kernel);
-    start_counting(krnl_msg);
-    
+
     /*---------------------------------------------------------
     * Iterate over each Work Group
     *--------------------------------------------------------*/
@@ -760,7 +712,6 @@ static void process_kernel_command(ocl_msgq_message_t *msgq_pkt)
               cfg->WG_id);
 
     } while (!done);
-    stop_counting(krnl_msg);
 
     if (msg->u.k.kernel.timeout_ms > 0)
         Clock_stop(timeout_clock);
@@ -966,17 +917,6 @@ static int incVec(unsigned dims, unsigned *vec, unsigned *inc, unsigned *maxs)
 static void respond_to_host(ocl_msgq_message_t *msgq_pkt, uint32_t msgId)
 {
     msgq_pkt->message.trans_id = msgId;
-
-    /* if user is profiling: Copy counter values and AET failure status
-                         into message */
-    int profiling_enabled = ((event_type==0) || (event_type==1) ||
-                         (event_type==2));
-    if(profiling_enabled) {
-        command_retcode_t * profiling_data = &(msgq_pkt->message.u.command_retcode);
-        profiling_data -> counter0_diff            =   counter0_diff;
-        profiling_data -> counter1_diff            =   counter1_diff;
-        profiling_data -> has_failed               =   has_failed;
-    }
 
     msgq_pkt->message.u.command_retcode.retcode = command_retcode;
     MessageQ_QueueId replyQ = MessageQ_getReplyQueue(msgq_pkt);
@@ -1244,237 +1184,3 @@ EXPORT void __trace_print0(const char *msg)
 
 EXPORT void __trace_print1(const char *msg, unsigned int val)
 { Log_print1(Diags_USER6, msg, val); }
-
-/******************************************************************************
-* count_first_event 
-******************************************************************************/
-void count_first_event(kernel_msg_t * krnl_msg){
-    has_failed = 0;
-    /* initializing counters and JobParams*/
-    counter0  = AET_COUNTERCONFIGPARAMS;
-    aet_job_1_params = AET_JOBPARAMS;
-    
-    /* initialize and claim counter0 resource */
-    AET_init();
-    if(AET_claim()) {
-        Log_print0(Diags_INFO, "CLAIM FAILED");
-        has_failed = 1;
-        return;
-    }
-
-    /* set counter0 configuration parameters  */
-    counter0.configMode = AET_COUNTER_TRAD_COUNTER;
-    counter0.counterNumber = AET_CNT_0;
-    counter0.reloadValue = 0xffffffff;
-
-    /* configure counter 0 */
-    AET_configCounter(&counter0);
-
-    /* Update Counter value */
-    counter0_diff = AET_readCounter(AET_CNT_0);
-    
-    /* Setup Count Stall AET job parameters  */
-    aet_job_1_params.eventNumber[0] = AET_GEM_MEM_EVT_START + 
-            krnl_msg->event_number1;
-    aet_job_1_params.counterNumber = AET_CNT_0;
-    aet_job_1_params.triggerType = AET_TRIG_CNT0_START;
-    
-    // program counter for the event
-    if(AET_setupJob(AET_JOB_TRIG_ON_EVENTS, &aet_job_1_params)){
-        Log_print0(Diags_INFO, "SETUP JOB FAILED");
-        has_failed = 1;
-        return;
-    }
-
-    aet_job_1_index = aet_job_1_params.jobIndex;
-    // enable AET
-    if(AET_enable()){
-        has_failed = 1;
-        Log_print0(Diags_INFO, "ENABLE FAILED");
-        return;
-    }
-
-    Log_print0(Diags_INFO, "First Event Succesfull");
-    return;    
-}
-
-/******************************************************************************
-* count_second_event 
-******************************************************************************/
-void count_second_event(kernel_msg_t * krnl_msg){
-    has_failed = 0;
-    /* initializing counters and JobParams*/
-    counter1  = AET_COUNTERCONFIGPARAMS;
-    aet_job_2_params = AET_JOBPARAMS;
-    
-    // initialize aet
-    AET_init();
-    if(AET_claim()) {
-        Log_print0(Diags_INFO, "Claim FAILED");
-        has_failed = 1;
-        return;
-    }
-
-    /* set counter0 configuration parameters  */
-    counter1.configMode = AET_COUNTER_TRAD_COUNTER;
-    counter1.counterNumber = AET_CNT_1;
-    counter1.reloadValue = 0xffffffff;
-
-    /* configure counter 1 */
-    AET_configCounter(&counter1);
-
-    /* Setup Count Stall AET job parameters  */
-    aet_job_2_params.eventNumber[0] = AET_GEM_MEM_EVT_START + 
-            krnl_msg->event_number2;
-    aet_job_2_params.counterNumber = AET_CNT_1;
-    aet_job_2_params.triggerType = AET_TRIG_CNT1_START;
-    
-     /* Update Counter values */
-    counter1_diff = AET_readCounter(AET_CNT_1);
-    
-    /* Setup the job and get the index*/
-    if(AET_setupJob(AET_JOB_TRIG_ON_EVENTS, &aet_job_2_params)) {
-        Log_print0(Diags_INFO, "SETUP JOB FAILED");
-        has_failed = 1;
-        return;
-    }
-    aet_job_2_index = aet_job_2_params.jobIndex;
-
-    // enable AET
-    if(AET_enable()) {
-        Log_print0(Diags_INFO, "ENABLE FAILED");
-        has_failed = 1;
-        return;
-    }
-
-    Log_print0(Diags_INFO, "First Event Succesfull");
-    return;    
-}
-
-/******************************************************************************
-* start_counting_stall_cycles
-******************************************************************************/
-void start_counting_stall_cycles(kernel_msg_t * krnl_msg){
-    has_failed = 0;
-    /* initializing counters and JobParams*/
-    counter0  = AET_COUNTERCONFIGPARAMS;
-    counter1  = AET_COUNTERCONFIGPARAMS;
-    aet_job_1_params = AET_JOBPARAMS;
-
-    /* initialize aet */
-    AET_init();
-    if(AET_claim()) {
-        Log_print0(Diags_INFO, "Claim FAILED");
-        has_failed = 1;
-        return;
-    }    
-
-    /* set counter0 configuration parameters  */
-    counter0.configMode = AET_COUNTER_TRAD_COUNTER;
-    counter0.counterNumber = AET_CNT_0;
-    counter0.reloadValue = krnl_msg->STALL_CYCLE_THRESHOLD;
-
-    /* set counter1 configuration parameters  */
-    counter1.configMode = AET_COUNTER_TRAD_COUNTER;
-    counter1.counterNumber = AET_CNT_1;
-    counter1.reloadValue = 0xffffffff;
-
-    /* configure counter 0 and 1 */
-    AET_configCounter(&counter0);
-    AET_configCounter(&counter1);
-
-    /* Update Counter values */
-    counter0_diff = AET_readCounter(AET_CNT_0);
-    counter1_diff = AET_readCounter(AET_CNT_1);
-    
-    /* Setup Count Stall AET job parameters.  
-         event number is General Memory Event + event_number  */ 
-    aet_job_1_params.eventNumber[0] = AET_GEM_STALL_EVT_START +
-             krnl_msg->event_number1;
-    
-    /* Setup the job and get the index*/
-    if(AET_setupJob(AET_JOB_COUNT_STALLS, &aet_job_1_params)){
-        Log_print0(Diags_INFO, "SETUP JOB FAILED");
-        has_failed = 1;
-        return;
-    }
-
-    aet_job_1_index = aet_job_1_params.jobIndex;
-
-    /* enable AET */
-    if(AET_enable()){
-        Log_print0(Diags_INFO, "ENABLE FAILED");
-        has_failed = 1;
-        return;
-    }    
-    Log_print0(Diags_INFO, "\nAET Success\n");
-    return;    
-}
-
-/******************************************************************************
-* stop_counting_something
-******************************************************************************/ 
-void stop_counting_events(kernel_msg_t * krnl_msg){
-    /* Record difference in Hardware Counter values */
-    counter1_diff = AET_readCounter(AET_CNT_1) - counter1_diff;
-    counter0_diff = AET_readCounter(AET_CNT_0) - counter0_diff;
-    
-    /* Cleanup all AET resources */
-    AET_clearCounters();
-    AET_releaseJob(aet_job_1_index);
-    AET_releaseJob(aet_job_2_index);
-    AET_release();
-
-    /* Print counter values to DSP log*/
-    Log_print0(Diags_INFO, "___________________");
-    Log_print0(Diags_INFO, "| Diagnostic Info |"); 
-    Log_print0(Diags_INFO, "----------------------------------------------");
-    Log_print1(Diags_INFO, "|\tdiff: counter0:%u ", counter0_diff);
-    Log_print1(Diags_INFO, "|\tdiff: counter1:%u ", counter1_diff);
-    Log_print0(Diags_INFO, "----------------------------------------------\n");
-    
-    return;
-}
-
-
-/******************************************************************************
-* start_counting
-*
-*     Count Appropriate Event
-*    event_type==0:    count 1 stall cycle event
-*    event_type==1:    count 1 memory event
-*    event_type==2:    count 2 memory events
-*    otherwise, profiling is disabled
-******************************************************************************/
-void start_counting(kernel_msg_t * krnl_msg) {
-    /* count appropriate event according to event_type */
-    event_type = krnl_msg -> event_type;
-    if (event_type == 0) {
-       start_counting_stall_cycles(krnl_msg);
-    }
-    else if (event_type == 1) {
-        count_first_event(krnl_msg);
-    }    
-    else if (event_type == 2) {
-        count_first_event(krnl_msg);
-        count_second_event(krnl_msg);
-    } 
-    return;
-}
-
-
-/******************************************************************************
-* stop_counting
-******************************************************************************/ 
-void stop_counting(kernel_msg_t * krnl_msg) {
-    /* stop profiling if profiling is enabled by user 
-        (event_type set to 0, 1, or 2) */
-    event_type = krnl_msg->event_type;
-    int profiling_enabled = ((event_type==0) || (event_type==1) || 
-            (event_type==2));
-    if(profiling_enabled) 
-        stop_counting_events(krnl_msg);
-    return;
-}
-
-

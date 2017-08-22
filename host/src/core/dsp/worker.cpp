@@ -38,7 +38,6 @@
 #include <stdlib.h>
 #include <iostream>
 #include <string.h>
-#include <fstream>
 
 #include <unistd.h>
 #include <sys/resource.h>
@@ -61,32 +60,6 @@ using namespace Coal;
 #define ERR(status, msg) if (status) { printf("OCL ERROR: %s\n", msg); exit(-1); }
 
 #define MAX_NUM_COMPLETION_PENDING  (16)
-
-/******************************************************************************
-* mark_end_of_kernel_profiling 
-* Marks the end of profiing for kernel by writing ---End Kernel in the
-* profiling data file.
-* Also frees temp buffers in ke
-******************************************************************************/
-void mark_end_of_kernel_profiling(Event *event){
-    KernelEvent    *e  = (KernelEvent *) event;
-    DSPKernelEvent *ke = (DSPKernelEvent *)e->deviceData();
-    
-    /* If user enabled profling:
-            Write Kernel Name to data/data.txt to mark end of 
-            kernel profile info     */
-    int8_t is_profiling_enabled = ke->profiling_is_enabled();
-    if(is_profiling_enabled) {
-        std::string krnl_name = e->kernel()->get_name();
-        std::ofstream outfile;
-        outfile.open("data/data.txt", std::ios_base::app);
-        outfile << krnl_name << '\n';
-        outfile << "---End Kernel" << '\n';
-    }
-
-    ke->free_tmp_bufs();
-    return;
-}
 
 /******************************************************************************
 * handle_event_completion
@@ -155,9 +128,10 @@ bool handle_event_completion(DSPDevice *device)
         pthread_cond_broadcast(device->get_worker_cond());
     pthread_mutex_unlock(device->get_worker_mutex());
 
-    // mark kernel boundary if profiling
-    mark_end_of_kernel_profiling(event);
-   
+    KernelEvent    *e  = (KernelEvent *) event;
+    DSPKernelEvent *ke = (DSPKernelEvent *)e->deviceData();
+    ke->free_tmp_bufs();
+
     CommandQueue *queue = 0;
     cl_command_queue d_queue = 0;
     cl_command_queue_properties queue_props = 0;

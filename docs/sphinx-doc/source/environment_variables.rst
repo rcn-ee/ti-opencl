@@ -199,34 +199,3 @@ These environment variables can be used to control OpenCL behavior and provide v
     DSPC8681 OpenCL Implementation.  The DSP frequency on the other platforms 
     is determined at Linux boot time.
 
-.. envvar::  TI_OCL_EVENT_TYPE
-
-    Specifies the hardware event type to profile. The two basic divisions, stall cycle events
-    and memory events, are described in profiling.rst.
-    if 0 is specified, the monitor will attempt to profile a stall cycle event.
-    if 1 is specified, the monitor will attempt to profile a memory event.
-    if 2 is specified, the monitor will attempt to profile 2 memory events simultaneously.
-    Else, profiling is disabled.
-
-.. envvar::  TI_OCL_EVENT_NUMBER1
-
-    Specifies the event number to profile. The exact value of this variable represents the offset from
-    either AET_GEM_MEM_EVT_START or AET_GEM_STALL_EVT_START, depending on the value of TI_OCL_EVENT_TYPE.
-    For a full event list, see profiling.rst.
-
-.. envvar::  TI_OCL_EVENT_NUMBER2
-
-    Specifies the second event number to profile. The exact value of this variable represents the offset from
-    either AET_GEM_MEM_EVT_START or AET_GEM_STALL_EVT_START, depending on the value of TI_OCL_EVENT_TYPE.
-    For a full event list, see profiling.rst. NOTE: this should only be set if TI_OCL_EVENT_TYPE=2.
-    If this variable is set incorrectly, the event will not be profiled.
-
-.. envvar::  TI_OCL_STALL_CYCLE_THRESHOLD
-
-    Specified the threshold of stall cycles to count. For example, if there are 102 stall cycles, and this
-    variable is set to 100, then the counter1 value for stall cycles will be 1, while the counter 2 value
-    will be 2. This variable can be thought of as the divisor dividing the total number of stall cycles.
-
-    Due to the high value nature of stall cycles, it is recommended to set this to 100.
-
-

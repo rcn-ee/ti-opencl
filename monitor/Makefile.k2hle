@@ -129,8 +129,6 @@ else
     endif
 endif
 
-LIBS+=../aet/libaet.lib
-
 INCLUDES += -DTI_66AK2X -DK2_PG1_MSMC_STALL_WA
 INCLUDES += -DOMP_ENABLED
 INCLUDES += -i $(ULM_DIR) -DULM_ENABLED
@@ -160,13 +158,6 @@ LIBM=$(LIBM_DIR)/libm.lib
 $(LIBM): 
 	@$(MAKE) -C $(LIBM_DIR) -j4 
 
-AET_DIR ?= ../aet
-src/monitor.c::$(AET_DIR)/libaet.lib
-
-$(AET_DIR)/libaet.lib:
-	$(MAKE) -C $(AET_DIR) setup
-	$(MAKE) -C $(AET_DIR) -j4
-
 #----------------------------------------------------------------------------
 # include builtins functions in monitor
 #----------------------------------------------------------------------------
@@ -174,7 +165,7 @@ BUILTINS_DIR=../builtins
 BUILTINS=$(BUILTINS_DIR)/dsp.lib
 
 $(BUILTINS): 
-	@$(MAKE) -C $(BUILTINS_DIR) -j8 
+	@$(MAKE) -C $(BUILTINS_DIR) -j4 
 
 #---------------------------------------------------------------------------
 # build monitor
@@ -184,6 +175,7 @@ SOURCES = monitor.c dsp_rpc.asm util.c touch.asm
 SOURCES+= builtins.c
 SOURCES+= device_k2x.c
 SOURCES+= edma.c edma_config.c
+
 
 HEADERS = src/edma.h src/monitor.h src/util.h src/trace.h
 
