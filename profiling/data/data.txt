@@ -1,0 +1,10 @@
+0
+0
+1
+100
+0
+24
+128821
+~~~~End Core
+VectorAdd
+---End Kernel

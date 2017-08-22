@@ -18,7 +18,7 @@ class table():
 
     """Prints the percent values of stall cycle events. If not a stall cycle event,
     will print N\A
-
+    
     Args:
         kernel: kernel object
         outfile: file to write HTML table to
@@ -37,11 +37,11 @@ class table():
 
     """Determines the appropriate row label in order to alternate adjacent rows and to separate
     memory event from stall events in the table
-
+    
     Args:
         event_name:   name of profiled event
         event_index:  event's index in kernel.list_events_by_name
-
+    
     Returns:
         row_label:    html string of row with appropriate color
     """
@@ -57,7 +57,7 @@ class table():
         return row_label
 
     """Prints event data for kernel in HTML
-
+    
     Args:
         kernel: kernel object
         outfle: file to write HTML table to
@@ -74,12 +74,12 @@ class table():
 
 
     """Prints kernel data for kernels in HTML
-
+    
     Args:
         kernel: kernel object"""
     @staticmethod
     def form_table(kernel):
-        with open('profiling/aetdata.html', 'a') as outfile:
+        with open('../data/data.html', 'a') as outfile:
             """print header"""
             print('<h2>', 'Profiling Information for ', kernel.name, 'kernel', '</h2>', file=outfile)
             print('<table style="width:100%;border=1;frame=hsides;rules=rows" border=1>', file=outfile)

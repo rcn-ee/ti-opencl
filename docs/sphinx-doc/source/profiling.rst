@@ -1,5 +1,5 @@
 ********************************
-Profiling
+Profiling 
 ********************************
 
 You can profile an OpenCL application as any other application with generic
@@ -7,8 +7,8 @@ profiling tools such as "gprof".  Here we explain how to profile commands
 in the OpenCL command queue.
 
 Additionally, you can profile hardware events such as L2 cache misses and
-pipeline stalls through the AET library. See the Profiling Hardware Events
-section for more information.
+stall cycles through the AET library. See the Profiling Hardware Events section
+for more information.
 
 Host Side Profiling
 =======================================================
@@ -44,119 +44,125 @@ this `dsptop wikipage`_ .
 
 Profiling Hardware Events
 =======================================================
-
-Profiling hardware events is a useful capability provided through the CTools
-AET library.  Starting from TI OpenCL product v1.1.14, this capability is
-integrated into the OpenCL runtime.  See all the stall and memory events
-in the AET Profiling Events section below.  Events not prefixed
-with ``AET_EVT_STALL_`` or ``AET_EVT_MEM_`` cannot be profiled.
-To profile hardware events, there are three choices:
+Profiling hardware events is a useful capability provided through the AET library. See all the 
+stall and memory events in the AET Profiling Events section. Events not using the AET_GEM_STALL_EVT_START
+or AET_GEM_MEM_EVT_START event names cannot be profiled. To profile hardware events, there are three choices:
 
 #. Profile All Possible Events
 #. Profile a Select Few Events
-#. Manually Profile 1 or 2 Events
+#. Manually Profile 1 or 2 Events (Not Recommended)
+
+
+
 
 Profile All Events
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+To profile all hardware events, run the profile.sh script as follows:
 
-To profile all hardware events, run the profiling script as follows:
+.. code-block:: bash 
 
-.. code-block:: bash
+        ./profile.sh  executable_path
 
-    /usr/share/ti/opencl/profiling/oclaet.sh [-g] oclapp
-    # e.g oclapp is ./vecadd
+1. executable_path: the exact binary path.
+        ie: ./../examples/float_compute/float_compute
 
-While the the executable is running, raw profiling data is recorded into
-profiling/aetdata.txt relative to the current directory.
-After the profiling script finishes, it runs a python
-script that forms a json table, a html table, and optionally a plot of each
-kernel's profiling information if ``-g`` option is specified.  Note that
-genering plots may require installing additional python packages.
+
 
 Profile Select Events
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-To profile selected hardware events, run the profiling script as follows:
-
-.. code-block:: bash
-
-    /usr/share/ti/opencl/profiling/oclaet.sh oclapp event_type event_number [event_number ...]
-    # event_type: 1 for stall events, 2 for meeory events
-    # event_number is the event offset from AET_GEM_STALL_EVT_START, if
-    #   profiling stall cycles, or from AET_GEM_MEM_EVT_START, if profiling
-    #   memory events.  At each script run, you can only profile one or more
-    #   events of the same type.
-
-
-Manually Profile 1 or 2 Events
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-To manually profile 1 stall event, or 1 to 2 memory events, simply set the
-environment variables described in :doc:`environment_variables`, as follows.
+To profile select hardware events, run the profile.sh script as follows:
 
 .. code-block:: bash
 
-    TI_OCL_EVENT_TYPE=1 TI_OCL_EVENT_NUMBER1=13 TI_OCL_STALL_CYCLE_THRESHOLD=0 ./vecadd
-    TI_OCL_EVENT_TYPE=2 TI_OCL_EVENT_NUMBER1=11 TI_OCL_EVENT_NUMBER1=12 ./vecadd
+          ./profile.sh  executable_path  event_type  event_number  [event_number ...]
 
-Note that profiling data is appended to profiling/aetdata.txt at each
-profiling run.  If a fresh profiling is needed, remove profiling/aetdata.txt
-before profiling run.
+1. executable_path: the exact binary path.
+        ie: ./../examples/float_compute/float_compute
+
+2. event_type:    is the type of event to profile.
+    0 = Stall Event,   1 = Memory Event
+
+    If the hardware event to profile is an offset from AET_GEM_STALL_EVT_START, then you should
+    use 0. If the event used to profile is an offset from AET_GEM_MEM_EVT_START, then event_type
+    should be 1. Note, this implies all events profiled during this script *must* be of the same event type!
+
+3. event_number:  is the first event to profile.
+
+    This number is determined by the offset
+    from the general event defined by the event_type parameter. To profile more events, simply
+    add more event numbers to the command line params.
+
+
+While the the executable is running, raw profiling data is recorded into profiling/data/data.txt.
+After the executable finishes, the shell script runs a python script that forms a json table, html table,
+and a plot of each kernel's profiling information.
+
+Manually Profile 1 or 2 Events (Not Recommended)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+To manually profile 1 stall cycle event, or 1-2 memory events, simply set the environment variables described
+in environmental_variables.rst. Note, this method is not recommended, since this functionality and more is provided
+by the profile.sh shell script.
+
+The following example profiles stall event 13:
+
+.. code-block:: bash
+
+    export TI_OCL_EVENT_TYPE="0" && export TI_OCL_EVENT_NUMBER1="13"
+    && export TI_OCL_EVENT_NUMBER2="THIS_DOESNT_MATTER_SINCE_WE_ARE_PROFILING_STALLS"
+    && export TI_OCL_STALL_CYCLE_THRESHOLD="100" && ./float_compute
 
 Analyzing Profiling Data
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-If you manually profile, you will have to run the python script to
-obtain the JSON file or html table.
+If you manually profile you will have to manually run the python script under profiling/src by typing:
 
 .. code-block:: bash
 
-    python /usr/share/ti/opencl/profiling/oclaet.py -t -g profiling/aetdata.txt
+    python profiling.py -t -g
 
-The -t flag and -g flags tell the script to produce an html table and matplot
-plot of profiling data, respectively.  If neither of these flags are specified,
-then only the json file of raw counter data will be formed.
-This json is easier to read than the raw data dump in profiling/aetdata.txt.
-The current format for raw data is:
+The -t flag and -g flags tell the script to produce an html table and matplot plot of profiling data.
+If neither of these flags are specified, then only the json of raw counting data will be formed.
+This json is easier to read than the raw data dump in profiling/data/data.txt. The format for raw data is:
 
-.. code-block:: bash
+TI_OCL_EVENT_TYPE               // the number event type
+TI_OCL_EVENT_NUMBER1            // the first event number to profile (offset from base AET event)
+TI_OCL_EVENT_NUMBER2            // the second event number to profile (offset from base AET event)
+TI_OCL_STALL_CYCLE_THRESHOLD    // the stall cycle threshold
+Core number                     // number of core
+Counter0_Value                  // hardware counter 0 value
+Counter1_Value                  // hardware counter 1 value
+~~~~End Core                    // End of core data for Core number
+...                           // MORE CORE DATA CAN FOLLOW THIS
+TI_OCL_EVENT_TYPE
+TI_OCL_EVENT_NUMBER1
+TI_OCL_EVENT_NUMBER2
+TI_OCL_STALL_CYCLE_THRESHOLD
+Core number
+Counter0_Value
+Counter1_Value
+~~~~End Core
+VectorAdd                       // Kernel Name
+---End Kernel                   // Ends Kernel Data
 
-  EVENT_TYPE            # the event type
-  EVENT_NUMBER1         # the first event number (offset from base AET event)
-  EVENT_NUMBER2         # the second event number (offset from base AET event)
-  STALL_CYCLE_THRESHOLD # the stall cycle threshold
-  Core number           # number of core
-  Counter0_Value        # hardware counter 0 value: memory event 1
-  Counter1_Value       # hardware counter 1 value: memory event 2 or stall event
-  ~~~~End Core          # End of core data for Core number
-  ...                   # MORE CORE DATA CAN FOLLOW THIS
-  EVENT_TYPE
-  EVENT_NUMBER1
-  EVENT_NUMBER2
-  STALL_CYCLE_THRESHOLD
-  Core number
-  Counter0_Value
-  Counter1_Value
-  ~~~~End Core
-  VectorAdd             # Kernel Name
-  ---End Kernel         # Ends Kernel Data
 
-Profiling Data Plotting Requirements
+Note: some of these are env variables that are specified in the shell script or manually, depending on
+how profiling was done. See environment_variables.rst for details.
+
+For simplicity, it is recommended to use the script profiling/src/profile.py to analyze this raw data dump.
+
+Requirements
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Plotting profiling data with python script requires matplotlib, pandas, and
-seaborn python packages to be installed.  If they are not already installed
-on your system, you can follow the instructions below.
+Note, the python script requires matplotlib, pandas, and seaborn to plot profiling data. If you don't wish to plot, then these requirements do not have to be met.To install these packages, do the following:
 
 .. code-block:: bash
 
-    which pip
-    # install pip if it is not already on your system
-    wget https://bootstrap.pypa.io/get-pip.py
-    python get-pip.py
+    python /profiling/setup/get-pip.py
 
     pip install matplotlib
+
     pip install pandas
+
     pip install seaborn
 
 AET Profiling Events
@@ -311,4 +317,9 @@ AET_EVT_STALL_L1D_SNOOP_CONFLICT   (AET_GEM_STALL_EVT_START + 21)
 
 AET_EVT_STALL_L1D_COH_OP_CONFLICT   (AET_GEM_STALL_EVT_START + 22)
  Stall while a CPU access is held off by a block cache coherence operation access
+
+
+
+
+
 

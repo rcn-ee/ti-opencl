@@ -43,7 +43,6 @@
 #endif
 
 #include "../error_report.h"
-#include "../oclenv.h"
 #include "device_info.h"
 #ifndef _SYS_BIOS
 #include "../../../mct-daemon/mctd_config.h"
@@ -100,8 +99,7 @@ void DeviceInfo::ComputeUnits_CmemBlocks_Available()
     #if !defined (_SYS_BIOS)
     // TI_OCL_COMPUTE_UNIT_LIST is set to a comma separated list of
     // compute units available. E.g. "0,1" => cores 0 and 1 are available
-    comp_unit = EnvVar::Instance().GetEnv<
-                               EnvVar::Var::TI_OCL_COMPUTE_UNIT_LIST>(nullptr);
+    comp_unit = getenv("TI_OCL_COMPUTE_UNIT_LIST");
     #else
     // OpenCL over RTOS, get compute unit list from RTSC configuration file
     comp_unit = ti_opencl_getComputeUnitList();
@@ -154,11 +152,8 @@ static std::string get_ocl_dsp()
 {
     std::string stdpath("/usr/share/ti/opencl");
 
-    EnvVar& env = EnvVar::Instance();
-    const char *ocl_install    = env.GetEnv<
-                                         EnvVar::Var::TI_OCL_INSTALL>(nullptr);
-    const char *target_rootdir = env.GetEnv<
-                                         EnvVar::Var::TARGET_ROOTDIR>(nullptr);
+    const char *ocl_install    = getenv("TI_OCL_INSTALL");
+    const char *target_rootdir = getenv("TARGET_ROOTDIR");
 
     if (ocl_install)         stdpath = ocl_install    + stdpath;
     else if (target_rootdir) stdpath = target_rootdir + stdpath;

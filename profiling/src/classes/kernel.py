@@ -1,7 +1,7 @@
 """Class Used to Contain Profile Data for each Kernel"""
 class kernel_data(object):
     """Class Used to Contain Profile Data for each Kernel
-
+    
     Attributes:
         name: name of kernel
         event_list: list of event objects profiled during kernel execution
@@ -22,7 +22,7 @@ class kernel_data(object):
         self.total_stalls = 0
 
     """Forms a JSON of all kernel data for aggregated_kernel
-
+    
     Args:
         kernel: kernel object"""
     def make_kernel_json(self):
@@ -63,7 +63,7 @@ class kernel_data(object):
 
 
     """ Updates event_core_to_event matrix according to profile data.
-
+    
     Args:
         event: event object
     """
@@ -71,13 +71,12 @@ class kernel_data(object):
         event_type = int(event.event_type)
         for core in event.core_data_list:
             """ Record appropriate counter value for event """
-            if event_type == 1:
+            if event_type == 0:
                 self.core_to_event_values[core.core_number].append(core.counter1_diff)
-            if event_type == 2:
+            if event_type >= 1:
                 self.core_to_event_values[core.core_number].append(core.counter0_diff)
-                event_number2 = int(event.event_number2)
-                if event_number2 >= 0:
-                    self.core_to_event_values[core.core_number].append(core.counter1_diff)
+            if event_type == 2:
+                self.core_to_event_values[core.core_number].append(core.counter1_diff)
 
     """ Aggregates all profile information into a matrix, removing unused counter values."""
     def form_profiling_matrix(self):
@@ -93,9 +92,7 @@ class kernel_data(object):
 
             # if event is profiling 2 mem events, append data for second event
             if event_type == 2:
-                event_number2 = int(event.event_number2)
-                if event_number2 >= 0:
-                    self.list_events_by_name.append(event.event_2_name)
+                self.list_events_by_name.append(event.event_2_name)
             self.update_event_core_data(event)
 
 
@@ -103,7 +100,7 @@ class kernel_data(object):
     def count_total_stall_cycles(self):
         for event in self.event_list:
             # event is stall cycles in cpu pipeline, record stalls
-            if (int(event.event_number1)==0) and (int(event.event_type)==1):
+            if (int(event.event_number1)==0) and (int(event.event_type)==0):
                 self.total_stalls = event.sum_event_stalls()
 
 

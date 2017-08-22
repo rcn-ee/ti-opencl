@@ -18,7 +18,7 @@ class plot():
 
 
     """Graphs Profiling Data for Kernel using Matplotlib, pandas, and seaborn
-
+    
     Args:
         kernel: kernel object
     """
@@ -31,6 +31,8 @@ class plot():
         import os
         from matplotlib import cm
         import pandas as pd
+        import seaborn
+        seaborn.set()
 
         """ Setup horizontal bar chart """
         df = pd.DataFrame(a, index=b)
@@ -45,16 +47,16 @@ class plot():
         frame.set_facecolor('lightgray')
         ax.set_ylabel('Profiling Events', weight='bold')
         ax.set_xlabel('Value', weight='bold')
-        ax.set_facecolor("lightgray")
+        ax.set_axis_bgcolor("lightgray")
 
         """save to figureX.png, where X is the number of current plots in the folder.
         Used to avoid naming collisions. """
         plot_num = 1
-        while os.path.exists('profiling/' + title + "_" + str(plot_num) + '.png'):
+        while os.path.exists('../data/' + title + "_" + str(plot_num) + '.png'):
             plot_num += 1
 
         """save figure"""
-        plt.savefig('profiling/' + title + "_" + str(plot_num) + '.png', bbox_inches='tight', dpi=200,facecolor='lightgray')
+        plt.savefig('../data/' + title + "_" + str(plot_num) + '.png', bbox_inches='tight', dpi=200,facecolor='lightgray')
 
     @staticmethod
     def form_graph(kernel):

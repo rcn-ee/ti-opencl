@@ -194,10 +194,6 @@ if (${BUILD_OUTPUT} STREQUAL "all" OR ${BUILD_OUTPUT} STREQUAL "lib")
   install(FILES     util/ocl_util.h  DESTINATION /usr/include    ${OCL_FPERMS})
   install(DIRECTORY include/CL       DESTINATION /usr/include    ${OCL_DPERMS})
 
-  install(DIRECTORY DESTINATION /usr/share/ti/opencl/profiling   ${OCL_DPERMS})
-  install(DIRECTORY ../profiling DESTINATION /usr/share/ti/opencl ${OCL_DPERMS})
-  install(PROGRAMS ../profiling/oclaet.sh DESTINATION /usr/share/ti/opencl/profiling ${OCL_BPERMS})
-
   if (C6678_BUILD)
     add_subdirectory(init)
     install(PROGRAMS bin/oclenv DESTINATION bin             ${OCL_BPERMS})

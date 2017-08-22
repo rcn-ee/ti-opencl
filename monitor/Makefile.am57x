@@ -29,7 +29,8 @@ FC_DIR         ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/framework_components*)
 EDMA3LLD_DIR   ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/edma3_lld_*)
 XDAIS_DIR      ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/xdais_*)
 ULM_DIR        ?= $(LINUX_DEVKIT_ROOT)/usr/share/ti/ulm
-GDB_SERVER_DIR ?= $(LINUX_DEVKIT_ROOT)/usr/share/ti/gdbc6x
+
+# GDB_SERVER_DIR ?= $(LINUX_DEVKIT_ROOT)/usr/share/ti/gdbc6x #
 AET_DIR        ?= ../aet
 
 export XDC_DIR
@@ -52,14 +53,15 @@ INCLUDES += -D$(DEVICE)
 INCLUDES += -D$(SOC)
 INCLUDES += -DOMP_ENABLED
 INCLUDES += -i $(ULM_DIR) -DULM_ENABLED
-INCLUDES += -i $(GDB_SERVER_DIR)/include -DGDB_ENABLED
+# INCLUDES += -i $(GDB_SERVER_DIR)/include -DGDB_ENABLED #
 
 SOURCES = monitor.c util.c dsp_rpc.asm touch.asm builtins.c edma.c \
-          edma_am57x_config.c device_am57.c
+          edma_am57x_config.c device_am57.c 
+          
 HEADERS = src/edma.h src/monitor.h src/util.h src/trace.h src/custom_rsc_table_vayu_dsp.h
 LIBS    = cmds/monitor.$(PLATFORM).cmd
 LIBS   += $(ULM_DIR)/libtiulm.ae66
-LIBS   += $(GDB_SERVER_DIR)/lib/gdb_server.ae66
+# LIBS   += $(GDB_SERVER_DIR)/lib/gdb_server.ae66 #
 LIBS   += $(AET_DIR)/libaet.lib
 
 OBJ_DIR = objs
@@ -152,7 +154,7 @@ $(BUILTINS):
 
 src/monitor.c::$(AET_DIR)/libaet.lib
 
-$(AET_DIR)/libaet.lib:
+$(AET_DIR)/libaet.lib: 
 	$(MAKE) -C $(AET_DIR) setup
 	$(MAKE) -C $(AET_DIR) -j4
 
