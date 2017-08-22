@@ -151,7 +151,8 @@ typedef struct _cl_buffer_region {
 /* OpenCL Version */
 #define CL_VERSION_1_0                              1
 #define CL_VERSION_1_1                              1
-#define CL_VERSION_1_2                              1
+// We are not ful OpenCL 1.2 yet, use _TI_SELECTED for the time being
+#define CL_VERSION_1_2_TI_SELECTED                  1
 
 /* cl_bool */
 #define CL_FALSE                                    0

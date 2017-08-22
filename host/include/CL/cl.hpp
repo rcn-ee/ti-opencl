@@ -330,9 +330,9 @@ public:
 /**
  * CL 1.2 marker and barrier commands
  */
-#if defined(CL_VERSION_1_2)
+#if defined(CL_VERSION_1_2_TI_SELECTED)
 #define __ENQUEUE_MARKER_WAIT_LIST_ERR                __ERR_STR(clEnqueueMarkerWithWaitList)
-#endif // #if defined(CL_VERSION_1_2)
+#endif // #if defined(CL_VERSION_1_2_TI_SELECTED)
 
 /*! \class string
  * \brief Simple string class, that provides a limited subset of std::string
@@ -2796,7 +2796,7 @@ public:
     }
 #endif
 
-#if defined(CL_VERSION_1_2)
+#if defined(CL_VERSION_1_2_TI_SELECTED)
     /**
      * Enqueue a command to fill a buffer object with a pattern
      * of a given size. The pattern is specified a as vector.
@@ -2831,7 +2831,7 @@ public:
 
         return err;
     }
-#endif // #if defined(CL_VERSION_1_2)
+#endif // #if defined(CL_VERSION_1_2_TI_SELECTED)
 
     cl_int enqueueReadImage(
         const Image& image,
@@ -3001,7 +3001,7 @@ public:
             __ENQUEUE_UNMAP_MEM_OBJECT_ERR);
     }
 
-#if defined(CL_VERSION_1_2)
+#if defined(CL_VERSION_1_2_TI_SELECTED)
     /**
      * Enqueues a marker command which waits for either a list of events to complete, 
      * or all previously enqueued commands to complete.
@@ -3031,7 +3031,7 @@ public:
 
         return err;
     }
-#endif // #if defined(CL_VERSION_1_2)
+#endif // #if defined(CL_VERSION_1_2_TI_SELECTED)
 
     cl_int enqueueNDRangeKernel(
         const Kernel& kernel,
