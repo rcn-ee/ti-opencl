@@ -22,6 +22,7 @@ XDAIS_DIR      ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/xdais_*)
 ULM_DIR        ?= $(LINUX_DEVKIT_ROOT)/usr/share/ti/ulm
 GDB_SERVER_DIR ?= $(LINUX_DEVKIT_ROOT)/usr/share/ti/gdbc6x
 SDK_DIR        ?= $(DEFAULT_DLSDK)
+AET_DIR        ?= $(LINUX_DEVKIT_ROOT)/usr/share/ti/ctoolslib/aet
 
 export XDC = $(XDC_DIR)
 export XDC_DIR
@@ -82,7 +83,8 @@ XDCPATH_K2X=./;$(C6636_PDK_DIR)/packages;$(BIOS_DIR)/packages;$(OMP_DIR)/package
 
 LIBS_K2X  = cmds/monitor.cmd \
 	    $(ULM_DIR)/libtiulm.ae66 \
-	    $(GDB_SERVER_DIR)/lib/gdb_server.ae66
+	    $(GDB_SERVER_DIR)/lib/gdb_server.ae66 \
+            $(AET_DIR)/lib/libaet.ae66
 
 # L2SRAM_SIZE and MSMC_SIZE used to generate device specific command files from
 # dsp_link_commands.template
@@ -129,12 +131,11 @@ else
     endif
 endif
 
-LIBS+=../aet/libaet.lib
-
 INCLUDES += -DTI_66AK2X -DK2_PG1_MSMC_STALL_WA
 INCLUDES += -DOMP_ENABLED
 INCLUDES += -i $(ULM_DIR) -DULM_ENABLED
 INCLUDES += -i $(GDB_SERVER_DIR)/include -DGDB_ENABLED
+INCLUDES += -i $(AET_DIR)/include
 
 BUILD = monitor_$(PLATFORM)
 COMP_OPTS = $(BUILD)/compiler.opt
@@ -159,13 +160,6 @@ LIBM=$(LIBM_DIR)/libm.lib
 
 $(LIBM): 
 	@$(MAKE) -C $(LIBM_DIR) -j4 
-
-AET_DIR ?= ../aet
-src/monitor.c::$(AET_DIR)/libaet.lib
-
-$(AET_DIR)/libaet.lib:
-	$(MAKE) -C $(AET_DIR) setup
-	$(MAKE) -C $(AET_DIR) -j4
 
 #----------------------------------------------------------------------------
 # include builtins functions in monitor
