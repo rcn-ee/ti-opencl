@@ -401,6 +401,7 @@ static int kernelID = 0;
 *============================================================================*/
 DSPKernelEvent::DSPKernelEvent(DSPDevice *device, KernelEvent *event)
 : p_ret_code(CL_SUCCESS),
+  // pkernel is dsp kernel
   p_device(device), p_event(event), p_kernel((DSPKernel*)event->deviceKernel()),
   p_debug_kernel(NODEBUG), p_num_arg_words(0), p_timeout_ms(0),
   p_WG_alloca_start(0), 
@@ -428,6 +429,38 @@ DSPKernelEvent::DSPKernelEvent(DSPDevice *device, KernelEvent *event)
     p_msg.u.k.kernel.Kernel_id     = p_kernel_id;
     p_msg.u.k.kernel.entry_point   = (unsigned)p_kernel->device_entry_pt();
     p_msg.u.k.kernel.data_page_ptr = (unsigned)p_kernel->data_page_ptr();
+
+    /*------------------------------------------------------------------------
+    * Get Profiling Params
+    *------------------------------------------------------------------------*/    
+    /* unless user defines event to monitor, disable profiling*/
+    p_msg.u.k.kernel.event_type=-1;
+    profiling_event_type = -1;
+    char * event_string = getenv("TI_OCL_EVENT_TYPE");
+    if(event_string != NULL)
+        profiling_event_type = atoi(event_string);
+    is_profiling_enabled = (profiling_event_type==0) 
+            || (profiling_event_type==1) || (profiling_event_type==2);
+    /* if event_type variable is set: record all profiling config data */
+    if (profiling_is_enabled()) {       
+        // record event_type (no need to worry about invalid numbers, this will be checked later)
+        p_msg.u.k.kernel.event_type=profiling_event_type;
+                                  
+        /* unless user defines event number to monitor, set event_number1 to 12 */
+        char * event_number1 =                  getenv("TI_OCL_EVENT_NUMBER1");
+        if (event_number1!=NULL)                p_msg.u.k.kernel.event_number1=atoi(event_number1);
+        else                                    p_msg.u.k.kernel.event_number1=12; 
+        
+        /* unless user defines event number to monitor, set event_number2 to 13 */
+        char * event_number2 =                  getenv("TI_OCL_EVENT_NUMBER2");
+        if (event_number2!=NULL)                p_msg.u.k.kernel.event_number2=atoi(event_number2);
+        else                                    p_msg.u.k.kernel.event_number2=13;
+
+        /* unless user defines STALL_CYCLE_THRESHOLD, set value as 100 */
+        char * STALL_CYCLE_THRESHOLD =          getenv("TI_OCL_STALL_CYCLE_THRESHOLD");
+        if (STALL_CYCLE_THRESHOLD!=NULL)        p_msg.u.k.kernel.STALL_CYCLE_THRESHOLD=atoi(STALL_CYCLE_THRESHOLD);
+        else                                    p_msg.u.k.kernel.STALL_CYCLE_THRESHOLD=100;
+    } 
 }
 
 DSPKernelEvent::~DSPKernelEvent() { }
@@ -505,7 +538,19 @@ void setarg_inreg(int index, int sz, unsigned int *args_in_reg, void *pval)
     }
 }
 
+/******************************************************************************
+* DSPKernelEvent::get_profiing_event_type
+******************************************************************************/
+int8_t DSPKernelEvent::get_profiling_event_type(){
+    return profiling_event_type;
+}
 
+/******************************************************************************
+* DSPKernelEvent::profiling_is_enabled
+******************************************************************************/
+int8_t DSPKernelEvent::profiling_is_enabled(){
+    return is_profiling_enabled; 
+}
 /******************************************************************************
 * DSPKernelEvent::callArgs
 ******************************************************************************/
