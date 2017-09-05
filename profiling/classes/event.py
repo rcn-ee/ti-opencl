@@ -3,7 +3,7 @@ from core import core_data
 
 class event_data(object):
     """Class used to contain all event data for profile
-    
+
     Attributes:
         core_data_list: list of core data for event
         start_index:    starting index in string where event data starts
@@ -21,8 +21,7 @@ class event_data(object):
 
         stall_cycle_threshold:  Stall Cycle Threshold to count stall cycles
     """
-    
-    
+
     def __init__(self):
         self.core_data_list = []
         self.start_index = -1
@@ -38,38 +37,34 @@ class event_data(object):
         self.counter1_label = ""
 
         self.stall_cycle_threshold = -1
-        
 
     """Updates event names that were profiled in {@code event1}
     @param event1
         event object"""
     def update_event_names(self):
         """Update Labels for the two counters depending on the event data"""
-        # if two memory events
+        # if memory events
         if int(self.event_type) == 2:
             event_number1 = int(self.event_number1)
-            event_number2 = int(self.event_number2)
             """access event name by number from event_list dictionary"""
             self.event_1_name = event_list.mem_events[event_number1]
-            self.event_2_name = event_list.mem_events[event_number2]
             self.counter0_label = self.event_1_name
-            self.counter1_label = self.event_2_name
-        # if one memory event
-        elif int(self.event_type) == 1:
-            event_number1 = int(self.event_number1)
-            self.event_1_name = event_list.mem_events[event_number1]
-            self.counter0_label = self.event_1_name
-            self.counter1_label = "Unused Counter"
+            event_number2 = int(self.event_number2)
+            if event_number2 >= 0:
+                self.event_2_name = event_list.mem_events[event_number2]
+                self.counter1_label = self.event_2_name
+            else:
+                self.counter1_label = "Unused Counter"
         # if stall cycle event
-        elif int(self.event_type) == 0:
+        elif int(self.event_type) == 1:
             event_number1 = int(self.event_number1)
             self.event_1_name = event_list.stall_events[event_number1]
             self.counter0_label = "Threshold Counter"
             self.counter1_label = self.event_1_name
 
     """Finds all core data for kernel and updates kernel.core_data_list
-    
-    Args: 
+
+    Args:
         kernel: kernel object that will contain all core data during kernel execution
         lines: raw profile dump. This stream has a seperator ~~~~End Core which divides core data
     """
@@ -89,10 +84,10 @@ class event_data(object):
             core_index += 1
 
     """Forms a JSON of Core information
-    
+
     Args:
         kernel: kernel object
-    Returns: 
+    Returns:
         cores:  JSON object containing core profiling information"""
     def make_core_info_json(self):
         cores = []
@@ -106,8 +101,8 @@ class event_data(object):
         return cores
 
     """Forms a JSON of event_data
-    
-    Returns: 
+
+    Returns:
         event_data: JSON event data"""
     def make_event_info_json(self):
         event_data = {}

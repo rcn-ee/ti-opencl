@@ -80,6 +80,20 @@ typedef struct
 } flush_msg_t;
 
 /*-----------------------------------------------------------------------------
+* DSP kernel profiling parameters
+* event_type:  0: disabled, 1: stall event, 2: memory event
+* event_number: offset to the first event, negative to disable
+* stall_cycle_threshold: # stall cycles required to trigger one stall count
+*----------------------------------------------------------------------------*/
+typedef struct
+{
+    int8_t          event_type;
+    int8_t          event_number1;
+    int8_t          event_number2;
+    uint32_t        stall_cycle_threshold;
+} profiling_t;
+
+/*-----------------------------------------------------------------------------
 * The dsp_rpc.asm file has a dependency on the exact order of the fields:
 * entry_point through args_in_reg. If they are changed, then dsp_rpc.asm will
 * also need modification.
@@ -94,24 +108,7 @@ typedef struct
     uint32_t        args_on_stack_addr;
     uint32_t        args_on_stack_size;
     uint32_t        timeout_ms;
-    
-    /* -1: no event
-        0: stall event
-        1: 1 General Memory Event (cache miss)
-        2: 2 General Memory Events (2 different kinds of cache misses)
-     */ 
-    int8_t          event_type;
-    /*  event_number1 is the offset from the general event. For example, if event_type is 1,
-    and event_number1 is 0, then the single stall event to count will be Stall_Cpu_Pipeline.
-    
-    event_number2 is similar to event_number1, and is used only if counting two general memory events
-    (event_type=2)*/
-    uint8_t         event_number1;
-    uint8_t         event_number2;
-
-    /* Threshold to count stall cycles */
-    uint32_t        STALL_CYCLE_THRESHOLD;
-
+    profiling_t     profiling;
 } kernel_msg_t;
 
 typedef struct
@@ -128,18 +125,11 @@ typedef struct
 typedef struct
 {
     int retcode;
-    
-    // whether profiling failed
-    int8_t          has_failed;
-    
-    /* Threshold to count stall cycles */
-    uint32_t        STALL_CYCLE_THRESHOLD;
 
-    /* Harware Counter0 and Counter1 reading differences */
-    uint32_t        counter0_diff;
-    uint32_t        counter1_diff;
-
-} command_retcode_t; // put here
+    int8_t          profiling_status;
+    uint32_t        profiling_counter0_val;
+    uint32_t        profiling_counter1_val;
+} command_retcode_t;
 
 typedef struct 
 {

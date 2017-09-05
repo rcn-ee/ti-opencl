@@ -174,7 +174,7 @@ BUILTINS_DIR=../builtins
 BUILTINS=$(BUILTINS_DIR)/dsp.lib
 
 $(BUILTINS): 
-	@$(MAKE) -C $(BUILTINS_DIR) -j8 
+	@$(MAKE) -C $(BUILTINS_DIR) -j4 
 
 #---------------------------------------------------------------------------
 # build monitor

@@ -44,6 +44,7 @@
 #include "../program.h"
 #include "../util.h"
 #include "../error_report.h"
+#include "../oclenv.h"
 
 #include "device_info.h"
 
@@ -101,6 +102,9 @@ uint32_t osal_getpid()
 #endif
 }
 
+#define PROFILING_AETDATA_DIR   "profiling"
+#define PROFILING_AETDATA_FILE  "profiling/aetdata.txt"
+
 /******************************************************************************
 * DSPDevice::DSPDevice(unsigned char dsp_id)
 ******************************************************************************/
@@ -116,6 +120,7 @@ DSPDevice::DSPDevice(unsigned char dsp_id, SharedMemory* shm)
       p_initialized         (false),
       p_dsp_id              (dsp_id),
       p_complete_pending    (),
+      p_profiling_out       (nullptr),
       p_mpax_default_res    (NULL),
       p_shmHandler          (shm),
       device_manager_       (nullptr),
@@ -140,6 +145,27 @@ DSPDevice::DSPDevice(unsigned char dsp_id, SharedMemory* shm)
     p_addr_local_mem     = ti_opencl_get_OCL_LOCAL_base();
     p_size_local_mem     = ti_opencl_get_OCL_LOCAL_len();
 #endif
+
+    EnvVar& env = EnvVar::Instance();
+    p_profiling.event_type = env.GetEnv<
+                                 EnvVar::Var::TI_OCL_PROFILING_EVENT_TYPE>(0);
+    p_profiling.event_number1 = env.GetEnv<
+                              EnvVar::Var::TI_OCL_PROFILING_EVENT_NUMBER1>(-1);
+    p_profiling.event_number2 = env.GetEnv<
+                              EnvVar::Var::TI_OCL_PROFILING_EVENT_NUMBER2>(-1);
+    p_profiling.stall_cycle_threshold = env.GetEnv<
+                       EnvVar::Var::TI_OCL_PROFILING_STALL_CYCLE_THRESHOLD>(1);
+    if (isProfilingEnabled())
+    {
+    #if defined(_SYS_BIOS)
+      p_profiling_out = &std::cout;
+    #else
+      system("mkdir -p "PROFILING_AETDATA_DIR);
+      std::ofstream *tmp = new std::ofstream;
+      tmp->open(PROFILING_AETDATA_FILE, std::ios_base::app);
+      p_profiling_out = tmp;
+    #endif
+    }
 
     core_scheduler_ = new CoreScheduler(p_cores, 4);
 
@@ -189,7 +215,8 @@ bool DSPDevice::hostSchedule() const
 void DSPDevice::setup_dsp_mhz(void)
 {
 #ifdef DSPC868X
-    char *ghz1 = getenv("TI_OCL_DSP_1_25GHZ");
+    char *ghz1 = EnvVar::Instance().GetEnv<EnvVar::Var:TI_OCL_DSP_1_25GHZ>(
+                                                                   nullptr);
     if (ghz1) p_dsp_mhz = 1250;  // 1.25 GHz
 #else
     mail_to(frequencyMsg);
@@ -325,6 +352,10 @@ DSPDevice::~DSPDevice()
 
     delete p_mb;
     p_mb = NULL;
+#if ! defined(_SYS_BIOS)
+    delete p_profiling_out;
+#endif
+    p_profiling_out = nullptr;
 
     /*-------------------------------------------------------------------------
     * Free any ulm resources used.
@@ -625,63 +656,32 @@ bool DSPDevice::mail_query()
     return p_mb->query();
 }
 
-void DSPDevice::record_profiling_data(command_retcode_t * profiling_data, uint core)
+void DSPDevice::recordProfilingData(command_retcode_t * profiling_data,
+                                      uint core)
 {
-    /* profiling is enabled if user set event_type to be 0, 1, or 2.
-    if this env variable is not set correctly, then profiling will be skipped*/
-    int8_t event_type = -1;
-    char *s_env = (char *) getenv("TI_OCL_EVENT_TYPE");
-    if (s_env != nullptr)
-        event_type = atoi(s_env);
-    int8_t profiling_enabled = (event_type==0) || (event_type==1) ||
-                               (event_type==2);        
-    if(!profiling_enabled) 
-        return;
-    
-    /* record profiling event information */
-    int8_t event_number1 = -1;
-    int8_t event_number2 = -1;
-    uint32_t STALL_CYCLE_THRESHOLD = 0;    
-    s_env = (char *) getenv("TI_OCL_EVENT_NUMBER1");
-    if (s_env != nullptr)  event_number1 = atoi(s_env);
-    s_env = (char *) getenv("TI_OCL_EVENT_NUMBER2");
-    if (s_env != nullptr)  event_number2 = atoi(s_env);
-    s_env = (char *) getenv("TI_OCL_STALL_CYCLE_THRESHOLD");
-    if (s_env != nullptr)  STALL_CYCLE_THRESHOLD = atoi(s_env);    
-         
-    /* write profiling data to file if on linux or output stream
-    if on TI_RTOS   */
-    #if defined(_SYS_BIOS)
-        ostream & outfile = std::cout;
-    #else
-        std::ofstream outfile;
-        outfile.open("data/data.txt", std::ios_base::app);
-    #endif
-    outfile << (uint) event_type << '\n';
-    outfile << (uint) event_number1 << '\n';
-    outfile << (uint) event_number2 << '\n';
-    outfile << (uint) STALL_CYCLE_THRESHOLD<< '\n';
-    outfile << (uint) core << '\n';
+    if (! isProfilingEnabled()) return;
 
-    /* if AET failure, set hardware counter values to -1. Note, -1 is 
-            signed, while hardware counters are unsigned. 
-    
-       else (if AET success), print success message and record hardware 
-            counter values */
-    int8_t has_failed  =  profiling_data -> has_failed;
-    if(has_failed==1) {
-        std::cout << "Profiling Failed on core:" << (uint) core 
-            << std::endl;
-        outfile << (int) -1 << '\n';
-        outfile << (int) -1 << '\n';
+    (*p_profiling_out) << (int)  p_profiling.event_type << '\n'
+                       << (int)  p_profiling.event_number1 << '\n'
+                       << (int)  p_profiling.event_number2 << '\n'
+                       << (uint) p_profiling.stall_cycle_threshold << '\n'
+                       << (uint) core << '\n';
+
+    // Output counter diffs corresponding to event numbers (use -1 if failed)
+    if (profiling_data->profiling_status != 0) {
+        std::cout << "Profiling Failed on core " << core << " : "
+                  << (int) profiling_data->profiling_status << std::endl;
+        (*p_profiling_out) << (int) -1 << '\n'
+                           << (int) -1 << '\n';
     } else {
-        std::cout << "Profiling Successful on core:" << (uint) core 
-            << std::endl;
-        outfile << (uint) profiling_data -> counter0_diff << '\n';
-        outfile << (uint) profiling_data -> counter1_diff << '\n';
+        std::cout << "Profiling Successful on core " << core << std::endl;
+        (*p_profiling_out) << (uint) profiling_data->profiling_counter0_val
+                           << '\n'
+                           << (uint) profiling_data->profiling_counter1_val
+                           << '\n';
     }
     // mark end of core's data
-    outfile << "~~~~End Core" <<  '\n';
+    (*p_profiling_out) << "~~~~End Core" <<  '\n';
     return;
 }
 
@@ -710,9 +710,9 @@ int DSPDevice::mail_from(int *retcode)
     }
 
     if ((rxmsg.command == NDRKERNEL) || (rxmsg.command == TASK))
-    {  
+    {
         command_retcode_t * profiling_data = &(rxmsg.u.command_retcode);
-        record_profiling_data(profiling_data, core);        
+        recordProfilingData(profiling_data, core);
     }
 
     if (rxmsg.command == EXIT)
@@ -808,13 +808,9 @@ cl_int DSPDevice::info(cl_device_info param_name,
 
         case CL_DEVICE_MAX_WORK_GROUP_SIZE: {
 	    size_t wgsize = 0x40000000;
-	    char *str_wgsize = getenv("TI_OCL_WG_SIZE_LIMIT");
-	    if (str_wgsize)
-	    {
-	       size_t env_wgsize = atoi(str_wgsize);
-	       if (env_wgsize > 0 && env_wgsize < 0x40000000)
-		  wgsize = env_wgsize;
-	    }
+            int env_wgsize = EnvVar::Instance().GetEnv<
+                                         EnvVar::Var::TI_OCL_WG_SIZE_LIMIT>(0);
+	    if (env_wgsize > 0 && env_wgsize < wgsize)  wgsize = env_wgsize;
             SIMPLE_ASSIGN(size_t, wgsize);
             break;                           }
 
@@ -871,24 +867,14 @@ cl_int DSPDevice::info(cl_device_info param_name,
         *--------------------------------------------------------------------*/
         case CL_DEVICE_MAX_MEM_ALLOC_SIZE:
         {
-            static cl_ulong cap = 0;
-            if(cap == 0)
+            cl_ulong cap = EnvVar::Instance().GetEnv<
+                         EnvVar::Var::TI_OCL_LIMIT_DEVICE_MAX_MEM_ALLOC_SIZE>(
+                                                          (cl_ulong)1ul << 30);
+            if (cap == 0)
             {
-                cap = (cl_ulong)1ul << 30;
-
-                char *cap_str = getenv("TI_OCL_LIMIT_DEVICE_MAX_MEM_ALLOC_SIZE");
-                if(cap_str)
-                {
-                    errno = 0;
-                    char *tmp;
-                    cap = strtoul(cap_str, &tmp, 10);
-                    if(errno != 0 || tmp == cap_str || *tmp != '\0' || cap == 0)
-                    {
-                        printf("ERROR: TI_OCL_LIMIT_DEVICE_MAX_MEM_ALLOC_SIZE "
-                               "must be a positive integer\n");
-                        exit(1);
-                    }
-                }
+                printf("ERROR: TI_OCL_LIMIT_DEVICE_MAX_MEM_ALLOC_SIZE "
+                       "must be a positive integer\n");
+                exit(1);
             }
 
             uint64_t heap1_size =
@@ -1103,7 +1089,8 @@ cl_int DSPDevice::info(cl_device_info param_name,
             break;
 
         case CL_DEVICE_EXTENSIONS:
-            if (getenv("TI_OCL_ENABLE_FP64"))
+            if (EnvVar::Instance().GetEnv<
+                                     EnvVar::Var::TI_OCL_ENABLE_FP64>(nullptr))
                 STRING_ASSIGN("cl_khr_byte_addressable_store"
                               " cl_khr_global_int32_base_atomics"
                               " cl_khr_global_int32_extended_atomics"

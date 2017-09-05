@@ -75,7 +75,7 @@ class DSPDevice : public DeviceInterface, public Lockable
         DeviceProgram *createDeviceProgram(Program *program);
         DeviceKernel *createDeviceKernel(Kernel *kernel,
                                          llvm::Function *function);
-        void record_profiling_data(command_retcode_t*, uint core);
+        void recordProfilingData(command_retcode_t*, uint core);
         cl_int initEventDeviceData(Event *event);
         void freeEventDeviceData(Event *event);
 
@@ -123,6 +123,11 @@ class DSPDevice : public DeviceInterface, public Lockable
         SharedMemory* GetSHMHandler() const { return p_shmHandler; }
 
         MemoryRange::Location ClFlagToLocation(cl_mem_flags flags) const;
+        bool isProfilingEnabled()  { return p_profiling.event_type >= 1 &&
+                                           p_profiling.event_type <= 2 &&
+                                           p_profiling.event_number1 >= 0; }
+        profiling_t  &getProfiling()     { return p_profiling; }
+        std::ostream *getProfilingOut()  { return p_profiling_out; }
 
     protected:
         virtual void setup_dsp_mhz(void);
@@ -150,6 +155,9 @@ class DSPDevice : public DeviceInterface, public Lockable
         uint32_t           p_size_local_mem;
 
         MBox              *p_mb;
+
+        profiling_t        p_profiling;
+        std::ostream      *p_profiling_out;
 
         void*              p_mpax_default_res;
         SharedMemory      *p_shmHandler;

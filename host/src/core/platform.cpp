@@ -53,6 +53,7 @@
 #include <signal.h>
 #endif
 #include "error_report.h"
+#include "oclenv.h"
 
 using namespace Coal;
 using namespace tiocl;
@@ -128,7 +129,8 @@ namespace Coal
 #ifndef _SYS_BIOS
 	    // For now, don't add the CPU device on K2X platforms unless it is
 	    // asserted that we want to enable it (eg. the ooo example)
-	    if (getenv("TI_OCL_CPU_DEVICE_ENABLE") != NULL)
+	if (EnvVar::Instance().GetEnv<EnvVar::Var::TI_OCL_CPU_DEVICE_ENABLE>(
+                                                          nullptr) != nullptr)
         {
             Coal::DeviceInterface * device = new Coal::CPUDevice;
             p_devices.push_back(desc(device));
@@ -221,7 +223,8 @@ namespace Coal
 
             case CL_PLATFORM_EXTENSIONS:
                 // TODO add cl_khr_icd  when it works
-                if (getenv("TI_OCL_ENABLE_FP64"))
+                if (EnvVar::Instance().GetEnv<EnvVar::Var::TI_OCL_ENABLE_FP64>(
+                                                            nullptr) != nullptr)
                     STRING_ASSIGN("cl_khr_byte_addressable_store cl_khr_fp64 cl_ti_msmc_buffers cl_ti_clmalloc cl_ti_kernel_timeout")
                 else
                     STRING_ASSIGN("cl_khr_byte_addressable_store cl_ti_msmc_buffers cl_ti_clmalloc cl_khr_icd cl_ti_kernel_timeout")

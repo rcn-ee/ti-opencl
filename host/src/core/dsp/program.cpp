@@ -58,6 +58,7 @@ genfile_cache * genfile_cache::pInstance = 0;
 
 #include "tal/dload_impl.h"
 #include "../error_report.h"
+#include "../oclenv.h"
 
 
 using namespace tiocl;
@@ -71,16 +72,17 @@ DSPProgram::DSPProgram(DSPDevice *device, Program *program)
 {
     ReportTrace("DSPProgram()\n");
 
-    char *keep = getenv("TI_OCL_KEEP_FILES");
+    EnvVar& env = EnvVar::Instance();
+    char *keep = env.GetEnv<EnvVar::Var::TI_OCL_KEEP_FILES>(nullptr);
     if (keep) p_keep_files = true;
 
-    char *cache = getenv("TI_OCL_CACHE_KERNELS");
+    char *cache = env.GetEnv<EnvVar::Var::TI_OCL_CACHE_KERNELS>(nullptr);
     if (cache) p_cache_kernels = true;
 
-    char *debug = getenv("TI_OCL_DEBUG");
+    char *debug = env.GetEnv<EnvVar::Var::TI_OCL_DEBUG>(nullptr);
     if (debug) { p_debug = true; p_cache_kernels = false; }
 
-    char *info = getenv("TI_OCL_DEVICE_PROGRAM_INFO");
+    char *info = env.GetEnv<EnvVar::Var::TI_OCL_DEVICE_PROGRAM_INFO>(nullptr);
     if (info) { p_info = true; p_keep_files = true; }
 
     p_dl = new DLOAD(this);

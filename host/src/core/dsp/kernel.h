@@ -118,12 +118,8 @@ class DSPKernelEvent
         uint32_t kernel_id()  { return p_kernel_id; }
 
         void free_tmp_bufs();
-        int8_t get_profiling_event_type();
-        int8_t profiling_is_enabled();
 
     private:
-        int8_t                    profiling_event_type;
-        int8_t                    is_profiling_enabled;
         cl_int                    p_ret_code;
         DSPDevice *               p_device;
         KernelEvent *             p_event;
