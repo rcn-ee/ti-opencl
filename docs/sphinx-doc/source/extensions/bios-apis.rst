@@ -115,6 +115,18 @@ The following examples included in the OpenCL package illustrate using BIOS APIs
 * persistent_task_spanning
 
 The examples are located in ``/usr/share/ti/examples/opencl``.
+Building these examples requires the installation of XDC/BIOS/IPC packages
+from the corresponding Processor SDK RTOS package.  The following are what
+Makefile is looking for, override them to set up pathes to either each package
+or the whole Processor SDK RTOS installation.
+
+.. code-block:: bash
+
+  PRSDK_INSTALL_PATH     ?= /cgnas/ti-processor-sdk-rtos-am57xx-evm-04.00.00.04
+  XDC_DIR                ?= $(wildcard $(PRSDK_INSTALL_PATH)/xdc*)/packages
+  BIOS_DIR               ?= $(wildcard $(PRSDK_INSTALL_PATH)/bios*)/packages
+  IPC_DIR                ?= $(wildcard $(PRSDK_INSTALL_PATH)/ipc*)/packages
+
 
 References
 ----------

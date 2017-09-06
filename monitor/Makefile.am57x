@@ -30,6 +30,7 @@ EDMA3LLD_DIR   ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/edma3_lld_*)
 XDAIS_DIR      ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/xdais_*)
 ULM_DIR        ?= $(LINUX_DEVKIT_ROOT)/usr/share/ti/ulm
 GDB_SERVER_DIR ?= $(LINUX_DEVKIT_ROOT)/usr/share/ti/gdbc6x
+AET_DIR        ?= $(LINUX_DEVKIT_ROOT)/usr/share/ti/ctoolslib/aet
 
 export XDC_DIR
 export BIOS_DIR
@@ -52,6 +53,7 @@ INCLUDES += -D$(SOC)
 INCLUDES += -DOMP_ENABLED
 INCLUDES += -i $(ULM_DIR) -DULM_ENABLED
 INCLUDES += -i $(GDB_SERVER_DIR)/include -DGDB_ENABLED
+INCLUDES += -i $(AET_DIR)/include
 
 SOURCES = monitor.c util.c dsp_rpc.asm touch.asm builtins.c edma.c \
           edma_am57x_config.c device_am57.c
@@ -59,6 +61,7 @@ HEADERS = src/edma.h src/monitor.h src/util.h src/trace.h src/custom_rsc_table_v
 LIBS    = cmds/monitor.$(PLATFORM).cmd
 LIBS   += $(ULM_DIR)/libtiulm.ae66
 LIBS   += $(GDB_SERVER_DIR)/lib/gdb_server.ae66
+LIBS   += $(AET_DIR)/lib/libaet.ae66
 
 OBJ_DIR = objs
 OBJS1=$(patsubst %.c,$(OBJ_DIR)/%.obj,$(SOURCES))
@@ -147,7 +150,6 @@ $(LIBM):
 
 $(BUILTINS): 
 	$(MAKE) -C $(BUILTINS_DIR) -j4 
-
 
 platforms/am57x/package/package_platforms.am57x.c: platforms/am57x/Platform.xdc
 	 $(MAKE) -C platforms/am57x

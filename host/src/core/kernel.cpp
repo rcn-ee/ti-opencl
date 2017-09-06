@@ -105,6 +105,7 @@ Kernel::DeviceDependent &Kernel::deviceDependent(DeviceInterface *device)
     return null_dep;
 }
 
+
 /******************************************************************************
 * cl_int Kernel::addFunction
 ******************************************************************************/

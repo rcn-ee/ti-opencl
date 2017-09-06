@@ -33,6 +33,7 @@
 #include "../events.h"
 #include "../memobject.h"
 #include "../kernel.h"
+#include "../oclenv.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -56,6 +57,7 @@
 #include "u_locks_pthread.h"
 
 using namespace Coal;
+using namespace tiocl;
 
 #define ERR(status, msg) if (status) { printf("OCL ERROR: %s\n", msg); exit(-1); }
 
@@ -146,6 +148,11 @@ bool handle_event_completion(DSPDevice *device)
     // an event may be released once it is Complete
     if (queue_props & CL_QUEUE_PROFILING_ENABLE)
        event->updateTiming(Event::End);
+
+    // mark kernel boundary if profiling
+    if (ke->device()->isProfilingEnabled())
+        (* (ke->device()->getProfilingOut())) << e->kernel()->getName()
+                                              << "\n---End Kernel\n";
 
     event->setStatus(retcode == CL_SUCCESS ? Event::Complete :
                                              (Event::Status)retcode);
@@ -260,6 +267,38 @@ bool handle_event_dispatch(DSPDevice *device)
             else
                  shm->WriteToShmem(data, (uint8_t*)e->ptr(), e->cb());
 
+            break;
+        }
+
+        case Event::FillBuffer:
+        {
+            FillBufferEvent *e = (FillBufferEvent *)event;
+
+            void *pattern = e->pattern();
+            size_t pattern_size = e->pattern_size();
+            DSPDevicePtr64 dst_addr;
+            void *pdst;
+
+            if (e->buffer()->flags() & CL_MEM_USE_HOST_PTR) 
+            {
+                pdst = (char *)e->buffer()->host_ptr() + e->offset();
+            }
+            else
+            {
+                DSPBuffer *dst = (DSPBuffer*)e->buffer()->deviceBuffer(device);
+                dst_addr = (DSPDevicePtr64)dst->data() + e->offset();
+                pdst = (char *)shm->Map(dst_addr, e->cb(), false);
+            }
+
+            if (pattern_size == 1)
+                memset(pdst, *(char *)pattern, e->cb());
+            else
+                for (int i = 0; i < e->cb() / pattern_size; i++)
+                    memcpy((char *)pdst + i * pattern_size,
+                           pattern, pattern_size);
+
+            if (! (e->buffer()->flags() & CL_MEM_USE_HOST_PTR)) 
+                shm->Unmap(pdst, dst_addr, e->cb(), true);
             break;
         }
 
@@ -597,10 +636,9 @@ bool handle_event_dispatch(DSPDevice *device)
 ******************************************************************************/
 void *dsp_worker_event_dispatch(void *data)
 {
-    char *str_nice  = getenv("TI_OCL_WORKER_NICE");
-    char *str_sleep = getenv("TI_OCL_WORKER_SLEEP");
-    int   env_nice  = (str_nice)  ? atoi(str_nice)  : 4;
-    int   env_sleep = (str_sleep) ? atoi(str_sleep) : -1;
+    EnvVar& env = EnvVar::Instance();
+    int   env_nice  = env.GetEnv<EnvVar::Var::TI_OCL_WORKER_NICE>(4);
+    int   env_sleep = env.GetEnv<EnvVar::Var::TI_OCL_WORKER_SLEEP>(-1);
 #ifndef _SYS_BIOS
     pid_t tid       = syscall(SYS_gettid);
 
@@ -634,10 +672,9 @@ void *dsp_worker_event_dispatch(void *data)
 ******************************************************************************/
 void *dsp_worker_event_completion(void *data)
 {
-    char *str_nice  = getenv("TI_OCL_WORKER_NICE");
-    char *str_sleep = getenv("TI_OCL_WORKER_SLEEP");
-    int   env_nice  = (str_nice)  ? atoi(str_nice)  : 4;
-    int   env_sleep = (str_sleep) ? atoi(str_sleep) : -1;
+    EnvVar& env = EnvVar::Instance();
+    int   env_nice  = env.GetEnv<EnvVar::Var::TI_OCL_WORKER_NICE>(4);
+    int   env_sleep = env.GetEnv<EnvVar::Var::TI_OCL_WORKER_SLEEP>(-1);
 #ifndef _SYS_BIOS
     pid_t tid       = syscall(SYS_gettid);
 

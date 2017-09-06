@@ -151,6 +151,8 @@ typedef struct _cl_buffer_region {
 /* OpenCL Version */
 #define CL_VERSION_1_0                              1
 #define CL_VERSION_1_1                              1
+// We are not ful OpenCL 1.2 yet, use _TI_SELECTED for the time being
+#define CL_VERSION_1_2_TI_SELECTED                  1
 
 /* cl_bool */
 #define CL_FALSE                                    0
@@ -425,6 +427,7 @@ typedef struct _cl_buffer_region {
 #define CL_COMMAND_WRITE_BUFFER_RECT                0x1202
 #define CL_COMMAND_COPY_BUFFER_RECT                 0x1203
 #define CL_COMMAND_USER                             0x1204
+#define CL_COMMAND_FILL_BUFFER                      0x1207
 
 /* command execution status */
 #define CL_COMPLETE                                 0x0
@@ -821,6 +824,17 @@ clEnqueueWriteBufferRect(cl_command_queue    /* command_queue */,
                          cl_event *          /* event */) CL_API_SUFFIX__VERSION_1_1;
                             
 extern CL_API_ENTRY cl_int CL_API_CALL
+clEnqueueFillBuffer(cl_command_queue   /* command_queue */,
+                    cl_mem             /* buffer */, 
+                    const void *       /* pattern */, 
+                    size_t             /* pattern_size */, 
+                    size_t             /* offset */, 
+                    size_t             /* size */, 
+                    cl_uint            /* num_events_in_wait_list */, 
+                    const cl_event *   /* event_wait_list */, 
+                    cl_event *         /* event */) CL_API_SUFFIX__VERSION_1_2;
+                            
+extern CL_API_ENTRY cl_int CL_API_CALL
 clEnqueueCopyBuffer(cl_command_queue    /* command_queue */, 
                     cl_mem              /* src_buffer */,
                     cl_mem              /* dst_buffer */, 
@@ -968,6 +982,12 @@ clEnqueueNativeKernel(cl_command_queue  /* command_queue */,
                       cl_uint           /* num_events_in_wait_list */,
                       const cl_event *  /* event_wait_list */,
                       cl_event *        /* event */) CL_API_SUFFIX__VERSION_1_0;
+
+extern CL_API_ENTRY cl_int CL_API_CALL
+clEnqueueMarkerWithWaitList(cl_command_queue /* command_queue */,
+                            cl_uint           /* num_events_in_wait_list */,
+                            const cl_event *  /* event_wait_list */,
+                            cl_event *        /* event */) CL_API_SUFFIX__VERSION_1_2;
 
 extern CL_API_ENTRY cl_int CL_API_CALL
 clEnqueueMarker(cl_command_queue    /* command_queue */,

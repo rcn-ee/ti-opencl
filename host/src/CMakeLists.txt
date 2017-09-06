@@ -108,6 +108,7 @@ set(COAL_SRC_FILES
     core/icd.cpp
     core/util.cpp
     core/error_report.cpp
+    core/oclenv.cpp
 
     core/dsp/program.cpp
     core/dsp/driver.cpp

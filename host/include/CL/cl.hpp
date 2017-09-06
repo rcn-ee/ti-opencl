@@ -299,6 +299,7 @@ public:
 #define __ENQUEUE_WRITE_BUFFER_RECT_ERR     __ERR_STR(clEnqueueWriteBufferRect)
 #define __ENQEUE_COPY_BUFFER_ERR            __ERR_STR(clEnqueueCopyBuffer)
 #define __ENQEUE_COPY_BUFFER_RECT_ERR       __ERR_STR(clEnqueueCopyBufferRect)
+#define __ENQUEUE_FILL_BUFFER_ERR           __ERR_STR(clEnqueueFillBuffer)
 #define __ENQUEUE_READ_IMAGE_ERR            __ERR_STR(clEnqueueReadImage)
 #define __ENQUEUE_WRITE_IMAGE_ERR           __ERR_STR(clEnqueueWriteImage)
 #define __ENQUEUE_COPY_IMAGE_ERR            __ERR_STR(clEnqueueCopyImage)
@@ -325,6 +326,13 @@ public:
 #define __CREATE_SUB_DEVICES                __ERR_STR(clCreateSubDevicesEXT)
 #endif // __CL_USER_OVERRIDE_ERROR_STRINGS
 //! \endcond
+
+/**
+ * CL 1.2 marker and barrier commands
+ */
+#if defined(CL_VERSION_1_2_TI_SELECTED)
+#define __ENQUEUE_MARKER_WAIT_LIST_ERR                __ERR_STR(clEnqueueMarkerWithWaitList)
+#endif // #if defined(CL_VERSION_1_2_TI_SELECTED)
 
 /*! \class string
  * \brief Simple string class, that provides a limited subset of std::string
@@ -1113,9 +1121,18 @@ public:
 
     Wrapper<cl_type>& operator = (const Wrapper<cl_type>& rhs)
     {
+        if (this != &rhs) {
+            if (object_ != NULL) { release(); }
+            object_ = rhs.object_;
+            if (object_ != NULL) { retain(); }
+        }
+        return *this;
+    }
+
+    Wrapper<cl_type>& operator = (const cl_type &rhs)
+    {
         if (object_ != NULL) { release(); }
-        object_ = rhs.object_;
-        if (object_ != NULL) { retain(); }
+        object_ = rhs;
         return *this;
     }
 
@@ -1543,11 +1560,14 @@ public:
 
     Event(const Event& event) : detail::Wrapper<cl_type>(event) { }
 
-    Event& operator = (const Event& rhs)
+    /*! \brief Assignment operator from cl_event - takes ownership.
+     *
+     *  This effectively transfers ownership of a refcount on the rhs and calls
+     *  clReleaseEvent() on the value previously held by this instance.
+     */
+    Event& operator = (const cl_event& rhs)
     {
-        if (this != &rhs) {
-            detail::Wrapper<cl_type>::operator=(rhs);
-        }
+        detail::Wrapper<cl_type>::operator=(rhs);
         return *this;
     }
 
@@ -2776,6 +2796,43 @@ public:
     }
 #endif
 
+#if defined(CL_VERSION_1_2_TI_SELECTED)
+    /**
+     * Enqueue a command to fill a buffer object with a pattern
+     * of a given size. The pattern is specified a as vector.
+     * \tparam PatternType The datatype of the pattern field. 
+     *     The pattern type must be an accepted OpenCL data type.
+     */
+    template<typename PatternType>
+    cl_int enqueueFillBuffer(
+        const Buffer& buffer,
+        PatternType pattern,
+        ::size_t offset,
+        ::size_t size,
+        const VECTOR_CLASS<Event>* events = NULL,
+        Event* event = NULL) const
+    {
+        cl_event tmp;
+        cl_int err = detail::errHandler(
+            ::clEnqueueFillBuffer(
+                object_, 
+                buffer(),
+                static_cast<void*>(&pattern),
+                sizeof(PatternType), 
+                offset, 
+                size,
+                (events != NULL) ? (cl_uint) events->size() : 0,
+                (events != NULL && events->size() > 0) ? (cl_event*) &events->front() : NULL,
+                (event != NULL) ? &tmp : NULL),
+                __ENQUEUE_FILL_BUFFER_ERR);
+
+        if (event != NULL && err == CL_SUCCESS)
+            *event = tmp;
+
+        return err;
+    }
+#endif // #if defined(CL_VERSION_1_2_TI_SELECTED)
+
     cl_int enqueueReadImage(
         const Image& image,
         cl_bool blocking,
@@ -2943,6 +3000,38 @@ public:
                 (cl_event*) event),
             __ENQUEUE_UNMAP_MEM_OBJECT_ERR);
     }
+
+#if defined(CL_VERSION_1_2_TI_SELECTED)
+    /**
+     * Enqueues a marker command which waits for either a list of events to complete, 
+     * or all previously enqueued commands to complete.
+     *
+     * Enqueues a marker command which waits for either a list of events to complete, 
+     * or if the list is empty it waits for all commands previously enqueued in command_queue 
+     * to complete before it completes. This command returns an event which can be waited on, 
+     * i.e. this event can be waited on to insure that all events either in the event_wait_list 
+     * or all previously enqueued commands, queued before this command to command_queue, 
+     * have completed.
+     */
+    cl_int enqueueMarkerWithWaitList(
+        const VECTOR_CLASS<Event> *events = 0,
+        Event *event = 0)
+    {
+        cl_event tmp;
+        cl_int err = detail::errHandler(
+            ::clEnqueueMarkerWithWaitList(
+                object_,
+                (events != NULL) ? (cl_uint) events->size() : 0,
+                (events != NULL && events->size() > 0) ? (cl_event*) &events->front() : NULL,
+                (event != NULL) ? &tmp : NULL),
+            __ENQUEUE_MARKER_WAIT_LIST_ERR);
+
+        if (event != NULL && err == CL_SUCCESS)
+            *event = tmp;
+
+        return err;
+    }
+#endif // #if defined(CL_VERSION_1_2_TI_SELECTED)
 
     cl_int enqueueNDRangeKernel(
         const Kernel& kernel,

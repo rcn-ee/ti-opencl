@@ -92,6 +92,11 @@
 #include "GDB_server.h"
 #endif
 
+/*-----------------------------------------------------------------------------
+* AET header
+*----------------------------------------------------------------------------*/
+#include "aet.h"
+
 
 DDR (Registry_Desc, Registry_CURDESC);
 
@@ -203,6 +208,20 @@ PRIVATE_1D(char, lstack, LISTEN_STACK_SIZE);
 char tstack[TIMEOUT_STACK_SIZE] __attribute__((aligned(CACHE_L2_LINESIZE)))
                                 __attribute((section(".localddr"))) = { 0 };
 
+/******************************************************************************
+* Profiling Variables and prototypes
+******************************************************************************/
+PRIVATE_NOALIGN (int8_t,       profiling_status);
+PRIVATE_NOALIGN (AET_jobIndex, profiling_job1_index);
+PRIVATE_NOALIGN (AET_jobIndex, profiling_job2_index);
+PRIVATE_NOALIGN (uint32_t,     profiling_counter0_val);
+PRIVATE_NOALIGN (uint32_t,     profiling_counter1_val);
+
+static void start_counting              (profiling_t *profiling);
+static void stop_counting               (profiling_t *profiling);
+static void start_counting_stall_events (profiling_t *profiling);
+static void start_counting_memory_events(profiling_t *profiling);
+static void stop_counting_events        (profiling_t *profiling);
 
 /******************************************************************************
 * main
@@ -220,7 +239,7 @@ int rtos_init_ocl_dsp_monitor(UArg argc, UArg argv)
     /* enable ENTRY/EXIT/INFO log events. USER6 events are used by the
      * __trace_printN functions and always enabled
      */
-    Diags_setMask(MODULE_NAME"-EXF+6");
+    Diags_setMask(MODULE_NAME"-EXF;"MODULE_NAME"+6");
 
     Log_print0(Diags_ENTRY, "--> main:");
 
@@ -444,7 +463,6 @@ void ocl_monitor()
 static void process_task_command(ocl_msgq_message_t* msgq_pkt)
 {
     Msg_t* Msg = &(msgq_pkt->message);
-
     kernel_config_t * kcfg  = &Msg->u.k.config;
     uint32_t  kernel_id = Msg->u.k.kernel.Kernel_id;
     int      is_inorder = (kcfg->global_size[0] == IN_ORDER_TASK_SIZE);
@@ -472,6 +490,11 @@ static void process_task_command(ocl_msgq_message_t* msgq_pkt)
     kernel_config_l2.L2_scratch_start = kcfg->L2_scratch_start;
     kernel_config_l2.L2_scratch_size  = kcfg->L2_scratch_size;
 
+    /*-------------------------------------------------------
+    * Start AET profiling with counting in hardware counters
+    *------------------------------------------------------*/
+    start_counting(&(Msg->u.k.kernel.profiling));
+
     /*--------------------------------------------------------------------
     * Run the Task
     *--------------------------------------------------------------------*/
@@ -495,6 +518,7 @@ static void process_task_command(ocl_msgq_message_t* msgq_pkt)
        // If OpenMP has been disabled, only the master core runs inorder tasks
        if (is_inorder && !MASTER_CORE)
        {
+           stop_counting(&(Msg->u.k.kernel.profiling));
            respond_to_host(msgq_pkt, kernel_id);
            return;
        }
@@ -524,6 +548,7 @@ static void process_task_command(ocl_msgq_message_t* msgq_pkt)
 
        TRACE(is_inorder ? ULM_OCL_IOT_KERNEL_COMPLETE :
                           ULM_OCL_OOT_KERNEL_COMPLETE, kernel_id, 0);
+       stop_counting(&(Msg->u.k.kernel.profiling));
        respond_to_host(msgq_pkt, kernel_id);
 
        flush_msg_t*  flushMsgPtr  = &Msg->u.k.flush;
@@ -584,7 +609,7 @@ void ocl_service_omp(UArg arg0, UArg arg1)
              }
 
              TRACE(ULM_OCL_IOT_KERNEL_COMPLETE, kernel_id, 0);
-
+             stop_counting(&(Msg->u.k.kernel.profiling));
              respond_to_host(omp_msgq_pkt, kernel_id);
           }
           else
@@ -684,6 +709,11 @@ static void process_kernel_command(ocl_msgq_message_t *msgq_pkt)
                 wg_start[1] * num_wgs[0] +
                 wg_start[0];
 
+    /*-------------------------------------------------------
+    * Start AET profiling with counting in hardware counters
+    *------------------------------------------------------*/
+    start_counting(&(msg->u.k.kernel.profiling));
+
     /*---------------------------------------------------------
     * Iterate over each Work Group
     *--------------------------------------------------------*/
@@ -712,6 +742,7 @@ static void process_kernel_command(ocl_msgq_message_t *msgq_pkt)
               cfg->WG_id);
 
     } while (!done);
+    stop_counting(&(msg->u.k.kernel.profiling));
 
     if (msg->u.k.kernel.timeout_ms > 0)
         Clock_stop(timeout_clock);
@@ -918,6 +949,16 @@ static void respond_to_host(ocl_msgq_message_t *msgq_pkt, uint32_t msgId)
 {
     msgq_pkt->message.trans_id = msgId;
 
+    /* Profiling: Copy counter values and AET failure status into message */
+    int8_t event_type = msgq_pkt->message.u.k.kernel.profiling.event_type;
+    if (event_type >= 1 && event_type <= 2)
+    {
+        command_retcode_t *retdata = &(msgq_pkt->message.u.command_retcode);
+        retdata->profiling_status       = profiling_status;
+        retdata->profiling_counter0_val = profiling_counter0_val;
+        retdata->profiling_counter1_val = profiling_counter1_val;
+    }
+
     msgq_pkt->message.u.command_retcode.retcode = command_retcode;
     MessageQ_QueueId replyQ = MessageQ_getReplyQueue(msgq_pkt);
     MessageQ_setReplyQueue(dspQue, (MessageQ_Msg)msgq_pkt);
@@ -1094,9 +1135,9 @@ void ocl_timeout(UArg arg0, UArg arg1)
         // Reply to host on timeout
         if (!is_task || !is_inorder || MASTER_CORE)
             Log_print2(Diags_INFO, "Timeout. Termination of %s at 0x%08x\n",
-                       (is_task ? (is_inorder ? "In-order Task"
-                                              : "Out-of-order Task")
-                                : "NDRange Kernel"),
+                       (xdc_IArg) (is_task ? (is_inorder ? "In-order Task"
+                                                         : "Out-of-order Task")
+                                           : "NDRange Kernel"),
                        ocl_msgq_pkt->message.u.k.kernel.entry_point);
         TRACE(is_task ? (is_inorder ? ULM_OCL_IOT_KERNEL_COMPLETE
                                     : ULM_OCL_OOT_KERNEL_COMPLETE)
@@ -1169,7 +1210,8 @@ Task_Handle create_task(Task_FuncPtr fxn, char *name, int priority,
     taskParams.stack = (xdc_Ptr) stack;
     task = Task_create(fxn, &taskParams, &eb);
     if (Error_check(&eb)) {
-        Log_print1(Diags_INFO, "create_task: failed to create %s", name);
+        Log_print1(Diags_INFO, "create_task: failed to create %s",
+                   (xdc_IArg) name);
         System_abort("create_task failed");
     }
     return task;
@@ -1184,3 +1226,176 @@ EXPORT void __trace_print0(const char *msg)
 
 EXPORT void __trace_print1(const char *msg, unsigned int val)
 { Log_print1(Diags_USER6, msg, val); }
+
+/******************************************************************************
+* Counting memory events
+******************************************************************************/
+void start_counting_memory_events(profiling_t *profiling)
+{
+    profiling_status = AET_SOK;
+
+    /* initialize and claim counter0 resource */
+    AET_init();
+    if (profiling_status = AET_claim())
+    {
+        Log_print1(Diags_INFO, "AET CLAIM FAILED: %d", profiling_status);
+        return;
+    }
+
+    /* configure counter 0 */
+    AET_counterConfigParams counter = AET_COUNTERCONFIGPARAMS;
+    counter.configMode              = AET_COUNTER_TRAD_COUNTER;
+    counter.counterNumber           = AET_CNT_0;
+    counter.reloadValue             = 0xFFFFFFFF;
+    AET_configCounter(&counter);
+    profiling_counter0_val = AET_readCounter(AET_CNT_0);
+
+    /* Setup Count AET job parameters  */
+    AET_jobParams aet_job_params  = AET_JOBPARAMS;
+    aet_job_params.eventNumber[0] = AET_GEM_MEM_EVT_START +
+                                    profiling->event_number1;
+    aet_job_params.counterNumber  = AET_CNT_0;
+    aet_job_params.triggerType    = AET_TRIG_CNT0_START;
+    if (profiling_status = AET_setupJob(AET_JOB_TRIG_ON_EVENTS,
+                                        &aet_job_params))
+    {
+        Log_print1(Diags_INFO, "AET SETUP JOB FAILED: %d", profiling_status);
+        return;
+    }
+    profiling_job1_index = aet_job_params.jobIndex;
+
+    if (profiling->event_number2 >= 0)
+    {
+        /* configure counter 1 */
+        counter               = AET_COUNTERCONFIGPARAMS;
+        counter.configMode    = AET_COUNTER_TRAD_COUNTER;
+        counter.counterNumber = AET_CNT_1;
+        counter.reloadValue   = 0xFFFFFFFF;
+        AET_configCounter(&counter);
+        profiling_counter1_val = AET_readCounter(AET_CNT_1);
+
+        /* Setup Count AET job parameters  */
+        aet_job_params                = AET_JOBPARAMS;
+        aet_job_params.eventNumber[0] = AET_GEM_MEM_EVT_START +
+                                        profiling->event_number2;
+        aet_job_params.counterNumber  = AET_CNT_1;
+        aet_job_params.triggerType    = AET_TRIG_CNT1_START;
+        if(profiling_status = AET_setupJob(AET_JOB_TRIG_ON_EVENTS,
+                                           &aet_job_params))
+        {
+            Log_print1(Diags_INFO, "AET SETUP JOB 2 FAILED: %d",
+                       profiling_status);
+            return;
+        }
+        profiling_job2_index = aet_job_params.jobIndex;
+    }
+
+    // enable AET
+    if (profiling_status = AET_enable())
+    {
+        Log_print1(Diags_INFO, "AET ENABLE FAILED: %d", profiling_status);
+        return;
+    }
+    return;
+}
+
+/******************************************************************************
+* Counting stall events
+******************************************************************************/
+void start_counting_stall_events(profiling_t *profiling)
+{
+    profiling_status = AET_SOK;
+
+    /* initialize aet */
+    AET_init();
+    if (profiling_status = AET_claim())
+    {
+        Log_print1(Diags_INFO, "AET Claim FAILED: %d", profiling_status);
+        return;
+    }
+
+    /* Initializing and configuring counters */
+    AET_counterConfigParams counter = AET_COUNTERCONFIGPARAMS;
+    counter.configMode              = AET_COUNTER_TRAD_COUNTER;
+    counter.counterNumber           = AET_CNT_0;
+    counter.reloadValue             = profiling->stall_cycle_threshold;
+    AET_configCounter(&counter);
+    profiling_counter0_val = AET_readCounter(AET_CNT_0);
+    counter                         = AET_COUNTERCONFIGPARAMS;
+    counter.configMode              = AET_COUNTER_TRAD_COUNTER;
+    counter.counterNumber           = AET_CNT_1;
+    counter.reloadValue             = 0xFFFFFFFF;
+    AET_configCounter(&counter);
+    profiling_counter1_val = AET_readCounter(AET_CNT_1);
+
+    /* Setup Count Stall AET job parameters */
+    AET_jobParams aet_job_params  = AET_JOBPARAMS;
+    aet_job_params.eventNumber[0] = AET_GEM_STALL_EVT_START +
+                                     profiling->event_number1;
+    if (profiling_status = AET_setupJob(AET_JOB_COUNT_STALLS,
+                                        &aet_job_params))
+    {
+        Log_print1(Diags_INFO, "AET SETUP JOB FAILED: %d", profiling_status);
+        return;
+    }
+    profiling_job1_index = aet_job_params.jobIndex;
+
+    /* enable AET */
+    if (profiling_status = AET_enable())
+    {
+        Log_print1(Diags_INFO, "AET ENABLE FAILED: %d", profiling_status);
+        return;
+    }
+    return;
+}
+
+/******************************************************************************
+* stop_counting_something
+******************************************************************************/
+void stop_counting_events(profiling_t *profiling)
+{
+    /* Record difference in Hardware Counter values */
+    profiling_counter1_val = AET_readCounter(AET_CNT_1) -profiling_counter1_val;
+    profiling_counter0_val = AET_readCounter(AET_CNT_0) -profiling_counter0_val;
+    if (profiling->event_type == 1)
+        profiling_counter0_val = 0;
+    if (profiling->event_type == 2 && profiling->event_number2 < 0)
+        profiling_counter1_val = 0;
+
+    /* Cleanup all AET resources */
+    AET_clearCounters();
+    AET_releaseJob(profiling_job1_index);
+    if (profiling->event_number2 >= 0)  AET_releaseJob(profiling_job2_index);
+    AET_release();
+
+    /* Print counter values to DSP log*/
+    // Log_print1(Diags_INFO, "Profiling counter0:%u", profiling_counter0_val);
+    // Log_print1(Diags_INFO, "Profiling counter1:%u", profiling_counter1_val);
+
+    return;
+}
+
+/******************************************************************************
+* start_counting
+*    event_type == 1: count 1 stall event
+*    event_type == 2: count memory events
+*    otherwise      : profiling is disabled
+******************************************************************************/
+void start_counting(profiling_t *profiling)
+{
+    if (profiling->event_type == 1)
+        start_counting_stall_events(profiling);
+    else if (profiling->event_type == 2)
+        start_counting_memory_events(profiling);
+}
+
+
+/******************************************************************************
+* stop_counting
+******************************************************************************/
+void stop_counting(profiling_t *profiling)
+{
+    if (profiling->event_type == 1 || profiling->event_type == 2)
+        stop_counting_events(profiling);
+}
+

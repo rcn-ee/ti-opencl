@@ -310,6 +310,11 @@ class Kernel : public _cl_kernel, public Object
         int          setTimeout(unsigned int timeout_in_ms)
                           { p_timeout_ms = timeout_in_ms;  return CL_SUCCESS; }
 
+        /**
+        * \brief Get kernel name
+        */
+        std::string getName() { return p_name; }
+
     private:
         std::string p_name;
         bool p_has_locals;

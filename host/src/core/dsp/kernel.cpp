@@ -38,6 +38,7 @@
 #include "../memobject.h"
 #include "../events.h"
 #include "../program.h"
+#include "../oclenv.h"
 
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Constants.h>
@@ -77,6 +78,7 @@ extern "C"
 #define ERROR() std::cerr << "Unknown error in dsp/kernel.cpp" << std::endl
 
 using namespace Coal;
+using namespace tiocl;
 
 
 DSPKernel::DSPKernel(DSPDevice *device, Kernel *kernel, llvm::Function *function)
@@ -408,7 +410,8 @@ DSPKernelEvent::DSPKernelEvent(DSPDevice *device, KernelEvent *event)
 { 
     p_kernel_id = __sync_fetch_and_add(&kernelID, 1);
 
-    char *dbg = getenv("TI_OCL_DEBUG");
+    EnvVar& env = EnvVar::Instance();
+    char *dbg = env.GetEnv<EnvVar::Var::TI_OCL_DEBUG>(nullptr);
     if (dbg) p_debug_kernel = (strcmp(dbg, "ccs") == 0) ? CCS : GDBC6X;
 
     if (event->getTimeout() > 0)  p_timeout_ms = event->getTimeout();
@@ -416,8 +419,9 @@ DSPKernelEvent::DSPKernelEvent(DSPDevice *device, KernelEvent *event)
     {
         // For internal testing use only: testing timeout on existing apps
         // without modifying apps' source code
-        char *timeout = getenv("TI_OCL_KERNEL_TIMEOUT_COMPUTE_UNIT");
-        if (timeout) p_timeout_ms = atoi(timeout);
+        cl_int env_timeout = env.GetEnv<
+                           EnvVar::Var::TI_OCL_KERNEL_TIMEOUT_COMPUTE_UNIT>(0);
+        if (env_timeout > 0)  p_timeout_ms = env_timeout;
     }
 
     p_ret_code = callArgs(MAX_ARGS_TOTAL_SIZE);
@@ -428,6 +432,20 @@ DSPKernelEvent::DSPKernelEvent(DSPDevice *device, KernelEvent *event)
     p_msg.u.k.kernel.Kernel_id     = p_kernel_id;
     p_msg.u.k.kernel.entry_point   = (unsigned)p_kernel->device_entry_pt();
     p_msg.u.k.kernel.data_page_ptr = (unsigned)p_kernel->data_page_ptr();
+
+    /*------------------------------------------------------------------------
+    * Set profiling params
+    *------------------------------------------------------------------------*/
+    p_msg.u.k.kernel.profiling.event_type = 0;
+    if (p_device->isProfilingEnabled())
+    {
+        profiling_t profiling = p_device->getProfiling();
+        p_msg.u.k.kernel.profiling.event_type = profiling.event_type;
+        p_msg.u.k.kernel.profiling.event_number1 = profiling.event_number1;
+        p_msg.u.k.kernel.profiling.event_number2 = profiling.event_number2;
+        p_msg.u.k.kernel.profiling.stall_cycle_threshold =
+                                           profiling.stall_cycle_threshold;
+    }
 }
 
 DSPKernelEvent::~DSPKernelEvent() { }
@@ -504,7 +522,6 @@ void setarg_inreg(int index, int sz, unsigned int *args_in_reg, void *pval)
         memcpy(&args_in_reg[index+4], ((char*) pval)+8, 8); // next 8 bytes
     }
 }
-
 
 /******************************************************************************
 * DSPKernelEvent::callArgs

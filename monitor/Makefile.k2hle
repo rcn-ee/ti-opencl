@@ -22,6 +22,7 @@ XDAIS_DIR      ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/xdais_*)
 ULM_DIR        ?= $(LINUX_DEVKIT_ROOT)/usr/share/ti/ulm
 GDB_SERVER_DIR ?= $(LINUX_DEVKIT_ROOT)/usr/share/ti/gdbc6x
 SDK_DIR        ?= $(DEFAULT_DLSDK)
+AET_DIR        ?= $(LINUX_DEVKIT_ROOT)/usr/share/ti/ctoolslib/aet
 
 export XDC = $(XDC_DIR)
 export XDC_DIR
@@ -82,7 +83,8 @@ XDCPATH_K2X=./;$(C6636_PDK_DIR)/packages;$(BIOS_DIR)/packages;$(OMP_DIR)/package
 
 LIBS_K2X  = cmds/monitor.cmd \
 	    $(ULM_DIR)/libtiulm.ae66 \
-	    $(GDB_SERVER_DIR)/lib/gdb_server.ae66
+	    $(GDB_SERVER_DIR)/lib/gdb_server.ae66 \
+            $(AET_DIR)/lib/libaet.ae66
 
 # L2SRAM_SIZE and MSMC_SIZE used to generate device specific command files from
 # dsp_link_commands.template
@@ -133,6 +135,7 @@ INCLUDES += -DTI_66AK2X -DK2_PG1_MSMC_STALL_WA
 INCLUDES += -DOMP_ENABLED
 INCLUDES += -i $(ULM_DIR) -DULM_ENABLED
 INCLUDES += -i $(GDB_SERVER_DIR)/include -DGDB_ENABLED
+INCLUDES += -i $(AET_DIR)/include
 
 BUILD = monitor_$(PLATFORM)
 COMP_OPTS = $(BUILD)/compiler.opt
@@ -175,7 +178,6 @@ SOURCES = monitor.c dsp_rpc.asm util.c touch.asm
 SOURCES+= builtins.c
 SOURCES+= device_k2x.c
 SOURCES+= edma.c edma_config.c
-
 
 HEADERS = src/edma.h src/monitor.h src/util.h src/trace.h
 

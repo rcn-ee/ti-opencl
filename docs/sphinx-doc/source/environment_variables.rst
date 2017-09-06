@@ -199,3 +199,28 @@ These environment variables can be used to control OpenCL behavior and provide v
     DSPC8681 OpenCL Implementation.  The DSP frequency on the other platforms 
     is determined at Linux boot time.
 
+.. envvar::  TI_OCL_PROFILING_EVENT_TYPE
+
+    Specifies the hardware event type to profile. The two basic divisions,
+    stall cycle events and memory events, are described in :doc:`profiling`.
+    If 1 is specified, OpenCL runtime will profile a stall cycle event.
+    If 2 is specified, OpenCL runtime will profile one or two memory event(s).
+    Otherwise, profiling is disabled.
+
+.. envvar::  TI_OCL_PROFILING_EVENT_NUMBER1
+
+    Specifies the event number to profile. The exact value of this variable
+    represents the offset from either AET_GEM_STALL_EVT_START or
+    AET_GEM_MEM_EVT_START, depending on the event type.
+    For a full event list, see :doc:`profiling`.
+
+.. envvar::  TI_OCL_PROFILING_EVENT_NUMBER2
+
+    Specifies the second memory event number to profile.  Can be skipped.
+
+.. envvar::  TI_OCL_PROFILING_STALL_CYCLE_THRESHOLD
+
+    Specified the threshold of stall cycles to count.  Only stall events with
+    stall cycles higher than this threshold are captured in the counter.
+    Default value in OpenCL runtime is 1, i.e. all stall events are captured.
+

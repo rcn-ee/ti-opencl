@@ -5,6 +5,8 @@ Release Notes
 .. toctree::
    :maxdepth: 1
 
+   readme_v01.01.14.x
+   readme_v01.01.13.x
    readme_v01.01.12.x
    readme_v01.01.11.x
    readme_v01.01.10.x
@@ -34,4 +36,10 @@ Processor SDK to OpenCL Component Version Map
 | 03.03.00.00   | 1.01.12.00 | Added multi-process support and       |
 |               |            | Multicore tools daemon (ti-mctd)      |
 |               |            | Refer :doc:`../multiprocess`.         |
++---------------+------------+---------------------------------------+
+| 04.00.00.04   | 1.01.13.00 | Configure ti-mctd using a JSON file   |
+|               |            | Refer :doc:`../multiprocess`.         |
++---------------+------------+---------------------------------------+
+| 04.01.00.00   | 1.01.14.00 | Profiling OpenCL kernels using AET    |
+|               |            | Refer :doc:`../profiling`.            |
 +---------------+------------+---------------------------------------+
