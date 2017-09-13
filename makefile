@@ -28,7 +28,7 @@ ifeq ($(BUILD_AM57),1)
         RTOS_PACKAGE_NAME=opencl_rtos_$(TARGET)xx_$(RTOS_PACKAGE_VER)
         export DESTDIR?=$(CURDIR)/install/$(TARGET)$(BUILD_OS)/$(RTOS_PACKAGE_NAME)/packages/ti/opencl
         export GCC_ARM_NONE_TOOLCHAIN
-        CMAKE_DEFINES += -DBUILD_OS=SYS_BIOS -DRTOS_INSTALL_DIR=$(RTOS_INSTALL_DIR)
+        CMAKE_DEFINES += -DBUILD_OS=SYS_BIOS -DRTOS_INSTALL_DIR=$(RTOS_INSTALL_DIR) -DXDC_INSTALL_PATH=$(XDC_DIR)/packages
         CLEAN_DIRS += packages/ti/opencl
     endif
 else ifeq ($(BUILD_K2H),1)
@@ -70,6 +70,9 @@ else
 endif
 
 ifeq ($(BUILD_EXAMPLES),1)
+	export XDC_INSTALL_DIR=$(XDC_DIR)
+	export IPC_INSTALL_DIR=$(RTOS_INSTALL_DIR)/ti-ipc-tree
+	export BIOS_INSTALL_DIR=$(RTOS_INSTALL_DIR)/ti-sysbios-tree
     CMAKE_DEFINES += -DBUILD_EXAMPLES=1
 endif
 

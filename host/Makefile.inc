@@ -22,7 +22,7 @@ OCL_FULL_VER=$(OCL_MAJOR_VER).$(OCL_MINOR_VER).$(OCL_RELEASE_VER).$(OCL_PATCH_VE
 SDOMC_SHARED?=/cgnas
 
 # XDC (not included in CoreSDK)
-XDC_DIR=$(SDOMC_SHARED)/xdctools_3_32_01_22_core
+XDC_DIR?=$(SDOMC_SHARED)/xdctools_3_32_01_22_core
 
 # TI C6x CGT
 
