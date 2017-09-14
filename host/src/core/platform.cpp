@@ -64,12 +64,18 @@ static_assert(std::is_standard_layout<Platform>::value,
               "Class Platform must be of C++ standard layout type.");
 
 
+// MCT-718: Previously, in customized exit function for destructing the global
+// singleton Platform object, if the object has NOT been constructed, we will
+// end up constructing it and then immediately destructing it.  This static
+// member variable is added to help check if the object has been constructed.
+bool Platform::constructed = false;
+
 // Loki singleton uses NoDestroy lifetime policy. Destory it explicitly using a
 // gcc destructor. Experiments indicate that gcc destructor functions are called
 // after atexit
 __attribute__((destructor)) static void __delete_theplatform()
 {
-    delete  &the_platform::Instance();
+    if (Platform::constructed)  delete &the_platform::Instance();
 }
 
 
@@ -149,6 +155,8 @@ namespace Coal
         signal(SIGABRT, exit);
         signal(SIGTERM, exit);
 #endif
+
+        constructed = true;
     }
 
     Platform::~Platform()

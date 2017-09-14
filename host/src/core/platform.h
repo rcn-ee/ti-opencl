@@ -66,6 +66,9 @@ class Platform
         KHRicdVendorDispatch *dispatch;
         std::vector <cl_device_id> p_devices;
         tiocl::SharedMemoryProviderFactory p_shmFactory;
+
+    public:
+        static bool constructed;
 };
 
 }
