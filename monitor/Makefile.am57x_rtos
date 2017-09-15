@@ -27,7 +27,7 @@ EDMA3LLD_DIR   ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/edma3_lld_*)
 XDAIS_DIR      ?= $(wildcard $(DEFAULT_DEV_INSTALL_DIR)/xdais_*)
 #ULM_DIR        ?= $(LINUX_DEVKIT_ROOT)/usr/share/ti/ulm
 #GDB_SERVER_DIR ?= $(LINUX_DEVKIT_ROOT)/usr/share/ti/gdbc6x
-AET_DIR        ?= $(LINUX_DEVKIT_ROOT)/usr/share/ti/ctoolslib/aet
+AET_DIR        ?= $(PSDK_LINUX_DEVKIT_ROOT)/usr/share/ti/ctoolslib/aet
 
 export XDC_DIR
 export BIOS_DIR
