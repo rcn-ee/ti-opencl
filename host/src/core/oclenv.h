@@ -60,7 +60,7 @@ namespace tiocl {
 class EnvVar
 {
   public: 
-    EnvVar() {}
+    EnvVar();
     virtual ~EnvVar() {}
 
     enum Var
@@ -132,6 +132,9 @@ class EnvVar
 
     template <typename T>
     VarStatus GetEnv_Helper(const char *name, T default_val, T *val);
+
+  public:
+    static bool constructed;
 };
 
 #define __DECLARE_VAR_TRAITS(var, RET_T) \

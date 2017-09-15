@@ -73,10 +73,13 @@ bool Platform::constructed = false;
 // Loki singleton uses NoDestroy lifetime policy. Destory it explicitly using a
 // gcc destructor. Experiments indicate that gcc destructor functions are called
 // after atexit
+#ifndef _SYS_BIOS
 __attribute__((destructor)) static void __delete_theplatform()
 {
     if (Platform::constructed)  delete &the_platform::Instance();
+    if (EnvVar::constructed)    delete &EnvVar::Instance();
 }
+#endif
 
 
 #ifndef _SYS_BIOS

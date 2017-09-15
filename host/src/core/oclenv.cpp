@@ -41,14 +41,22 @@
 
 using namespace tiocl;
 
+// MCT-779: Set EnvVar's lifetime policy to NoDestroy, destroy it explicitly
+// using a gcc destructor, __delete_theplatform(), after destroying Platform
+// singleton object.  This is to avoid a race condition during early exit
+// that EnvVar has been destroyed in main thread, but again used by worker
+// thread.
 #ifndef _SYS_BIOS
 typedef Loki::SingletonHolder <tiocl::EnvVar, Loki::CreateUsingNew,
-Loki::DefaultLifetime, Loki::ClassLevelLockable> SingleEnvVar;
+Loki::NoDestroy, Loki::ClassLevelLockable> SingleEnvVar;
 #else
 typedef Loki::SingletonHolder <tiocl::EnvVar, Loki::CreateUsingNew,
 Loki::DefaultLifetime, Loki::SingleThreaded> SingleEnvVar;
 #endif
 
+bool EnvVar::constructed = false;
+
+EnvVar::EnvVar() { constructed = true; }
 
 /******************************************************************************
 * Thread safe instance function for singleton behavior
