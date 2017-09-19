@@ -50,29 +50,6 @@ ifneq (,$(findstring 86, $(shell uname -m)))
     export TI_OCL_CGT_INSTALL?=$(HOST_ROOTDIR)/usr/share/ti/cgt-c6x
 
     # --------------------------------------------------------------------------
-    # RTOS components
-    # Used by persistent_* examples
-
-    ifeq ($(USE_RTOS),1)
-        ifeq ($(PSDK_RTOS),)
-            tmp_NEED_RTOS=
-            ifeq ($(XDC_DIR),)
-                tmp_NEED_RTOS+= XDC_DIR
-            endif
-
-            ifneq ($(tmp_NEED_RTOS),)
-                $(error Environment variable PSDK_RTOS is not defined; set PSDK_RTOS to point at the target RTOS PSDK for automatic configuration or set $(tmp_NEED_RTOS) to the corresponding package directories)
-            endif
-        endif
-
-        XDC_DIR   ?= $(wildcard $(PSDK_RTOS)/xdc*)/packages
-        BIOS_DIR  ?= $(TARGET_ROOTDIR)/usr/share/ti/ti-sysbios-tree/packages
-        IPC_DIR   ?= $(TARGET_ROOTDIR)/usr/share/ti/ti-ipc-tree/packages
-
-        DSP_INCLUDE += -I$(BIOS_DIR) -I$(XDC_DIR) -I$(IPC_DIR)
-    endif
-
-    # --------------------------------------------------------------------------
     # ARM GCC
 
     ifeq ($(origin CXX),default)
@@ -180,8 +157,33 @@ else
         $(error $(CL6X) not found. Set TI_OCL_CGT_INSTALL to a TI C6x CGT installation.)
     endif
 endif
+
+# --------------------------------------------------------------------------
+# RTOS components
+# Used by persistent_* examples
+
+ifeq ($(USE_RTOS),1)
+    ifeq ($(PSDK_RTOS),)
+        tmp_NEED_RTOS=
+        ifeq ($(XDC_DIR),)
+            tmp_NEED_RTOS += XDC_DIR
+        endif
+
+        ifneq ($(tmp_NEED_RTOS),)
+            $(error Environment variable PSDK_RTOS is not defined; set PSDK_RTOS to point at the target RTOS PSDK for automatic configuration or set $(tmp_NEED_RTOS) to the corresponding package directories)
+        endif
+    endif
+
+    XDC_DIR   ?= $(wildcard $(PSDK_RTOS)/xdc*)/packages
+    BIOS_DIR  ?= $(TARGET_ROOTDIR)/usr/share/ti/ti-sysbios-tree/packages
+    IPC_DIR   ?= $(TARGET_ROOTDIR)/usr/share/ti/ti-ipc-tree/packages
+
+    DSP_INCLUDE += -I$(BIOS_DIR) -I$(XDC_DIR) -I$(IPC_DIR)
 endif
 
+endif
+
+# --------------------------------------------------------------------------
 
 # clocl executes "cl6x" directly; make sure it uses the selected CGT
 ifneq ($(CL6X_BIN),)
