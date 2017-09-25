@@ -1,8 +1,8 @@
-CL6X_FLAGS  = -o2 -I../../persistent_common --mem_model:data=far --mem_model:const=data
-CLOCL_FLAGS = 
+CL6XFLAGS  = -o2 -I../../persistent_common --mem_model:data=far --mem_model:const=data
+CLOCLLAGS  = 
+USE_RTOS   = 1
 
 include ../../make.inc
-DSP_INCLUDE += -I$(BIOS_DIR) -I$(XDC_DIR) -I$(IPC_DIR)
 
 kernel.dsp_h: dsp.obj
 

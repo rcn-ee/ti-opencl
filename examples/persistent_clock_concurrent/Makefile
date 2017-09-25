@@ -1,16 +1,17 @@
-EXE         = persistent_clock_concurrent
-CXX_FLAGS   = -O3 -I../persistent_common
-CL6X_FLAGS  = -o2 -I../persistent_common --mem_model:data=far --mem_model:const=data
-CLOCL_FLAGS = 
+EXE        = persistent_clock_concurrent
+CXXFLAGS   = -O3 -I../persistent_common
+CL6XFLAGS  = -o2 -I../persistent_common --mem_model:data=far --mem_model:const=data
+CLOCLFLAGS = 
+USE_RTOS   = 1
+
 
 VPATH = ../persistent_common
 
 include ../make.inc
-DSP_INCLUDE += -I$(BIOS_DIR) -I$(XDC_DIR) -I$(IPC_DIR)
 
 $(EXE): host.o host_assist.o
 	@echo Linking $@
-	$(CXX) $(CXX_FLAGS) $^ $(LD_FLAGS) $(LIBS) -o $@
+	$(CXX) $(CXXFLAGS) $^ $(LDFLAGS) $(LIBS) -o $@
 
 host.o: kernel.dsp_h
 

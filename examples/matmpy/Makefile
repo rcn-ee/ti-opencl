@@ -1,11 +1,11 @@
 EXE         = matmpy
-CXX_FLAGS   = -O3 -fopenmp -I/usr/include
-CL6X_FLAGS  = -o3
-CLOCL_FLAGS = 
+CXXFLAGS   = -O3 -fopenmp -I/usr/include
+CL6XFLAGS  = -o3
+CLOCLFLAGS = 
 
 include ../make.inc
 
 $(EXE): main.o kernel.out
-	@$(CXX) $(CXX_FLAGS) main.o $(LD_FLAGS) $(LIBS) -lrt -ldl -lgomp -o $@
+	@$(CXX) $(CXXFLAGS) main.o $(LDFLAGS) $(LIBS) -lrt -ldl -lgomp -o $@
 
 kernel.out: ccode.obj 

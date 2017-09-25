@@ -1,29 +1,13 @@
 # Build monitor
 
 if(BUILD_OUTPUT STREQUAL "all" )
-   if (${BUILD_TARGET} MATCHES "ARM_AM57")
-       if (${BUILD_OS} MATCHES "SYS_BIOS")
-           install(CODE "execute_process(COMMAND make -f Makefile.am57x_rtos -j4 BUILD_TARGET=${BUILD_TARGET} WORKING_DIRECTORY ${OCL_MONITOR_DIR})")
-       else()
-           install(CODE "execute_process(COMMAND make -f Makefile.am57x -j4 BUILD_TARGET=${BUILD_TARGET} WORKING_DIRECTORY ${OCL_MONITOR_DIR})")
-       endif()
-    elseif (${BUILD_TARGET} MATCHES "ARM_K2G")
-       install(CODE "execute_process(COMMAND make -f Makefile.evmk2g -j4 BUILD_TARGET=${BUILD_TARGET} WORKING_DIRECTORY ${OCL_MONITOR_DIR})")
-    elseif (${BUILD_TARGET} MATCHES "ARM_K2H" OR 
-            ${BUILD_TARGET} MATCHES "ARM_K2L" OR
-            ${BUILD_TARGET} MATCHES "ARM_K2E")
-       install(CODE "execute_process(COMMAND make -f Makefile.k2hle -j4 BUILD_TARGET=${BUILD_TARGET} WORKING_DIRECTORY ${OCL_MONITOR_DIR})")
-    else()
-        message(FATAL_ERROR "invalid BUILD_TARGET ${BUILD_TARGET}")
-    endif()
+    install(CODE "execute_process(COMMAND make -f Makefile -j4 BUILD_TARGET=${BUILD_TARGET} BUILD_OS=${BUILD_OS} WORKING_DIRECTORY ${OCL_MONITOR_DIR})")
 endif()
 
 # Install monitor, linker command file, and symbols
 
 if(BUILD_OUTPUT STREQUAL "all" OR BUILD_OUTPUT STREQUAL "lib")
-    if (${BUILD_TARGET} MATCHES "DSPC868x")
-        install(FILES monitor_dspc868x/dsp.out monitor_dspc868x/dsp.syms monitor_dspc868x/dsp_syms.obj DESTINATION ${SHARE_PATH}/opencl ${OCL_FPERMS})
-    elseif (${BUILD_TARGET} MATCHES "ARM_K2H")
+    if (${BUILD_TARGET} MATCHES "ARM_K2H")
         install(FILES monitor_evmk2h/dsp0.out monitor_evmk2h/dsp1.out monitor_evmk2h/dsp2.out monitor_evmk2h/dsp3.out monitor_evmk2h/dsp4.out monitor_evmk2h/dsp5.out monitor_evmk2h/dsp6.out monitor_evmk2h/dsp7.out DESTINATION ${SHARE_PATH}/opencl ${OCL_FPERMS})
         install(FILES monitor_evmk2h/dsp0.out DESTINATION ${SHARE_PATH}/opencl RENAME dsp.out ${OCL_FPERMS})
         install(FILES monitor_evmk2h/dsp0.syms.obj DESTINATION ${SHARE_PATH}/opencl RENAME dsp_syms.obj ${OCL_FPERMS})

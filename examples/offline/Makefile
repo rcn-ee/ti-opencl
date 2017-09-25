@@ -1,8 +1,8 @@
 EXE         = offline
-CXX_FLAGS   = -O3
-CLOCL_FLAGS = 
+CXXFLAGS   = -O3
+CLOCLFLAGS = 
 
 include ../make.inc
 
 $(EXE): main.o vadd.out
-	@$(CXX) $(CXX_FLAGS) main.o $(LD_FLAGS) $(LIBS) -o $@
+	@$(CXX) $(CXXFLAGS) main.o $(LDFLAGS) $(LIBS) -o $@

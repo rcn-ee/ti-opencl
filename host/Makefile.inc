@@ -12,7 +12,7 @@ UNAME_M:=$(shell uname -m)
 OCL_MAJOR_VER=1
 OCL_MINOR_VER=1
 OCL_RELEASE_VER=14
-OCL_PATCH_VER=03
+OCL_PATCH_VER=04
 OCL_VER=$(OCL_MAJOR_VER).$(OCL_MINOR_VER).$(OCL_RELEASE_VER)
 OCL_DPKG_NAME=ti-opencl
 OCL_VERSIONED_NAME=$(OCL_DPKG_NAME)_$(OCL_VER)
@@ -21,12 +21,8 @@ OCL_FULL_VER=$(OCL_MAJOR_VER).$(OCL_MINOR_VER).$(OCL_RELEASE_VER).$(OCL_PATCH_VE
 
 SDOMC_SHARED?=/cgnas
 
-# ARM GCC
-
-ifeq (,$(findstring arm, $(UNAME_M)))
-    ARM_GCC_DIR?=$(SDOMC_SHARED)/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf
-    GCC_ARM_NONE_TOOLCHAIN?=$(SDOMC_SHARED)/gcc-arm-none-eabi-4_9-2015q3
-endif
+# XDC (not included in CoreSDK)
+XDC_DIR?=$(SDOMC_SHARED)/xdctools_3_32_01_22_core
 
 # TI C6x CGT
 
@@ -50,48 +46,35 @@ else
     X86_LLVM_DIR?=$(SDOMC_SHARED)/llvm-3.6.0-20170608-x86_64
 endif
 
-# OMP 
-
-OMP_DIR_K2X?=$(SDOMC_SHARED)/openmp_dsp_k2x_02_06_01_00-20170609
-OMP_DIR_K2G?=$(SDOMC_SHARED)/openmp_dsp_k2g_02_06_01_00-20170609
-OMP_DIR_AM57?=$(SDOMC_SHARED)/openmp_dsp_am57xx_02_06_01_00-20170609
-
-# SOC PSDK
-
-# NOTE: Also update in examples/make*.inc
-PSDK_VERSION ?= 04.00.00.01-20170530
+CORESDK_VERSION ?= ti2017.04-rc2
 
 ifeq ($(BUILD_K2H),1)
-    DEFAULT_PSDK_RTOS?=$(SDOMC_SHARED)/ti-processor-sdk-rtos-k2hk-evm-$(PSDK_VERSION)
-    DEFAULT_PSDK_LINUX?=$(SDOMC_SHARED)/ti-processor-sdk-linux-k2hk-evm-$(PSDK_VERSION)
-    OMP_DIR?=$(OMP_DIR_K2X)
+	CORE_SDK?=$(SDOMC_SHARED)/ti-processor-sdk-linux-k2hk-evm-$(CORESDK_VERSION)
 else ifeq ($(BUILD_K2L),1)
-    DEFAULT_PSDK_RTOS?=$(SDOMC_SHARED)/ti-processor-sdk-rtos-k2l-evm-$(PSDK_VERSION)
-    DEFAULT_PSDK_LINUX?=$(SDOMC_SHARED)/ti-processor-sdk-linux-k2l-evm-$(PSDK_VERSION)
-    OMP_DIR?=$(OMP_DIR_K2X)
+	CORE_SDK?=$(SDOMC_SHARED)/ti-processor-sdk-linux-k2l-evm-$(CORESDK_VERSION)
 else ifeq ($(BUILD_K2E),1)
-    DEFAULT_PSDK_RTOS?=$(SDOMC_SHARED)/ti-processor-sdk-rtos-k2e-evm-$(PSDK_VERSION)
-    DEFAULT_PSDK_LINUX?=$(SDOMC_SHARED)/ti-processor-sdk-linux-k2e-evm-$(PSDK_VERSION)
-    OMP_DIR?=$(OMP_DIR_K2X)
+	CORE_SDK?=$(SDOMC_SHARED)/ti-processor-sdk-linux-k2e-evm-$(CORESDK_VERSION)
 else ifeq ($(BUILD_K2G),1)
-    DEFAULT_PSDK_RTOS?=$(SDOMC_SHARED)/ti-processor-sdk-rtos-k2g-evm-$(PSDK_VERSION)
-    DEFAULT_PSDK_LINUX?=$(SDOMC_SHARED)/ti-processor-sdk-linux-k2g-evm-$(PSDK_VERSION)
-    OMP_DIR?=$(OMP_DIR_K2G)
+	CORE_SDK?=$(SDOMC_SHARED)/ti-processor-sdk-linux-k2g-evm-$(CORESDK_VERSION)
 else ifeq ($(BUILD_AM57),1)
-    DEFAULT_PSDK_RTOS?=$(SDOMC_SHARED)/ti-processor-sdk-rtos-am57xx-evm-$(PSDK_VERSION)
-    DEFAULT_PSDK_LINUX?=$(SDOMC_SHARED)/ti-processor-sdk-linux-am57xx-evm-$(PSDK_VERSION)
-    OMP_DIR?=$(OMP_DIR_AM57)
+	CORE_SDK?=$(SDOMC_SHARED)/ti-processor-sdk-linux-am57xx-evm-$(CORESDK_VERSION)
 else
 endif
 
 ifeq (,$(findstring arm, $(UNAME_M)))
-    PSDK_LINUX_DEVKIT_ROOT?=$(DEFAULT_PSDK_LINUX)/linux-devkit/sysroots/armv7ahf-neon-linux-gnueabi
+    LINUX_DEVKIT_ROOT?=$(CORE_SDK)/linux-devkit/sysroots/armv7ahf-neon-linux-gnueabi
 else
-    PSDK_LINUX_DEVKIT_ROOT?=/
+    LINUX_DEVKIT_ROOT?=/
 endif
 
-# DSPC SDKs
+# ARM GCC
+ifeq (,$(findstring arm, $(UNAME_M)))
+    ARM_GCC_DIR?=$(SDOMC_SHARED)/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf
+    GCC_ARM_NONE_TOOLCHAIN?=$(SDOMC_SHARED)/gcc-arm-none-eabi-4_9-2015q3
+endif
 
-DEFAULT_DLSDK?=$(SDOMC_SHARED)/desktop-linux-sdk_01_00_03_00
-C6678_PDK_DIR?=$(SDOMC_SHARED)/pdk_C6678_2_1_3_7
-C6678_PDK1_DIR?=$(SDOMC_SHARED)/pdk_C6678_1_1_2_5
+# RTOS packages (BIOS, IPC, FC, EDMA3_LLD etc.)
+RTOS_INSTALL_DIR?=$(LINUX_DEVKIT_ROOT)/usr/share/ti
+
+# OMP 
+OMP_DIR?=$(RTOS_INSTALL_DIR)/ti-omp-tree
