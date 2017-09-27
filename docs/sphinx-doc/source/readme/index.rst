@@ -40,6 +40,6 @@ Processor SDK to OpenCL Component Version Map
 | 04.00.00.04   | 1.01.13.00 | Configure ti-mctd using a JSON file   |
 |               |            | Refer :doc:`../multiprocess`.         |
 +---------------+------------+---------------------------------------+
-| 04.01.00.00   | 1.01.14.00 | Profiling OpenCL kernels using AET    |
+| 04.01.00.05   | 1.01.14.02 | Profiling OpenCL kernels using AET    |
 |               |            | Refer :doc:`../profiling`.            |
 +---------------+------------+---------------------------------------+

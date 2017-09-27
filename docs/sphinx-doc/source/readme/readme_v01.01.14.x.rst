@@ -6,6 +6,12 @@ New Features
 =============
 * Added support for profiling OpenCL kernels using hardware events and the AET Library. Refer :doc:`../profiling`.
 
+Defect Fixes
+============
+* [MCT-718] Fixed issues with platform - do not create the platform singleton
+  just to delete it. This scenario occurred where OpenCL APIs are not invoked,
+  but the OpenCL runtime in linked into the application.
+
 Supported Evaluation Modules (EVMs)
 ===================================
 * `AM572 EVM`_ (Linux and TI-RTOS hosts)
