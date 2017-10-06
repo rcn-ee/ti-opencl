@@ -144,6 +144,59 @@ MBoxMsgQ::MBoxMsgQ(Coal::DSPDevice *device)
     if (j != p_device->dspCores())
         ReportError(ErrorType::Fatal, ErrorKind::MessageQueueCountMismatch,
                     j, p_device->dspCores());
+
+// YUAN DEBUG Begin
+// Test the EVE Proxy queue on M4
+    MessageQ_QueueId eveProxyQueue;
+    status = MessageQ_open(const_cast<char *>("OCL:EVEProxy:MsgQ"), &eveProxyQueue);
+    if (status == MessageQ_S_SUCCESS)
+    {
+        printf("Opening EVE proxy queue: success\n");
+      for (j = 0; j < 4; j++)
+      {
+        ocl_msgq_message_t *msg = (ocl_msgq_message_t *)
+                            MessageQ_alloc(heapId, sizeof(ocl_msgq_message_t));
+        assert (msg != NULL);
+        MessageQ_setReplyQueue(hostQue, (MessageQ_Msg)msg);
+        msg->message.trans_id = 54321;
+        msg->message.u.k_eve.host_msg = 0;  // from host
+        msg->message.u.k_eve.eve_id   = j;  // to which eve
+
+    cl_ulong rs;
+    struct timespec tp;
+    if (clock_gettime(CLOCK_MONOTONIC, &tp) != 0)
+        clock_gettime(CLOCK_REALTIME, &tp);
+    rs = tp.tv_nsec / 1e3;  // convert to microseconds
+    rs += tp.tv_sec * 1e6;  // convert to microseconds
+
+        status = MessageQ_put(eveProxyQueue, (MessageQ_Msg)msg);
+        if (status < 0)  printf("Sending msg to EVE proxy queue: failed\n");
+        else
+        {
+            status = MessageQ_get(hostQue, (MessageQ_Msg *)&msg,
+                                  MessageQ_FOREVER);
+            if (status < 0)  printf("Receiving from EVE proxy queue: failed\n");
+            else if (status != MessageQ_E_UNBLOCKED)
+            {
+    cl_ulong rs2;
+    if (clock_gettime(CLOCK_MONOTONIC, &tp) != 0)
+        clock_gettime(CLOCK_REALTIME, &tp);
+    rs2 = tp.tv_nsec / 1e3;  // convert to microseconds
+    rs2 += tp.tv_sec * 1e6;  // convert to microseconds
+
+                assert(msg != NULL);
+                printf("Receive from EVE transid: 0x%x, retcode: 0x%x\n", msg->message.trans_id, msg->message.u.command_retcode.retcode);
+                printf("Delay: %lld us\n", rs2 - rs);
+                MessageQ_free((MessageQ_Msg)msg);
+            }
+        }
+      }
+    }
+    else
+    {
+        printf("Failed to open EVE proxy queue\n");
+    }
+// YUAN DEBUG End
 }
 
 void MBoxMsgQ::write (uint8_t *buf, uint32_t size, uint32_t trans_id, 

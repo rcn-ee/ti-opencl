@@ -1,0 +1,204 @@
+#
+#  Copyright (c) 2012-2015 Texas Instruments Incorporated - http://www.ti.com
+#  All rights reserved.
+#
+#  Redistribution and use in source and binary forms, with or without
+#  modification, are permitted provided that the following conditions
+#  are met:
+#
+#  *  Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#
+#  *  Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in the
+#     documentation and/or other materials provided with the distribution.
+#
+#  *  Neither the name of Texas Instruments Incorporated nor the names of
+#     its contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
+#
+#  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+#  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+#  THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+#  PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+#  CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+#  EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+#  PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+#  OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+#  WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+#  OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+#  EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
+
+#
+#  ======== makefile ========
+#
+
+include ../host/Makefile.inc
+
+DEVICE      = DEVICE_AM57
+SOC         = SOC_TDA2XX
+TARGET     ?= eve1
+TARGET_UP   = $(subst eve,EVE,$(TARGET))
+PROJECT     = monitor_$(TARGET)
+CONFIG      = $(PROJECT)/configuro
+BUILD_TYPE ?= release
+
+
+# If not specified, assume the opencl source directory is at same location as
+# monitor
+OPENCL_SRC_DIR ?= ../host
+
+IPC_DIR        ?= $(RTOS_INSTALL_DIR)/ti-ipc-tree
+BIOS_DIR       ?= $(RTOS_INSTALL_DIR)/ti-sysbios-tree
+PDK_DIR        ?= /opt/ti/PROCESSOR_SDK_VISION_03_00_00_00/ti_components/drivers/pdk_01_07_00_16
+
+VSDK_TOOLS_DIR ?= /opt/ti/PROCESSOR_SDK_VISION_03_00_00_00/vision_sdk/links_fw/src/rtos/utils_common/src/eveloader/tools
+
+TI_OCL_ARP32_CGT_INSTALL ?= /opt/ti/PROCESSOR_SDK_VISION_03_00_00_00/ti_components/cg_tools/linux/arp32_1.0.7
+
+
+# EVE firmware layout when embedding into IPU firmware
+ENDIANNESS:=LE
+INPUTRPRCS:=
+EVE1_ID:=10
+EVE2_ID:=11
+EVE3_ID:=12
+EVE4_ID:=13
+
+EVE1_RPRC_PATH:=monitor_eve1/eve1.xearp32F.rprc
+EVE2_RPRC_PATH:=monitor_eve2/eve2.xearp32F.rprc
+EVE3_RPRC_PATH:=monitor_eve3/eve3.xearp32F.rprc
+EVE4_RPRC_PATH:=monitor_eve4/eve4.xearp32F.rprc
+
+# for tda2xx
+DEV_ID:=55
+
+INPUTRPRCS += $(EVE1_ID) $(EVE1_RPRC_PATH)
+INPUTRPRCS += $(EVE2_ID) $(EVE2_RPRC_PATH)
+INPUTRPRCS += $(EVE3_ID) $(EVE3_RPRC_PATH)
+INPUTRPRCS += $(EVE4_ID) $(EVE4_RPRC_PATH)
+
+
+SOURCES = MainEve.c tlb_config_eve.c
+VPATH   = src
+
+OBJS = $(addprefix $(PROJECT)/obj/,$(patsubst %.c,%.oearp32F,$(SOURCES)))
+
+CONFIGS  = cfg/Eve.cfg cfg/config.bld cfg/BIOS_common.cfg
+CONFIGS += cfg/ipc.cfg.xs cfg/mem_segment_definition_linux.xs
+
+PKGPATH := $(BIOS_DIR)/packages
+PKGPATH := $(PKGPATH)+$(IPC_DIR)/packages
+PKGPATH := $(PKGPATH)+$(XDC_DIR)/packages
+PKGPATH := $(PKGPATH)+$(PDK_DIR)/packages
+
+INCLUDES  = -i. -i $(OPENCL_SRC_DIR)/src/core/dsp
+INCLUDES += -D$(DEVICE) -D$(SOC) -DBUILD_ARP32
+INCLUDES += -DEVECORE=$(TARGET_UP)
+
+libs = $(PDK_DIR)/packages/ti/csl/lib/tda2xx/arp32/release/ti.csl.aearp32F
+libs += $(PDK_DIR)/packages/ti/drv/pm/lib/tda2xx/arp32/release/pm_lib.aearp32F
+
+.PRECIOUS: %/compiler.opt %/linker.cmd
+
+all: src/eve_firmware.h
+
+src/eve_firmware.h: $(EVE1_RPRC_PATH) $(EVE2_RPRC_PATH) \
+                    $(EVE3_RPRC_PATH) $(EVE4_RPRC_PATH)
+	$(VSDK_TOOLS_DIR)/MulticoreImageGen64.out $(ENDIANNESS) $(DEV_ID) $(PROJECT)/EveAppImage $(INPUTRPRCS)
+	$(VSDK_TOOLS_DIR)/bin2c64.out $(PROJECT)/EveAppImage > $@
+
+$(EVE1_RPRC_PATH): $(SOURCES) $(CONFIGS)
+	make -f Makefile.eve TARGET=eve1 eve1.x
+$(EVE2_RPRC_PATH): $(SOURCES) $(CONFIGS)
+	make -f Makefile.eve TARGET=eve2 eve2.x
+$(EVE3_RPRC_PATH): $(SOURCES) $(CONFIGS)
+	make -f Makefile.eve TARGET=eve3 eve3.x
+$(EVE4_RPRC_PATH): $(SOURCES) $(CONFIGS)
+	make -f Makefile.eve TARGET=eve4 eve4.x
+
+$(TARGET).x: $(PROJECT)/$(TARGET).xearp32F
+	mono $(VSDK_TOOLS_DIR)/out2rprc.exe $< \
+                                            $(PROJECT)/$(TARGET).xearp32F.rprc
+
+$(PROJECT)/$(TARGET).xearp32F: $(OBJS) $(libs) $(CONFIG)/linker.cmd
+	@$(ECHO) "#"
+	@$(ECHO) "# Making $@ ..."
+	$(LD) $(LDFLAGS) -o $@ $(OBJS) \
+            $(addprefix -l ,$(libs)) $(CONFIG)/linker.cmd $(LDLIBS)
+
+$(PROJECT)/obj/%.oearp32F: %.c $(CONFIG)/compiler.opt
+	@$(ECHO) "#"
+	@$(ECHO) "# Making $@ ..."
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(INCLUDES) --output_file=$@ -fc $<
+
+
+%/linker.cmd %/compiler.opt: $(CONFIG)/.config ;
+$(CONFIG)/.config: $(CONFIGS)
+	@$(ECHO) "#"
+	@$(ECHO) "# Making $@ ..."
+	$(XDC_DIR)/xs --xdcpath="$(subst +,;,$(PKGPATH))" \
+            xdc.tools.configuro -o $(CONFIG) \
+            -t ti.targets.arp32.elf.ARP32_far \
+            -c $(TI_OCL_ARP32_CGT_INSTALL) \
+            -p ti.platforms.evmDRA7XX:$(TARGET) \
+            -b cfg/config.bld -r $(BUILD_TYPE) \
+            -DCORE="$(TARGET_UP)" \
+            cfg/Eve.cfg
+	@$(ECHO) "" > $@
+
+help:
+	@$(ECHO) "make                   # build executable"
+	@$(ECHO) "make clean             # clean everything"
+
+clean::
+	$(RMDIR) $(PROJECT)
+
+
+#  ======== toolchain macros ========
+CC = $(TI_OCL_ARP32_CGT_INSTALL)/bin/cl-arp32 -c
+LD = $(TI_OCL_ARP32_CGT_INSTALL)/bin/lnk-arp32
+
+CPPFLAGS =
+CFLAGS  = -qq -pdsw225 -ppd=$@.dep -ppa $(CCPROFILE_$(BUILD_TYPE)) -@$(CONFIG)/compiler.opt -I.
+CFLAGS += --silicon_version=v210
+
+# includes
+CFLAGS += -I $(XDAIS_DIR)/packages
+
+# entry point is set to an aligned address so that IPC can load the slave
+#LDFLAGS = -w -q -u _c_int00 -c -m $(@D)/obj/$(@F).map
+LDFLAGS = -w -q -c -m $(@D)/obj/$(@F).map
+LDFLAGS += --warn_sections -e=_c_int00 --silicon_version=arp32 -x
+LDLIBS = -l $(TI_OCL_ARP32_CGT_INSTALL)/lib/rtsarp32_v203.lib
+#LDLIBS = -l $(TI_OCL_ARP32_CGT_INSTALL)/lib/rtsarp32_v200.lib
+
+CCPROFILE_debug = -D_DEBUG_=1 --symdebug:dwarf
+CCPROFILE_release = -O2
+
+#  ======== standard macros ========
+ifneq (,$(wildcard $(XDC_DIR)/xdc.exe))
+    # use these on Windows
+    CP      = $(XDC_DIR)/bin/cp
+    ECHO    = $(XDC_DIR)/bin/echo
+    MKDIR   = $(XDC_DIR)/bin/mkdir -p
+    RM      = $(XDC_DIR)/bin/rm -f
+    RMDIR   = $(XDC_DIR)/bin/rm -rf
+else
+    # use these on Linux
+    CP      = cp
+    ECHO    = echo
+    MKDIR   = mkdir -p
+    RM      = rm -f
+    RMDIR   = rm -rf
+endif
+
+#  ======== create output directories ========
+ifneq (clean,$(MAKECMDGOALS))
+ifneq (,$(PROJECT))
+ifeq (,$(wildcard $(PROJECT)/obj))
+    $(shell $(MKDIR) -p $(PROJECT)/obj)
+endif
+endif
+endif

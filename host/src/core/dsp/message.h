@@ -41,6 +41,8 @@ typedef enum
 #define MAX_NDR_DIMENSIONS   3
 #define MAX_IN_REG_ARGUMENTS 10
 #define MAX_ARGS_IN_REG_SIZE (MAX_IN_REG_ARGUMENTS*2)
+#define EVE_MAX_ARGS_IN_REG_SIZE 3
+#define EVE_MAX_ARGS_ON_STACK_SIZE 128      // bytes, has space for 216 bytes
 
 #define MAX_ARGS_TOTAL_SIZE 1024
 
@@ -131,6 +133,22 @@ typedef struct
     uint32_t        profiling_counter1_val;
 } command_retcode_t;
 
+/*-----------------------------------------------------------------------------
+* Kernel message to Eve
+*----------------------------------------------------------------------------*/
+typedef struct
+{
+    command_retcode_t reserved;
+    uint32_t        Kernel_id;       // host-assigned id for this invocation
+    uint32_t        kernel_index;    // index into function table
+    uint32_t        host_msg;        // for proxy on M4 to send back to host
+    uint32_t        eve_id;          // on which eve, logical index
+    uint32_t        num_args;        // number of arguments
+    uint32_t        args_in_reg[EVE_MAX_ARGS_IN_REG_SIZE];
+    uint32_t        args_on_stack_size;
+    uint8_t         args_on_stack[EVE_MAX_ARGS_ON_STACK_SIZE];
+} kernel_eve_t;
+
 typedef struct 
 {
     uint32_t      command;  // enum command_codes, use uint32_t in message
@@ -144,6 +162,7 @@ typedef struct
             kernel_msg_t    kernel;
             flush_msg_t     flush;
         } k;
+        kernel_eve_t        k_eve;
         configure_monitor_t configure_monitor;
         command_retcode_t   command_retcode;
         char message[sizeof(kernel_config_t) + sizeof(kernel_msg_t) + 
