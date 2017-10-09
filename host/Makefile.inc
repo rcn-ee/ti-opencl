@@ -27,9 +27,9 @@ XDC_DIR?=$(SDOMC_SHARED)/xdctools_3_32_01_22_core
 # TI C6x CGT
 
 ifeq (,$(findstring arm, $(UNAME_M)))
-    TI_OCL_CGT_INSTALL?=$(SDOMC_SHARED)/ti-cgt-c6000-8.2.0-release-linux
+    TI_OCL_CGT_INSTALL?=$(SDOMC_SHARED)/ti-cgt-c6000-8.2.2-release-linux
 else
-    TI_OCL_CGT_INSTALL?=$(SDOMC_SHARED)/ti-cgt-c6000-8.2.0-release-armlinuxa8hf
+    TI_OCL_CGT_INSTALL?=$(SDOMC_SHARED)/ti-cgt-c6000-8.2.2-release-armlinuxa8hf
 endif
 
 # LLVM
