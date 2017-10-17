@@ -657,15 +657,15 @@ bool DSPDevice::mail_query()
 }
 
 void DSPDevice::recordProfilingData(command_retcode_t * profiling_data,
-                                      uint core)
+                                      uint32_t core)
 {
     if (! isProfilingEnabled()) return;
 
     (*p_profiling_out) << (int)  p_profiling.event_type << '\n'
                        << (int)  p_profiling.event_number1 << '\n'
                        << (int)  p_profiling.event_number2 << '\n'
-                       << (uint) p_profiling.stall_cycle_threshold << '\n'
-                       << (uint) core << '\n';
+                       << (uint32_t) p_profiling.stall_cycle_threshold << '\n'
+                       << (uint32_t) core << '\n';
 
     // Output counter diffs corresponding to event numbers (use -1 if failed)
     if (profiling_data->profiling_status != 0) {
@@ -675,9 +675,9 @@ void DSPDevice::recordProfilingData(command_retcode_t * profiling_data,
                            << (int) -1 << '\n';
     } else {
         std::cout << "Profiling Successful on core " << core << std::endl;
-        (*p_profiling_out) << (uint) profiling_data->profiling_counter0_val
+        (*p_profiling_out) << (uint32_t) profiling_data->profiling_counter0_val
                            << '\n'
-                           << (uint) profiling_data->profiling_counter1_val
+                           << (uint32_t) profiling_data->profiling_counter1_val
                            << '\n';
     }
     // mark end of core's data
