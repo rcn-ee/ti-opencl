@@ -34,8 +34,8 @@ ENDIF()
 # SET(TOOL_ROOT C:/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_8-2014q3/arm-none-eabi)
 # SET(CMAKE_INSTALL_PREFIX D:/OpenCL/osal_dev/bin)
 
-SET(GCC_COVERAGE_C_FLAGS "-MMD -MP -mcpu=cortex-a15 -mtune=cortex-a15 -mfloat-abi=hard -Dxdc_target_types__=${BIOS_INSTALL_PATH}/gnu/targets/arm/std.h -Dxdc_target_name__=A15F -D_TI_RTOS -D_SYS_BIOS -D_POSIX_TIMERS -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS -I$ENV{GCC_ARM_NONE_TOOLCHAIN}/arm-none-eabi/include")
-SET(GCC_COVERAGE_LINK_FLAGS "-nostartfiles -static -L${BIOS_INSTALL_PATH}/gnu/targets/arm/libs/install-native/arm-none-eabi/lib/fpu -lrdimon -lc -lm -lnosys")
+SET(GCC_COVERAGE_C_FLAGS "-MMD -MP -mcpu=cortex-a15 -mtune=cortex-a15 -mfloat-abi=hard -Dxdc_target_types__=${BIOS_INSTALL_PATH}/gnu/targets/arm/std.h -Dxdc_target_name__=A15F -D_TI_RTOS -D_SYS_BIOS -D_POSIX_TIMERS -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS -I$ENV{GCC_ARM_NONE_TOOLCHAIN}/arm-none-eabi/include -I$ENV{GCC_ARM_NONE_TOOLCHAIN}/arm-none-eabi/include/newlib-nano ")
+SET(GCC_COVERAGE_LINK_FLAGS "-nostartfiles -static -L${BIOS_INSTALL_PATH}/gnu/targets/arm/libs/install-native/arm-none-eabi/lib/hard  --specs=nano.specs -lrdimon -lc -lm -lnosys")
 SET(CMAKE_C_IMPLICIT_LINK_LIBRARIES "")
 #this one not so much
 SET(CMAKE_SYSTEM_VERSION 1)

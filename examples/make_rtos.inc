@@ -196,10 +196,10 @@ endif
 #  ======== toolchain macros ========
 
 CXX_FLAGS += -Dfar= -D__DYNAMIC_REENT__ -D_TI_RTOS -fpermissive -std=c++0x
-CFLAGS   += -c -MD -MF $@.dep -MMD -MP -mcpu=cortex-a15 -mtune=cortex-a15 -mfloat-abi=hard -ffunction-sections -fdata-sections $(CCPROFILE_$(PROFILE)) @$(CONFIG)/compiler.opt -I"$(GCC_ARM_NONE_TOOLCHAIN)/arm-none-eabi/include" -I. -I$(TI_OCL_INSTALL)/usr/include
+CFLAGS   += -c -MD -MF $@.dep -MMD -MP -mcpu=cortex-a15 -mtune=cortex-a15 -mfloat-abi=hard -ffunction-sections -fdata-sections $(CCPROFILE_$(PROFILE)) @$(CONFIG)/compiler.opt -I"$(GCC_ARM_NONE_TOOLCHAIN)/arm-none-eabi/include" -I"$(GCC_ARM_NONE_TOOLCHAIN)/arm-none-eabi/include/newlib-nano" -I. -I$(TI_OCL_INSTALL)/usr/include
 
-LDFLAGS += $(LDPROFILE_$(PROFILE)) -mfloat-abi=hard -nostartfiles -Wl,-static -Wl,--gc-sections -Wl,-Map=$(@D)/$(@F).map
-LDLIBS += -L$(BIOS_INSTALL_DIR)/packages/gnu/targets/arm/libs/install-native/arm-none-eabi/lib/fpu
+LDFLAGS += $(LDPROFILE_$(PROFILE)) -mfloat-abi=hard -nostartfiles --specs=nano.specs -Wl,-static -Wl,--gc-sections -Wl,-Map=$(@D)/$(@F).map
+LDLIBS += -L$(BIOS_INSTALL_DIR)/packages/gnu/targets/arm/libs/install-native/arm-none-eabi/lib/hard
 
 CCPROFILE_debug = -g -ggdb -D_DEBUG_=1
 CCPROFILE_release = -O3

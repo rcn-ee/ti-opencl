@@ -120,7 +120,7 @@ bool BufferEvent::isSubBufferAligned(const MemObject *buffer,
     if (buffer == nullptr || buffer->type() != MemObject::SubBuffer)
         return true;
 
-    rs = device->info(CL_DEVICE_MEM_BASE_ADDR_ALIGN, sizeof(uint),
+    rs = device->info(CL_DEVICE_MEM_BASE_ADDR_ALIGN, sizeof(cl_int),
                       &align, 0);
 
     if (rs != CL_SUCCESS)
@@ -805,9 +805,9 @@ KernelEvent::KernelEvent(CommandQueue *parent,
     cl_uint dims[3];
     kernel->reqdWorkGroupSize(kernel->deviceDependentModule(device), dims);
 
-    uint reqd_x = dims[0];
-    uint reqd_y = dims[1];
-    uint reqd_z = dims[2];
+    uint32_t reqd_x = dims[0];
+    uint32_t reqd_y = dims[1];
+    uint32_t reqd_z = dims[2];
     bool reqd_any = reqd_x > 0 || reqd_y > 0 || reqd_z > 0;
 
     if (reqd_any)
