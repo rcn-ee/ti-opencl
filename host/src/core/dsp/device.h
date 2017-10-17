@@ -75,7 +75,7 @@ class DSPDevice : public DeviceInterface, public Lockable
         DeviceProgram *createDeviceProgram(Program *program);
         DeviceKernel *createDeviceKernel(Kernel *kernel,
                                          llvm::Function *function);
-        void recordProfilingData(command_retcode_t*, uint core);
+        void recordProfilingData(command_retcode_t*, uint32_t core);
         cl_int initEventDeviceData(Event *event);
         void freeEventDeviceData(Event *event);
 
