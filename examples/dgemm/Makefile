@@ -1,5 +1,4 @@
 EXE        = dgemm
-CXX        = g++
 CXXFLAGS  = -O3 
 BOTHCBLAS  = -Llibcblas_atlas_arm -lcblas -latlas -Llibcblas_dgemm_dsp -lcblas_dgemm_dsp -lOpenCL -locl_util -lpthread
 

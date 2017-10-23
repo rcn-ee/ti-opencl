@@ -1,5 +1,5 @@
 EXE         = ../persistent_messageq_concurrent
-CXXFLAGS   = -O2 --std=c++11 -I ../../persistent_common
+CXXFLAGS   = -O2 -I../../persistent_common
 
 VPATH = ../../persistent_common
 
