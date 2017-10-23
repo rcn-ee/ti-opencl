@@ -2,7 +2,7 @@ ATLAS_INSTALL=libcblas_atlas_arm
 ATLAS_LIB    = $(ATLAS_INSTALL)/libcblas.a $(ATLAS_INSTALL)/libatlas.a
 
 EXE         = sgemm
-CXXFLAGS   = -O3 -I/usr/include $(ATLAS_INC)
+CXXFLAGS   = -O3 $(ATLAS_INC)
 CL6XFLAGS  = -o3 
 CLOCLFLAGS =
 

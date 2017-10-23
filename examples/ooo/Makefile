@@ -1,5 +1,5 @@
 EXE       = ooo
-CXXFLAGS = -g -O0 -fno-inline -std=c++0x
+CXXFLAGS = -g -O0 -fno-inline
 
 include ../make.inc
 
