@@ -1,5 +1,5 @@
 EXE         = matmpy
-CXXFLAGS   = -O3 -fopenmp -I/usr/include
+CXXFLAGS   = -O3 -fopenmp
 CL6XFLAGS  = -o3
 CLOCLFLAGS = 
 
