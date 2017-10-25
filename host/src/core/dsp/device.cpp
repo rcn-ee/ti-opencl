@@ -745,8 +745,10 @@ void* DSPDevice::get_mpax_default_res()
 #define NUM_VIRT_HEAPS  2
         uint32_t xmc_regs[MAX_XMCSES_MPAXS] = {3, 4, 5, 6, 7, 8, 9};
         uint32_t ses_regs[MAX_XMCSES_MPAXS] = {1, 2, 3, 4, 5, 6, 7};
+        // Stay away from k2g dsp_common_mpm_pool: 0x9D000000 to 0x9F800000
+        // Stay away from k2x dsp_common_cma_pool: 0x9F800000 to 0xA0000000
         uint32_t heap_base[NUM_VIRT_HEAPS]  = {0xC0000000, 0x80000000};
-        uint32_t heap_size[NUM_VIRT_HEAPS]  = {0x40000000, 0x20000000};
+        uint32_t heap_size[NUM_VIRT_HEAPS]  = {0x40000000, 0x18000000};
         for (int i = 0; i < MAX_XMCSES_MPAXS; i++)
         {
             xmc_regs[i] = FIRST_FREE_XMC_MPAX + i;

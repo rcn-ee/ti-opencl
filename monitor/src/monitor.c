@@ -157,6 +157,8 @@ static bool setup_ndr_chunks      (int dims, uint32_t* limits, uint32_t* offsets
                                    uint32_t *gsz, uint32_t* lsz);
 static void process_configuration_message(ocl_msgq_message_t* msgq_pkt);
 static void timeout_clock_handler(UArg arg);
+static inline void setup_extended_memory(flush_msg_t* flush_msg);
+static inline void reset_extended_memory(flush_msg_t* flush_msg);
 
 
 /* BIOS_TASKS */
@@ -456,6 +458,33 @@ void ocl_monitor()
         Log_print1(Diags_INFO, "MessageQ_get failure: %d", (IArg)status);
 }
 
+/******************************************************************************
+* K2: Configure the mpax registers for extended memory arguments to the kernel
+*     Clear memory protection faults
+* Others: do nothing
+******************************************************************************/
+static inline void setup_extended_memory(flush_msg_t* flush_msg)
+{
+#if defined (DEVICE_K2H) /* || defined (DEVICE_K2L) || defined (DEVICE_K2E) */
+    uint32_t num_mpaxs = flush_msg->num_mpaxs;
+    if (num_mpaxs > 0) set_kernel_MPAXs(num_mpaxs, flush_msg->mpax_settings);
+    clear_mpf();
+#endif
+}
+
+/******************************************************************************
+* K2: Reset the mpax registers after a kernel
+*     Report and clear memory protection faults
+* Others: do nothing
+******************************************************************************/
+static inline void reset_extended_memory(flush_msg_t* flush_msg)
+{
+#if defined (DEVICE_K2H) /* || defined (DEVICE_K2L) || defined (DEVICE_K2E) */
+    report_and_clear_mpf();
+    uint32_t num_mpaxs = flush_msg->num_mpaxs;
+    if (num_mpaxs > 0) reset_kernel_MPAXs(num_mpaxs);
+#endif
+}
 
 /******************************************************************************
 * process_task_command
@@ -524,6 +553,8 @@ static void process_task_command(ocl_msgq_message_t* msgq_pkt)
        }
        #endif
 
+       flush_msg_t*  flushMsgPtr  = &Msg->u.k.flush;
+       setup_extended_memory(flushMsgPtr);
        TRACE(is_inorder ?
                ULM_OCL_IOT_KERNEL_START : ULM_OCL_OOT_KERNEL_START,
           kernel_id, 0);
@@ -548,10 +579,10 @@ static void process_task_command(ocl_msgq_message_t* msgq_pkt)
 
        TRACE(is_inorder ? ULM_OCL_IOT_KERNEL_COMPLETE :
                           ULM_OCL_OOT_KERNEL_COMPLETE, kernel_id, 0);
+       reset_extended_memory(flushMsgPtr);
        stop_counting(&(Msg->u.k.kernel.profiling));
        respond_to_host(msgq_pkt, kernel_id);
 
-       flush_msg_t*  flushMsgPtr  = &Msg->u.k.flush;
        flush_buffers(flushMsgPtr);
        TRACE(is_inorder ? ULM_OCL_IOT_CACHE_COHERENCE_COMPLETE :
                           ULM_OCL_OOT_CACHE_COHERENCE_COMPLETE, kernel_id, 0);
@@ -582,6 +613,9 @@ void ocl_service_omp(UArg arg0, UArg arg1)
           uint32_t more_args_size = Msg->u.k.kernel.args_on_stack_size;
           void* more_args = (void *) Msg->u.k.kernel.args_on_stack_addr;
 
+          flush_msg_t*  flushMsgPtr = &Msg->u.k.flush;
+          setup_extended_memory(flushMsgPtr);
+
           if (MASTER_CORE)
           {
              TRACE(ULM_OCL_IOT_KERNEL_START, kernel_id, 0);
@@ -609,6 +643,7 @@ void ocl_service_omp(UArg arg0, UArg arg1)
              }
 
              TRACE(ULM_OCL_IOT_KERNEL_COMPLETE, kernel_id, 0);
+             reset_extended_memory(flushMsgPtr);
              stop_counting(&(Msg->u.k.kernel.profiling));
              respond_to_host(omp_msgq_pkt, kernel_id);
           }
@@ -633,11 +668,11 @@ void ocl_service_omp(UArg arg0, UArg arg1)
              if (Msg->u.k.kernel.timeout_ms > 0)
                  Clock_stop(timeout_clock);
 
+             reset_extended_memory(flushMsgPtr);
              /* Not sending a response to host, delete the msg */
              MessageQ_free((MessageQ_Msg)omp_msgq_pkt);
           }
 
-          flush_msg_t*  flushMsgPtr = &Msg->u.k.flush;
           flush_buffers(flushMsgPtr);
           TRACE(ULM_OCL_IOT_CACHE_COHERENCE_COMPLETE, kernel_id, 0);
 
@@ -714,6 +749,9 @@ static void process_kernel_command(ocl_msgq_message_t *msgq_pkt)
     *------------------------------------------------------*/
     start_counting(&(msg->u.k.kernel.profiling));
 
+    flush_msg_t*  flushMsgPtr = &msg->u.k.flush;
+    setup_extended_memory(flushMsgPtr);
+
     /*---------------------------------------------------------
     * Iterate over each Work Group
     *--------------------------------------------------------*/
@@ -742,6 +780,9 @@ static void process_kernel_command(ocl_msgq_message_t *msgq_pkt)
               cfg->WG_id);
 
     } while (!done);
+
+    reset_extended_memory(flushMsgPtr);
+
     stop_counting(&(msg->u.k.kernel.profiling));
 
     if (msg->u.k.kernel.timeout_ms > 0)
@@ -1131,6 +1172,8 @@ void ocl_timeout(UArg arg0, UArg arg1)
         int       is_task   = (ocl_msgq_pkt->message.command == TASK);
         int       is_inorder = (ocl_msgq_pkt->message.u.k.config.global_size[0]
                                 == IN_ORDER_TASK_SIZE);
+
+        reset_extended_memory(&ocl_msgq_pkt->message.u.k.flush);
 
         // Reply to host on timeout
         if (!is_task || !is_inorder || MASTER_CORE)

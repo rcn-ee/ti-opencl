@@ -40,8 +40,8 @@ using namespace std;
 
 const cl_uint NumWorkGroups   = 256;
 const cl_uint VectorElements  = 1;
-// MPAX can handle 3 512MB buffers, if it does not work, reduce to 256MB
-const cl_uint MaxCHUNKSIZE    = 512*1024*1024;
+// MPAX can handle 3 256MB buffers: a, b, c
+const cl_uint MaxCHUNKSIZE    = 256*1024*1024;
 
 // From the available device memory blocks, determine the maximum size of
 // the 3 equally sized buffers that we can allocate: dst[] = srcA[] + srcB[],
@@ -83,7 +83,8 @@ cl_uint get_bufsize(cl_ulong gmem_size,cl_ulong gmem_size_ext1,
      // Cap size of each buffer in 32-bit address space
      if (each_buf_size > 0xFFFFFFFFU)  each_buf_size = 0xFFFFFFFFU;
 
-     // Round down bufsize to be multiple of 512MB or power of 2s (if < 512MB)
+     // Round down bufsize to be multiple of MaxCHUNKSIZE
+     //                          or power of 2s (if < MaxCHUNKSIZE)
      cl_uint bufsize = (each_buf_size / MaxCHUNKSIZE) * MaxCHUNKSIZE;
      if (bufsize == 0)
      {

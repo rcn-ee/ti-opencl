@@ -151,6 +151,8 @@ CMEMMapPolicyPersistent::~CMEMMapPolicyPersistent()
     ReportTrace("CMEM Persistent CMEM_unmap %p, %lld KB\n",
                 host_addr_, size_ >> 10);
 
+#if 0
+    // disable until CMEM provides a registerAllocPhys() routine
     CMEM_AllocParams params = CMEM_DEFAULTPARAMS;
     params.flags = CMEM_CACHED;
 
@@ -165,6 +167,7 @@ CMEMMapPolicyPersistent::~CMEMMapPolicyPersistent()
 
     ReportTrace("CMEM Persistent CMEM_freePhys  0x%llx, %lld KB\n",
                 cmem_addr, size_ >> 10);
+#endif
 }
 
 void *CMEMMapPolicyPersistent::Map(DSPDevicePtr64 dsp_addr, size_t size) const
