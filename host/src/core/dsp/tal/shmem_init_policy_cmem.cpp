@@ -107,8 +107,21 @@ void cmem_init(std::vector<MemoryRange>& ranges)
     * the_platform::Instance() attempts to construct the_platform. Calling
     * abort() bypasses atexit processing, including __delete_theplatform.
     *------------------------------------------------------------------------*/
+#if 0
+    /*-------------------------------------------------------------------------
+    * CMEM registerAlloc() implementation will also try to map the block
+    * into user space, which is totally unnecessary and a waste of
+    * application's virtual address space.  Mapping also could fail
+    * when supporting ondemand CMEM memory where the block could be very big.
+    * Until CMEM provides a registerAllocPhys() routine, we will avoid
+    * calling registerAlloc().  Not calling registerAlloc() will NOT preventing
+    * us from normal CMEM operations in OpenCL runtime.
+    * If MCT Daemon is not running, HeapsMultiProcessPolicy() will report error.
+    *------------------------------------------------------------------------*/
+
     if (CMEM_registerAlloc(ddr_addr) == NULL)
         ReportError(ErrorType::Abort, ErrorKind::DaemonNotRunning);
+#endif
 
     DSPDevicePtr64 addr1 = ddr_addr;
     uint64_t       size1 = ddr_size;
@@ -168,7 +181,10 @@ void cmem_init(std::vector<MemoryRange>& ranges)
         /*---------------------------------------------------------------------
         * Register alloc CMEM block already allocated by the mct daemon
         *--------------------------------------------------------------------*/
+#if 0
+        // disable until CMEM provides a registerAllocPhys() routine
         CMEM_registerAlloc(onchip_shared_addr);
+#endif
 
         ranges.emplace_back(onchip_shared_addr, onchip_shared_size,
                             MemoryRange::Kind::CMEM_PERSISTENT,
