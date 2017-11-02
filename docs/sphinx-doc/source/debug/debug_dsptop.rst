@@ -14,6 +14,40 @@ next.  Details about the usage of dsptop can be found by running
 
 .. _dsptop wikipage: http://processors.wiki.ti.com/index.php/Dsptop
 
+.. Note::
+  Starting from Processor SDK 4.x (OpenCL product version 1.1.13),
+  the default Linux device tree no longer contains the debugss block that
+  the dsptop utility relies on.  To re-enable dsptop, you will need to
+  manually incorporate the following device tree patches in Processor SDK
+  3.x for K2x and AM57xx platforms, respectively.
+
+  #. http://arago-project.org/git/projects/?p=meta-processor-sdk.git;a=blob;f=recipes-kernel/linux/linux-ti-staging-4.4-patches/0001-ARM-dts-keystone-evm-add-DT-bindings-for-debugss-and.patch;h=6f7dada2a1ec04e5c186034424d6f1e4af916f37;hb=refs/heads/krogoth
+  #. http://arago-project.org/git/projects/?p=meta-processor-sdk.git;a=blob;f=recipes-kernel/linux/linux-ti-staging-4.4-patches/0002-ARM-dts-am57-evm-add-bindings-for-debugss.patch;h=abeac50823d1fa0392ebaa5027ee232de18a2b24;hb=refs/heads/krogoth
+
+  You may not be able to directly apply the patch file itself due to line
+  number changes.  But you should still be able to apply the patch content
+  manually.  Essentially, for K2X, you need to add the ``debugss`` and ``srss``
+  blocks from the patch into the ``soc {`` block in the device tree, while
+  for AM57xx, you add the ``debugss`` block from the patch into the
+  ``ocp {`` block in the device tree.
+
+  The patch content can also be incorporated into device tree file by
+  in place modification.  Take K2HK for example,
+
+::
+
+  # locate your device tree file, e.g. in /boot if using sdcard,
+    or /var/lib/tftpboot on host machine if booting over network
+  # convert device tree from binary to source format
+  > dtc -I dtb -O dts keystone-k2hk-evm.dtb -o keystone-k2hk-evm.dts
+  # modify keystone-k2hk-evm.dts to add ``debugss`` and ``srss`` blocks from
+    the patch into ``soc {`` block at the end
+  # add labels to those referenced in ``debugss`` and ``srss`` blocks, for
+    example, change ``mainpllclk@2310110 {`` to
+    `` mainpllclk: mainpllclk@2310110 {``
+  # convert modified device tree from source back to binary format
+  > dtc -I dts -O dtb keystone-k2hk-evm.dts -o keystone-k2hk-evm.dtb
+  # reboot evm to enable the new device tree
 
 .. Note::
   The first time dsptop runs on AM57, the following message will be
