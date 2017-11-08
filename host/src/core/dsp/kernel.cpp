@@ -1158,6 +1158,7 @@ cl_int DSPKernelEvent::setup_extended_memory_mappings()
         delete [] prots;
         delete [] virt_addrs;
     }
+    #if 0  // no longer valid because VRing and k2g mpm are in this area
     else
     {
         // protect linux memory:  virt 0x8000_0000 to 0xA000_0000, size 512MB
@@ -1166,6 +1167,7 @@ cl_int DSPKernelEvent::setup_extended_memory_mappings()
         p_msg.u.k.flush.mpax_settings[1] = 0x8000001C;
         p_msg.u.k.flush.mpax_settings[0] = 0x80000000;
     }
+    #endif
 #endif  // #ifndef DSPC868x
 
     return CL_SUCCESS;

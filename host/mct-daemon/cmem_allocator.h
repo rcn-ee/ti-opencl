@@ -31,6 +31,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include "../src/core/error_report.h"
+#include "../src/core/dsp/dspmem.h"
 
 extern "C"
 {
@@ -88,6 +89,14 @@ public:
                         tiocl::ErrorKind::CMEMAllocFailed,
                         "Persistent", ddr_addr);
 
+        // If the CMEM block goes past the all-persistently mapped limit,
+        // break it up into persistent and on demand ranges. Test map the
+        // persistent range here.  Other ranges will be mapped on demand.
+        if (ddr_addr + ddr_size_ > ALL_PERSISTENT_MAX_DSP_ADDR)
+        {
+            ddr_size_ = MPAX_USER_MAPPED_DSP_ADDR - ddr_addr;
+        }
+
         ddr_host_addr_ = CMEM_map(ddr_alloc_dsp_addr_, ddr_size_);
         if (nullptr == ddr_host_addr_)
             ReportError(tiocl::ErrorType::Fatal,
@@ -109,6 +118,7 @@ public:
                         tiocl::ErrorKind::CMEMAllocFailed,
                         "On-chip", msmc_addr);
 
+        // Test map the on-chip memory
         msmc_host_addr_  = CMEM_map(msmc_alloc_dsp_addr_, msmc_size_);
         if (nullptr == msmc_host_addr_)
             ReportError(tiocl::ErrorType::Fatal,
