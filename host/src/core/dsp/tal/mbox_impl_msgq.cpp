@@ -68,6 +68,7 @@
 #endif
 
 #define HostMsgQueString    "OCL:MsgQ:%d"
+#define HostEveMsgQueString    "OCL:MsgQ:EVE%d:%d"
 
 using namespace Coal;
 using namespace tiocl;
@@ -144,23 +145,37 @@ MBoxMsgQ::MBoxMsgQ(Coal::DSPDevice *device)
     if (j != p_device->dspCores())
         ReportError(ErrorType::Fatal, ErrorKind::MessageQueueCountMismatch,
                     j, p_device->dspCores());
+}
 
-// YUAN DEBUG Begin
-// Test the EVE Proxy queue on M4
-    MessageQ_QueueId eveProxyQueue;
-    status = MessageQ_open(const_cast<char *>("OCL:EVEProxy:MsgQ"), &eveProxyQueue);
+
+MBoxMsgQ::MBoxMsgQ(Coal::EVEDevice *device)
+    : heapId(0), p_device(nullptr)
+{
+    /* Create the host message queue (inbound messages from EVEs) */
+    MessageQ_Params     msgqParams;
+    MessageQ_Params_init(&msgqParams);
+
+    char hostQueueName[32];
+    snprintf(hostQueueName, sizeof hostQueueName, HostEveMsgQueString,
+             device->GetEveId() + 1, getpid());
+    hostQueueName[sizeof hostQueueName - 1] = '\0';
+    hostQue = MessageQ_create(hostQueueName, &msgqParams);
+    assert (hostQue != NULL);
+
+    /* Open the EVE message queue (outbound messages to EVE) */
+    int eve_id = device->GetEveId();
+    int status = MessageQ_open(const_cast<char *>("OCL:EVEProxy:MsgQ"),
+                               &dspQue[0]);
     if (status == MessageQ_S_SUCCESS)
     {
-        printf("Opening EVE proxy queue: success\n");
-      for (j = 0; j < 4; j++)
-      {
+#if 0  // YUAN TO REMOVE
         ocl_msgq_message_t *msg = (ocl_msgq_message_t *)
                             MessageQ_alloc(heapId, sizeof(ocl_msgq_message_t));
         assert (msg != NULL);
         MessageQ_setReplyQueue(hostQue, (MessageQ_Msg)msg);
         msg->message.trans_id = 54321;
         msg->message.u.k_eve.host_msg = 0;  // from host
-        msg->message.u.k_eve.eve_id   = j;  // to which eve
+        msg->message.u.k_eve.eve_id   = eve_id;  // to which eve
 
     cl_ulong rs;
     struct timespec tp;
@@ -169,7 +184,7 @@ MBoxMsgQ::MBoxMsgQ(Coal::DSPDevice *device)
     rs = tp.tv_nsec / 1e3;  // convert to microseconds
     rs += tp.tv_sec * 1e6;  // convert to microseconds
 
-        status = MessageQ_put(eveProxyQueue, (MessageQ_Msg)msg);
+        status = MessageQ_put(dspQue[0], (MessageQ_Msg)msg);
         if (status < 0)  printf("Sending msg to EVE proxy queue: failed\n");
         else
         {
@@ -190,19 +205,19 @@ MBoxMsgQ::MBoxMsgQ(Coal::DSPDevice *device)
                 MessageQ_free((MessageQ_Msg)msg);
             }
         }
-      }
+#endif
     }
     else
     {
         printf("Failed to open EVE proxy queue\n");
     }
-// YUAN DEBUG End
 }
 
 void MBoxMsgQ::write (uint8_t *buf, uint32_t size, uint32_t trans_id, 
                       uint8_t id)
 { 
-    assert(id < p_device->dspCores());
+    if (p_device)  assert(id < p_device->dspCores());
+    else           id = 0;
 
     ocl_msgq_message_t *msg = 
        (ocl_msgq_message_t *)MessageQ_alloc(heapId, sizeof(ocl_msgq_message_t));
@@ -220,7 +235,7 @@ void MBoxMsgQ::write (uint8_t *buf, uint32_t size, uint32_t trans_id,
     /* send message */
     int status = MessageQ_put(dspQue[id], (MessageQ_Msg)msg);
     if (status < 0)
-        lost_dsp();
+        if (p_device)  lost_dsp();
     assert (status == MessageQ_S_SUCCESS);
 
     return;
@@ -232,12 +247,12 @@ uint32_t MBoxMsgQ::read (uint8_t *buf, uint32_t *size, uint8_t* id)
 
     int status = MessageQ_get(hostQue, (MessageQ_Msg *)&msg, MessageQ_FOREVER);
     if (status < 0)
-        lost_dsp();
+        if (p_device)  lost_dsp();
 
     /*-------------------------------------------------------------------------
     * if a ptr to an id is passed in, return the core of the sender in it
     *------------------------------------------------------------------------*/
-    if (id != 0)
+    if (p_device && id != nullptr)
     {
         MessageQ_QueueId dspQueId = MessageQ_getReplyQueue(msg);
         auto     it   = std::find(dspQue, dspQue + p_device->dspCores(), dspQueId);
@@ -270,7 +285,8 @@ inline bool MBoxMsgQ::query(uint8_t id)
 MBoxMsgQ::~MBoxMsgQ(void)
 {    
     /* Close the DSP message queues */
-    for(int i = 0; i < p_device->dspCores(); ++i)
+    int num_queues = p_device ? p_device->dspCores() : 1;
+    for(int i = 0; i < num_queues; ++i)
     {
         int status = MessageQ_close(&dspQue[i]);
         assert(status == MessageQ_S_SUCCESS);
@@ -290,7 +306,7 @@ MBoxMsgQ::~MBoxMsgQ(void)
     int status = MessageQ_delete(&hostQue);
     assert (status == MessageQ_S_SUCCESS);
 
-    Ipc_stop();
+    if (p_device)  Ipc_stop();
 }
 
 /* Attempt to cleanly terminate when a DSP is lost on Linux. For now, implement

@@ -133,6 +133,10 @@ if (NOT OCL_MONITOR_DIR)
      set(OCL_MONITOR_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../monitor)
 endif()
 
+if (NOT OCL_MONITOR_EVE_DIR)
+     set(OCL_MONITOR_EVE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../monitor_eve)
+endif()
+
 if (NOT OCL_BUILTINS_DIR)
 set(OCL_BUILTINS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../builtins)
 endif()
@@ -169,6 +173,10 @@ endif(${BUILD_OS} MATCHES "SYS_BIOS")
 
 if (${BUILD_OUTPUT} STREQUAL "all")
   add_subdirectory(${OCL_MONITOR_DIR} ${CMAKE_CURRENT_BINARY_DIR}/monitor)
+  if (AM57_BUILD AND (NOT (${BUILD_OS} MATCHES "SYS_BIOS")))
+    add_subdirectory(${OCL_MONITOR_EVE_DIR}
+                     ${CMAKE_CURRENT_BINARY_DIR}/monitor_eve)
+  endif()
 endif()
 
 if (NOT (${BUILD_OS} MATCHES "SYS_BIOS"))

@@ -143,6 +143,11 @@ set(COAL_SRC_FILES ${COAL_SRC_FILES}
     core/cpu/builtins.cpp
     core/cpu/sampler.cpp
 
+    core/eve/device.cpp
+    core/eve/worker.cpp
+    core/eve/program.cpp
+    core/eve/kernel.cpp
+
     ${CMAKE_CURRENT_BINARY_DIR}/runtime/stdlib.h.embed.h
     ${CMAKE_CURRENT_BINARY_DIR}/runtime/stdlib.c.bc.embed.h
     ${CMAKE_CURRENT_BINARY_DIR}/runtime/builtins_impl.h

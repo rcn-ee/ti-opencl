@@ -36,6 +36,7 @@
 #include "object.h"
 #ifndef _SYS_BIOS
 #include "cpu/device.h"
+#include "eve/device.h"
 #endif
 #include "dsp/device.h"
 #include "dsp/device_info.h"
@@ -146,10 +147,16 @@ namespace Coal
         }
 #endif
         p_shmFactory = std::unique_ptr<tiocl::SharedMemoryProviderFactory>(new SharedMemoryProviderFactory); 
-        for (int i = 0; i < tiocl::DeviceInfo::Instance().GetNumDevices(); i++)
+        tiocl::SharedMemory* shm = p_shmFactory->CreateSharedMemoryProvider(0);
+        const DeviceInfo& device_info = DeviceInfo::Instance();
+        for (int i = 0; i < device_info.GetNumDevices(); i++)
         {
-            tiocl::SharedMemory* shm = p_shmFactory->CreateSharedMemoryProvider(i);
             Coal::DeviceInterface* device = new Coal::DSPDevice(i, shm);
+            p_devices.push_back(desc(device));
+        }
+        for (int i = 0; i < device_info.GetNumEVEDevices(); i++)
+        {
+            Coal::DeviceInterface* device = new Coal::EVEDevice(i, shm);
             p_devices.push_back(desc(device));
         }
 
@@ -165,7 +172,8 @@ namespace Coal
     Platform::~Platform()
     {
         ReportTrace("~Platform()\n");
-        for (int i = 0; i < p_devices.size(); i++)
+        // Free EVE devices first, if any, before DSP device
+        for (int i = p_devices.size() - 1; i >= 0; i--)
 	        delete pobj(p_devices[i]);
 
         p_shmFactory->DestroySharedMemoryProviders();

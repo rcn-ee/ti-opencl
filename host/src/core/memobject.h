@@ -47,6 +47,10 @@ namespace Coal
 }
 struct _cl_mem: public Coal::descriptor<Coal::MemObject, _cl_mem> {};
 
+namespace tiocl
+{
+  class SharedMemory;
+}
 
 namespace Coal
 {
@@ -113,6 +117,9 @@ class MemObject : public _cl_mem, public Object
         cl_mem_flags flags() const;                     /*!< \brief Flags */
         void *host_ptr() const;                         /*!< \brief Host pointer */
         DeviceBuffer *deviceBuffer(DeviceInterface *device) const; /*!< \brief \c Coal::DeviceBuffer for the given \p device */
+
+        DeviceBuffer *deviceBuffer(tiocl::SharedMemory *shm) const; /*!< \brief \c Coal::DeviceBuffer for the given \p shared memory handler */
+
 
         void deviceAllocated(DeviceBuffer *buffer);     /*!< \brief Is the \c Coal::DeviceBuffer for \p buffer allocated ? */
 

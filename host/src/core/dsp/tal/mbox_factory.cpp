@@ -51,3 +51,8 @@ MBox* MBoxFactory::CreateMailbox(Coal::DSPDevice* device)
     return new MBoxMPM(device);
     #endif
 }
+
+MBox* MBoxFactory::CreateMailbox(Coal::EVEDevice* device)
+{
+    return new MBoxMsgQ(device);
+}

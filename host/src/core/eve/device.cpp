@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2013-2014, Texas Instruments Incorporated - http://www.ti.com/
+ * Copyright (c) 2017, Texas Instruments Incorporated - http://www.ti.com/
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -48,12 +48,6 @@
 
 #include "device_info.h"
 
-#if defined(DEVICE_K2X)
-extern "C"
-{
-    #include <ti/runtime/mmap/include/mmap_resource.h> // For MPAX
-}
-#endif
 
 extern "C" {
 /*-----------------------------------------------------------------------------
@@ -61,11 +55,6 @@ extern "C" {
 *----------------------------------------------------------------------------*/
 #if defined (ULM_ENABLED)
    #include "tiulm.h"
-#endif
-
-#if defined(_SYS_BIOS)
-    extern uint32_t ti_opencl_get_OCL_LOCAL_base();
-    extern uint32_t ti_opencl_get_OCL_LOCAL_len();
 #endif
 }
 
@@ -85,188 +74,50 @@ using namespace tiocl;
 /*-----------------------------------------------------------------------------
 * Declare our threaded dsp handler function
 *----------------------------------------------------------------------------*/
-void *dsp_worker_event_dispatch   (void* data);
-void *dsp_worker_event_completion (void* data);
-void HOSTwait   (unsigned char dsp_id);
+void *eve_worker_event_dispatch  (void* data);
+void *eve_worker_event_completion(void* data);
 
-
-/*-----------------------------------------------------------------------------
-* osal_getpid:  get a process ID.  Under BIOS this is a don't care value
-*----------------------------------------------------------------------------*/
-uint32_t osal_getpid()
-{
-#ifdef _SYS_BIOS
-    return 0;
-#else
-    return getpid();
-#endif
-}
-
-#define PROFILING_AETDATA_DIR   "profiling"
-#define PROFILING_AETDATA_FILE  "profiling/aetdata.txt"
 
 /******************************************************************************
-* DSPDevice::DSPDevice(unsigned char dsp_id)
+* EVEDevice::EVEDevice(unsigned char eve_id, SharedMemory *shm)
 ******************************************************************************/
-DSPDevice::DSPDevice(unsigned char dsp_id, SharedMemory* shm)
+EVEDevice::EVEDevice(unsigned char eve_id, SharedMemory* shm)
     : DeviceInterface       (),
-      p_cores               (0),
+      p_cores               (1),
       p_num_events          (0),
-      p_dsp_mhz             (0),
+      p_eve_mhz_            (650),
       p_worker_dispatch     (0),
       p_worker_completion   (0),
       p_stop                (false),
       p_exit_acked          (false),
       p_initialized         (false),
-      p_dsp_id              (dsp_id),
       p_complete_pending    (),
-      p_profiling_out       (nullptr),
-      p_mpax_default_res    (NULL),
       p_shmHandler          (shm),
       device_manager_       (nullptr),
-      p_pid                 (osal_getpid())
+      p_pid                 (getpid())
 {
-    const DeviceInfo& device_info = DeviceInfo::Instance();
-
-    p_cores = device_info.GetComputeUnitsPerDevice(dsp_id);
-
-#if !defined(_SYS_BIOS)
-    device_manager_ = DeviceManagerFactory::CreateDeviceManager(dsp_id, p_cores,
-                                 device_info.FullyQualifiedPathToDspMonitor());
-
-    device_manager_->Reset();
-    device_manager_->Load();
-    device_manager_->Run();
-
-    p_addr_kernel_config = device_info.GetSymbolAddress("kernel_config_l2");
-    p_addr_local_mem     = device_info.GetSymbolAddress("ocl_local_mem_start");
-    p_size_local_mem     = device_info.GetSymbolAddress("ocl_local_mem_size");
-#else
-    p_addr_local_mem     = ti_opencl_get_OCL_LOCAL_base();
-    p_size_local_mem     = ti_opencl_get_OCL_LOCAL_len();
-#endif
-
-    EnvVar& env = EnvVar::Instance();
-    p_profiling.event_type = env.GetEnv<
-                                 EnvVar::Var::TI_OCL_PROFILING_EVENT_TYPE>(0);
-    p_profiling.event_number1 = env.GetEnv<
-                              EnvVar::Var::TI_OCL_PROFILING_EVENT_NUMBER1>(-1);
-    p_profiling.event_number2 = env.GetEnv<
-                              EnvVar::Var::TI_OCL_PROFILING_EVENT_NUMBER2>(-1);
-    p_profiling.stall_cycle_threshold = env.GetEnv<
-                       EnvVar::Var::TI_OCL_PROFILING_STALL_CYCLE_THRESHOLD>(1);
-    if (isProfilingEnabled())
-    {
-    #if defined(_SYS_BIOS)
-      p_profiling_out = &std::cout;
-    #else
-      system("mkdir -p "PROFILING_AETDATA_DIR);
-      std::ofstream *tmp = new std::ofstream;
-      tmp->open(PROFILING_AETDATA_FILE, std::ios_base::app);
-      p_profiling_out = tmp;
-    #endif
-    }
-
-    core_scheduler_ = new CoreScheduler(p_cores, 4);
+    /*-------------------------------------------------------------------------
+    * YUAN TODO: get EVE device built in kernels information
+    *------------------------------------------------------------------------*/
+    // const DeviceInfo& device_info = DeviceInfo::Instance();
+    // p_builtInKernels = device_info.GetBuiltInKernels();
 
     /*-------------------------------------------------------------------------
     * initialize the mailboxes on the cores, so they can receive an exit cmd
     *------------------------------------------------------------------------*/
     p_mb = MBoxFactory::CreateMailbox(this);
-
-    /*-------------------------------------------------------------------------
-    * initialize ulm only after we establish mailboxes with cores because
-    * CreateMailbox() could fail and exit from this DSPDevice constructor,
-    * in which case ulm_term() in DSPDevice destructor won't be called.
-    *------------------------------------------------------------------------*/
-    init_ulm();
-
-    /*-------------------------------------------------------------------------
-     * Send monitor configuration
-     * On AM57, the monitor is configured based on the number of cores in the
-     * configuration message
-     *------------------------------------------------------------------------*/
-    Msg_t msg = {CONFIGURE_MONITOR};
-    msg.u.configure_monitor.n_cores = dspCores();
-    uint8_t local_core_num = 0;
-    for (auto core : device_info.GetComputeUnits())
-    {
-      if (local_core_num == 0)  msg.u.configure_monitor.master_core = core;
-      msg.u.configure_monitor.local_core_nums[core] = local_core_num++;
-    }
-
-    mail_to(msg);
-
-    /*-------------------------------------------------------------------------
-    * Query DSP frequency; monitor is in message loop task after this point.
-    *------------------------------------------------------------------------*/
-    setup_dsp_mhz();
 }
 
-bool DSPDevice::hostSchedule() const
+bool EVEDevice::hostSchedule() const
 {
-#if defined(DEVICE_K2G) || defined(DEVICE_AM57) || defined (DEVICE_K2X)
     return true;
-#else
-    return false;
-#endif
 }
-
-void DSPDevice::setup_dsp_mhz(void)
-{
-#ifdef DSPC868X
-    char *ghz1 = EnvVar::Instance().GetEnv<EnvVar::Var:TI_OCL_DSP_1_25GHZ>(
-                                                                   nullptr);
-    if (ghz1) p_dsp_mhz = 1250;  // 1.25 GHz
-#else
-    mail_to(frequencyMsg);
-
-    int ret = 0;
-    do
-    {
-        while (!mail_query())  ;
-        ret = mail_from();
-    } while (ret == -1);
-
-    p_dsp_mhz = ret;
-#endif
-}
-
-/*-----------------------------------------------------------------------------
-* If ULM library was not available don't emit ULM trace messages
-*----------------------------------------------------------------------------*/
-#if !defined (ULM_ENABLED)
-#define ulm_put_mem(a,b,c)
-#define ulm_config()
-#define ulm_term()
-#endif
-void DSPDevice::init_ulm()
-{
-    ulm_config();
-
-    uint64_t cmem_persistent_sz =
-        GetSHMHandler()->HeapSize(MemoryRange::Kind::CMEM_PERSISTENT,
-                                  MemoryRange::Location::OFFCHIP);
-
-    uint64_t cmem_ondemand_sz =
-        GetSHMHandler()->HeapSize(MemoryRange::Kind::CMEM_ONDEMAND,
-                                  MemoryRange::Location::OFFCHIP);
-
-    uint64_t msmc_mem_size =
-        GetSHMHandler()->HeapSize(MemoryRange::Kind::CMEM_PERSISTENT,
-                                  MemoryRange::Location::ONCHIP);
-
-    ulm_put_mem(ULM_MEM_IN_DATA_ONLY,     msmc_mem_size >> 16  , 1.0f);
-    ulm_put_mem(ULM_MEM_EX_DATA_ONLY,     cmem_ondemand_sz >> 16, 1.0f);
-    ulm_put_mem(ULM_MEM_EX_CODE_AND_DATA, cmem_persistent_sz >> 16, 1.0f);
-}
-
 
 
 /******************************************************************************
-* void DSPDevice::init()
+* void EVEDevice::init()
 ******************************************************************************/
-void DSPDevice::init()
+void EVEDevice::init()
 {
     if (p_initialized) return;
     /*-------------------------------------------------------------------------
@@ -276,32 +127,17 @@ void DSPDevice::init()
     pthread_mutex_init(&p_events_mutex, 0);
     pthread_cond_init(&p_worker_cond, 0);
     pthread_mutex_init(&p_worker_mutex, 0);
-#if !defined(_SYS_BIOS)
-    pthread_create(&p_worker_dispatch,   0, &dsp_worker_event_dispatch,   this);
-    pthread_create(&p_worker_completion, 0, &dsp_worker_event_completion, this);
-#else
-    pthread_attr_t attr_dispatch, attr_completion;
-    pthread_attr_init(&attr_dispatch);
-    pthread_attr_init(&attr_completion);
-    // Give dispatch thread +1 priority so that work can be dispatch to devices
-    // immediately when available, give completion thread +2 priority so that
-    // completion message from devices can be processed immediately.
-    int pri = Task_getPri(Task_self());
-    attr_dispatch.priority   = (pri >= 15-2) ? pri : pri + 1;
-    attr_completion.priority = (pri >= 15-2) ? pri : pri + 2;
-    pthread_create(&p_worker_dispatch,   &attr_dispatch,
-                   &dsp_worker_event_dispatch,   this);
-    pthread_create(&p_worker_completion, &attr_completion,
-                   &dsp_worker_event_completion, this);
-#endif
+
+    pthread_create(&p_worker_dispatch,   0, &eve_worker_event_dispatch,   this);
+    pthread_create(&p_worker_completion, 0, &eve_worker_event_completion, this);
 
     p_initialized = true;
 }
 
 /******************************************************************************
-* DSPDevice::~DSPDevice()
+* EVEDevice::~EVEDevice()
 ******************************************************************************/
-DSPDevice::~DSPDevice()
+EVEDevice::~EVEDevice()
 {
 
     if (p_initialized)
@@ -352,46 +188,38 @@ DSPDevice::~DSPDevice()
 
     delete p_mb;
     p_mb = NULL;
-#if ! defined(_SYS_BIOS)
-    delete p_profiling_out;
-#endif
-    p_profiling_out = nullptr;
-
-    /*-------------------------------------------------------------------------
-    * Free any ulm resources used.
-    *------------------------------------------------------------------------*/
-    ulm_term();
 
     /*-------------------------------------------------------------------------
     * Only need to close the driver for one of the devices
     *------------------------------------------------------------------------*/
     delete device_manager_;
-    delete core_scheduler_;
 }
 
 /******************************************************************************
-* DeviceBuffer *DSPDevice::createDeviceBuffer(MemObject *buffer)
+* DeviceBuffer *EVEDevice::createDeviceBuffer(MemObject *buffer)
 ******************************************************************************/
-DeviceBuffer *DSPDevice::createDeviceBuffer(MemObject *buffer, cl_int *rs)
-    { return (DeviceBuffer *)new DSPBuffer(p_shmHandler, buffer, rs); }
+DeviceBuffer *EVEDevice::createDeviceBuffer(MemObject *buffer, cl_int *rs)
+{ 
+    return (DeviceBuffer *)new DSPBuffer(p_shmHandler, buffer, rs); 
+}
 
 /******************************************************************************
-* DeviceProgram *DSPDevice::createDeviceProgram(Program *program)
+* DeviceProgram *EVEDevice::createDeviceProgram(Program *program)
 ******************************************************************************/
-DeviceProgram *DSPDevice::createDeviceProgram(Program *program)
-    { return (DeviceProgram *)new DSPProgram(this, program); }
+DeviceProgram *EVEDevice::createDeviceProgram(Program *program)
+    { return (DeviceProgram *)new EVEProgram(this, program); }
 
 /******************************************************************************
-* DeviceKernel *DSPDevice::createDeviceKernel(Kernel *kernel,
+* DeviceKernel *EVEDevice::createDeviceKernel(Kernel *kernel,
 ******************************************************************************/
-DeviceKernel *DSPDevice::createDeviceKernel(Kernel *kernel,
+DeviceKernel *EVEDevice::createDeviceKernel(Kernel *kernel,
                                 llvm::Function *function)
-    { return (DeviceKernel *)new DSPKernel(this, kernel, function); }
+    { return (DeviceKernel *)new EVEKernel(this, kernel, function); }
 
 /******************************************************************************
-* cl_int DSPDevice::initEventDeviceData(Event *event)
+* cl_int EVEDevice::initEventDeviceData(Event *event)
 ******************************************************************************/
-cl_int DSPDevice::initEventDeviceData(Event *event)
+cl_int EVEDevice::initEventDeviceData(Event *event)
 {
     cl_int ret_code = CL_SUCCESS;
 
@@ -428,27 +256,16 @@ cl_int DSPDevice::initEventDeviceData(Event *event)
         case Event::NDRangeKernel:
         case Event::TaskKernel:
         {
-            KernelEvent *e    = (KernelEvent *)event;
-            Program     *p    = (Program *)e->kernel()->parent();
-            DSPProgram  *prog = (DSPProgram *)p->deviceDependentProgram(this);
+            KernelEvent *e          = (KernelEvent *)event;
+            EVEKernel   *eve_kernel = (EVEKernel*)e->deviceKernel();
 
-            /*-----------------------------------------------------------------
-            * Just in time loading
-            *----------------------------------------------------------------*/
-            if (!prog->is_loaded() && !prog->load())
-                return CL_MEM_OBJECT_ALLOCATION_FAILURE;
-
-            DSPKernel *dspkernel = (DSPKernel*)e->deviceKernel();
-
-            cl_int ret = dspkernel->preAllocBuffers();
+            cl_int ret = eve_kernel->preAllocBuffers();
             if (ret != CL_SUCCESS) return ret;
 
-            // ASW TODO do something
-
             // Set device-specific data
-            DSPKernelEvent *dsp_e = new DSPKernelEvent(this, e);
-            ret_code = dsp_e->get_ret_code();
-            e->setDeviceData((void *)dsp_e);
+            EVEKernelEvent *eve_e = new EVEKernelEvent(this, e);
+            ret_code = eve_e->get_ret_code();
+            e->setDeviceData((void *)eve_e);
             break;
         }
         default: break;
@@ -458,16 +275,16 @@ cl_int DSPDevice::initEventDeviceData(Event *event)
 }
 
 /******************************************************************************
-* void DSPDevice::freeEventDeviceData(Event *event)
+* void EVEDevice::freeEventDeviceData(Event *event)
 ******************************************************************************/
-void DSPDevice::freeEventDeviceData(Event *event)
+void EVEDevice::freeEventDeviceData(Event *event)
 {
     switch (event->type())
     {
         case Event::NDRangeKernel:
         case Event::TaskKernel:
         {
-            DSPKernelEvent *dsp_e = (DSPKernelEvent *)event->deviceData();
+            EVEKernelEvent *dsp_e = (EVEKernelEvent *)event->deviceData();
             if (dsp_e) delete dsp_e;
         }
         default: break;
@@ -475,9 +292,9 @@ void DSPDevice::freeEventDeviceData(Event *event)
 }
 
 /******************************************************************************
-* void DSPDevice::pushEvent(Event *event)
+* void EVEDevice::pushEvent(Event *event)
 ******************************************************************************/
-void DSPDevice::pushEvent(Event *event)
+void EVEDevice::pushEvent(Event *event)
 {
     /*-------------------------------------------------------------------------
     * Add an event in the list
@@ -491,13 +308,13 @@ void DSPDevice::pushEvent(Event *event)
     pthread_mutex_unlock(&p_events_mutex);
 }
 
-bool DSPDevice::stop()           { return p_stop; }
-bool DSPDevice::availableEvent() { return p_num_events > 0; }
+bool EVEDevice::stop()           { return p_stop; }
+bool EVEDevice::availableEvent() { return p_num_events > 0; }
 
 /******************************************************************************
-* Event *DSPDevice::getEvent(bool &stop)
+* Event *EVEDevice::getEvent(bool &stop)
 ******************************************************************************/
-Event *DSPDevice::getEvent(bool &stop)
+Event *EVEDevice::getEvent(bool &stop)
 {
     /*-------------------------------------------------------------------------
     * Return the first event in the list, if any. Remove it if it is a
@@ -524,65 +341,49 @@ Event *DSPDevice::getEvent(bool &stop)
     return event;
 }
 
-void DSPDevice::push_complete_pending(uint32_t idx, Event* const data,
+void EVEDevice::push_complete_pending(uint32_t idx, Event* const data,
                                       unsigned int cnt)
     { p_complete_pending.push(idx, data, cnt); }
 
-bool DSPDevice::get_complete_pending(uint32_t idx, Event*& data)
+bool EVEDevice::get_complete_pending(uint32_t idx, Event*& data)
     { return p_complete_pending.try_pop(idx, data); }
 
-int  DSPDevice::num_complete_pending()
+int  EVEDevice::num_complete_pending()
     { return p_complete_pending.size(); }
 
-void DSPDevice::dump_complete_pending() { p_complete_pending.dump(); }
+void EVEDevice::dump_complete_pending() { p_complete_pending.dump(); }
 
-bool DSPDevice::any_complete_pending() { return !p_complete_pending.empty(); }
+bool EVEDevice::any_complete_pending() { return !p_complete_pending.empty(); }
 
 /******************************************************************************
 * Device's decision about whether CommandQueue should push more events over
 * This number could be tuned (e.g. using ooo example).  Note that p_num_events
 * are in device's queue, but not yet executed.
 ******************************************************************************/
-bool DSPDevice::gotEnoughToWorkOn() { return p_num_events > 0; }
+bool EVEDevice::gotEnoughToWorkOn() { return p_num_events > 0; }
 
 /******************************************************************************
 * Getter functions
 ******************************************************************************/
-unsigned int  DSPDevice::dspCores()      const { return p_cores;   }
-float         DSPDevice::dspMhz()       const { return p_dsp_mhz; }
-unsigned char DSPDevice::dspID()        const { return p_dsp_id;  }
 
-
-DSPDevicePtr DSPDevice::get_L2_extent(uint32_t &size)
-{
-    size       = (uint32_t) p_size_local_mem;
-    return (DSPDevicePtr) p_addr_local_mem;
-}
-
-
-MemoryRange::Location DSPDevice::ClFlagToLocation(cl_mem_flags flags) const
+MemoryRange::Location EVEDevice::ClFlagToLocation(cl_mem_flags flags) const
 {
     return ((flags & CL_MEM_USE_MSMC_TI) != 0) ?
                                     MemoryRange::Location::ONCHIP :
                                     MemoryRange::Location::OFFCHIP;
 }
 
-bool DSPDevice::isInClMallocedRegion(void *ptr)
+bool EVEDevice::isInClMallocedRegion(void *ptr)
 {
     return GetSHMHandler()->clMallocQuery(ptr, NULL, NULL);
 }
 
-int DSPDevice::numHostMails(Msg_t &msg) const
+int EVEDevice::numHostMails(Msg_t &msg) const
 {
-    if (hostSchedule() && (msg.command == EXIT || msg.command == CACHEINV ||
-                           msg.command == SETUP_DEBUG || 
-                           msg.command == CONFIGURE_MONITOR ||
-                           (msg.command == NDRKERNEL && !IS_DEBUG_MODE(msg))))
-        return dspCores();
     return 1;
 }
 
-void DSPDevice::mail_to(Msg_t &msg, unsigned int core)
+void EVEDevice::mail_to(Msg_t &msg, unsigned int core)
 {
     msg.pid = p_pid;
 
@@ -601,33 +402,10 @@ void DSPDevice::mail_to(Msg_t &msg, unsigned int core)
             case NDRKERNEL:
             case SETUP_DEBUG:
             case CONFIGURE_MONITOR:
+            case TASK:
             {
                 for (int i = 0; i < numHostMails(msg); i++)
                     p_mb->to((uint8_t*)&msg, sizeof(Msg_t), i);
-
-                break;
-            }
-
-            /*-----------------------------------------------------------------
-            * for hostScheduled platforms, OoO TASKs are sent to cores in
-            * round-robin order, in-order TASKs are broadcast to all cores
-            *----------------------------------------------------------------*/
-            case TASK:
-            {
-                if (IS_OOO_TASK(msg))
-                {
-                    int dsp_id = core_scheduler_->allocate();
-                    p_mb->to((uint8_t*)&msg, sizeof(Msg_t), dsp_id);
-                }
-                else
-                {
-                    /*---------------------------------------------------------
-                    * note: for in-order TASKs this is a trick to enable the
-                    * OpenMP runtime. OpenMP kernels run as in-order tasks.
-                    *-------------------------------------------------------*/
-                    for (int i = 0; i < dspCores(); i++)
-                        p_mb->to((uint8_t*)&msg, sizeof(Msg_t), i);
-                }
 
                 break;
             }
@@ -651,41 +429,12 @@ void DSPDevice::mail_to(Msg_t &msg, unsigned int core)
     }
 }
 
-bool DSPDevice::mail_query()
+bool EVEDevice::mail_query()
 {
     return p_mb->query();
 }
 
-void DSPDevice::recordProfilingData(command_retcode_t * profiling_data,
-                                      uint32_t core)
-{
-    if (! isProfilingEnabled()) return;
-
-    (*p_profiling_out) << (int)  p_profiling.event_type << '\n'
-                       << (int)  p_profiling.event_number1 << '\n'
-                       << (int)  p_profiling.event_number2 << '\n'
-                       << (uint32_t) p_profiling.stall_cycle_threshold << '\n'
-                       << (uint32_t) core << '\n';
-
-    // Output counter diffs corresponding to event numbers (use -1 if failed)
-    if (profiling_data->profiling_status != 0) {
-        std::cout << "Profiling Failed on core " << core << " : "
-                  << (int) profiling_data->profiling_status << std::endl;
-        (*p_profiling_out) << (int) -1 << '\n'
-                           << (int) -1 << '\n';
-    } else {
-        std::cout << "Profiling Successful on core " << core << std::endl;
-        (*p_profiling_out) << (uint32_t) profiling_data->profiling_counter0_val
-                           << '\n'
-                           << (uint32_t) profiling_data->profiling_counter1_val
-                           << '\n';
-    }
-    // mark end of core's data
-    (*p_profiling_out) << "~~~~End Core" <<  '\n';
-    return;
-}
-
-int DSPDevice::mail_from(int *retcode)
+int EVEDevice::mail_from(int *retcode)
 {
     uint32_t size_rx;
     int32_t  trans_id_rx;
@@ -709,21 +458,10 @@ int DSPDevice::mail_from(int *retcode)
         return -1;
     }
 
-    if ((rxmsg.command == NDRKERNEL) || (rxmsg.command == TASK))
-    {
-        command_retcode_t * profiling_data = &(rxmsg.u.command_retcode);
-        recordProfilingData(profiling_data, core);
-    }
-
     if (rxmsg.command == EXIT)
     {
         p_exit_acked = true;
         return -1;
-    }
-
-    if (hostSchedule() && rxmsg.command == TASK && IS_OOO_TASK(rxmsg))
-    {
-        if (core < p_cores) core_scheduler_->free(core);
     }
 
     if (retcode != nullptr)  *retcode = rxmsg.u.command_retcode.retcode;
@@ -731,42 +469,11 @@ int DSPDevice::mail_from(int *retcode)
     return trans_id_rx;
 }
 
-#if defined(DEVICE_K2X)
-/******************************************************************************
-* void* DSPDevice::get_mpax_default_res, only need to be computed once
-******************************************************************************/
-void* DSPDevice::get_mpax_default_res()
-{
-    if (p_mpax_default_res == NULL)
-    {
-        p_mpax_default_res = malloc(sizeof(keystone_mmap_resources_t));
-        memset(p_mpax_default_res, 0, sizeof(keystone_mmap_resources_t));
-
-#define NUM_VIRT_HEAPS  2
-        uint32_t xmc_regs[MAX_XMCSES_MPAXS] = {3, 4, 5, 6, 7, 8, 9};
-        uint32_t ses_regs[MAX_XMCSES_MPAXS] = {1, 2, 3, 4, 5, 6, 7};
-        // Stay away from k2g dsp_common_mpm_pool: 0x9D000000 to 0x9F800000
-        // Stay away from k2x dsp_common_cma_pool: 0x9F800000 to 0xA0000000
-        uint32_t heap_base[NUM_VIRT_HEAPS]  = {0xC0000000, 0x80000000};
-        uint32_t heap_size[NUM_VIRT_HEAPS]  = {0x40000000, 0x18000000};
-        for (int i = 0; i < MAX_XMCSES_MPAXS; i++)
-        {
-            xmc_regs[i] = FIRST_FREE_XMC_MPAX + i;
-            ses_regs[i] = FIRST_FREE_SES_MPAX + i;
-        }
-        keystone_mmap_resource_init(MAX_XMCSES_MPAXS, xmc_regs, ses_regs,
-				    NUM_VIRT_HEAPS, heap_base, heap_size,
-                           (keystone_mmap_resources_t *) p_mpax_default_res);
-
-    }
-    return p_mpax_default_res;
-}
-#endif  // #ifdef DEVICE_K2X
 
 /******************************************************************************
-* cl_int DSPDevice::info
+* cl_int EVEDevice::info
 ******************************************************************************/
-cl_int DSPDevice::info(cl_device_info param_name,
+cl_int EVEDevice::info(cl_device_info param_name,
                        size_t param_value_size,
                        void *param_value,
                        size_t *param_value_size_ret) const
@@ -793,7 +500,7 @@ cl_int DSPDevice::info(cl_device_info param_name,
     switch (param_name)
     {
         case CL_DEVICE_TYPE:
-            SIMPLE_ASSIGN(cl_device_type, CL_DEVICE_TYPE_ACCELERATOR);
+            SIMPLE_ASSIGN(cl_device_type, CL_DEVICE_TYPE_CUSTOM);
             break;
 
         case CL_DEVICE_VENDOR_ID:
@@ -801,7 +508,7 @@ cl_int DSPDevice::info(cl_device_info param_name,
             break;
 
         case CL_DEVICE_MAX_COMPUTE_UNITS:
-            SIMPLE_ASSIGN(cl_uint, dspCores());
+            SIMPLE_ASSIGN(cl_uint, p_cores);
             break;
 
         case CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS:
@@ -847,7 +554,7 @@ cl_int DSPDevice::info(cl_device_info param_name,
             break;
 
         case CL_DEVICE_MAX_CLOCK_FREQUENCY:
-            SIMPLE_ASSIGN(cl_uint, dspMhz());
+            SIMPLE_ASSIGN(cl_uint, p_eve_mhz_);
             break;
 
         case CL_DEVICE_ADDRESS_BITS:
@@ -1010,7 +717,7 @@ cl_int DSPDevice::info(cl_device_info param_name,
             break;
 
         case CL_DEVICE_LOCAL_MEM_MAX_ALLOC_TI:
-            SIMPLE_ASSIGN(cl_ulong, p_size_local_mem);
+            SIMPLE_ASSIGN(cl_ulong, p_size_local_mem_);
             break;
 
         case CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE:
@@ -1027,7 +734,7 @@ cl_int DSPDevice::info(cl_device_info param_name,
 
         case CL_DEVICE_LOCAL_MEM_SIZE:
             {
-            SIMPLE_ASSIGN(cl_ulong, p_size_local_mem);
+            SIMPLE_ASSIGN(cl_ulong, p_size_local_mem_);
             break;
             }
 
@@ -1071,7 +778,7 @@ cl_int DSPDevice::info(cl_device_info param_name,
             break;
 
         case CL_DEVICE_NAME:
-            STRING_ASSIGN("TI Multicore C66 DSP");
+            STRING_ASSIGN("TI Embedded Vision Engin (EVE)");
             break;
 
         case CL_DEVICE_VENDOR:
@@ -1168,28 +875,3 @@ cl_int DSPDevice::info(cl_device_info param_name,
 
     return CL_SUCCESS;
 }
-
-bool DSPDevice::addr_is_l2  (DSPDevicePtr addr)const 
-{
-    return (addr >= p_addr_local_mem &&
-            addr <  (p_addr_local_mem + p_size_local_mem));
-}
-
-void dump_hex(char *addr, int bytes)
-{
-    int cnt = 0;
-
-    printf("\n");
-    while (cnt < bytes)
-    {
-        for (int col = 0; col < 16; ++col)
-        {
-            printf("%02x ", addr[cnt++] & 0xff);
-            if (cnt >= bytes) break;
-        }
-        printf("\n");
-    }
-}
-
-
-

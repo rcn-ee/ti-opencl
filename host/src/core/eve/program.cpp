@@ -25,52 +25,40 @@
  *   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  *   THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
-#ifndef _DRIVER_H
-#define _DRIVER_H
-#include <cstdint>
+#include "program.h"
+#include "device.h"
+#include "kernel.h"
+
+#include "../program.h"
+
 #include <string>
-#include <set>
+#include <iostream>
+#include <fstream>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
-#include "../tiocl_types.h"
+#include "../error_report.h"
+#include "../oclenv.h"
 
-#include "symbol_address_interface.h"
 
-namespace tiocl {
+using namespace tiocl;
 
-// Singleton containing device information
-class DeviceInfo {
-public:
-    DeviceInfo();
-    virtual ~DeviceInfo();
+using namespace Coal;
 
-    // Disable copy constuction and assignment
-    DeviceInfo(const DeviceInfo&)            =delete;
-    DeviceInfo& operator=(const DeviceInfo&) =delete;
+EVEProgram::EVEProgram(EVEDevice *device, Program *program)
+: DeviceProgram(), p_device(device), p_program(program), p_info(false)
+{
+    ReportTrace("EVEProgram()\n");
 
-    uint8_t      GetNumDevices() const { return num_devices_; } // was num_dsps
-    uint8_t      GetNumEVEDevices() const { return 4; }
-    int32_t      GetCmemBlockOffChip() const { return cmem_block_offchip_; }
-    int32_t      GetCmemBlockOnChip()  const { return cmem_block_onchip_; }
-    std::string  FullyQualifiedPathToDspMonitor() const;
-    uint8_t      GetComputeUnitsPerDevice(int device) const; // was cores_per_dsp(int dsp);
-    DSPDevicePtr GetSymbolAddress(const std::string &name) const;
+    EnvVar& env = EnvVar::Instance();
 
-    const std::set<uint8_t>& GetComputeUnits() const { return available_compute_units_; }
-
-    static const DeviceInfo& Instance();
-
-private:
-
-    void ComputeUnits_CmemBlocks_Available();
-
-    uint8_t num_devices_;
-    uint8_t num_compute_units_;
-    int32_t cmem_block_offchip_;
-    int32_t cmem_block_onchip_;
-    std::set<uint8_t> available_compute_units_;
-    const SymbolAddressLookup* symbol_lookup_;
-};
-
+    char *info = env.GetEnv<EnvVar::Var::TI_OCL_DEVICE_PROGRAM_INFO>(nullptr);
+    if (info) { p_info = true; }
 }
 
-#endif // _DRIVER_H
+EVEProgram::~EVEProgram()
+{
+    ReportTrace("~EVEProgram()\n");
+}

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2013-2014, Texas Instruments Incorporated - http://www.ti.com/
+ * Copyright (c) 2013-2016, Texas Instruments Incorporated - http://www.ti.com/
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -15,7 +15,7 @@
  *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  *   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
  *   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
  *   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
  *   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
@@ -25,52 +25,40 @@
  *   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  *   THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
-#ifndef _DRIVER_H
-#define _DRIVER_H
-#include <cstdint>
-#include <string>
-#include <set>
+#ifndef __EVE_PROGRAM_H__
+#define __EVE_PROGRAM_H__
 
-#include "../tiocl_types.h"
+#include "device.h"
+#include "../deviceinterface.h"
 
-#include "symbol_address_interface.h"
+namespace Coal
+{
 
-namespace tiocl {
+class EVEDevice;
+class Program;
 
-// Singleton containing device information
-class DeviceInfo {
-public:
-    DeviceInfo();
-    virtual ~DeviceInfo();
+class EVEProgram : public DeviceProgram
+{
+    public:
+        EVEProgram(EVEDevice *device, Program *program);
+        ~EVEProgram();
 
-    // Disable copy constuction and assignment
-    DeviceInfo(const DeviceInfo&)            =delete;
-    DeviceInfo& operator=(const DeviceInfo&) =delete;
+        // Disable default constructor, copy constuction and assignment
+        EVEProgram()                             =delete;
+        EVEProgram(const EVEProgram&)            =delete;
+        EVEProgram& operator=(const EVEProgram&) =delete;
 
-    uint8_t      GetNumDevices() const { return num_devices_; } // was num_dsps
-    uint8_t      GetNumEVEDevices() const { return 4; }
-    int32_t      GetCmemBlockOffChip() const { return cmem_block_offchip_; }
-    int32_t      GetCmemBlockOnChip()  const { return cmem_block_onchip_; }
-    std::string  FullyQualifiedPathToDspMonitor() const;
-    uint8_t      GetComputeUnitsPerDevice(int device) const; // was cores_per_dsp(int dsp);
-    DSPDevicePtr GetSymbolAddress(const std::string &name) const;
+        bool build();
+        bool is_loaded() const;
 
-    const std::set<uint8_t>& GetComputeUnits() const { return available_compute_units_; }
+        EVEDevice *GetDevice() const { return p_device; }
+        bool IsPrintInfoEnabled() const { return p_info; }
 
-    static const DeviceInfo& Instance();
-
-private:
-
-    void ComputeUnits_CmemBlocks_Available();
-
-    uint8_t num_devices_;
-    uint8_t num_compute_units_;
-    int32_t cmem_block_offchip_;
-    int32_t cmem_block_onchip_;
-    std::set<uint8_t> available_compute_units_;
-    const SymbolAddressLookup* symbol_lookup_;
+    private:
+        EVEDevice    *p_device;
+        Program      *p_program;
+        bool          p_loaded;
+        bool          p_info;
 };
-
 }
-
-#endif // _DRIVER_H
+#endif

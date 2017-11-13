@@ -46,11 +46,10 @@ OPENCL_SRC_DIR ?= ../host
 
 IPC_DIR        ?= $(RTOS_INSTALL_DIR)/ti-ipc-tree
 BIOS_DIR       ?= $(RTOS_INSTALL_DIR)/ti-sysbios-tree
-PDK_DIR        ?= /opt/ti/PROCESSOR_SDK_VISION_03_00_00_00/ti_components/drivers/pdk_01_07_00_16
+PDK_DIR        ?= $(SDOMC_SHARED)/PROCESSOR_SDK_VISION_03_01_00_00/ti_components/drivers/pdk_01_08_00_16
 
-TI_OCL_M4_CGT_INSTALL ?= /home/a0323918/ti/ccsv7/tools/compiler/ti-cgt-arm_16.9.3.LTS
+TI_OCL_M4_CGT_INSTALL ?= $(SDOMC_SHARED)/PROCESSOR_SDK_VISION_03_01_00_00/ti_components/cg_tools/linux/ti-cgt-arm_16.9.2.LTS
 
-#VISIONSDK_UTILS ?= /opt/ti/PROCESSOR_SDK_VISION_03_00_00_00/vision_sdk/links_fw
 VISIONSDK_UTILS ?= src/visionsdk_utils
 
 SOURCES  = MainIpu1.c eve_firmware.c
@@ -134,6 +133,7 @@ help:
 
 clean::
 	$(RMDIR) bin
+	$(MAKE) -f Makefile.eve clean
 
 #  ======== install validation ========
 ifeq (install,$(MAKECMDGOALS))

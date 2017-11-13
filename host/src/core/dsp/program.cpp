@@ -168,11 +168,6 @@ DSPDevicePtr DSPProgram::data_page_ptr()
     return p_dl->GetDataPagePointer();
 }
 
-void DSPProgram::createOptimizationPasses(llvm::PassManager *manager,
-                                          bool optimize, bool hasBarrier)
-{
-}
-
 /**
  * Extract llvm bitcode and native binary from MixedBinary
  */

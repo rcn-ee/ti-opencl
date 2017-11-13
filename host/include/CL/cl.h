@@ -170,6 +170,7 @@ typedef struct _cl_buffer_region {
 #define CL_DEVICE_TYPE_CPU                          (1 << 1)
 #define CL_DEVICE_TYPE_GPU                          (1 << 2)
 #define CL_DEVICE_TYPE_ACCELERATOR                  (1 << 3)
+#define CL_DEVICE_TYPE_CUSTOM                       (1 << 4)
 #define CL_DEVICE_TYPE_ALL                          0xFFFFFFFF
 
 /* cl_device_info */

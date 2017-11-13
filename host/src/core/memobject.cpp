@@ -105,7 +105,7 @@ MemObject::~MemObject()
     {
         // Also delete our children in the device
         for (unsigned int i=0; i<p_num_devices; ++i)
-            delete p_devicebuffers[i];
+            if (p_devicebuffers[i] != nullptr)  delete p_devicebuffers[i];
 
         std::free((void *)p_devicebuffers);
     }
@@ -149,6 +149,7 @@ cl_int MemObject::init()
         std::free((void *)devices);
         return CL_OUT_OF_HOST_MEMORY;
     }
+    std::memset(p_devicebuffers, 0, p_num_devices * sizeof(DeviceBuffer *));
 
     // If we have more than one device, the allocation on the devices is
     // defered to first use, so host_ptr can become invalid. So, copy it in
@@ -180,7 +181,10 @@ cl_int MemObject::init()
         auto device = pobj(devices[i]);
 
         rs = CL_SUCCESS;
-        p_devicebuffers[i] = device->createDeviceBuffer(this, &rs);
+        DeviceBuffer *d_buf_allocated = deviceBuffer(device);
+        if (d_buf_allocated == nullptr)
+            p_devicebuffers[i] = device->createDeviceBuffer(this, &rs);
+        // else: keep p_devicebuffers[i] as nullptr to prevent double freeing
 
         if (rs != CL_SUCCESS)
         {
@@ -243,15 +247,26 @@ void *MemObject::host_ptr() const
     }
 }
 
+/*----------------------------------------------------------------------------
+ * deviceBuffer(): if devices share the same shared memory handler,
+ *                 then they share the same device buffer for the MemObject
+ *                 System memory is NULL SHMHandler, used by CPU Device/Buffer
+ *---------------------------------------------------------------------------*/
 DeviceBuffer *MemObject::deviceBuffer(DeviceInterface *device) const
+{
+    return deviceBuffer(device->GetSHMHandler());
+}
+
+DeviceBuffer *MemObject::deviceBuffer(tiocl::SharedMemory *shm) const
 {
     for (unsigned int i=0; i<p_num_devices; ++i)
     {
-        if (p_devicebuffers[i]->device() == device)
+        if (p_devicebuffers[i] != nullptr && 
+            p_devicebuffers[i]->GetSHMHandler() == shm)
             return p_devicebuffers[i];
     }
 
-    return 0;
+    return nullptr;
 }
 
 void MemObject::deviceAllocated(DeviceBuffer *buffer)

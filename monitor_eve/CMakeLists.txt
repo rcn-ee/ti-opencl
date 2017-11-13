@@ -1,0 +1,11 @@
+# Build monitor_eve
+
+if (BUILD_OUTPUT STREQUAL "all")
+    install(CODE "execute_process(COMMAND make -f Makefile BUILD_AM57=1 WORKING_DIRECTORY ${OCL_MONITOR_EVE_DIR})")
+endif()
+
+# Install monitor_eve firmware
+if (BUILD_OUTPUT STREQUAL "all")
+    install(FILES bin/release/server_ipu1.xem4 DESTINATION /lib/firmware
+            RENAME dra7-ipu1-fw.xem4 ${OCL_FPERMS})
+endif()

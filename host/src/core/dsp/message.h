@@ -140,10 +140,10 @@ typedef struct
 {
     command_retcode_t reserved;
     uint32_t        Kernel_id;       // host-assigned id for this invocation
-    uint32_t        kernel_index;    // index into function table
+    uint32_t        builtin_kernel_index;  // index into function table
     uint32_t        host_msg;        // for proxy on M4 to send back to host
     uint32_t        eve_id;          // on which eve, logical index
-    uint32_t        num_args;        // number of arguments
+    uint32_t        num_args_in_reg; // number of arguments in registers
     uint32_t        args_in_reg[EVE_MAX_ARGS_IN_REG_SIZE];
     uint32_t        args_on_stack_size;
     uint8_t         args_on_stack[EVE_MAX_ARGS_ON_STACK_SIZE];

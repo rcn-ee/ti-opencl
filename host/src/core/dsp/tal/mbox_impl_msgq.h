@@ -49,6 +49,7 @@
 #include "u_locks_pthread.h"
 #include "u_lockable.h"
 #include "device.h"
+#include "../../eve/device.h"
 
 #include "mbox_interface.h"
 
@@ -60,14 +61,15 @@ class MBoxMsgQ : public MBox, public Lockable
 {
     public:
         MBoxMsgQ(Coal::DSPDevice *device);
+        MBoxMsgQ(Coal::EVEDevice *device);
         ~MBoxMsgQ();
         void     to   (uint8_t *msg, uint32_t  size, uint8_t  id=0);
-        int32_t  from (uint8_t *msg, uint32_t *size, uint8_t* id=0);
+        int32_t  from (uint8_t *msg, uint32_t *size, uint8_t* id=nullptr);
         bool     query(uint8_t id=0);
 
   private:
-    void     write (uint8_t *buf, uint32_t size, uint32_t trans_id, uint8_t id=0);
-    uint32_t read  (uint8_t *buf, uint32_t *size, uint8_t *id=0);
+    void    write(uint8_t *buf, uint32_t size, uint32_t trans_id, uint8_t id=0);
+    uint32_t read(uint8_t *buf, uint32_t *size, uint8_t *id=nullptr);
 
   private:
     MessageQ_Handle    hostQue;   // created by host

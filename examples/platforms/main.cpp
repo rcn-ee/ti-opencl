@@ -50,6 +50,7 @@ const char *devtype(cl_device_type x)
         case CL_DEVICE_TYPE_CPU:         return "CPU";
         case CL_DEVICE_TYPE_ACCELERATOR: return "ACCELERATOR";
         case CL_DEVICE_TYPE_GPU:         return "GPU";
+        case CL_DEVICE_TYPE_CUSTOM:      return "CUSTOM";
         default:                         return "UNKNOWN";
     }
 }
