@@ -267,17 +267,22 @@ Void smain(UArg arg0, UArg arg1)
         }
         else  /* from EVE */
         {
-            unsigned int trans_id = ocl_msgq_pkt->message.trans_id +
-                                    ocl_msgq_pkt->message.u.k_eve.eve_id;
+            unsigned int trans_id = ocl_msgq_pkt->message.trans_id;
             /***
             Log_print1(Diags_INFO, "forwarding to host, trans_id: %d",
                        trans_id);
             ***/
             ocl_msgq_message_t* host_ocl_msgq_pkt = (ocl_msgq_message_t*)
                                         ocl_msgq_pkt->message.u.k_eve.host_msg;
+#if 0
             memcpy(&host_ocl_msgq_pkt->message.u.command_retcode,
                    &ocl_msgq_pkt->message.u.command_retcode,
                    sizeof(command_retcode_t));
+#else
+            memcpy(&host_ocl_msgq_pkt->message,
+                   &ocl_msgq_pkt->message,
+                   sizeof(Msg_t));
+#endif
             respond_to_host(host_ocl_msgq_pkt, trans_id);
         }
     } /* while (running) */

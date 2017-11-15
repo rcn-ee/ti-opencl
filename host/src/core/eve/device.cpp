@@ -83,6 +83,7 @@ void *eve_worker_event_completion(void* data);
 ******************************************************************************/
 EVEDevice::EVEDevice(unsigned char eve_id, SharedMemory* shm)
     : DeviceInterface       (),
+      p_eve_id_             (eve_id),
       p_cores               (1),
       p_num_events          (0),
       p_eve_mhz_            (650),
@@ -173,12 +174,14 @@ EVEDevice::~EVEDevice()
     * Sending the exit message after the worker threads terminate eliminates
     * the race condition.
     *------------------------------------------------------------------------*/
+    exitMsg.u.k_eve.eve_id = GetEveId();
     mail_to(exitMsg);
 
-#if defined(DSPC868X)
     /*-------------------------------------------------------------------------
     * Wait for the EXIT acknowledgement from device
+    * YUAN TODO: may skip this for EVE
     *------------------------------------------------------------------------*/
+#if 1
     while (! p_exit_acked)
     {
         while (! mail_query()) usleep(1);

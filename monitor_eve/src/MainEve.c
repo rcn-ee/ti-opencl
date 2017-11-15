@@ -55,6 +55,10 @@
 #include <ti/csl/arch/arp32/arp32_wugen.h>
 #include <ti/drv/pm/pmlib.h>
 
+#include <stdio.h>
+#include <string.h>
+#include <stdbool.h>
+
 /* local header files */
 #include "tal/mbox_msgq_shared.h"
 
@@ -141,16 +145,36 @@ Void smain(UArg arg0, UArg arg1)
     } while (status == Ipc_E_NOTREADY);
 
     /* the main loop */
-    while(1) {
+    while (true) {
         status = MessageQ_get(eveQ, (MessageQ_Msg *)&ocl_msgq_pkt,
                               MessageQ_FOREVER);
-#if 0
-        if( ((App_Msg *)msg)->msg.command == BUILTIN_KERNEL )
-            run_kernel(&((App_Msg *)msg)->msg);
-        ((App_Msg *)msg)->msg.command = READY;
-#endif
-        ocl_msgq_pkt->message.trans_id = (unsigned int) ocl_msgq_pkt;
-        ocl_msgq_pkt->message.u.command_retcode.retcode = (unsigned int) &smain;
+        Msg_t *ocl_msg = &(ocl_msgq_pkt->message);
+        int retcode    =  CL_SUCCESS;
+
+        switch (ocl_msg->command)
+        {
+            case TASK:
+                if (ocl_msg->u.k_eve.builtin_kernel_index == 0)
+                {
+                    char *dst = (char *) ocl_msg->u.k_eve.args_in_reg[0];
+                    char *src = (char *) ocl_msg->u.k_eve.args_in_reg[1];
+                    unsigned int size = ocl_msg->u.k_eve.args_in_reg[2];
+                    memcpy(dst, src, size);
+                }
+                break;
+            case EXIT:
+{
+  int print_start = sizeof(command_retcode_t) + 4 * sizeof(int);
+  int print_len = sizeof(ocl_msg->u.message) - print_start;
+  snprintf(ocl_msg->u.message + print_start, print_len, "EVE %d: Recved EXIT\n", ocl_msg->u.k_eve.eve_id);
+}
+                break;
+            default:
+                break;
+        }
+
+        ocl_msg->trans_id = ocl_msg->u.k_eve.Kernel_id;
+        ocl_msg->u.command_retcode.retcode = retcode;
         queId = MessageQ_getReplyQueue(ocl_msgq_pkt);
         MessageQ_put(queId, (MessageQ_Msg)ocl_msgq_pkt);
     }
