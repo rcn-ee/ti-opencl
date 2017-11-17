@@ -463,6 +463,10 @@ int EVEDevice::mail_from(int *retcode)
 
     if (rxmsg.command == EXIT)
     {
+#if 1 // YUAN DEBUG
+  int print_start = sizeof(command_retcode_t) + 4 * sizeof(int);
+  std::cout << "From EVE: " << rxmsg.u.message + print_start;
+#endif
         p_exit_acked = true;
         return -1;
     }

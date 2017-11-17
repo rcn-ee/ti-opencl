@@ -132,7 +132,6 @@ EVEKernelEvent::EVEKernelEvent(EVEDevice *device, KernelEvent *event)
     p_msg.command           = TASK;
     p_msg.u.k_eve.Kernel_id = p_kernel_id;
     p_msg.u.k_eve.builtin_kernel_index = p_kernel->GetBuiltInKernelIndex();
-    p_msg.u.k_eve.host_msg  = 0;  // from host
     p_msg.u.k_eve.eve_id    = p_device->GetEveId();
 }
 
@@ -294,7 +293,6 @@ cl_int EVEKernelEvent::callArgs(unsigned max_args_size)
         }
     }
 
-    p_msg.u.k_eve.num_args_in_reg    = num_args_in_reg;
     p_msg.u.k_eve.args_on_stack_size = ROUNDUP(more_arg_offset, 4);
 
     return CL_SUCCESS;

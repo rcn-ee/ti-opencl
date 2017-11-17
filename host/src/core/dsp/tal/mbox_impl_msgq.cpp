@@ -174,7 +174,6 @@ MBoxMsgQ::MBoxMsgQ(Coal::EVEDevice *device)
         assert (msg != NULL);
         MessageQ_setReplyQueue(hostQue, (MessageQ_Msg)msg);
         msg->message.trans_id = 54321;
-        msg->message.u.k_eve.host_msg = 0;  // from host
         msg->message.u.k_eve.eve_id   = eve_id;  // to which eve
 
     cl_ulong rs;

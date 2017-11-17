@@ -43,6 +43,7 @@ typedef enum
 #define MAX_ARGS_IN_REG_SIZE (MAX_IN_REG_ARGUMENTS*2)
 #define EVE_MAX_ARGS_IN_REG_SIZE 3
 #define EVE_MAX_ARGS_ON_STACK_SIZE 128      // bytes, has space for 216 bytes
+#define EVE_MSG_COMMAND_MASK (0x80000000)   // used by IPU and EVE internally
 
 #define MAX_ARGS_TOTAL_SIZE 1024
 
@@ -138,14 +139,11 @@ typedef struct
 *----------------------------------------------------------------------------*/
 typedef struct
 {
-    command_retcode_t reserved;
-    uint32_t        Kernel_id;       // host-assigned id for this invocation
-    uint32_t        builtin_kernel_index;  // index into function table
-    uint32_t        host_msg;        // for proxy on M4 to send back to host
-    uint32_t        eve_id;          // on which eve, logical index
-    uint32_t        num_args_in_reg; // number of arguments in registers
+    uint32_t        Kernel_id;            // host-assigned id for this call
+    uint32_t        builtin_kernel_index; // index into function table
+    uint32_t        eve_id;               // on which eve, logical index
+    uint32_t        args_on_stack_size;   // number of bytes on stack
     uint32_t        args_in_reg[EVE_MAX_ARGS_IN_REG_SIZE];
-    uint32_t        args_on_stack_size;
     uint8_t         args_on_stack[EVE_MAX_ARGS_ON_STACK_SIZE];
 } kernel_eve_t;
 

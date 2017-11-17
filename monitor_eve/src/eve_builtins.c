@@ -26,12 +26,39 @@
  *   THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
 
-/* ============================================================================
- * GLOBAL VARIABLES DECLARATIONS
- * ============================================================================
- */
+#include <stdio.h>
+#include "eve_builtins.h"
 
-unsigned char gTDA2XX_EVE_FIRMWARE[] = {
-    #include "eve_firmware.h"
-};
+// EVE1, EVE2, EVE3, EVE4 => 0, 1, 2, 3
+#define EVE1 0
+#define EVE2 1
+#define EVE3 2
+#define EVE4 3
+int  __eve_num()
+{
+  return EVECORE;
+}
+
+void tiocl_bik_memcpy_test(char *dst, char *src, int len)
+{
+  memcpy(dst, src, len);
+}
+
+void tiocl_bik_calling_conv_test(char *buf, short len, char a,
+                                 short b, int c, char d, short e, int f,
+                                 short g, char h, float i, int *j, int k,
+                                 int l, int m, int n, int o, int p, int q,
+                                 int r, int s, int t, int u, int v, int w,
+                                 int x, int y, int z, int aa, int ab,
+                                 int ac, int ad, int ae, int af, int ag,
+                                 int ah, int ai)
+{
+  snprintf(buf, len,
+           "EVE %d: buf=0x%x len=%d a=%d %d %d %d %d %d %d "
+           "h=%d %2.0f 0x%p %d %d %d %d o=%d %d %d %d %d %d "
+           "u=%d %d %d %d %d %d aa=%d %d %d %d %d %d %d ah=%d %d\n",
+           __eve_num(), buf, len,
+           a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w,
+           x, y, z, aa, ab, ac, ad, ae, af, ag, ah, ai);
+}
 

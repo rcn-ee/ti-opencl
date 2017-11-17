@@ -1,34 +1,30 @@
-/*
- * Copyright (c) 2013-2014, Texas Instruments Incorporated
- * All rights reserved.
+/******************************************************************************
+ * Copyright (c) 2017, Texas Instruments Incorporated - http://www.ti.com/
+ *   All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ *   Redistribution and use in source and binary forms, with or without
+ *   modification, are permitted provided that the following conditions are met:
+ *       * Redistributions of source code must retain the above copyright
+ *         notice, this list of conditions and the following disclaimer.
+ *       * Redistributions in binary form must reproduce the above copyright
+ *         notice, this list of conditions and the following disclaimer in the
+ *         documentation and/or other materials provided with the distribution.
+ *       * Neither the name of Texas Instruments Incorporated nor the
+ *         names of its contributors may be used to endorse or promote products
+ *         derived from this software without specific prior written permission.
  *
- * *  Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- *
- * *  Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
- *
- * *  Neither the name of Texas Instruments Incorporated nor the names of
- *    its contributors may be used to endorse or promote products derived
- *    from this software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
- * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
- * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
- * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
- * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
- * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
- * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
- * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
- * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
+ *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ *   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+ *   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ *   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ *   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ *   SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ *   INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ *   CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ *   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+ *   THE POSSIBILITY OF SUCH DAMAGE.
+ *****************************************************************************/
 
 /*
  *  ======== main_Ipu1.c ========
@@ -65,22 +61,20 @@
 #include "tal/mbox_msgq_shared.h"
 #include "src/rtos/utils_common/include/utils_eveloader.h"
 
+#define MAX_NUM_EVES               (4)
+#define MAX_NUM_COMPLETION_PENDING (16)
+
 /* private data */
-// YUAN TODO: two queues: eve0fromhost, eve0fromeve
-// Or should it be one, how can we tell who sends it (eve or host?)
 MessageQ_Handle  eveProxyQueue = NULL;
-MessageQ_QueueId hostReplyQueue = NULL;
-MessageQ_QueueId eve1Queue = NULL;
-MessageQ_QueueId eve2Queue = NULL;
-MessageQ_QueueId eve3Queue = NULL;
-MessageQ_QueueId eve4Queue = NULL;
+MessageQ_QueueId eveQueues[MAX_NUM_EVES];
+
 ocl_msgq_message_t* ocl_msgq_pkt = NULL;
-ocl_msgq_message_t* eve_ocl_msgq_pkt = NULL;
+ocl_msgq_message_t* eve_ocl_msgq_pkt[MAX_NUM_EVES][MAX_NUM_COMPLETION_PENDING];
+int                 eve_ocl_msgq_avail_slot[MAX_NUM_EVES];
 
 /* private functions */
 static Void smain(UArg arg0, UArg arg1);
 static bool create_mqueue();
-static void respond_to_host(ocl_msgq_message_t *msgq_pkt, uint32_t msgId);
 
 
 /*
@@ -150,144 +144,111 @@ Int main(Int argc, Char* argv[])
 Void smain(UArg arg0, UArg arg1)
 {
     Int                 status = 0;
-    Error_Block         eb;
     Bool                running = TRUE;
+    int                 i, j;
 
     Log_print0(Diags_ENTRY | Diags_INFO, "--> smain:");
 
-#if 1
-    Log_print0(Diags_INFO, "Attaching to EVEs...");
     /* Attaching to EVEs */
-    do {
-        status = Ipc_attach(MultiProc_getId("EVE1"));
-        Task_sleep(1);
-    } while (status == Ipc_E_NOTREADY);
+    Log_print0(Diags_INFO, "Attaching to EVEs...");
+    for (i = 0; i < MAX_NUM_EVES; i++)
+    {
+        const char *eve_name = (i == 0) ? "EVE1" :
+                               (i == 1) ? "EVE2" :
+                               (i == 2) ? "EVE3" :
+                                          "EVE4";
+        do {
+            status = Ipc_attach(MultiProc_getId((String) eve_name));
+            Task_sleep(1);
+        } while (status == Ipc_E_NOTREADY);
 
-    if (status < 0) {
-        Log_print0(Diags_INFO,"Attach EVE1 failed");
-        return;
+        if (status < 0) {
+            Log_print1(Diags_INFO, "Attaching %s failed", (xdc_IArg) eve_name);
+            return;
+        }
+        Log_print1(Diags_INFO, "%s attached", (xdc_IArg) eve_name);
     }
-    Log_print0(Diags_INFO, "EVE1 attached");
 
-    do {
-        status = Ipc_attach(MultiProc_getId("EVE2"));
-        Task_sleep(1);
-    } while (status == Ipc_E_NOTREADY);
-
-    if (status < 0) {
-        Log_print0(Diags_INFO,"Attach EVE2 failed");
-        return;
-    }
-    Log_print0(Diags_INFO, "EVE2 attached");
-
-    do {
-        status = Ipc_attach(MultiProc_getId("EVE3"));
-        Task_sleep(1);
-    } while (status == Ipc_E_NOTREADY);
-
-    if (status < 0) {
-        Log_print0(Diags_INFO,"Attach EVE3 failed");
-        return;
-    }
-    Log_print0(Diags_INFO, "EVE3 attached");
-
-    do {
-        status = Ipc_attach(MultiProc_getId("EVE4"));
-        Task_sleep(1);
-    } while (status == Ipc_E_NOTREADY);
-
-    if (status < 0) {
-        Log_print0(Diags_INFO,"Attach EVE4 failed");
-        return;
-    }
-    Log_print0(Diags_INFO, "EVE4 attached");
-#endif
-
-#if 1
-    Log_print0(Diags_INFO, "Opening MsgQ on EVEs...");
     /* Opening MsgQs on EVEs */
-    status = MessageQ_open("OCL:EVE1:MsgQ", &eve1Queue);
-    if (status < 0) {
-        Log_print0(Diags_INFO,"Opening EVE1 msgQ failed");
-        return;
+    Log_print0(Diags_INFO, "Opening MsgQ on EVEs...");
+    for (i = 0; i < MAX_NUM_EVES; i++)
+    {
+        const char *queue_name = (i == 0) ? "OCL:EVE1:MsgQ" :
+                                 (i == 1) ? "OCL:EVE2:MsgQ" :
+                                 (i == 2) ? "OCL:EVE3:MsgQ" :
+                                            "OCL:EVE4:MsgQ";
+        status = MessageQ_open((String) queue_name, &eveQueues[i]);
+        if (status < 0) {
+            Log_print1(Diags_INFO,"Opening %s failed", (xdc_IArg) queue_name);
+            return;
+        }
+        Log_print1(Diags_INFO, "%s opened", (xdc_IArg) queue_name);
     }
-    Log_print0(Diags_INFO, "EVE1 msgQ opened");
 
-    status = MessageQ_open("OCL:EVE2:MsgQ", &eve2Queue);
-    if (status < 0) {
-        Log_print0(Diags_INFO,"Opening EVE2 msgQ failed");
-        return;
+    /* Pre-allocating msgs to EVEs */
+    Log_print0(Diags_INFO, "Pre-allocating msgs to EVEs...");
+    for (i = 0; i < MAX_NUM_EVES; i++)
+    {
+        for (j = 0; j < MAX_NUM_COMPLETION_PENDING; j++)
+        {
+            eve_ocl_msgq_pkt[i][j] = (ocl_msgq_message_t *)
+                MessageQ_alloc(XDC_CFG_HeapID_Eve, sizeof(ocl_msgq_message_t));
+            if (eve_ocl_msgq_pkt[i][j] == NULL)
+            {
+                 Log_print2(Diags_INFO,
+                            "Failed to pre-allocate msgs for EVE: %d, %d",
+                            i, j);
+                 return;
+            }
+        }
+        eve_ocl_msgq_avail_slot[i] = 0;
     }
-    Log_print0(Diags_INFO, "EVE2 msgQ opened");
+    Log_print0(Diags_INFO, "Done initialization. Waiting for messages...");
 
-    status = MessageQ_open("OCL:EVE3:MsgQ", &eve3Queue);
-    if (status < 0) {
-        Log_print0(Diags_INFO,"Opening EVE3 msgQ failed");
-        return;
-    }
-    Log_print0(Diags_INFO, "EVE3 msgQ opened");
-
-    status = MessageQ_open("OCL:EVE4:MsgQ", &eve4Queue);
-    if (status < 0) {
-        Log_print0(Diags_INFO,"Opening EVE4 msgQ failed");
-        return;
-    }
-    Log_print0(Diags_INFO, "EVE4 msgQ opened");
-#endif
-
-    Log_print0(Diags_INFO, "Pre-allocating msg to EVEs...");
-    eve_ocl_msgq_pkt = (ocl_msgq_message_t *) MessageQ_alloc(XDC_CFG_HeapID_Eve,
-                                                   sizeof(ocl_msgq_message_t));
-
-    /* loop forever */
+    /* Loop forever, proxying between host and EVE */
     while (running) {
         status = MessageQ_get(eveProxyQueue, (MessageQ_Msg *)&ocl_msgq_pkt,
                               MessageQ_FOREVER);
-        if (status < 0)  goto leave;
-        if (ocl_msgq_pkt->message.u.k_eve.host_msg == 0)  /* from Host */
-        {
-            hostReplyQueue = MessageQ_getReplyQueue(ocl_msgq_pkt);
-            /* unsigned int trans_id = ocl_msgq_pkt->message.trans_id;
-            Log_print2(Diags_INFO,
-                       "forwarding to eve, trans_id: %d, host msg: 0x%p",
-                       trans_id, ocl_msgq_pkt); */
+        if (status < 0)  break;
 
-            /* forward the message to EVE */
-            memcpy(&eve_ocl_msgq_pkt->message, &ocl_msgq_pkt->message,
-                   sizeof(Msg_t));
-            eve_ocl_msgq_pkt->message.u.k_eve.host_msg = (uint32_t)ocl_msgq_pkt;
-            MessageQ_setReplyQueue(eveProxyQueue,
-                                   (MessageQ_Msg) eve_ocl_msgq_pkt);
+        if ((ocl_msgq_pkt->message.command & EVE_MSG_COMMAND_MASK) == 0)
+        {
+            /* From host, command is not masked */
+            /* Allocate msg to EVE */
             int eve_id = ocl_msgq_pkt->message.u.k_eve.eve_id;
-            MessageQ_QueueId eveQueue = eve_id == 0 ? eve1Queue :
-                                       (eve_id == 1 ? eve2Queue :
-                                       (eve_id == 2 ? eve3Queue :
-                                                      eve4Queue));
-            MessageQ_put(eveQueue, (MessageQ_Msg) eve_ocl_msgq_pkt);
-        }
-        else  /* from EVE */
-        {
-            unsigned int trans_id = ocl_msgq_pkt->message.trans_id;
-            /***
-            Log_print1(Diags_INFO, "forwarding to host, trans_id: %d",
-                       trans_id);
-            ***/
-            ocl_msgq_message_t* host_ocl_msgq_pkt = (ocl_msgq_message_t*)
-                                        ocl_msgq_pkt->message.u.k_eve.host_msg;
-#if 0
-            memcpy(&host_ocl_msgq_pkt->message.u.command_retcode,
-                   &ocl_msgq_pkt->message.u.command_retcode,
-                   sizeof(command_retcode_t));
-#else
-            memcpy(&host_ocl_msgq_pkt->message,
-                   &ocl_msgq_pkt->message,
-                   sizeof(Msg_t));
-#endif
-            respond_to_host(host_ocl_msgq_pkt, trans_id);
-        }
-    } /* while (running) */
+            int slot   = eve_ocl_msgq_avail_slot[eve_id];
+            ocl_msgq_message_t* eve_pkt = eve_ocl_msgq_pkt[eve_id][slot];
+            slot += 1;
+            eve_ocl_msgq_avail_slot[eve_id] =
+                               (slot == MAX_NUM_COMPLETION_PENDING) ? 0 : slot;
 
-leave:
+            /* Copy host_msg into EVE msg, mask command, remember host_msg */
+            memcpy(&eve_pkt->message, &ocl_msgq_pkt->message, sizeof(Msg_t));
+            eve_pkt->message.command |= EVE_MSG_COMMAND_MASK;
+            eve_pkt->message.pid = (uint32_t)ocl_msgq_pkt;
+            MessageQ_setReplyQueue(eveProxyQueue, (MessageQ_Msg) eve_pkt);
+            MessageQ_put(eveQueues[eve_id], (MessageQ_Msg) eve_pkt);
+        }
+        else
+        {
+            /* From EVE, command is masked */
+            /* Retrieve original host_msg, unmask command, restore pid */
+            ocl_msgq_message_t* host_ocl_msgq_pkt = (ocl_msgq_message_t*)
+                                                    ocl_msgq_pkt->message.pid;
+            MessageQ_QueueId hostReplyQueue = MessageQ_getReplyQueue(
+                                                            host_ocl_msgq_pkt);
+            ocl_msgq_pkt->message.command &= (~EVE_MSG_COMMAND_MASK);
+            ocl_msgq_pkt->message.pid = host_ocl_msgq_pkt->message.pid;
+            memcpy(&host_ocl_msgq_pkt->message,
+                   &ocl_msgq_pkt->message, sizeof(Msg_t));
+
+            /* Use original host_msg to send back to host */
+            MessageQ_setReplyQueue(eveProxyQueue,
+                                   (MessageQ_Msg) host_ocl_msgq_pkt);
+            MessageQ_put(hostReplyQueue, (MessageQ_Msg) host_ocl_msgq_pkt);
+        }
+    }  /* while (running) */
+
     Log_print1(Diags_EXIT, "<-- smain: %d", (IArg)status);
     return;
 }
@@ -325,17 +286,3 @@ static bool create_mqueue()
 
     return true;
 }
-
-/******************************************************************************
-* respond_to_host
-******************************************************************************/
-static void respond_to_host(ocl_msgq_message_t *msgq_pkt, uint32_t msgId)
-{
-    msgq_pkt->message.trans_id = msgId;
-    // msgq_pkt->message.u.command_retcode.retcode = 0;
-
-    MessageQ_setReplyQueue(eveProxyQueue,  (MessageQ_Msg)msgq_pkt);
-    MessageQ_put          (hostReplyQueue, (MessageQ_Msg)msgq_pkt);
-}
-
-

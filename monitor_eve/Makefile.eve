@@ -80,10 +80,13 @@ INPUTRPRCS += $(EVE3_ID) $(EVE3_RPRC_PATH)
 INPUTRPRCS += $(EVE4_ID) $(EVE4_RPRC_PATH)
 
 
-SOURCES = MainEve.c tlb_config_eve.c
-VPATH   = src
+SOURCES  = MainEve.c tlb_config_eve.c eve_rpc.asm 
+SOURCES += eve_builtins.c eve_builtins_table.c
+VPATH    = src
 
-OBJS = $(addprefix $(PROJECT)/obj/,$(patsubst %.c,%.oearp32F,$(SOURCES)))
+OBJS     = $(addprefix $(PROJECT)/obj/, \
+             $(patsubst %.asm,%.oearp32F, \
+               $(patsubst %.c,%.oearp32F,$(SOURCES))))
 
 CONFIGS  = cfg/Eve.cfg cfg/config.bld cfg/BIOS_common.cfg
 CONFIGS += cfg/ipc.cfg.xs cfg/mem_segment_definition_linux.xs
@@ -132,6 +135,11 @@ $(PROJECT)/obj/%.oearp32F: %.c $(CONFIG)/compiler.opt
 	@$(ECHO) "#"
 	@$(ECHO) "# Making $@ ..."
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(INCLUDES) --output_file=$@ -fc $<
+
+$(PROJECT)/obj/%.oearp32F: %.asm $(CONFIG)/compiler.opt
+	@$(ECHO) "#"
+	@$(ECHO) "# Making $@ ..."
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(INCLUDES) --output_file=$@ -fa $<
 
 
 %/linker.cmd %/compiler.opt: $(CONFIG)/.config ;

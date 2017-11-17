@@ -1,37 +1,33 @@
-/*
- * Copyright (c) 2015, Texas Instruments Incorporated
- * All rights reserved.
+/******************************************************************************
+ * Copyright (c) 2017, Texas Instruments Incorporated - http://www.ti.com/
+ *   All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ *   Redistribution and use in source and binary forms, with or without
+ *   modification, are permitted provided that the following conditions are met:
+ *       * Redistributions of source code must retain the above copyright
+ *         notice, this list of conditions and the following disclaimer.
+ *       * Redistributions in binary form must reproduce the above copyright
+ *         notice, this list of conditions and the following disclaimer in the
+ *         documentation and/or other materials provided with the distribution.
+ *       * Neither the name of Texas Instruments Incorporated nor the
+ *         names of its contributors may be used to endorse or promote products
+ *         derived from this software without specific prior written permission.
  *
- * *  Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- *
- * *  Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
- *
- * *  Neither the name of Texas Instruments Incorporated nor the names of
- *    its contributors may be used to endorse or promote products derived
- *    from this software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
- * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
- * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
- * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
- * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
- * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
- * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
- * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
- * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
+ *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ *   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+ *   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ *   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ *   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ *   SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ *   INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ *   CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ *   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+ *   THE POSSIBILITY OF SUCH DAMAGE.
+ *****************************************************************************/
 
 /*
- *  ======== MainEve1.c ========
+ *  ======== MainEve.c ========
  *
  */
 
@@ -61,6 +57,7 @@
 
 /* local header files */
 #include "tal/mbox_msgq_shared.h"
+#include "eve_builtins.h"
 
 
 //#include "alg_osal.h"
@@ -69,8 +66,13 @@
 #define EVEMSGQNAME2(core) ("OCL:" #core ":MsgQ")
 #define EVEMSGQNAME(core)  EVEMSGQNAME2(core)
 
+/* external functions */
+extern void* eve_rpc(void *p, int args_on_stack_size, void *args_in_reg);
+
 /* private functions */
 static Void smain(UArg arg0, UArg arg1);
+static void process_task_command(Msg_t* ocl_msg);
+
 
 MessageQ_Handle     eveQ;
 HeapBufMP_Handle    srHeapHandle;
@@ -151,22 +153,48 @@ Void smain(UArg arg0, UArg arg1)
         Msg_t *ocl_msg = &(ocl_msgq_pkt->message);
         int retcode    =  CL_SUCCESS;
 
-        switch (ocl_msg->command)
+        switch (ocl_msg->command & (~EVE_MSG_COMMAND_MASK))
         {
             case TASK:
-                if (ocl_msg->u.k_eve.builtin_kernel_index == 0)
-                {
-                    char *dst = (char *) ocl_msg->u.k_eve.args_in_reg[0];
-                    char *src = (char *) ocl_msg->u.k_eve.args_in_reg[1];
-                    unsigned int size = ocl_msg->u.k_eve.args_in_reg[2];
-                    memcpy(dst, src, size);
-                }
+                process_task_command(ocl_msg);
                 break;
             case EXIT:
 {
   int print_start = sizeof(command_retcode_t) + 4 * sizeof(int);
   int print_len = sizeof(ocl_msg->u.message) - print_start;
-  snprintf(ocl_msg->u.message + print_start, print_len, "EVE %d: Recved EXIT\n", ocl_msg->u.k_eve.eve_id);
+  ocl_msg->u.k_eve.builtin_kernel_index = 1;
+  ocl_msg->u.k_eve.args_on_stack_size = 128;
+  ocl_msg->u.k_eve.args_in_reg[0] = (int) (ocl_msg->u.message + print_start);
+  ocl_msg->u.k_eve.args_in_reg[1] = (short) print_len;
+  char a = 10;
+  ocl_msg->u.k_eve.args_in_reg[2] = a;
+
+  short b = 11;
+  memcpy(&ocl_msg->u.k_eve.args_on_stack[0], &b, 2);
+  int c = 12;
+  memcpy(&ocl_msg->u.k_eve.args_on_stack[4], &c, 4);
+  char d = -13;
+  memcpy(&ocl_msg->u.k_eve.args_on_stack[8], &d, 1);
+  short e = -14;
+  memcpy(&ocl_msg->u.k_eve.args_on_stack[10], &e, 2);
+  int f = -15;
+  memcpy(&ocl_msg->u.k_eve.args_on_stack[12], &f, 4);
+  short g = 16;
+  memcpy(&ocl_msg->u.k_eve.args_on_stack[16], &g, 2);
+  char h = 17;
+  memcpy(&ocl_msg->u.k_eve.args_on_stack[18], &h, 1);
+  float i = 18.0f;
+  memcpy(&ocl_msg->u.k_eve.args_on_stack[20], &i, 4);
+  int *j = (int *) 19;
+  memcpy(&ocl_msg->u.k_eve.args_on_stack[24], &j, 4);
+  int ii;
+  for (ii = 0; ii < 25; ii++)
+  {
+     int k = 20 + ii;
+     memcpy(&ocl_msg->u.k_eve.args_on_stack[28+ii*4], &k, 4);
+  }
+
+  process_task_command(ocl_msg);
 }
                 break;
             default:
@@ -179,6 +207,18 @@ Void smain(UArg arg0, UArg arg1)
         MessageQ_put(queId, (MessageQ_Msg)ocl_msgq_pkt);
     }
 }
+
+/******************************************************************************
+* process_task_command
+******************************************************************************/
+static void process_task_command(Msg_t* ocl_msg)
+{
+    uint32_t bik_index = ocl_msg->u.k_eve.builtin_kernel_index;
+    eve_rpc(tiocl_eve_builtin_kernel_table[bik_index],
+            ocl_msg->u.k_eve.args_on_stack_size,
+            ocl_msg->u.k_eve.args_in_reg);
+}
+
 
 /******************************************************************************
 * mainARP32_0_TimerTick
@@ -202,3 +242,4 @@ void eve_idleFxn()
     PMLIBCpuIdle(PMHAL_PRCM_PD_STATE_RETENTION);
 #endif
 }
+

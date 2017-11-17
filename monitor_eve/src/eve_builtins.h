@@ -26,12 +26,21 @@
  *   THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
 
-/* ============================================================================
- * GLOBAL VARIABLES DECLARATIONS
- * ============================================================================
- */
+#ifndef _EVE_BUILTINS_H_
+#define _EVE_BUILTINS_H_
 
-unsigned char gTDA2XX_EVE_FIRMWARE[] = {
-    #include "eve_firmware.h"
-};
+typedef void (*tiocl_eve_builtin_kernel)();
+extern tiocl_eve_builtin_kernel tiocl_eve_builtin_kernel_table[];
 
+extern int  __eve_num();
+extern void tiocl_bik_memcpy_test(char *dst, char *src, int len);
+extern void tiocl_bik_calling_conv_test(char *buf, short len, char a,
+                                      short b, int c, char d, short e, int f,
+                                      short g, char h, float i, int *j, int k,
+                                      int l, int m, int n, int o, int p, int q,
+                                      int r, int s, int t, int u, int v, int w,
+                                      int x, int y, int z, int aa, int ab,
+                                      int ac, int ad, int ae, int af, int ag,
+                                      int ah, int ai);
+
+#endif // _EVE_BUILTINS_H_

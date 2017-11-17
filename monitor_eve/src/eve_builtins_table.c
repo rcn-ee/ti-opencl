@@ -26,12 +26,14 @@
  *   THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
 
-/* ============================================================================
- * GLOBAL VARIABLES DECLARATIONS
- * ============================================================================
- */
+#include "eve_builtins.h"
 
-unsigned char gTDA2XX_EVE_FIRMWARE[] = {
-    #include "eve_firmware.h"
+tiocl_eve_builtin_kernel tiocl_eve_builtin_kernel_table[] =
+{
+  // reserved for OpenCL EVE runtime testing
+  (tiocl_eve_builtin_kernel) tiocl_bik_memcpy_test,
+  (tiocl_eve_builtin_kernel) tiocl_bik_calling_conv_test,
+
+  // Intended for user callable functions
 };
 
