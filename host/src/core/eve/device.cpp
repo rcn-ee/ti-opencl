@@ -456,17 +456,13 @@ int EVEDevice::mail_from(int *retcode)
 
     if (rxmsg.command == PRINT)
     {
-        std::cout << "[core " << rxmsg.u.message[0] << "] "
-                              << rxmsg.u.message+1;
+        std::cout << "[eve " << rxmsg.u.message[0] << "] "
+                             << rxmsg.u.message+1;
         return -1;
     }
 
     if (rxmsg.command == EXIT)
     {
-#if 1 // YUAN DEBUG
-  int print_start = sizeof(command_retcode_t) + 4 * sizeof(int);
-  std::cout << "From EVE: " << rxmsg.u.message + print_start;
-#endif
         p_exit_acked = true;
         return -1;
     }

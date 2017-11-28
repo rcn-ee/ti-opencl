@@ -144,7 +144,6 @@ Int main(Int argc, Char* argv[])
 Void smain(UArg arg0, UArg arg1)
 {
     Int                 status = 0;
-    Bool                running = TRUE;
     int                 i, j;
 
     Log_print0(Diags_ENTRY | Diags_INFO, "--> smain:");
@@ -206,7 +205,7 @@ Void smain(UArg arg0, UArg arg1)
     Log_print0(Diags_INFO, "Done initialization. Waiting for messages...");
 
     /* Loop forever, proxying between host and EVE */
-    while (running) {
+    while (TRUE) {
         status = MessageQ_get(eveProxyQueue, (MessageQ_Msg *)&ocl_msgq_pkt,
                               MessageQ_FOREVER);
         if (status < 0)  break;
@@ -239,15 +238,31 @@ Void smain(UArg arg0, UArg arg1)
                                                             host_ocl_msgq_pkt);
             ocl_msgq_pkt->message.command &= (~EVE_MSG_COMMAND_MASK);
             ocl_msgq_pkt->message.pid = host_ocl_msgq_pkt->message.pid;
-            memcpy(&host_ocl_msgq_pkt->message,
-                   &ocl_msgq_pkt->message, sizeof(Msg_t));
 
-            /* Use original host_msg to send back to host */
-            MessageQ_setReplyQueue(eveProxyQueue,
-                                   (MessageQ_Msg) host_ocl_msgq_pkt);
-            MessageQ_put(hostReplyQueue, (MessageQ_Msg) host_ocl_msgq_pkt);
+            if (ocl_msgq_pkt->message.command != PRINT)
+            {
+                /* Use original host_msg to send back to host */
+                memcpy(&host_ocl_msgq_pkt->message,
+                       &ocl_msgq_pkt->message, sizeof(Msg_t));
+                MessageQ_put(hostReplyQueue, (MessageQ_Msg) host_ocl_msgq_pkt);
+            }
+            else
+            {
+                /* Allocate a new message for printf to send back to host */
+                ocl_msgq_message_t * host_print_pkt = (ocl_msgq_message_t *)
+                MessageQ_alloc(XDC_CFG_HeapID_Host, sizeof(ocl_msgq_message_t));
+                if (host_print_pkt != NULL)
+                {
+                    memcpy(&host_print_pkt->message,
+                           &ocl_msgq_pkt->message, sizeof(Msg_t));
+                    MessageQ_put(hostReplyQueue, (MessageQ_Msg) host_print_pkt);
+                }
+                else
+                    Log_print0(Diags_INFO, "msgq alloc failed for print");
+                MessageQ_free((MessageQ_Msg) ocl_msgq_pkt);
+            }
         }
-    }  /* while (running) */
+    }  /* while (TRUE) */
 
     Log_print1(Diags_EXIT, "<-- smain: %d", (IArg)status);
     return;

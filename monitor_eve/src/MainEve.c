@@ -33,6 +33,7 @@
 
 /* xdctools header files */
 #include <xdc/std.h>
+#include <xdc/cfg/global.h>
 #include <xdc/runtime/Error.h>
 #include <xdc/runtime/System.h>
 #include <xdc/runtime/IHeap.h>
@@ -45,6 +46,7 @@
 #include <ti/ipc/MessageQ.h>
 #include <ti/ipc/MultiProc.h>
 #include <ti/ipc/HeapBufMP.h>
+#include <ti/ipc/SharedRegion.h>
 
 #include <ti/sysbios/family/shared/vayu/IntXbar.h>
 #include <ti/sysbios/hal/Hwi.h>
@@ -52,6 +54,7 @@
 #include <ti/drv/pm/pmlib.h>
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
 
@@ -73,10 +76,11 @@ extern void* eve_rpc(void *p, int args_on_stack_size, void *args_in_reg);
 static Void smain(UArg arg0, UArg arg1);
 static void process_task_command(Msg_t* ocl_msg);
 
-
 MessageQ_Handle     eveQ;
 HeapBufMP_Handle    srHeapHandle;
-ocl_msgq_message_t* ocl_msgq_pkt = NULL;
+ocl_msgq_message_t* ocl_msgq_pkt  = NULL;
+IHeap_Handle        msg_heap      = NULL;
+MessageQ_QueueId    enable_printf = MessageQ_INVALIDMESSAGEQ;
 
 
 /******************************************************************************
@@ -136,7 +140,7 @@ Void smain(UArg arg0, UArg arg1)
 {
     Int                 status = 0;
     Error_Block         eb;
-    MessageQ_QueueId    queId;
+    MessageQ_QueueId    replyQ;
 
     Error_init(&eb);
 
@@ -146,10 +150,17 @@ Void smain(UArg arg0, UArg arg1)
         Task_sleep(1);
     } while (status == Ipc_E_NOTREADY);
 
+    /* Setup heap for message queue: used for printf */
+    msg_heap = (IHeap_Handle) SharedRegion_getHeap(0);
+    if (msg_heap != NULL)  MessageQ_registerHeap(msg_heap, XDC_CFG_HeapID_Eve);
+
     /* the main loop */
     while (true) {
         status = MessageQ_get(eveQ, (MessageQ_Msg *)&ocl_msgq_pkt,
                               MessageQ_FOREVER);
+        replyQ = MessageQ_getReplyQueue(ocl_msgq_pkt);
+        enable_printf = replyQ;
+
         Msg_t *ocl_msg = &(ocl_msgq_pkt->message);
         int retcode    =  CL_SUCCESS;
 
@@ -160,6 +171,7 @@ Void smain(UArg arg0, UArg arg1)
                 break;
             case EXIT:
 {
+printf("Received EXIT message\n");
   int print_start = sizeof(command_retcode_t) + 4 * sizeof(int);
   int print_len = sizeof(ocl_msg->u.message) - print_start;
   ocl_msg->u.k_eve.builtin_kernel_index = 1;
@@ -193,18 +205,19 @@ Void smain(UArg arg0, UArg arg1)
      int k = 20 + ii;
      memcpy(&ocl_msg->u.k_eve.args_on_stack[28+ii*4], &k, 4);
   }
-
   process_task_command(ocl_msg);
+printf("Calling convention test: %s\n", ocl_msg->u.message + print_start);
 }
                 break;
             default:
                 break;
         }
 
+        enable_printf = MessageQ_INVALIDMESSAGEQ;
+
         ocl_msg->trans_id = ocl_msg->u.k_eve.Kernel_id;
         ocl_msg->u.command_retcode.retcode = retcode;
-        queId = MessageQ_getReplyQueue(ocl_msgq_pkt);
-        MessageQ_put(queId, (MessageQ_Msg)ocl_msgq_pkt);
+        MessageQ_put(replyQ, (MessageQ_Msg)ocl_msgq_pkt);
     }
 }
 
@@ -217,6 +230,44 @@ static void process_task_command(Msg_t* ocl_msg)
     eve_rpc(tiocl_eve_builtin_kernel_table[bik_index],
             ocl_msg->u.k_eve.args_on_stack_size,
             ocl_msg->u.k_eve.args_in_reg);
+}
+
+
+/******************************************************************************
+* CIO support from dispatched kernels.
+*    these low level routines are called from stdio and we use them to
+*    redirect the io to the host for display.
+******************************************************************************/
+_CODE_ACCESS void writemsg(               unsigned char  command,
+                           register const unsigned char *parm,
+                           register const          char *data,
+                                           unsigned int  length)
+{
+    if (msg_heap == NULL || enable_printf == MessageQ_INVALIDMESSAGEQ)
+        return;
+
+    ocl_msgq_message_t *msg = (ocl_msgq_message_t *)
+                MessageQ_alloc(XDC_CFG_HeapID_Eve, sizeof(ocl_msgq_message_t));
+    if (!msg) return;
+
+    Msg_t *printMsg   = &(msg->message);
+    printMsg->command = (PRINT | EVE_MSG_COMMAND_MASK);
+    printMsg->pid     = ocl_msgq_pkt->message.pid;
+
+    unsigned int msgLen = sizeof(printMsg->u.message);
+    printMsg->u.message[0] = __eve_num() + '0';
+    msgLen = (length <= msgLen-2) ? length : msgLen-2;
+    memcpy(printMsg->u.message+1, data, msgLen);
+    printMsg->u.message[msgLen+1] = '\0';
+
+    MessageQ_put(enable_printf,  (MessageQ_Msg)msg);
+    return;
+}
+
+_CODE_ACCESS void readmsg(register unsigned char *parm,
+                          register char          *data)
+{
+    return;  // do nothing
 }
 
 

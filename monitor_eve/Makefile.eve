@@ -165,11 +165,12 @@ clean::
 
 
 #  ======== toolchain macros ========
-CC = $(TI_OCL_ARP32_CGT_INSTALL)/bin/cl-arp32 -c
+CC = $(TI_OCL_ARP32_CGT_INSTALL)/bin/cl-arp32 -c -O3
 LD = $(TI_OCL_ARP32_CGT_INSTALL)/bin/lnk-arp32
 
 CPPFLAGS =
-CFLAGS  = -qq -pdsw225 -ppd=$@.dep -ppa $(CCPROFILE_$(BUILD_TYPE)) -@$(CONFIG)/compiler.opt -I.
+CFLAGS  = --mem_model:data=far
+CFLAGS += -qq -pdsw225 -ppd=$@.dep -ppa $(CCPROFILE_$(BUILD_TYPE)) -@$(CONFIG)/compiler.opt -I.
 CFLAGS += --silicon_version=v210
 
 # includes
@@ -177,9 +178,9 @@ CFLAGS += -I $(XDAIS_DIR)/packages
 
 # entry point is set to an aligned address so that IPC can load the slave
 #LDFLAGS = -w -q -u _c_int00 -c -m $(@D)/obj/$(@F).map
-LDFLAGS = -w -q -c -m $(@D)/obj/$(@F).map
-LDFLAGS += --warn_sections -e=_c_int00 --silicon_version=arp32 -x
-LDLIBS = -l $(TI_OCL_ARP32_CGT_INSTALL)/lib/rtsarp32_v203.lib
+LDFLAGS  = --priority -w -x -m $(@D)/obj/$(@F).map
+LDFLAGS += --warn_sections -e=_c_int00 --silicon_version=arp32
+LDLIBS = -l cfg/Eve.cmd -l $(TI_OCL_ARP32_CGT_INSTALL)/lib/rtsarp32_v203.lib
 #LDLIBS = -l $(TI_OCL_ARP32_CGT_INSTALL)/lib/rtsarp32_v200.lib
 
 CCPROFILE_debug = -D_DEBUG_=1 --symdebug:dwarf

@@ -130,7 +130,6 @@ bool handle_event_completion(EVEDevice *device)
         pthread_cond_broadcast(device->get_worker_cond());
     pthread_mutex_unlock(device->get_worker_mutex());
 
-#if 0 // YUNA TODO
     KernelEvent    *e  = (KernelEvent *) event;
     EVEKernelEvent *ke = (EVEKernelEvent *)e->deviceData();
     ke->free_tmp_bufs();
@@ -152,7 +151,6 @@ bool handle_event_completion(EVEDevice *device)
 
     event->setStatus(retcode == CL_SUCCESS ? Event::Complete :
                                              (Event::Status)retcode);
-#endif // YUAN TODO
 
     return false;
 }
@@ -596,7 +594,7 @@ bool handle_event_dispatch(EVEDevice *device)
         case Event::TaskKernel:
         {
             KernelEvent        *e  = (KernelEvent *) event;
-            DSPKernelEvent     *ke = (DSPKernelEvent *)e->deviceData();
+            EVEKernelEvent     *ke = (EVEKernelEvent *)e->deviceData();
 
             errcode = ke->run(t);
             if (errcode == CL_SUCCESS)
