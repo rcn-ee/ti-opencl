@@ -236,6 +236,7 @@ typedef struct _cl_buffer_region {
 #define CL_DEVICE_NATIVE_VECTOR_WIDTH_DOUBLE        0x103B
 #define CL_DEVICE_NATIVE_VECTOR_WIDTH_HALF          0x103C
 #define CL_DEVICE_OPENCL_C_VERSION                  0x103D
+#define CL_DEVICE_BUILT_IN_KERNELS                  0x103F
 
 /* cl_device_fp_config - bitfield */
 #define CL_FP_DENORM                                (1 << 0)
@@ -650,6 +651,13 @@ clCreateProgramWithBinary(cl_context                     /* context */,
                           const unsigned char **         /* binaries */,
                           cl_int *                       /* binary_status */,
                           cl_int *                       /* errcode_ret */) CL_API_SUFFIX__VERSION_1_0;
+
+extern CL_API_ENTRY cl_program CL_API_CALL
+clCreateProgramWithBuiltInKernels(cl_context            /* context */,
+                                  cl_uint               /* num_devices */,
+                                  const cl_device_id *  /* device_list */,
+                                  const char *          /* kernel_names */,
+                                  cl_int *              /* errcode_ret */) CL_API_SUFFIX__VERSION_1_1;
 
 extern CL_API_ENTRY cl_int CL_API_CALL
 clRetainProgram(cl_program /* program */) CL_API_SUFFIX__VERSION_1_0;

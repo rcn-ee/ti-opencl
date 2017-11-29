@@ -87,10 +87,20 @@ EVEKernel::EVEKernel(EVEDevice *device, Kernel *kernel,
 {
 }
 
+EVEKernel::EVEKernel(EVEDevice *device, Kernel *kernel, 
+                     KernelEntry *kernel_entry)
+: DeviceKernel(), p_device(device), p_kernel(kernel), p_kernel_entry(kernel_entry)
+{
+}
+
 EVEKernel::~EVEKernel()
 {
 }
 
+cl_uint EVEKernel::builtin_kernel_index()
+{
+    return p_kernel_entry->index;
+}
 
 /******************************************************************************
 * void EVEKernel::preAllocBuffers()
@@ -131,7 +141,8 @@ EVEKernelEvent::EVEKernelEvent(EVEDevice *device, KernelEvent *event)
     *------------------------------------------------------------------------*/
     p_msg.command           = TASK;
     p_msg.u.k_eve.Kernel_id = p_kernel_id;
-    p_msg.u.k_eve.builtin_kernel_index = p_kernel->GetBuiltInKernelIndex();
+    //p_msg.u.k_eve.builtin_kernel_index = p_kernel->GetBuiltInKernelIndex();
+    p_msg.u.k_eve.builtin_kernel_index = (unsigned) p_kernel->builtin_kernel_index();
     p_msg.u.k_eve.eve_id    = p_device->GetEveId();
 }
 

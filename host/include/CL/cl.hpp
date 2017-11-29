@@ -288,6 +288,7 @@ public:
 #define __SET_KERNEL_ARGS_ERR               __ERR_STR(clSetKernelArg)
 #define __CREATE_PROGRAM_WITH_SOURCE_ERR    __ERR_STR(clCreateProgramWithSource)
 #define __CREATE_PROGRAM_WITH_BINARY_ERR    __ERR_STR(clCreateProgramWithBinary)
+#define __CREATE_PROGRAM_WITH_BUILT_IN_KERNELS_ERR __ERR_STR(clCreateProgramWithBuiltInKernels)
 #define __BUILD_PROGRAM_ERR                 __ERR_STR(clBuildProgram)
 #define __CREATE_KERNELS_IN_PROGRAM_ERR     __ERR_STR(clCreateKernelsInProgram)
 
@@ -2470,6 +2471,38 @@ public:
                : NULL, &error);
 
         detail::errHandler(error, __CREATE_PROGRAM_WITH_BINARY_ERR);
+        if (err != NULL) {
+            *err = error;
+        }
+    }
+
+    /**
+     * Create program using builtin kernels.
+     * \param kernelNames Semi-colon separated list of builtin kernel names
+     */
+    Program(
+        const Context& context,
+        const VECTOR_CLASS<Device>& devices,
+        const STRING_CLASS& kernelNames,
+        cl_int* err = NULL)
+    {
+        cl_int error;
+
+
+        ::size_t numDevices = devices.size();
+        cl_device_id* deviceIDs = (cl_device_id*) alloca(numDevices * sizeof(cl_device_id));
+        for( ::size_t deviceIndex = 0; deviceIndex < numDevices; ++deviceIndex ) {
+            deviceIDs[deviceIndex] = (devices[deviceIndex])();
+        }
+        
+        object_ = ::clCreateProgramWithBuiltInKernels(
+            context(), 
+            (cl_uint) devices.size(),
+            deviceIDs,
+            kernelNames.c_str(), 
+            &error);
+
+        detail::errHandler(error, __CREATE_PROGRAM_WITH_BUILT_IN_KERNELS_ERR);
         if (err != NULL) {
             *err = error;
         }

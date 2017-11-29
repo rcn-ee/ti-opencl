@@ -36,6 +36,7 @@
 #include "device.h"
 #include <core/config.h>
 #include <llvm/IR/Function.h>
+#include "../kernelentry.h"
 
 #include <vector>
 #include <string>
@@ -64,6 +65,7 @@ class EVEKernel : public DeviceKernel
 {
     public:
         EVEKernel(EVEDevice *device, Kernel *kernel, llvm::Function *function);
+        EVEKernel(EVEDevice *device, Kernel *kernel, KernelEntry *kernel_entry);
         ~EVEKernel();
 
         size_t       workGroupSize()   const                { return 1; }
@@ -77,6 +79,7 @@ class EVEKernel : public DeviceKernel
         Kernel *     kernel() const      { return p_kernel; }
         EVEDevice *  device() const      { return p_device; }
         llvm::Function *function() const { return p_function; }
+        cl_uint      builtin_kernel_index();
         uint32_t     GetBuiltInKernelIndex() const
                                          { return p_builtin_kernel_index_; }
 
@@ -87,6 +90,7 @@ class EVEKernel : public DeviceKernel
         Kernel *        p_kernel;
         llvm::Function *p_function;
         uint32_t        p_builtin_kernel_index_;
+        KernelEntry     *p_kernel_entry;
 };
 
 class EVEKernelEvent

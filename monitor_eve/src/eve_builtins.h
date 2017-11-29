@@ -42,5 +42,6 @@ extern void tiocl_bik_calling_conv_test(char *buf, short len, char a,
                                       int x, int y, int z, int aa, int ab,
                                       int ac, int ad, int ae, int af, int ag,
                                       int ah, int ai);
+extern void tiocl_bik_vecadd(int *a, int *b, int* c, int len);
 
 #endif // _EVE_BUILTINS_H_

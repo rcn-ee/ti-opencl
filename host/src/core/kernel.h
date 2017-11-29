@@ -302,7 +302,7 @@ class Kernel : public _cl_kernel, public Object
                              void *param_value,
                              size_t *param_value_size_ret) const;
 
-        void reqdWorkGroupSize(llvm::Module *module, cl_uint dims[3]) const;
+        virtual void reqdWorkGroupSize(llvm::Module *module, cl_uint dims[3]) const;
 
         int get_wi_alloca_size() { return wi_alloca_size; }
 
@@ -315,7 +315,7 @@ class Kernel : public _cl_kernel, public Object
         */
         std::string getName() { return p_name; }
 
-    private:
+    protected:
         std::string p_name;
         bool p_has_locals;
         int wi_alloca_size;

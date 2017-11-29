@@ -32,6 +32,7 @@
 
 #include "CL/cl.h"
 #include <core/program.h>
+#include <core/builtinprogram.h>
 #include <core/context.h>
 #include <core/platform.h>
 #include <core/deviceinterface.h>
@@ -75,6 +76,50 @@ clCreateProgramWithSource(cl_context        d_context,
         return 0;
     }
 
+    return desc(program);
+}
+
+cl_program
+clCreateProgramWithBuiltInKernels(cl_context                d_context,
+                                  cl_uint                   num_devices,
+                                  const cl_device_id *      device_list,
+                                  const char *              kernel_names,
+                                  cl_int *                  errcode_ret)
+{
+    cl_int dummy_errcode;
+    auto context = pobj(d_context);
+
+    if (!errcode_ret)
+        errcode_ret = &dummy_errcode;
+
+    if (!context->isA(Coal::Object::T_Context))
+    {
+        *errcode_ret = CL_INVALID_CONTEXT;
+        return 0;
+    }
+
+    if (!num_devices || !device_list || !kernel_names)
+    {
+        *errcode_ret = CL_INVALID_VALUE;
+        return 0;
+    }
+
+    Coal::BuiltInProgram *program = new Coal::BuiltInProgram(context);
+
+    *errcode_ret = CL_SUCCESS;
+    Coal::DeviceInterface  **devices = (Coal::DeviceInterface **)
+        std::malloc(num_devices * sizeof(Coal::DeviceInterface *));
+    pobj_list(devices, device_list, num_devices);
+    *errcode_ret = program->loadBuiltInKernels(num_devices, devices, kernel_names);
+
+    if (*errcode_ret != CL_SUCCESS)
+    {
+        delete program;
+        std::free(devices);
+        return 0;
+    }
+    
+    std::free(devices);
     return desc(program);
 }
 

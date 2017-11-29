@@ -33,6 +33,7 @@ tiocl_eve_builtin_kernel tiocl_eve_builtin_kernel_table[] =
   // reserved for OpenCL EVE runtime testing
   (tiocl_eve_builtin_kernel) tiocl_bik_memcpy_test,
   (tiocl_eve_builtin_kernel) tiocl_bik_calling_conv_test,
+  (tiocl_eve_builtin_kernel) tiocl_bik_vecadd,
 
   // Intended for user callable functions
 };

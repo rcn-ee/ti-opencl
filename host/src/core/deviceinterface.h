@@ -36,8 +36,10 @@
 
 #include <CL/cl.h>
 #include <string>
+#include <vector>
 #include "object.h"
 #include "icd.h"
+#include "kernelentry.h"
 
 /* This pulls in legacy::PassManager when using LLVM >= 3.5 */
 #include <llvm/PassManager.h>
@@ -142,6 +144,23 @@ class DeviceInterface : public _cl_device_id, public Object
          */
         virtual DeviceKernel *createDeviceKernel(Kernel *kernel, 
                                                  llvm::Function *function) = 0;
+
+        /**
+         * \brief Create a \c Coal::DeviceKernel object for this device using a
+         *        built-in kernel
+         * \param kernel \c Coal::Kernel containing the device-independent kernel
+         *               data
+         * \param kernel_entry a device-specific \c Coal::KernelEntry that describes
+         *                     a built-in kernel on the device
+         * \return a \c Coal::DeviceKernel object
+         */
+
+        virtual DeviceKernel *createDeviceBuiltInKernel(Kernel *kernel,
+                                                        KernelEntry *kernel_entry)
+        { return NULL; }
+
+        virtual std::vector<KernelEntry *> *getKernelEntries()
+        { return NULL; }
 
         /**
          * \brief Push an event on the device

@@ -39,6 +39,7 @@
 #include "../dsp/mbox_interface.h"
 #include "../shared_memory_interface.h"
 #include "../dsp/device_manager_interface.h"
+#include "../kernelentry.h"
 
 namespace Coal
 {
@@ -70,10 +71,15 @@ class EVEDevice : public DeviceInterface, public Lockable
                     void *param_value,
                     size_t *param_value_size_ret) const;
 
+        std::vector<KernelEntry*> *getKernelEntries();
+
         DeviceBuffer *createDeviceBuffer(MemObject *buffer, cl_int *rs);
         DeviceProgram *createDeviceProgram(Program *program);
         DeviceKernel *createDeviceKernel(Kernel *kernel,
                                          llvm::Function *function);
+        DeviceKernel *createDeviceBuiltInKernel(Kernel *kernel,
+                                                KernelEntry *builtin_kernel);
+
         cl_int initEventDeviceData(Event *event);
         void freeEventDeviceData(Event *event);
 
@@ -135,6 +141,7 @@ class EVEDevice : public DeviceInterface, public Lockable
 
         const DeviceManager *device_manager_;
         uint32_t           p_pid;
+        std::vector<KernelEntry*> p_kernel_entries;
 };
 
 }

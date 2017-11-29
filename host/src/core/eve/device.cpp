@@ -107,6 +107,24 @@ EVEDevice::EVEDevice(unsigned char eve_id, SharedMemory* shm)
     * initialize the mailboxes on the cores, so they can receive an exit cmd
     *------------------------------------------------------------------------*/
     p_mb = MBoxFactory::CreateMailbox(this);
+    
+    /*-------------------------------------------------------------------------
+    * Initialize BuiltIn Kernels
+    *------------------------------------------------------------------------*/
+    KernelEntry *k;
+
+    k = new KernelEntry("tiocl_bik_memcpy_test", 0);
+    k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
+    k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
+    k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Int32, false);
+    p_kernel_entries.push_back(k);
+    
+    k = new KernelEntry("tiocl_bik_vecadd", 1);
+    k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
+    k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
+    k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
+    k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Int32, false);
+    p_kernel_entries.push_back(k);
 }
 
 bool EVEDevice::hostSchedule() const
@@ -196,6 +214,12 @@ EVEDevice::~EVEDevice()
     * Only need to close the driver for one of the devices
     *------------------------------------------------------------------------*/
     delete device_manager_;
+
+    /*-------------------------------------------------------------------------
+    * Remove BuiltIn kernel entries
+    *------------------------------------------------------------------------*/
+    for(KernelEntry *k : p_kernel_entries) delete k;
+
 }
 
 /******************************************************************************
@@ -214,10 +238,19 @@ DeviceProgram *EVEDevice::createDeviceProgram(Program *program)
 
 /******************************************************************************
 * DeviceKernel *EVEDevice::createDeviceKernel(Kernel *kernel,
+*                                             llvm::Function *function)      
 ******************************************************************************/
 DeviceKernel *EVEDevice::createDeviceKernel(Kernel *kernel,
                                 llvm::Function *function)
     { return (DeviceKernel *)new EVEKernel(this, kernel, function); }
+
+/******************************************************************************
+* DeviceKernel *EVEDevice::createDeviceBuiltInKernel(Kernel *kernel,
+*                                                    KernelEntry *kernel_entry)
+******************************************************************************/
+DeviceKernel *EVEDevice::createDeviceBuiltInKernel(Kernel *kernel,
+                                                   KernelEntry *kernel_entry)
+    { return (DeviceKernel *)new EVEKernel(this, kernel, kernel_entry); }
 
 /******************************************************************************
 * cl_int EVEDevice::initEventDeviceData(Event *event)
@@ -770,7 +803,7 @@ cl_int EVEDevice::info(cl_device_info param_name,
             break;
 
         case CL_DEVICE_EXECUTION_CAPABILITIES:
-            SIMPLE_ASSIGN(cl_device_exec_capabilities, CL_EXEC_KERNEL);
+            SIMPLE_ASSIGN(cl_device_exec_capabilities, CL_EXEC_NATIVE_KERNEL);
             break;
 
         case CL_DEVICE_QUEUE_PROPERTIES:
@@ -778,6 +811,10 @@ cl_int EVEDevice::info(cl_device_info param_name,
                           CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE |
                           CL_QUEUE_PROFILING_ENABLE |
                           CL_QUEUE_KERNEL_TIMEOUT_COMPUTE_UNIT_TI);
+            break;
+        
+        case CL_DEVICE_BUILT_IN_KERNELS:
+            STRING_ASSIGN("tiocl_bik_memcpy_test;tiocl_bik_vecadd");
             break;
 
         case CL_DEVICE_NAME:
@@ -878,3 +915,6 @@ cl_int EVEDevice::info(cl_device_info param_name,
 
     return CL_SUCCESS;
 }
+
+std::vector<KernelEntry*> *EVEDevice::getKernelEntries()
+    { return &p_kernel_entries;}

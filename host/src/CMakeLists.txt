@@ -109,6 +109,9 @@ set(COAL_SRC_FILES
     core/util.cpp
     core/error_report.cpp
     core/oclenv.cpp
+    core/kernelentry.cpp
+    core/builtinprogram.cpp
+    core/builtinkernel.cpp
 
     core/dsp/program.cpp
     core/dsp/driver.cpp

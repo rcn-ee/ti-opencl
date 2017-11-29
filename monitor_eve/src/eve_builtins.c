@@ -62,3 +62,11 @@ void tiocl_bik_calling_conv_test(char *buf, short len, char a,
            x, y, z, aa, ab, ac, ad, ae, af, ag, ah, ai);
 }
 
+void tiocl_bik_vecadd(int *a, int *b, int* c, int len)
+{
+    int i;
+    for (i=0; i<len; i++)
+    {
+        c[i] = a[i] + b[i];
+    }
+}
