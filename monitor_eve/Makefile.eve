@@ -53,10 +53,16 @@ IPC_DIR        ?= $(RTOS_INSTALL_DIR)/ti-ipc-tree
 BIOS_DIR       ?= $(RTOS_INSTALL_DIR)/ti-sysbios-tree
 PDK_DIR        ?= $(SDOMC_SHARED)/PROCESSOR_SDK_VISION_03_01_00_00/ti_components/drivers/pdk_01_08_00_16
 
-VSDK_TOOLS_DIR ?= $(SDOMC_SHARED)/PROCESSOR_SDK_VISION_03_01_00_00/vision_sdk/links_fw/src/rtos/utils_common/src/eveloader/tools
+#VSDK_TOOLS_DIR ?= $(SDOMC_SHARED)/PROCESSOR_SDK_VISION_03_01_00_00/vision_sdk/links_fw/src/rtos/utils_common/src/eveloader/tools
 
 TI_OCL_ARP32_CGT_INSTALL ?= $(SDOMC_SHARED)/PROCESSOR_SDK_VISION_03_01_00_00/ti_components/cg_tools/linux/arp32_1.0.7
 
+
+# OUT2RPRC            ?= $(VSDK_TOOLS_DIR)/out2rprc.exe
+# MULTICORE_IMAGE_GEN ?= $(VSDK_TOOLS_DIR)/MulticoreImageGen64.out
+# BIN2C               ?= $(VSDK_TOOLS_DIR)/bin2c64.out
+OUT2RPRC            ?= $(PDK_DIR)/packages/ti/boot/sbl_auto/tools/out2rprc/out2rprc.exe
+MULTICORE_IMAGE_GEN ?= $(PDK_DIR)/packages/ti/boot/sbl_auto/tools/multicore_image_generator/v1/MulticoreImageGen
 
 # EVE firmware layout when embedding into IPU firmware
 ENDIANNESS:=LE
@@ -109,8 +115,10 @@ all: src/eve_firmware.h
 
 src/eve_firmware.h: $(EVE1_RPRC_PATH) $(EVE2_RPRC_PATH) \
                     $(EVE3_RPRC_PATH) $(EVE4_RPRC_PATH)
-	$(VSDK_TOOLS_DIR)/MulticoreImageGen64.out $(ENDIANNESS) $(DEV_ID) $(PROJECT)/EveAppImage $(INPUTRPRCS)
-	$(VSDK_TOOLS_DIR)/bin2c64.out $(PROJECT)/EveAppImage > $@
+	$(MULTICORE_IMAGE_GEN) $(ENDIANNESS) $(DEV_ID) $(PROJECT)/EveAppImage $(INPUTRPRCS)
+	#$(BIN2C) $(PROJECT)/EveAppImage > $@
+	hexdump -ve '1/1 "0x%02x,"' $(PROJECT)/EveAppImage | \
+            sed -e "s/\(0x..,\)\{90\}/&\n/g" -e "\$$a // bytes" > $@
 
 $(EVE1_RPRC_PATH): $(SOURCES) $(CONFIGS)
 	make -f Makefile.eve TARGET=eve1 eve1.x
@@ -122,8 +130,7 @@ $(EVE4_RPRC_PATH): $(SOURCES) $(CONFIGS)
 	make -f Makefile.eve TARGET=eve4 eve4.x
 
 $(TARGET).x: $(PROJECT)/$(TARGET).xearp32F
-	mono $(VSDK_TOOLS_DIR)/out2rprc.exe $< \
-                                            $(PROJECT)/$(TARGET).xearp32F.rprc
+	mono $(OUT2RPRC) $< $(PROJECT)/$(TARGET).xearp32F.rprc
 
 $(PROJECT)/$(TARGET).xearp32F: $(OBJS) $(libs) $(CONFIG)/linker.cmd
 	@$(ECHO) "#"
