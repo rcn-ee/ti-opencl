@@ -62,6 +62,7 @@ enum class ErrorKind
     ShouldNotGetHere,
     PCIeDriverError,
     MessageQueueCountMismatch,
+    FailedToOpenEVEMessageQ,
     LostDSP,
     DaemonNotRunning,
     DaemonAlreadyRunning,

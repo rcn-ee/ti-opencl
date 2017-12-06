@@ -146,11 +146,6 @@ set(COAL_SRC_FILES ${COAL_SRC_FILES}
     core/cpu/builtins.cpp
     core/cpu/sampler.cpp
 
-    core/eve/device.cpp
-    core/eve/worker.cpp
-    core/eve/program.cpp
-    core/eve/kernel.cpp
-
     ${CMAKE_CURRENT_BINARY_DIR}/runtime/stdlib.h.embed.h
     ${CMAKE_CURRENT_BINARY_DIR}/runtime/stdlib.c.bc.embed.h
     ${CMAKE_CURRENT_BINARY_DIR}/runtime/builtins_impl.h
@@ -163,6 +158,14 @@ set(COAL_SRC_FILES ${COAL_SRC_FILES}
     core/dsp/tal/shmem_provider_factory.cpp
     core/dsp/tal/symbol_address_elf.cpp
 )
+    if (AM57_BUILD)
+        set(COAL_SRC_FILES ${COAL_SRC_FILES}
+            core/eve/device.cpp
+            core/eve/worker.cpp
+            core/eve/program.cpp
+            core/eve/kernel.cpp
+           )
+    endif()
 endif()
 
 if (K2X_BUILD OR K2G_BUILD)

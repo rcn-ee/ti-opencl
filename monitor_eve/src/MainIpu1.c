@@ -75,6 +75,7 @@ int                 eve_ocl_msgq_avail_slot[MAX_NUM_EVES];
 /* private functions */
 static Void smain(UArg arg0, UArg arg1);
 static bool create_mqueue();
+static int  GetNumEVEDevices();
 
 
 /*
@@ -87,6 +88,15 @@ Int main(Int argc, Char* argv[])
     Int             status;
 
     Log_print0(Diags_ENTRY, "--> main:");
+
+    /* Check available EVE devices to see if OpenCL firmware applies */
+    int num_eve_devices = GetNumEVEDevices();
+    if (num_eve_devices <= 0)
+    {
+        Log_print0(Diags_INFO | Diags_USER6,
+                   "OpenCL runtime firmware does not apply. Exit.");
+        return (-1);
+    }
 
     /* SR0 requires Ipc_start() */
     do
@@ -109,26 +119,24 @@ Int main(Int argc, Char* argv[])
         System_abort("main: failed to create application startup thread");
     }
 
-    Log_print0(Diags_INFO, "Creating msg queue...");
+    Log_print0(Diags_INFO | Diags_USER6, "Creating msg queue...");
     /* Create the M4 proxy queue for EVEs */
     if (!create_mqueue())
     {
-        Log_print0(Diags_INFO, "failed to create message queues");
+        Log_print0(Diags_INFO | Diags_USER6, "failed to create msg queue");
         System_abort("main: create_mqueue() failed");
     }
 
-    Log_print0(Diags_INFO, "Booting EVEs...");
+    Log_print0(Diags_INFO | Diags_USER6, "Booting EVEs...");
     /* Boot the EVEs */
-#if 1
-    status = Utils_eveBoot();
+    status = Utils_eveBoot(num_eve_devices);
     if (status)
     {
-        Log_print0(Diags_INFO, "failed to boot EVEs");
+        Log_print0(Diags_INFO | Diags_USER6, "failed to boot EVEs");
         System_abort("main: Utils_eveBoot() failed");
     }
-#endif
 
-    Log_print0(Diags_INFO, "Starting BIOS...");
+    Log_print0(Diags_INFO | Diags_USER6, "Starting BIOS...");
     /* start scheduler, this never returns */
     BIOS_start();
 
@@ -149,7 +157,7 @@ Void smain(UArg arg0, UArg arg1)
     Log_print0(Diags_ENTRY | Diags_INFO, "--> smain:");
 
     /* Attaching to EVEs */
-    Log_print0(Diags_INFO, "Attaching to EVEs...");
+    Log_print0(Diags_INFO | Diags_USER6, "Attaching to EVEs...");
     for (i = 0; i < MAX_NUM_EVES; i++)
     {
         const char *eve_name = (i == 0) ? "EVE1" :
@@ -162,14 +170,16 @@ Void smain(UArg arg0, UArg arg1)
         } while (status == Ipc_E_NOTREADY);
 
         if (status < 0) {
-            Log_print1(Diags_INFO, "Attaching %s failed", (xdc_IArg) eve_name);
+            Log_print1(Diags_INFO | Diags_USER6,
+                       "Attaching %s failed", (xdc_IArg) eve_name);
             return;
         }
-        Log_print1(Diags_INFO, "%s attached", (xdc_IArg) eve_name);
+        Log_print1(Diags_INFO | Diags_USER6,
+                   "%s attached", (xdc_IArg) eve_name);
     }
 
     /* Opening MsgQs on EVEs */
-    Log_print0(Diags_INFO, "Opening MsgQ on EVEs...");
+    Log_print0(Diags_INFO | Diags_USER6, "Opening MsgQ on EVEs...");
     for (i = 0; i < MAX_NUM_EVES; i++)
     {
         const char *queue_name = (i == 0) ? "OCL:EVE1:MsgQ" :
@@ -178,14 +188,16 @@ Void smain(UArg arg0, UArg arg1)
                                             "OCL:EVE4:MsgQ";
         status = MessageQ_open((String) queue_name, &eveQueues[i]);
         if (status < 0) {
-            Log_print1(Diags_INFO,"Opening %s failed", (xdc_IArg) queue_name);
+            Log_print1(Diags_INFO | Diags_USER6,
+                       "Opening %s failed", (xdc_IArg) queue_name);
             return;
         }
-        Log_print1(Diags_INFO, "%s opened", (xdc_IArg) queue_name);
+        Log_print1(Diags_INFO | Diags_USER6,
+                   "%s opened", (xdc_IArg) queue_name);
     }
 
     /* Pre-allocating msgs to EVEs */
-    Log_print0(Diags_INFO, "Pre-allocating msgs to EVEs...");
+    Log_print0(Diags_INFO | Diags_USER6, "Pre-allocating msgs to EVEs...");
     for (i = 0; i < MAX_NUM_EVES; i++)
     {
         for (j = 0; j < MAX_NUM_COMPLETION_PENDING; j++)
@@ -194,7 +206,7 @@ Void smain(UArg arg0, UArg arg1)
                 MessageQ_alloc(XDC_CFG_HeapID_Eve, sizeof(ocl_msgq_message_t));
             if (eve_ocl_msgq_pkt[i][j] == NULL)
             {
-                 Log_print2(Diags_INFO,
+                 Log_print2(Diags_INFO | Diags_USER6,
                             "Failed to pre-allocate msgs for EVE: %d, %d",
                             i, j);
                  return;
@@ -202,7 +214,8 @@ Void smain(UArg arg0, UArg arg1)
         }
         eve_ocl_msgq_avail_slot[i] = 0;
     }
-    Log_print0(Diags_INFO, "Done initialization. Waiting for messages...");
+    Log_print0(Diags_INFO | Diags_USER6,
+               "Done OpenCL runtime initialization. Waiting for messages...");
 
     /* Loop forever, proxying between host and EVE */
     while (TRUE) {
@@ -258,7 +271,8 @@ Void smain(UArg arg0, UArg arg1)
                     MessageQ_put(hostReplyQueue, (MessageQ_Msg) host_print_pkt);
                 }
                 else
-                    Log_print0(Diags_INFO, "msgq alloc failed for print");
+                    Log_print0(Diags_INFO | Diags_USER6,
+                               "msgq alloc failed for print");
                 MessageQ_free((MessageQ_Msg) ocl_msgq_pkt);
             }
         }
@@ -281,23 +295,36 @@ static bool create_mqueue()
 
     if (eveProxyQueue == NULL)
     {
-        Log_print0(Diags_INFO,
+        Log_print0(Diags_INFO | Diags_USER6,
                    "create_mqueue: EVE Proxy MessageQ creation failed");
         return false;
     }
-
-    Log_print1(Diags_INFO, "create_mqueue: %s ready",
-               (xdc_IArg) "OCL:EVEProxy:MsgQ");
+    Log_print1(Diags_INFO | Diags_USER6,
+               "%s ready", (xdc_IArg) "OCL:EVEProxy:MsgQ");
 
     /* get the SR_0 heap handle */
     IHeap_Handle heap = (IHeap_Handle) SharedRegion_getHeap(0);
     if (heap == NULL) {
-        Log_print0(Diags_INFO,"SharedRegion getHeap failed\n" );
+        Log_print0(Diags_INFO | Diags_USER6, "SharedRegion getHeap failed\n" );
         return false;
     }
     /* Register this heap with MessageQ for communicating with EVE */
     Int status = MessageQ_registerHeap(heap, XDC_CFG_HeapID_Eve);
-    Log_print0(Diags_INFO, "Heap for EVE ready");
+    Log_print0(Diags_INFO | Diags_USER6, "Heap for EVE ready");
 
     return true;
 }
+
+#define CTRL_WKUP_STD_FUSE_DIE_ID_2  0x4AE0C20C
+static int  GetNumEVEDevices()
+{
+    uint32_t board_type = (  *((uint32_t *) CTRL_WKUP_STD_FUSE_DIE_ID_2)
+                           & 0xFF000000) >> 24;
+    int      num_eves = 0;
+    if (board_type == 0x3E)  // AM5729
+        num_eves = 4;
+
+    Log_print1(Diags_INFO | Diags_USER6, "%d EVEs Available", num_eves);
+    return num_eves;
+}
+

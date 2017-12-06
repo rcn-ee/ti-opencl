@@ -166,50 +166,8 @@ MBoxMsgQ::MBoxMsgQ(Coal::EVEDevice *device)
     int eve_id = device->GetEveId();
     int status = MessageQ_open(const_cast<char *>("OCL:EVEProxy:MsgQ"),
                                &dspQue[0]);
-    if (status == MessageQ_S_SUCCESS)
-    {
-#if 0  // YUAN TO REMOVE
-        ocl_msgq_message_t *msg = (ocl_msgq_message_t *)
-                            MessageQ_alloc(heapId, sizeof(ocl_msgq_message_t));
-        assert (msg != NULL);
-        MessageQ_setReplyQueue(hostQue, (MessageQ_Msg)msg);
-        msg->message.trans_id = 54321;
-        msg->message.u.k_eve.eve_id   = eve_id;  // to which eve
-
-    cl_ulong rs;
-    struct timespec tp;
-    if (clock_gettime(CLOCK_MONOTONIC, &tp) != 0)
-        clock_gettime(CLOCK_REALTIME, &tp);
-    rs = tp.tv_nsec / 1e3;  // convert to microseconds
-    rs += tp.tv_sec * 1e6;  // convert to microseconds
-
-        status = MessageQ_put(dspQue[0], (MessageQ_Msg)msg);
-        if (status < 0)  printf("Sending msg to EVE proxy queue: failed\n");
-        else
-        {
-            status = MessageQ_get(hostQue, (MessageQ_Msg *)&msg,
-                                  MessageQ_FOREVER);
-            if (status < 0)  printf("Receiving from EVE proxy queue: failed\n");
-            else if (status != MessageQ_E_UNBLOCKED)
-            {
-    cl_ulong rs2;
-    if (clock_gettime(CLOCK_MONOTONIC, &tp) != 0)
-        clock_gettime(CLOCK_REALTIME, &tp);
-    rs2 = tp.tv_nsec / 1e3;  // convert to microseconds
-    rs2 += tp.tv_sec * 1e6;  // convert to microseconds
-
-                assert(msg != NULL);
-                printf("Receive from EVE transid: 0x%x, retcode: 0x%x\n", msg->message.trans_id, msg->message.u.command_retcode.retcode);
-                printf("Delay: %lld us\n", rs2 - rs);
-                MessageQ_free((MessageQ_Msg)msg);
-            }
-        }
-#endif
-    }
-    else
-    {
-        printf("Failed to open EVE proxy queue\n");
-    }
+    if (status != MessageQ_S_SUCCESS)
+        ReportError(ErrorType::Fatal, ErrorKind::FailedToOpenEVEMessageQ);
 }
 
 void MBoxMsgQ::write (uint8_t *buf, uint32_t size, uint32_t trans_id, 

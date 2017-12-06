@@ -108,7 +108,7 @@ Limited License.
  *
  *******************************************************************************
  */
-Int32 Utils_eveBoot(void);
+Int32 Utils_eveBoot(Int32 num_eve_devices);
 
 /**
  *******************************************************************************
@@ -133,7 +133,7 @@ Int32 Utils_loadAppImage(sbllibAppImageParseParams_t *imageParams);
  *
  *******************************************************************************
  */
-void Utils_resetAllEVECores(void);
+void Utils_resetAllEVECores(Int32 num_eve_devices);
 
 #endif
 

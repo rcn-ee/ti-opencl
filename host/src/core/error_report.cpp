@@ -122,6 +122,9 @@ static const std::map<const ErrorKind, const std::string> ErrorStrings =
     {ErrorKind::MessageQueueCountMismatch,
      "Internal Error: Number of message queues (%d) does not match number of compute units (%d)"},
 
+    {ErrorKind::FailedToOpenEVEMessageQ,
+     "Failed to open EVE message queue"},
+
     {ErrorKind::LostDSP,
      "Communication to a DSP has been lost (likely due to an MMU fault).%s"},
 

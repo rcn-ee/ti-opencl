@@ -144,45 +144,53 @@ Int32 Utils_loadAppImage(sbllibAppImageParseParams_t *imageParams)
     return (SBLLibMultiCoreImageParseV1(imageParams));
 }
 
-void Utils_resetAllEVECores(void)
+void Utils_resetAllEVECores(Int32 num_eve_devices)
 {
     Int32 retVal = SYSTEM_LINK_STATUS_SOK;
 
     /* Enable EVE clock domains */
-    retVal = PMHALCMSetCdClockMode(
-        (pmhalPrcmCdId_t) PMHAL_PRCM_CD_EVE1,
-        (pmhalPrcmCdClkTrnModes_t) PMHAL_PRCM_CD_CLKTRNMODES_SW_WAKEUP,
-        PM_TIMEOUT_NOWAIT);
-    retVal += PMHALCMSetCdClockMode(
-        (pmhalPrcmCdId_t) PMHAL_PRCM_CD_EVE2,
-        (pmhalPrcmCdClkTrnModes_t) PMHAL_PRCM_CD_CLKTRNMODES_SW_WAKEUP,
-        PM_TIMEOUT_NOWAIT);
-    retVal += PMHALCMSetCdClockMode(
-        (pmhalPrcmCdId_t) PMHAL_PRCM_CD_EVE3,
-        (pmhalPrcmCdClkTrnModes_t) PMHAL_PRCM_CD_CLKTRNMODES_SW_WAKEUP,
-        PM_TIMEOUT_NOWAIT);
-    retVal += PMHALCMSetCdClockMode(
-        (pmhalPrcmCdId_t) PMHAL_PRCM_CD_EVE4,
-        (pmhalPrcmCdClkTrnModes_t) PMHAL_PRCM_CD_CLKTRNMODES_SW_WAKEUP,
-        PM_TIMEOUT_NOWAIT);
+    if (num_eve_devices >= 1)
+        retVal = PMHALCMSetCdClockMode(
+            (pmhalPrcmCdId_t) PMHAL_PRCM_CD_EVE1,
+            (pmhalPrcmCdClkTrnModes_t) PMHAL_PRCM_CD_CLKTRNMODES_SW_WAKEUP,
+            PM_TIMEOUT_NOWAIT);
+    if (num_eve_devices >= 2)
+        retVal += PMHALCMSetCdClockMode(
+            (pmhalPrcmCdId_t) PMHAL_PRCM_CD_EVE2,
+            (pmhalPrcmCdClkTrnModes_t) PMHAL_PRCM_CD_CLKTRNMODES_SW_WAKEUP,
+            PM_TIMEOUT_NOWAIT);
+    if (num_eve_devices >= 3)
+        retVal += PMHALCMSetCdClockMode(
+            (pmhalPrcmCdId_t) PMHAL_PRCM_CD_EVE3,
+            (pmhalPrcmCdClkTrnModes_t) PMHAL_PRCM_CD_CLKTRNMODES_SW_WAKEUP,
+            PM_TIMEOUT_NOWAIT);
+    if (num_eve_devices >= 4)
+        retVal += PMHALCMSetCdClockMode(
+            (pmhalPrcmCdId_t) PMHAL_PRCM_CD_EVE4,
+            (pmhalPrcmCdClkTrnModes_t) PMHAL_PRCM_CD_CLKTRNMODES_SW_WAKEUP,
+            PM_TIMEOUT_NOWAIT);
 
     /* Enable EVE modules */
-    retVal += PMHALModuleModeSet(
-        (pmhalPrcmModuleId_t) PMHAL_PRCM_MOD_EVE1,
-        (pmhalPrcmModuleSModuleMode_t) PMHAL_PRCM_MODULE_MODE_AUTO,
-        PM_TIMEOUT_INFINITE);
-    retVal += PMHALModuleModeSet(
-        (pmhalPrcmModuleId_t) PMHAL_PRCM_MOD_EVE2,
-        (pmhalPrcmModuleSModuleMode_t) PMHAL_PRCM_MODULE_MODE_AUTO,
-        PM_TIMEOUT_INFINITE);
-    retVal += PMHALModuleModeSet(
-        (pmhalPrcmModuleId_t) PMHAL_PRCM_MOD_EVE3,
-        (pmhalPrcmModuleSModuleMode_t) PMHAL_PRCM_MODULE_MODE_AUTO,
-        PM_TIMEOUT_INFINITE);
-    retVal += PMHALModuleModeSet(
-        (pmhalPrcmModuleId_t) PMHAL_PRCM_MOD_EVE4,
-        (pmhalPrcmModuleSModuleMode_t) PMHAL_PRCM_MODULE_MODE_AUTO,
-        PM_TIMEOUT_INFINITE);
+    if (num_eve_devices >= 1)
+        retVal += PMHALModuleModeSet(
+            (pmhalPrcmModuleId_t) PMHAL_PRCM_MOD_EVE1,
+            (pmhalPrcmModuleSModuleMode_t) PMHAL_PRCM_MODULE_MODE_AUTO,
+            PM_TIMEOUT_INFINITE);
+    if (num_eve_devices >= 2)
+        retVal += PMHALModuleModeSet(
+            (pmhalPrcmModuleId_t) PMHAL_PRCM_MOD_EVE2,
+            (pmhalPrcmModuleSModuleMode_t) PMHAL_PRCM_MODULE_MODE_AUTO,
+            PM_TIMEOUT_INFINITE);
+    if (num_eve_devices >= 3)
+        retVal += PMHALModuleModeSet(
+            (pmhalPrcmModuleId_t) PMHAL_PRCM_MOD_EVE3,
+            (pmhalPrcmModuleSModuleMode_t) PMHAL_PRCM_MODULE_MODE_AUTO,
+            PM_TIMEOUT_INFINITE);
+    if (num_eve_devices >= 4)
+        retVal += PMHALModuleModeSet(
+            (pmhalPrcmModuleId_t) PMHAL_PRCM_MOD_EVE4,
+            (pmhalPrcmModuleSModuleMode_t) PMHAL_PRCM_MODULE_MODE_AUTO,
+            PM_TIMEOUT_INFINITE);
 
     if (SYSTEM_LINK_STATUS_SOK != retVal)
     {
@@ -190,15 +198,19 @@ void Utils_resetAllEVECores(void)
     }
 
     /* Reset EVE1 */
-    SBLLibCPUReset(SBLLIB_CORE_ID_EVE1);
+    if (num_eve_devices >= 1)
+        SBLLibCPUReset(SBLLIB_CORE_ID_EVE1);
 
     /* Reset EVE2 */
-    SBLLibCPUReset(SBLLIB_CORE_ID_EVE2);
+    if (num_eve_devices >= 2)
+        SBLLibCPUReset(SBLLIB_CORE_ID_EVE2);
 
     /* Reset EVE3 */
-    SBLLibCPUReset(SBLLIB_CORE_ID_EVE3);
+    if (num_eve_devices >= 3)
+        SBLLibCPUReset(SBLLIB_CORE_ID_EVE3);
 
     /* Reset EVE4 */
-    SBLLibCPUReset(SBLLIB_CORE_ID_EVE4);
+    if (num_eve_devices >= 4)
+        SBLLibCPUReset(SBLLIB_CORE_ID_EVE4);
 }
 

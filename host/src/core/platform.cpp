@@ -154,11 +154,13 @@ namespace Coal
             Coal::DeviceInterface* device = new Coal::DSPDevice(i, shm);
             p_devices.push_back(desc(device));
         }
+#if defined(DEVICE_AM57) && !defined(_SYS_BIOS)
         for (int i = 0; i < device_info.GetNumEVEDevices(); i++)
         {
             Coal::DeviceInterface* device = new Coal::EVEDevice(i, shm);
             p_devices.push_back(desc(device));
         }
+#endif
 
 #ifndef _SYS_BIOS
         signal(SIGINT,  exit);

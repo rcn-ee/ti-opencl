@@ -48,7 +48,7 @@ public:
     DeviceInfo& operator=(const DeviceInfo&) =delete;
 
     uint8_t      GetNumDevices() const { return num_devices_; } // was num_dsps
-    uint8_t      GetNumEVEDevices() const { return 4; }
+    uint8_t      GetNumEVEDevices() const { return num_eve_devices_; }
     int32_t      GetCmemBlockOffChip() const { return cmem_block_offchip_; }
     int32_t      GetCmemBlockOnChip()  const { return cmem_block_onchip_; }
     std::string  FullyQualifiedPathToDspMonitor() const;
@@ -62,8 +62,10 @@ public:
 private:
 
     void ComputeUnits_CmemBlocks_Available();
+    void EVEDevicesAvailable();
 
     uint8_t num_devices_;
+    uint8_t num_eve_devices_;
     uint8_t num_compute_units_;
     int32_t cmem_block_offchip_;
     int32_t cmem_block_onchip_;

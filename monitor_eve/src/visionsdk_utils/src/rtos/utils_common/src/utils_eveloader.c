@@ -132,7 +132,7 @@ void Utils_eveLoaderPrintFxn(const char *message)
  *
  *******************************************************************************
  */
-Int32 Utils_eveBoot(void)
+Int32 Utils_eveBoot(Int32 num_eve_devices)
 {
     Int32 retVal = SYSTEM_LINK_STATUS_SOK;
     UInt32 sblBuildMode = SBLLIB_SBL_BUILD_MODE_PROD;
@@ -165,7 +165,7 @@ Int32 Utils_eveBoot(void)
     }
 
     /* Reset all EVEs */
-    Utils_resetAllEVECores();
+    Utils_resetAllEVECores(num_eve_devices);
 
     /* Initialize App Image Params */
     SBLLibAppImageParamsInit(&appImgParams);
@@ -177,20 +177,24 @@ Int32 Utils_eveBoot(void)
     Utils_loadAppImage(&appImgParams);
 
 #ifdef PROC_EVE1_INCLUDE
-    SBLLibEVE1BringUp(gUtilsEntryPoints.entryPoint[SBLLIB_CORE_ID_EVE1],
-                      sblBuildMode);
+    if (num_eve_devices >= 1)
+        SBLLibEVE1BringUp(gUtilsEntryPoints.entryPoint[SBLLIB_CORE_ID_EVE1],
+                          sblBuildMode);
 #endif
 #ifdef PROC_EVE2_INCLUDE
-    SBLLibEVE2BringUp(gUtilsEntryPoints.entryPoint[SBLLIB_CORE_ID_EVE2],
-                      sblBuildMode);
+    if (num_eve_devices >= 2)
+        SBLLibEVE2BringUp(gUtilsEntryPoints.entryPoint[SBLLIB_CORE_ID_EVE2],
+                          sblBuildMode);
 #endif
 #ifdef PROC_EVE3_INCLUDE
-    SBLLibEVE3BringUp(gUtilsEntryPoints.entryPoint[SBLLIB_CORE_ID_EVE3],
-                      sblBuildMode);
+    if (num_eve_devices >= 3)
+        SBLLibEVE3BringUp(gUtilsEntryPoints.entryPoint[SBLLIB_CORE_ID_EVE3],
+                          sblBuildMode);
 #endif
 #ifdef PROC_EVE4_INCLUDE
-    SBLLibEVE4BringUp(gUtilsEntryPoints.entryPoint[SBLLIB_CORE_ID_EVE4],
-                      sblBuildMode);
+    if (num_eve_devices >= 4)
+        SBLLibEVE4BringUp(gUtilsEntryPoints.entryPoint[SBLLIB_CORE_ID_EVE4],
+                          sblBuildMode);
 #endif
 
     return retVal;

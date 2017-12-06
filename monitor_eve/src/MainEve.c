@@ -139,10 +139,7 @@ Int main(Int argc, Char* argv[])
 Void smain(UArg arg0, UArg arg1)
 {
     Int                 status = 0;
-    Error_Block         eb;
     MessageQ_QueueId    replyQ;
-
-    Error_init(&eb);
 
     /* attach to IPU */
     do {
@@ -170,43 +167,6 @@ Void smain(UArg arg0, UArg arg1)
                 process_task_command(ocl_msg);
                 break;
             case EXIT:
-                {
-                  int print_start = sizeof(command_retcode_t) + 4 * sizeof(int);
-                  int print_len = sizeof(ocl_msg->u.message) - print_start;
-                  ocl_msg->u.k_eve.builtin_kernel_index = 1;
-                  ocl_msg->u.k_eve.args_on_stack_size = 128;
-                  ocl_msg->u.k_eve.args_in_reg[0] = (int) (ocl_msg->u.message + print_start);
-                  ocl_msg->u.k_eve.args_in_reg[1] = (short) print_len;
-                  char a = 10;
-                  ocl_msg->u.k_eve.args_in_reg[2] = a;
-                
-                  short b = 11;
-                  memcpy(&ocl_msg->u.k_eve.args_on_stack[0], &b, 2);
-                  int c = 12;
-                  memcpy(&ocl_msg->u.k_eve.args_on_stack[4], &c, 4);
-                  char d = -13;
-                  memcpy(&ocl_msg->u.k_eve.args_on_stack[8], &d, 1);
-                  short e = -14;
-                  memcpy(&ocl_msg->u.k_eve.args_on_stack[10], &e, 2);
-                  int f = -15;
-                  memcpy(&ocl_msg->u.k_eve.args_on_stack[12], &f, 4);
-                  short g = 16;
-                  memcpy(&ocl_msg->u.k_eve.args_on_stack[16], &g, 2);
-                  char h = 17;
-                  memcpy(&ocl_msg->u.k_eve.args_on_stack[18], &h, 1);
-                  float i = 18.0f;
-                  memcpy(&ocl_msg->u.k_eve.args_on_stack[20], &i, 4);
-                  int *j = (int *) 19;
-                  memcpy(&ocl_msg->u.k_eve.args_on_stack[24], &j, 4);
-                  int ii;
-                  for (ii = 0; ii < 25; ii++)
-                  {
-                     int k = 20 + ii;
-                     memcpy(&ocl_msg->u.k_eve.args_on_stack[28+ii*4], &k, 4);
-                  }
-                
-                  process_task_command(ocl_msg);
-                }
                 break;
             default:
                 break;

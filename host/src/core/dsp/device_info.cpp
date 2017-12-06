@@ -29,10 +29,15 @@
 #include <cstdlib>
 #ifndef _SYS_BIOS
 #include <dirent.h>
+#include <sys/mman.h>
+#include <sys/types.h>
+#include <fcntl.h>
+#include <unistd.h>
 #endif
 #include <string>
 #include <iostream>
 #include <sstream>
+#include <sys/stat.h>
 
 #include "../tiocl_thread.h"
 #ifdef _SYS_BIOS
@@ -77,7 +82,7 @@ DeviceInfo::DeviceInfo()
     #endif
 
     ComputeUnits_CmemBlocks_Available();
-
+    EVEDevicesAvailable();
 }
 
 DeviceInfo::~DeviceInfo()
@@ -149,7 +154,39 @@ void DeviceInfo::ComputeUnits_CmemBlocks_Available()
     num_compute_units_ = available_compute_units_.size();
 }
 
-#include <sys/stat.h>
+// Check which board we are on and determine number of EVE devices
+// available to the OpenCL runtime.
+void DeviceInfo::EVEDevicesAvailable()
+{
+    #if defined(DEVICE_AM57) && !defined(_SYS_BIOS)
+    int mem_fd = open("/dev/mem", O_RDONLY);
+    if (mem_fd == -1)
+        ReportError(ErrorType::Fatal, ErrorKind::FailedToOpenFileName,
+                    "/dev/mem");
+
+    #define CTRL_WKUP_STD_FUSE_DIE_ID_2  0x4AE0C20C
+    int pagesize = sysconf(_SC_PAGESIZE);
+    int offset = CTRL_WKUP_STD_FUSE_DIE_ID_2 % pagesize;
+    int begin  = CTRL_WKUP_STD_FUSE_DIE_ID_2 - offset;
+    void *addr = mmap(NULL, pagesize, PROT_READ, MAP_PRIVATE, mem_fd, begin);
+    if (addr == MAP_FAILED)
+    {
+        close(mem_fd);
+        ReportError(ErrorType::Fatal, ErrorKind::ShouldNotGetHere,
+                    __FILE__, __LINE__);
+    }
+    uint32_t board_type = (  *(((uint32_t *) addr) + (offset >> 2))
+                           & 0xFF000000 ) >> 24;
+    munmap(addr, pagesize);
+    close(mem_fd);
+
+    if (board_type == 0x3E)       // AM5729
+        num_eve_devices_ = 4;
+    else
+    #endif
+        num_eve_devices_ = 0;
+}
+
 static std::string get_ocl_dsp()
 {
     std::string stdpath("/usr/share/ti/opencl");
