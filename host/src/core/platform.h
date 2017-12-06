@@ -31,6 +31,7 @@
 #include <CL/cl.h>
 #include <vector>
 #include <cstring>
+#include <memory>
 #include "icd.h"
 #include "shared_memory_interface.h"
 
@@ -59,13 +60,14 @@ class Platform
                     void *param_value,
                     size_t *param_value_size_ret) const;
 
-        const tiocl::SharedMemoryProviderFactory& GetSharedMemoryProviderFactory() const
-        { return p_shmFactory; }
+        const tiocl::SharedMemoryProviderFactory* GetSharedMemoryProviderFactory() const
+        { return p_shmFactory.get(); }
 
     private:
         KHRicdVendorDispatch *dispatch;
         std::vector <cl_device_id> p_devices;
-        tiocl::SharedMemoryProviderFactory p_shmFactory;
+        /* MCT-820 Using pointer to allow Platform to be a standard layout class */
+        std::unique_ptr<tiocl::SharedMemoryProviderFactory> p_shmFactory;
 
     public:
         static bool constructed;

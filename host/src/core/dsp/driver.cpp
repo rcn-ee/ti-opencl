@@ -35,9 +35,9 @@ extern "C" {
 int32_t __device_write(int32_t dsp, DSPDevicePtr64 addr,
                        uint8_t *buf, uint32_t sz)
 {
-    const SharedMemoryProviderFactory &shmFactory =
+    const SharedMemoryProviderFactory* shmFactory =
         the_platform::Instance().GetSharedMemoryProviderFactory();
-    SharedMemory* shm = shmFactory.GetSharedMemoryProvider(dsp);
+    SharedMemory* shm = shmFactory->GetSharedMemoryProvider(dsp);
     assert (shm != nullptr);
 
     return shm->WriteToShmem(addr, buf, sz);
@@ -46,9 +46,9 @@ int32_t __device_write(int32_t dsp, DSPDevicePtr64 addr,
 int32_t __device_read (int32_t dsp, DSPDevicePtr64 addr,
                        uint8_t *buf, uint32_t sz)
 {
-    const SharedMemoryProviderFactory &shmFactory =
+    const SharedMemoryProviderFactory* shmFactory =
         the_platform::Instance().GetSharedMemoryProviderFactory();
-    SharedMemory* shm = shmFactory.GetSharedMemoryProvider(dsp);
+    SharedMemory* shm = shmFactory->GetSharedMemoryProvider(dsp);
     assert (shm != nullptr);
 
     return shm->ReadFromShmem(addr, buf, sz);
