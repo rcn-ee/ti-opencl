@@ -145,10 +145,10 @@ namespace Coal
             p_devices.push_back(desc(device));
         }
 #endif
-
+        p_shmFactory = std::unique_ptr<tiocl::SharedMemoryProviderFactory>(new SharedMemoryProviderFactory); 
         for (int i = 0; i < tiocl::DeviceInfo::Instance().GetNumDevices(); i++)
         {
-            tiocl::SharedMemory* shm = p_shmFactory.CreateSharedMemoryProvider(i);
+            tiocl::SharedMemory* shm = p_shmFactory->CreateSharedMemoryProvider(i);
             Coal::DeviceInterface* device = new Coal::DSPDevice(i, shm);
             p_devices.push_back(desc(device));
         }
@@ -168,7 +168,7 @@ namespace Coal
         for (int i = 0; i < p_devices.size(); i++)
 	        delete pobj(p_devices[i]);
 
-        p_shmFactory.DestroySharedMemoryProviders();
+        p_shmFactory->DestroySharedMemoryProviders();
     }
 
     cl_uint Platform::getDevices(cl_device_type device_type, 
