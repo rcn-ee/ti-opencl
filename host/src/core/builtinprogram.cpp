@@ -40,6 +40,7 @@
 #include <string>
 #include <sstream>
 #include <vector>
+#include <regex>
 #include <unordered_set>
 
 namespace Coal
@@ -91,16 +92,6 @@ Kernel *BuiltInProgram::createKernel(const std::string &name,
     return rs;
 }
 
-std::vector<std::string> splitString(std::string s, char delim)
-{
-    std::vector<std::string> tokens;
-    std::string token;
-    std::istringstream ts(s);
-    while(std::getline(ts,token,delim))
-    { tokens.push_back(token); }
-    return tokens;
-}
-
 /******************************************************************************
 * cl_int BuiltInProgram::loadBuiltInKernels(cl_uint num_devices, 
 *                                           DeviceInterface * const *device_list,
@@ -112,8 +103,10 @@ cl_int BuiltInProgram::loadBuiltInKernels(cl_uint num_devices,
 {
     setDevices(num_devices, device_list);
 
-    std::vector<std::string> requested_kernels = splitString(std::string(kernel_names), ';');
-    std::unordered_set<std::string> requested_kernels_set(requested_kernels.begin(), requested_kernels.end());
+    std::string knames{kernel_names};
+    std::regex regex{R"([;]+)"};
+    std::sregex_token_iterator it{knames.begin(), knames.end(), regex, -1};
+    std::unordered_set<std::string> requested_kernels_set{it, {}};
     std::unordered_set<std::string> loaded_kernel_names;
     
     for(cl_uint i=0; i<num_devices; i++)
@@ -121,7 +114,7 @@ cl_int BuiltInProgram::loadBuiltInKernels(cl_uint num_devices,
         DeviceInterface *dev = device_list[i];
         DeviceDependent &dep = deviceDependent(device_list[i]);
 
-        std::vector<KernelEntry *> *device_builtin_kernels = dev->getKernelEntries();
+        auto *device_builtin_kernels = dev->getKernelEntries();
 
         for(KernelEntry *k : *device_builtin_kernels)
         {
@@ -135,7 +128,7 @@ cl_int BuiltInProgram::loadBuiltInKernels(cl_uint num_devices,
     }
     
     /* Error if a requested kernel was not found for any device */
-    if(requested_kernels.size() != loaded_kernel_names.size()) return CL_INVALID_VALUE;
+    if(requested_kernels_set.size() != loaded_kernel_names.size()) return CL_INVALID_VALUE;
 
     p_type = BuiltIn;
     p_state = Built;

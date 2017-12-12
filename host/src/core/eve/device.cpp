@@ -916,5 +916,5 @@ cl_int EVEDevice::info(cl_device_info param_name,
     return CL_SUCCESS;
 }
 
-std::vector<KernelEntry*> *EVEDevice::getKernelEntries()
-    { return &p_kernel_entries;}
+const std::vector<KernelEntry*> *EVEDevice::getKernelEntries() const
+    { return &p_kernel_entries; }

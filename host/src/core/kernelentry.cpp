@@ -35,7 +35,7 @@
 namespace Coal
 {
 
-KernelEntry::KernelEntry(std::string name, cl_uint index)
+KernelEntry::KernelEntry(const std::string& name, cl_uint index)
 {
     this->name = name;
     this->index = index;

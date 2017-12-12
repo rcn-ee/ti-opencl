@@ -71,7 +71,7 @@ class EVEDevice : public DeviceInterface, public Lockable
                     void *param_value,
                     size_t *param_value_size_ret) const;
 
-        std::vector<KernelEntry*> *getKernelEntries();
+        const std::vector<KernelEntry*> *getKernelEntries() const;
 
         DeviceBuffer *createDeviceBuffer(MemObject *buffer, cl_int *rs);
         DeviceProgram *createDeviceProgram(Program *program);

@@ -44,10 +44,23 @@
 namespace Coal
 {
 
+/**
+ * \brief Kernel Entry
+ *
+ * Represents a BuiltIn kernel, its arguments and its index corresponding to 
+ * the device built-in function table. It is analogous to llvm::Function.
+ * 
+ * Usage:
+ * ** In host deviceinterface to create BuiltIn kernels and then get a list of 
+ *    created BuiltIn kernels
+ * ** In accelerator device to instantiate supported BuiltIn kernels with
+ *    required arguments
+ *
+ */
 class KernelEntry
 {
     public:
-    KernelEntry(std::string name, cl_uint index);
+    KernelEntry(const std::string& name, cl_uint index);
 
     cl_uint addArg(unsigned short vec_dim, Kernel::Arg::File file,
                    Kernel::Arg::Kind kind, bool is_subword_int_uns);

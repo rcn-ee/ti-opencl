@@ -159,8 +159,8 @@ class DeviceInterface : public _cl_device_id, public Object
                                                         KernelEntry *kernel_entry)
         { return NULL; }
 
-        virtual std::vector<KernelEntry *> *getKernelEntries()
-        { return NULL; }
+        virtual const std::vector<KernelEntry*> *getKernelEntries() const
+        { return nullptr; }
 
         /**
          * \brief Push an event on the device
