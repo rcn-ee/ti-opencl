@@ -52,8 +52,8 @@ OPENCL_SRC_DIR ?= ../host
 IPC_DIR        ?= $(RTOS_INSTALL_DIR)/ti-ipc-tree
 BIOS_DIR       ?= $(RTOS_INSTALL_DIR)/ti-sysbios-tree
 PDK_DIR        ?= $(SDOMC_SHARED)/PROCESSOR_SDK_VISION_03_01_00_00/ti_components/drivers/pdk_01_08_00_16
-
-#VSDK_TOOLS_DIR ?= $(SDOMC_SHARED)/PROCESSOR_SDK_VISION_03_01_00_00/vision_sdk/links_fw/src/rtos/utils_common/src/eveloader/tools
+TIDL_DIR     ?= $(SDOMC_SHARED)/PROCESSOR_SDK_VISION_03_01_00_00/ti_components/algorithms/REL.TIDL.00.08.00.00
+DMAUTILS_DIR ?= $(SDOMC_SHARED)/PROCESSOR_SDK_VISION_03_01_00_00/ti_components/algorithms/REL.DMAUTILS.00.08.00.02
 
 TI_OCL_ARP32_CGT_INSTALL ?= $(SDOMC_SHARED)/PROCESSOR_SDK_VISION_03_01_00_00/ti_components/cg_tools/linux/arp32_1.0.7
 
@@ -63,6 +63,11 @@ TI_OCL_ARP32_CGT_INSTALL ?= $(SDOMC_SHARED)/PROCESSOR_SDK_VISION_03_01_00_00/ti_
 # BIN2C               ?= $(VSDK_TOOLS_DIR)/bin2c64.out
 OUT2RPRC            ?= $(PDK_DIR)/packages/ti/boot/sbl_auto/tools/out2rprc/out2rprc.exe
 MULTICORE_IMAGE_GEN ?= $(PDK_DIR)/packages/ti/boot/sbl_auto/tools/multicore_image_generator/v1/MulticoreImageGen
+
+export SDOMC_SHARED
+export TI_OCL_ARP32_CGT_INSTALL
+XDAIS_DIR ?= $(RTOS_INSTALL_DIR)/ti-xdais-tree
+export XDAIS_DIR
 
 # EVE firmware layout when embedding into IPU firmware
 ENDIANNESS:=LE
@@ -108,6 +113,10 @@ INCLUDES += -DEVECORE=$(TARGET_UP)
 
 libs = $(PDK_DIR)/packages/ti/csl/lib/tda2xx/arp32/release/ti.csl.aearp32F
 libs += $(PDK_DIR)/packages/ti/drv/pm/lib/tda2xx/arp32/release/pm_lib.aearp32F
+libs += ocl_tidl/ocl_tidl.lib
+libs += $(TIDL_DIR)/modules/ti_dl/lib/eve/release/tidl_algo.lib
+libs += $(DMAUTILS_DIR)/dmautils/libs/eve/release/dmautils.lib
+
 
 .PRECIOUS: %/compiler.opt %/linker.cmd
 
@@ -120,13 +129,13 @@ src/eve_firmware.h: $(EVE1_RPRC_PATH) $(EVE2_RPRC_PATH) \
 	hexdump -ve '1/1 "0x%02x,"' $(PROJECT)/EveAppImage | \
             sed -e "s/\(0x..,\)\{90\}/&\n/g" -e "\$$a // bytes" > $@
 
-$(EVE1_RPRC_PATH): $(SOURCES) $(CONFIGS)
+$(EVE1_RPRC_PATH): $(SOURCES) $(CONFIGS) $(libs)
 	make -f Makefile.eve TARGET=eve1 eve1.x
-$(EVE2_RPRC_PATH): $(SOURCES) $(CONFIGS)
+$(EVE2_RPRC_PATH): $(SOURCES) $(CONFIGS) $(libs)
 	make -f Makefile.eve TARGET=eve2 eve2.x
-$(EVE3_RPRC_PATH): $(SOURCES) $(CONFIGS)
+$(EVE3_RPRC_PATH): $(SOURCES) $(CONFIGS) $(libs)
 	make -f Makefile.eve TARGET=eve3 eve3.x
-$(EVE4_RPRC_PATH): $(SOURCES) $(CONFIGS)
+$(EVE4_RPRC_PATH): $(SOURCES) $(CONFIGS) $(libs)
 	make -f Makefile.eve TARGET=eve4 eve4.x
 
 $(TARGET).x: $(PROJECT)/$(TARGET).xearp32F
@@ -162,6 +171,9 @@ $(CONFIG)/.config: $(CONFIGS)
             -DCORE="$(TARGET_UP)" \
             cfg/Eve.cfg
 	@$(ECHO) "" > $@
+
+ocl_tidl/ocl_tidl.lib:
+	$(MAKE) -C ocl_tidl -f Makefile.eve
 
 help:
 	@$(ECHO) "make                   # build executable"

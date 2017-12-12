@@ -124,6 +124,33 @@ EVEDevice::EVEDevice(unsigned char eve_id, SharedMemory* shm)
     k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
     k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Int32, false);
     p_kernel_entries.push_back(k);
+
+    k = new KernelEntry("ocl_tidl_setup", 10);
+    k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
+    k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
+    k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
+    k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
+    k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
+    p_kernel_entries.push_back(k);
+
+    k = new KernelEntry("ocl_tidl_initialize", 11);
+    k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
+    k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
+    k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
+    k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
+    k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
+    k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
+    p_kernel_entries.push_back(k);
+
+    k = new KernelEntry("ocl_tidl_process", 12);
+    k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
+    k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
+    k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
+    k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
+    p_kernel_entries.push_back(k);
+
+    k = new KernelEntry("ocl_tidl_cleanup", 13);
+    p_kernel_entries.push_back(k);
 }
 
 bool EVEDevice::hostSchedule() const

@@ -1,0 +1,106 @@
+#
+#  Copyright (c) 2017 Texas Instruments Incorporated - http://www.ti.com
+#  All rights reserved.
+#
+#  Redistribution and use in source and binary forms, with or without
+#  modification, are permitted provided that the following conditions
+#  are met:
+#
+#  *  Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#
+#  *  Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in the
+#     documentation and/or other materials provided with the distribution.
+#
+#  *  Neither the name of Texas Instruments Incorporated nor the names of
+#     its contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
+#
+#  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+#  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+#  THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+#  PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+#  CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+#  EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+#  PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+#  OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+#  WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+#  OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+#  EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
+
+#
+#  ======== Makefile.eve ========
+#
+
+## inherited from upper Makefile
+#TI_OCL_ARP32_CGT_INSTALL
+#SDOMC_SHARED
+#XDAIS_DIR
+
+TIDL_DIR     ?= $(SDOMC_SHARED)/PROCESSOR_SDK_VISION_03_01_00_00/ti_components/algorithms/REL.TIDL.00.08.00.00
+DMAUTILS_DIR ?= $(SDOMC_SHARED)/PROCESSOR_SDK_VISION_03_01_00_00/ti_components/algorithms/REL.DMAUTILS.00.08.00.02
+
+SOURCES  = tidl_impl.c ti_mem_manager.c
+
+OBJS     = $(patsubst %.c,%.oearp32F,$(SOURCES))
+
+INCLUDES  = -I. -I $(TI_OCL_ARP32_CGT_INSTALL)/include
+INCLUDES += -I $(TI_OCL_ARP32_CGT_INSTALL)/include/vcop
+INCLUDES += -I $(TIDL_DIR)/common -I $(TIDL_DIR)/modules/ti_dl/inc
+INCLUDES += -I $(TIDL_DIR)/modules/ti_dl/algo/inc
+INCLUDES += -I $(DMAUTILS_DIR)/dmautils/inc
+INCLUDES += -I $(DMAUTILS_DIR)/dmautils/inc/edma_utils
+INCLUDES += -I $(DMAUTILS_DIR)/dmautils/inc/edma_csl
+INCLUDES += -I $(XDAIS_DIR)/packages
+INCLUDES += -DCORE_EVE -DVAYU_PLATFORM -DBUILD_ARP32
+
+LIBS  = $(TIDL_DIR)/modules/ti_dl/lib/eve/release/tidl_algo.lib
+LIBS += $(DMAUTILS_DIR)/dmautils/libs/eve/release/dmautils.lib
+
+
+all: ocl_tidl.lib
+
+ocl_tidl.lib: $(OBJS) $(LIBS)
+	$(AR) r $@ $(OBJS)
+
+%.oearp32F: %.c
+	@$(ECHO) "#"
+	@$(ECHO) "# Making $@ ..."
+	@$(CC) $(CPPFLAGS) $(CFLAGS) $(INCLUDES) --output_file=$@ -fc $<
+
+help:
+	@$(ECHO) "make                   # build executable"
+	@$(ECHO) "make clean             # clean everything"
+
+clean::
+	$(RM) $(OBJS) ocl_tidl.lib
+
+
+#  ======== toolchain macros ========
+CC = $(TI_OCL_ARP32_CGT_INSTALL)/bin/cl-arp32 -c -O3
+AR = $(TI_OCL_ARP32_CGT_INSTALL)/bin/ar-arp32
+
+CPPFLAGS =
+CFLAGS  = --mem_model:data=far -O2
+CFLAGS += -qq -pdsw225
+CFLAGS += --silicon_version=v210
+
+#  ======== standard macros ========
+ifneq (,$(wildcard $(XDC_DIR)/xdc.exe))
+    # use these on Windows
+    CP      = $(XDC_DIR)/bin/cp
+    ECHO    = $(XDC_DIR)/bin/echo
+    MKDIR   = $(XDC_DIR)/bin/mkdir -p
+    RM      = $(XDC_DIR)/bin/rm -f
+    RMDIR   = $(XDC_DIR)/bin/rm -rf
+else
+    # use these on Linux
+    CP      = cp
+    ECHO    = echo
+    MKDIR   = mkdir -p
+    RM      = rm -f
+    RMDIR   = rm -rf
+endif
+

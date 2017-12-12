@@ -60,6 +60,7 @@
 
 /* local header files */
 #include "tal/mbox_msgq_shared.h"
+#include "eve_memory.h"
 #include "eve_builtins.h"
 
 
@@ -76,11 +77,22 @@ extern void* eve_rpc(void *p, int args_on_stack_size, void *args_in_reg);
 static Void smain(UArg arg0, UArg arg1);
 static void process_task_command(Msg_t* ocl_msg);
 
+/* global variables (put some of them in DMEM?) */
+/* frequently used */
 MessageQ_Handle     eveQ;
-HeapBufMP_Handle    srHeapHandle;
 ocl_msgq_message_t* ocl_msgq_pkt  = NULL;
+
+/* infrequently used */
 IHeap_Handle        msg_heap      = NULL;
 MessageQ_QueueId    enable_printf = MessageQ_INVALIDMESSAGEQ;
+
+/* global DMEM scratch memory for creating memory handle in user algorithms */
+/* multiple libraries can share the use of this fast memory, however, each  */
+/* library will use it exclusively */
+#pragma DATA_SECTION (DMEM0_SCRATCH, ".dmem0Sect");
+uint8_t DMEM0_SCRATCH[DMEM0_SIZE];
+#pragma DATA_SECTION (DMEM1_SCRATCH, ".dmem1Sect");
+uint8_t DMEM1_SCRATCH[DMEM1_SIZE];
 
 
 /******************************************************************************

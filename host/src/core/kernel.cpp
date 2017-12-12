@@ -298,7 +298,7 @@ cl_int Kernel::setArg(cl_uint index, size_t size, const void *value)
     * Special case for samplers (pointers in C++, uint32 in OpenCL).
     *------------------------------------------------------------------------*/
     if (size == sizeof(cl_sampler) && arg_size == 4 &&
-        (*(Object **)value)->isA(T_Sampler))
+        value != nullptr && (*(Object **)value)->isA(T_Sampler))
     {
         unsigned int bitfield = (*(Sampler **)value)->bitfield();
 
