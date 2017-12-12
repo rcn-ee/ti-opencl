@@ -26,28 +26,19 @@
  *   THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
 
-#include "eve_builtins.h"
-#include "../ocl_tidl/tidl_impl_ext.h"
+#ifndef _EVE_MEMORY_H_
+#define _EVE_MEMORY_H_
 
-tiocl_eve_builtin_kernel tiocl_eve_builtin_kernel_table[] =
-{
-  // reserved for OpenCL EVE runtime testing
-  (tiocl_eve_builtin_kernel) tiocl_bik_memcpy_test,
-  (tiocl_eve_builtin_kernel) tiocl_bik_calling_conv_test,
-  (tiocl_eve_builtin_kernel) tiocl_bik_vecadd,
-  (tiocl_eve_builtin_kernel) 0,     // opencl runtime reserved
-  (tiocl_eve_builtin_kernel) 0,
-  (tiocl_eve_builtin_kernel) 0,
-  (tiocl_eve_builtin_kernel) 0,
-  (tiocl_eve_builtin_kernel) 0,
-  (tiocl_eve_builtin_kernel) 0,
-  (tiocl_eve_builtin_kernel) 0,
+/* global DMEM scratch memory for creating memory handle in user algorithms */
+/* multiple libraries can share the use of this fast memory, however, each  */
+/* library will use it exclusively */
+#define DMEM0_SIZE (20*1024)
+#define DMEM1_SIZE (144*1024)
 
-  // Intended for user callable functions
-  // tidl
-  (tiocl_eve_builtin_kernel) ocl_tidl_setup,
-  (tiocl_eve_builtin_kernel) ocl_tidl_initialize,
-  (tiocl_eve_builtin_kernel) ocl_tidl_process,
-  (tiocl_eve_builtin_kernel) ocl_tidl_cleanup,
-};
+//#pragma DATA_SECTION (DMEM0_SCRATCH, ".dmem0Sect");  // mapped to DMEM
+extern uint8_t DMEM0_SCRATCH[DMEM0_SIZE];
 
+//#pragma DATA_SECTION (DMEM1_SCRATCH, ".dmem1Sect");  // mapped to EXTDMEM
+extern uint8_t DMEM1_SCRATCH[DMEM1_SIZE];
+
+#endif  // _EVE_MEMORY_H_
