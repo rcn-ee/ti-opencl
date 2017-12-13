@@ -39,6 +39,7 @@
 #include "../events.h"
 #include "../program.h"
 #include "../oclenv.h"
+#include "../error_report.h"
 
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Constants.h>
@@ -552,12 +553,19 @@ cl_int DSPKernelEvent::callArgs(unsigned max_args_size)
         size_t              size = arg.vecValueSize();
 
         if (size == 0)
-            QERR("Kernel argument has size of 0", CL_INVALID_ARG_SIZE);
+        {
+            ReportError(ErrorType::FatalNoExit, ErrorKind::KernelArgSizeZero);
+            return(CL_INVALID_ARG_SIZE);
+
+        }
 
         args_total_size += size;
         if (args_total_size > max_args_size)
-            QERR("Total size of arguments exceeds allowed maximum (1024 bytes)",
-                 CL_INVALID_KERNEL_ARGS);
+        {
+            ReportError(ErrorType::FatalNoExit,
+                        ErrorKind::KernelArgSizesMaxExceeded, 1024, "DSP");
+            return(CL_INVALID_KERNEL_ARGS);
+        }
 
         /*---------------------------------------------------------------------
         * We may have to perform some changes in the values (buffers, etc)
@@ -638,7 +646,11 @@ cl_int DSPKernelEvent::callArgs(unsigned max_args_size)
 
             case Kernel::Arg::Image2D:
             case Kernel::Arg::Image3D: 
-                QERR("Images not yet supported", CL_INVALID_KERNEL_ARGS);
+                {
+                    ReportError(ErrorType::FatalNoExit,
+                                ErrorKind::KernelArgImageNotSupported);
+                    return(CL_INVALID_KERNEL_ARGS);
+                }
                 break;
 
             /*-----------------------------------------------------------------
@@ -1008,8 +1020,9 @@ cl_int DSPKernelEvent::allocate_temp_global(void)
 
         if (!(*p_addr64))
         {
-            QERR("Temporary memory for CL_MEM_USE_HOST_PTR buffer exceeds available global memory",
-                 CL_MEM_OBJECT_ALLOCATION_FAILURE);
+            ReportError(ErrorType::FatalNoExit,
+                        ErrorKind::TempMemAllocationFailed);
+            return(CL_MEM_OBJECT_ALLOCATION_FAILURE);
         }
 
         if (*p_addr64 < 0xFFFFFFFF)

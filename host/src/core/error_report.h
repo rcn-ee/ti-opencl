@@ -67,6 +67,12 @@ enum class ErrorKind
     DaemonNotRunning,
     DaemonAlreadyRunning,
     DaemonConfigOpenError,
+    KernelArgSizeZero,
+    KernelArgSizeTooBig,
+    KernelArgSizesMaxExceeded,
+    KernelArgImageNotSupported,
+    TempMemAllocationFailed,
+    InfoMessage,
     InfoMessage2,
 };
 

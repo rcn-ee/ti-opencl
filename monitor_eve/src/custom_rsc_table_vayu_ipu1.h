@@ -27,9 +27,9 @@
  *****************************************************************************/
 
 /*
- *  ======== rsc_table.h ========
+ *  ======== custom_rsc_table_vayu_ipu1.h ========
  *
- *  Define the resource table entries for all IPU cores. This will be
+ *  Define the resource table entries for IPU core 1. This will be
  *  incorporated into corresponding base images, and used by the remoteproc
  *  on the host-side to allocated/reserve resources.
  *

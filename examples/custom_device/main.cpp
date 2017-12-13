@@ -25,6 +25,28 @@
  *   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  *   THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
+
+/******************************************************************************
+ * This example showcases OpenCL custom devices on AM57x9 devices, which
+ *     has one DSP device (ACCELERATOR) and multiple EVE devices (CUSTOM).
+ * - How to query custom devices with CL_DEVICE_TYPE_CUSTOM
+ * - How to create a commandqueue for a custom device
+ * - How to create a context to include both ACCELERATOR and CUSTOM devices so
+ *       that OpenCL buffers created in the context can be shared among devices
+ * - How to create builtin program, kernels from custom devices
+ * - How to set arguments on builtin kernels
+ * - How to enqueue builtin kernels to commandqueues on custom devices
+ *
+ * Specific to this example:
+ * - EVE custom devices copy bufB into bufA by enqueuing the builtin
+ *   memcpy kernel, each EVE will work on a chunk of sub buffers
+ *   - note that bufB and bufA are shared among EVE devices
+ * - DSP accelerator device copies bufA into bufC with regular OpenCL C
+ *   memcpy kernel
+ *   - note that bufA is shared among EVE and DSP devices
+ * - Results are verified
+ *****************************************************************************/
+
 #define __CL_ENABLE_EXCEPTIONS
 #include <CL/cl.hpp>
 #include <iostream>

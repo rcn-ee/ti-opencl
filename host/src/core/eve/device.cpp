@@ -94,11 +94,10 @@ EVEDevice::EVEDevice(unsigned char eve_id, SharedMemory* shm)
       p_initialized         (false),
       p_complete_pending    (),
       p_shmHandler          (shm),
-      device_manager_       (nullptr),
       p_pid                 (getpid())
 {
     /*-------------------------------------------------------------------------
-    * YUAN TODO: get EVE device built in kernels information
+    * TODO: MCT-795, get EVE device built in kernels information
     *------------------------------------------------------------------------*/
     // const DeviceInfo& device_info = DeviceInfo::Instance();
     // p_builtInKernels = device_info.GetBuiltInKernels();
@@ -180,40 +179,8 @@ EVEDevice::~EVEDevice()
         pthread_cond_destroy(&p_worker_cond);
     }
 
-    /*-------------------------------------------------------------------------
-    * Inform the cores on the device to stop listening for commands
-    * Send exit message after worker threads terminate to avoid a race condition
-    * on p_exit_acked. The race condition is caused by a worker thread receiving
-    * the exit response and setting p_exit_acked to true. It's possible that the
-    * master thread can read p_exit_acked before write from the worker thread
-    * lands and enter the while loop. It then is stuck at the mail_query() while
-    * loop because the worker has already read the message.
-    *
-    * Sending the exit message after the worker threads terminate eliminates
-    * the race condition.
-    *------------------------------------------------------------------------*/
-    exitMsg.u.k_eve.eve_id = GetEveId();
-    mail_to(exitMsg);
-
-    /*-------------------------------------------------------------------------
-    * Wait for the EXIT acknowledgement from device
-    * YUAN TODO: may skip this for EVE
-    *------------------------------------------------------------------------*/
-#if 1
-    while (! p_exit_acked)
-    {
-        while (! mail_query()) usleep(1);
-        mail_from();
-    }
-#endif
-
     delete p_mb;
     p_mb = NULL;
-
-    /*-------------------------------------------------------------------------
-    * Only need to close the driver for one of the devices
-    *------------------------------------------------------------------------*/
-    delete device_manager_;
 
     /*-------------------------------------------------------------------------
     * Remove BuiltIn kernel entries
@@ -235,14 +202,6 @@ DeviceBuffer *EVEDevice::createDeviceBuffer(MemObject *buffer, cl_int *rs)
 ******************************************************************************/
 DeviceProgram *EVEDevice::createDeviceProgram(Program *program)
     { return (DeviceProgram *)new EVEProgram(this, program); }
-
-/******************************************************************************
-* DeviceKernel *EVEDevice::createDeviceKernel(Kernel *kernel,
-*                                             llvm::Function *function)      
-******************************************************************************/
-DeviceKernel *EVEDevice::createDeviceKernel(Kernel *kernel,
-                                llvm::Function *function)
-    { return (DeviceKernel *)new EVEKernel(this, kernel, function); }
 
 /******************************************************************************
 * DeviceKernel *EVEDevice::createDeviceBuiltInKernel(Kernel *kernel,
@@ -818,7 +777,7 @@ cl_int EVEDevice::info(cl_device_info param_name,
             break;
 
         case CL_DEVICE_NAME:
-            STRING_ASSIGN("TI Embedded Vision Engin (EVE)");
+            STRING_ASSIGN("TI Embedded Vision Engine (EVE)");
             break;
 
         case CL_DEVICE_VENDOR:
@@ -897,7 +856,7 @@ cl_int EVEDevice::info(cl_device_info param_name,
             break;
 
         case CL_DEVICE_OPENCL_C_VERSION:
-            STRING_ASSIGN("OpenCL C 1.1 LLVM " LLVM_VERSION);
+            STRING_ASSIGN("OpenCL C 1.2 Built In Kernels");
             break;
 
         default:

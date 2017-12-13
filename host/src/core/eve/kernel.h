@@ -35,7 +35,6 @@
 #include "message.h"
 #include "device.h"
 #include <core/config.h>
-#include <llvm/IR/Function.h>
 #include "../kernelentry.h"
 
 #include <vector>
@@ -64,7 +63,6 @@ class KernelEvent;
 class EVEKernel : public DeviceKernel
 {
     public:
-        EVEKernel(EVEDevice *device, Kernel *kernel, llvm::Function *function);
         EVEKernel(EVEDevice *device, Kernel *kernel, KernelEntry *kernel_entry);
         ~EVEKernel();
 
@@ -80,8 +78,6 @@ class EVEKernel : public DeviceKernel
         EVEDevice *  device() const      { return p_device; }
         llvm::Function *function() const { return p_function; }
         cl_uint      builtin_kernel_index();
-        uint32_t     GetBuiltInKernelIndex() const
-                                         { return p_builtin_kernel_index_; }
 
         cl_int       preAllocBuffers();
 
@@ -89,7 +85,6 @@ class EVEKernel : public DeviceKernel
         EVEDevice *     p_device;
         Kernel *        p_kernel;
         llvm::Function *p_function;
-        uint32_t        p_builtin_kernel_index_;
         KernelEntry     *p_kernel_entry;
 };
 
@@ -121,7 +116,6 @@ class EVEKernelEvent
         /*---------------------------------------------------------------------
         * Helpers for run member function
         *--------------------------------------------------------------------*/
-        cl_int init_kernel_runtime_variables(Event::Type evtype);
         cl_int allocate_temp_global (void);
         cl_int flush_special_use_host_ptr_buffers(void);
         cl_int setup_stack_based_arguments(void);

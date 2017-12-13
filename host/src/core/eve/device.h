@@ -38,7 +38,6 @@
 #include <list>
 #include "../dsp/mbox_interface.h"
 #include "../shared_memory_interface.h"
-#include "../dsp/device_manager_interface.h"
 #include "../kernelentry.h"
 
 namespace Coal
@@ -51,7 +50,6 @@ class Kernel;
 
 using tiocl::SharedMemory;
 using tiocl::MemoryRange;
-using tiocl::DeviceManager;
 
 class EVEDevice : public DeviceInterface, public Lockable
 {
@@ -75,8 +73,6 @@ class EVEDevice : public DeviceInterface, public Lockable
 
         DeviceBuffer *createDeviceBuffer(MemObject *buffer, cl_int *rs);
         DeviceProgram *createDeviceProgram(Program *program);
-        DeviceKernel *createDeviceKernel(Kernel *kernel,
-                                         llvm::Function *function);
         DeviceKernel *createDeviceBuiltInKernel(Kernel *kernel,
                                                 KernelEntry *builtin_kernel);
 
@@ -139,7 +135,6 @@ class EVEDevice : public DeviceInterface, public Lockable
 
         SharedMemory      *p_shmHandler;
 
-        const DeviceManager *device_manager_;
         uint32_t           p_pid;
         std::vector<KernelEntry*> p_kernel_entries;
 };

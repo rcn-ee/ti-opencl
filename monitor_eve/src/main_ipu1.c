@@ -57,7 +57,7 @@
 #include <stdbool.h>
 
 /* local header files */
-#include "rsc_table.h"
+#include "custom_rsc_table_vayu_ipu1.h"
 #include "tal/mbox_msgq_shared.h"
 #include "src/rtos/utils_common/include/utils_eveloader.h"
 

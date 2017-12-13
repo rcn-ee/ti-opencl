@@ -52,7 +52,7 @@ TI_OCL_M4_CGT_INSTALL ?= $(SDOMC_SHARED)/PROCESSOR_SDK_VISION_03_01_00_00/ti_com
 
 VISIONSDK_UTILS ?= src/visionsdk_utils
 
-SOURCES  = MainIpu1.c eve_firmware.c
+SOURCES  = main_ipu1.c eve_firmware.c
 SOURCES += $(VISIONSDK_UTILS)/src/rtos/utils_common/src/utils_eveloader.c
 SOURCES += $(VISIONSDK_UTILS)/src/rtos/utils_common/src/eveloader/utils_eve_boot.c
 

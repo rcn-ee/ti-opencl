@@ -39,14 +39,7 @@
 #include "../events.h"
 #include "../program.h"
 #include "../oclenv.h"
-
-#include <llvm/IR/Function.h>
-#include <llvm/IR/Constants.h>
-#include "llvm/IR/InstIterator.h"
-#include <llvm/IR/Instructions.h>
-#include <llvm/IR/LLVMContext.h>
-#include <llvm/IR/Module.h>
-#include <llvm/ExecutionEngine/ExecutionEngine.h>
+#include "../error_report.h"
 
 #include <cstdlib>
 #include <cstring>
@@ -64,28 +57,11 @@
 #include <sys/param.h>
 
 
-#if defined(DEVICE_K2X)
-extern "C"
-{
-    #include <ti/runtime/mmap/include/mmap_resource.h>
-}
-#endif
-
-
 #define ROUNDUP(val, pow2)   (((val) + (pow2) - 1) & ~((pow2) - 1))
-#define QERR(msg, retcode)   do { std::cerr << "OCL ERROR: " << msg << std::endl; return retcode; } while(0)
-#define ERR(x) std::cerr << x << std::endl
-#define ERROR() std::cerr << "Unknown error in dsp/kernel.cpp" << std::endl
 
 using namespace Coal;
 using namespace tiocl;
 
-
-EVEKernel::EVEKernel(EVEDevice *device, Kernel *kernel,
-                     llvm::Function *function)
-: DeviceKernel(), p_device(device), p_kernel(kernel), p_function(function)
-{
-}
 
 EVEKernel::EVEKernel(EVEDevice *device, Kernel *kernel, 
                      KernelEntry *kernel_entry)
@@ -141,7 +117,6 @@ EVEKernelEvent::EVEKernelEvent(EVEDevice *device, KernelEvent *event)
     *------------------------------------------------------------------------*/
     p_msg.command           = TASK;
     p_msg.u.k_eve.Kernel_id = p_kernel_id;
-    //p_msg.u.k_eve.builtin_kernel_index = p_kernel->GetBuiltInKernelIndex();
     p_msg.u.k_eve.builtin_kernel_index = (unsigned) p_kernel->builtin_kernel_index();
     p_msg.u.k_eve.eve_id    = p_device->GetEveId();
 }
@@ -187,12 +162,22 @@ cl_int EVEKernelEvent::callArgs(unsigned max_args_size)
         size_t              size = arg.vecValueSize();
 
         if (size == 0)
-            QERR("Kernel argument has size of 0", CL_INVALID_ARG_SIZE);
+        {
+            ReportError(ErrorType::FatalNoExit, ErrorKind::KernelArgSizeZero);
+            return(CL_INVALID_ARG_SIZE);
+        }
         if (size > 4)
-            QERR("Kernel argument size > 4 not supported", CL_INVALID_ARG_SIZE);
+        {
+            ReportError(ErrorType::FatalNoExit,
+                        ErrorKind::KernelArgSizeTooBig, 4, "EVE");
+            return(CL_INVALID_ARG_SIZE);
+        }
         if (more_arg_offset + 4 >= EVE_MAX_ARGS_ON_STACK_SIZE)
-            QERR("Total size of arguments exceeds allowed maximum (128 bytes)", 
-                 CL_INVALID_KERNEL_ARGS);
+        {
+            ReportError(ErrorType::FatalNoExit,
+                        ErrorKind::KernelArgSizesMaxExceeded, 128, "EVE");
+            return(CL_INVALID_KERNEL_ARGS);
+        }
 
         /*---------------------------------------------------------------------
         * We may have to perform some changes in the values (buffers, etc)
@@ -263,7 +248,11 @@ cl_int EVEKernelEvent::callArgs(unsigned max_args_size)
 
             case Kernel::Arg::Image2D:
             case Kernel::Arg::Image3D: 
-                QERR("Images not yet supported", CL_INVALID_KERNEL_ARGS);
+                {
+                    ReportError(ErrorType::FatalNoExit,
+                                ErrorKind::KernelArgImageNotSupported);
+                    return(CL_INVALID_KERNEL_ARGS);
+                }
                 break;
 
             /*-----------------------------------------------------------------
@@ -315,17 +304,10 @@ cl_int EVEKernelEvent::callArgs(unsigned max_args_size)
 ******************************************************************************/
 cl_int EVEKernelEvent::run(Event::Type evtype)
 {
-    // TODO perhaps ensure that prog is loaded.
     Program    *p    = (Program *)p_kernel->kernel()->parent();
     EVEProgram *prog = (EVEProgram *)(p->deviceDependentProgram(p_device));
 
     cl_int err = CL_SUCCESS;
-
-    /*-------------------------------------------------------------------------
-    * Populate the kernel_config_t structure
-    *------------------------------------------------------------------------*/
-    err = init_kernel_runtime_variables(evtype);
-    if (err != CL_SUCCESS) return err;
 
     /*-------------------------------------------------------------------------
     * Allocate temporary global buffer for non-clMalloced USE_HOST_PTR
@@ -340,9 +322,6 @@ cl_int EVEKernelEvent::run(Event::Type evtype)
     if (err != CL_SUCCESS) return err;
 
     /*---------------------------------------------------------------------
-    * For host scheduled devices, i.e. AM57, NDRkernels send to all cores.
-    * The monitor will determine how to divide the work. Need to wait on 
-    * all replies.
     * Order!! After switching to two worker threads, we must push the complete
     * pending first, then send out the mails, to prevent the extrememly fast
     * EVE reply that has no corresponding complete pending from happening.
@@ -354,14 +333,6 @@ cl_int EVEKernelEvent::run(Event::Type evtype)
     /*-------------------------------------------------------------------------
     * Do not wait for completion
     *------------------------------------------------------------------------*/
-    return CL_SUCCESS;
-}
-
-/******************************************************************************
-* Initialize the kernel configuration parameters
-******************************************************************************/
-cl_int EVEKernelEvent::init_kernel_runtime_variables(Event::Type evtype)
-{
     return CL_SUCCESS;
 }
 
@@ -382,8 +353,9 @@ cl_int EVEKernelEvent::allocate_temp_global(void)
 
         if (!(*p_addr64))
         {
-            QERR("Temporary memory for CL_MEM_USE_HOST_PTR buffer exceeds available global memory",
-                 CL_MEM_OBJECT_ALLOCATION_FAILURE);
+            ReportError(ErrorType::FatalNoExit,
+                        ErrorKind::TempMemAllocationFailed);
+            return(CL_MEM_OBJECT_ALLOCATION_FAILURE);
         }
 
         if (*p_addr64 < 0xFFFFFFFF)
@@ -409,7 +381,6 @@ cl_int EVEKernelEvent::flush_special_use_host_ptr_buffers(void)
 {
     SharedMemory *shm = p_device->GetSHMHandler();
 
-#if 1
     /*-------------------------------------------------------------------------
     * PSDK3.1/CMEM4.12: reverts back to pre-PSDK3.0/pre-CMEM4.11 implementation
     *------------------------------------------------------------------------*/
@@ -442,32 +413,6 @@ cl_int EVEKernelEvent::flush_special_use_host_ptr_buffers(void)
                 shm->CacheWb(data, buffer->host_ptr(), buffer->size());
         }
     }
-#else
-    /*-------------------------------------------------------------------------
-    * PSDK3.0 has new Linux kernel 4.4.12 and new CMEM 4.11 kernel module.  It
-    * impacts how we handle cache operations in OpenCL host runtime.  In the
-    * new CMEM kernel module, CMEM_cache{Wb,Inv,WbInv} that we call from
-    * OpenCL host runtime in turn call dma_sync_single_for_{device,cpu}, which
-    * in turn lets Linux kernel know the ownership of the buffer.  After
-    * dma_sync_single_for_device() call, which is called by CMEM_cacheWb,
-    * Linux kernel knows that the buffer is owned by device, while after
-    * dma_sync_single_for_cpu() by CMEM_cacheInv, Linux kernel knows that the
-    * buffer is owned by cpu.  We should refrain from calling CMEM_cacheWbInv,
-    * because after which Linux kernel still thinks that cpu owns the buffer.
-    * Hence we need to change from previous code to this sequence to
-    * be explicit about buffer ownership.
-    *------------------------------------------------------------------------*/
-    for (int i = 0; i < p_hostptr_clMalloced_bufs.size(); ++i)
-    {
-        MemObject *buffer = p_hostptr_clMalloced_bufs[i];
-        DSPBuffer *dspbuf = (DSPBuffer *) buffer->deviceBuffer(p_device);
-        DSPDevicePtr64 data = (DSPDevicePtr64)dspbuf->data();
-
-        // Linux 4.4.12 / CMEM 4.11: CacheWb -> transfer ownership to device
-        if (! HOST_NO_ACCESS(buffer))
-            shm->CacheWb(data, buffer->host_ptr(), buffer->size());
-    }
-#endif
 
     return CL_SUCCESS;
 }

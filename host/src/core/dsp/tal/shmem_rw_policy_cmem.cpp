@@ -64,7 +64,8 @@ ReadWritePolicyCMEM::Unmap(void *host_addr, uint64_t buf_addr, uint32_t sz,
 }
 
 extern "C" int CMEM_cacheWbInvAll();
+#define CMEM_SUCCESS 0
 bool ReadWritePolicyCMEM::CacheWbInvAll()
 {
-    return CMEM_cacheWbInvAll();
+    return CMEM_cacheWbInvAll() == CMEM_SUCCESS;
 }

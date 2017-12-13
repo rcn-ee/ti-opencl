@@ -252,6 +252,7 @@
  *******************************************************************************
  *
  * \brief This function implements the MMU configuration of EVE1
+ *        It is called via EVE Reset hook, see Eve.cfg.
  *
  * \return  void
  *

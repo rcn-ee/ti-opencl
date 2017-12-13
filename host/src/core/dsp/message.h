@@ -41,8 +41,8 @@ typedef enum
 #define MAX_NDR_DIMENSIONS   3
 #define MAX_IN_REG_ARGUMENTS 10
 #define MAX_ARGS_IN_REG_SIZE (MAX_IN_REG_ARGUMENTS*2)
-#define EVE_MAX_ARGS_IN_REG_SIZE 3
-#define EVE_MAX_ARGS_ON_STACK_SIZE 128      // bytes, has space for 216 bytes
+#define EVE_MAX_ARGS_IN_REG_SIZE 3          // number of registers
+#define EVE_MAX_ARGS_ON_STACK_SIZE 128      // bytes
 #define EVE_MSG_COMMAND_MASK (0x80000000)   // used by IPU and EVE internally
 
 #define MAX_ARGS_TOTAL_SIZE 1024

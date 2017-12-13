@@ -78,6 +78,7 @@ DeviceInfo::DeviceInfo()
     num_devices_ = 1;
 
     #if !defined(_SYS_BIOS)
+    // EVE device/program will not use this for symbol lookup
     symbol_lookup_ = CreateSymbolAddressLookup(FullyQualifiedPathToDspMonitor());
     #endif
 

@@ -185,6 +185,9 @@ cl_int MemObject::init()
         if (d_buf_allocated == nullptr)
             p_devicebuffers[i] = device->createDeviceBuffer(this, &rs);
         // else: keep p_devicebuffers[i] as nullptr to prevent double freeing
+        //       because the device buffer has already been allocated and
+        //       owned by another device j.  Let device j free buffer later.
+        // Alternatively, we might use std::shared_ptr<DeviceBuffer> in C++11
 
         if (rs != CL_SUCCESS)
         {

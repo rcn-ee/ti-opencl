@@ -86,7 +86,7 @@ INPUTRPRCS += $(EVE3_ID) $(EVE3_RPRC_PATH)
 INPUTRPRCS += $(EVE4_ID) $(EVE4_RPRC_PATH)
 
 
-SOURCES  = MainEve.c tlb_config_eve.c eve_rpc.asm 
+SOURCES  = monitor.c tlb_config_eve.c eve_rpc.asm 
 SOURCES += eve_builtins.c eve_builtins_table.c
 VPATH    = src
 

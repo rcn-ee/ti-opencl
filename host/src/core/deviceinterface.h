@@ -143,7 +143,8 @@ class DeviceInterface : public _cl_device_id, public Object
          * \return a \c Coal::DeviceKernel object
          */
         virtual DeviceKernel *createDeviceKernel(Kernel *kernel, 
-                                                 llvm::Function *function) = 0;
+                                                 llvm::Function *function)
+        { return nullptr; }
 
         /**
          * \brief Create a \c Coal::DeviceKernel object for this device using a
@@ -157,7 +158,7 @@ class DeviceInterface : public _cl_device_id, public Object
 
         virtual DeviceKernel *createDeviceBuiltInKernel(Kernel *kernel,
                                                         KernelEntry *kernel_entry)
-        { return NULL; }
+        { return nullptr; }
 
         virtual const std::vector<KernelEntry*> *getKernelEntries() const
         { return nullptr; }

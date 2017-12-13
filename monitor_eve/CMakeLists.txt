@@ -7,5 +7,5 @@ endif()
 # Install monitor_eve firmware
 if (BUILD_OUTPUT STREQUAL "all")
     install(FILES bin/release/server_ipu1.xem4 DESTINATION /lib/firmware
-            RENAME dra7-ipu1-fw.xem4 ${OCL_FPERMS})
+            RENAME dra7-ipu1-fw.xem4.opencl-monitor ${OCL_FPERMS})
 endif()

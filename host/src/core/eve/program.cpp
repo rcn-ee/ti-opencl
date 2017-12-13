@@ -51,11 +51,6 @@ EVEProgram::EVEProgram(EVEDevice *device, Program *program)
 : DeviceProgram(), p_device(device), p_program(program), p_info(false)
 {
     ReportTrace("EVEProgram()\n");
-
-    EnvVar& env = EnvVar::Instance();
-
-    char *info = env.GetEnv<EnvVar::Var::TI_OCL_DEVICE_PROGRAM_INFO>(nullptr);
-    if (info) { p_info = true; }
 }
 
 EVEProgram::~EVEProgram()
