@@ -66,6 +66,7 @@
 
 /* private data */
 int              num_eve_devices;
+int              eve_work_count = 0;
 MessageQ_Handle  eveProxyQueue = NULL;
 MessageQ_QueueId eveQueues[MAX_NUM_EVES];
 
@@ -241,6 +242,7 @@ Void smain(UArg arg0, UArg arg1)
             eve_pkt->message.pid = (uint32_t)ocl_msgq_pkt;
             MessageQ_setReplyQueue(eveProxyQueue, (MessageQ_Msg) eve_pkt);
             MessageQ_put(eveQueues[eve_id], (MessageQ_Msg) eve_pkt);
+            eve_work_count += 1;
         }
         else
         {
@@ -259,6 +261,7 @@ Void smain(UArg arg0, UArg arg1)
                 memcpy(&host_ocl_msgq_pkt->message,
                        &ocl_msgq_pkt->message, sizeof(Msg_t));
                 MessageQ_put(hostReplyQueue, (MessageQ_Msg) host_ocl_msgq_pkt);
+                eve_work_count -= 1;
             }
             else
             {
@@ -337,3 +340,14 @@ static int  GetNumEVEDevices()
     return num_eves;
 }
 
+
+/*
+ *  Only suspend IPU when there are no work on EVEs, otherwise, messages
+ *      from EVE won't be able to wake up IPU
+ */
+extern void IpcPower_idle();
+void OclPower_idle()
+{
+    if (eve_work_count <= 0)
+        IpcPower_idle();
+}
