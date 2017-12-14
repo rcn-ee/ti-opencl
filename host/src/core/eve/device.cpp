@@ -118,7 +118,7 @@ EVEDevice::EVEDevice(unsigned char eve_id, SharedMemory* shm)
     k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Int32, false);
     p_kernel_entries.push_back(k);
     
-    k = new KernelEntry("tiocl_bik_vecadd", 1);
+    k = new KernelEntry("tiocl_bik_vecadd", 2);
     k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
     k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
     k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
@@ -531,6 +531,7 @@ cl_int EVEDevice::info(cl_device_info param_name,
 {
     void *value = 0;
     size_t value_length = 0;
+    std::string stmp;
 
     union
     {
@@ -797,7 +798,17 @@ cl_int EVEDevice::info(cl_device_info param_name,
             break;
         
         case CL_DEVICE_BUILT_IN_KERNELS:
-            STRING_ASSIGN("tiocl_bik_memcpy_test;tiocl_bik_vecadd");
+            {
+                bool first = true;
+                for(KernelEntry *k : p_kernel_entries)
+                {
+                    if (!first) stmp += ";";
+                    stmp += k->name;
+                    first = false;
+                }
+                value        = (void *) stmp.c_str();
+                value_length =          stmp.size() + 1;
+            }
             break;
 
         case CL_DEVICE_NAME:
