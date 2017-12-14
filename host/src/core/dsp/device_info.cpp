@@ -188,8 +188,10 @@ void DeviceInfo::EVEDevicesAvailable()
     munmap(addr, pagesize);
     close(mem_fd);
 
-    if (board_type == 0x3E)       // AM5729
+    if (board_type == 0x3E || board_type == 0x4E)       // AM5729-E, AM5729
         num_eve_devices_ = 4;
+    else if (board_type == 0x5F || board_type == 0xA6)  // AM5749-E, AM5749
+        num_eve_devices_ = 2;
     #endif
 }
 
