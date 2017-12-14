@@ -48,3 +48,8 @@
 |__kernel_exit
 |__kernel_abort
 |__trace_print*
+|TIDL_numAlloc
+|TIDL_alloc
+|TIDL_init
+|TIDL_process
+|TIDL_free
