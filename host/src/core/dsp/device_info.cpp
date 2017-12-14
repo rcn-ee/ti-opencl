@@ -159,6 +159,13 @@ void DeviceInfo::ComputeUnits_CmemBlocks_Available()
 // available to the OpenCL runtime.
 void DeviceInfo::EVEDevicesAvailable()
 {
+    num_eve_devices_ = 0;
+
+    // Skip if custom device is not enabled
+    // Default to not enabled, may change in the future
+    EnvVar& env = EnvVar::Instance();
+    if (env.GetEnv<EnvVar::Var::TI_OCL_CUSTOM_DEVICE_ENABLE>(0) == 0) return;
+
     #if defined(DEVICE_AM57) && !defined(_SYS_BIOS)
     int mem_fd = open("/dev/mem", O_RDONLY);
     if (mem_fd == -1)
@@ -183,9 +190,7 @@ void DeviceInfo::EVEDevicesAvailable()
 
     if (board_type == 0x3E)       // AM5729
         num_eve_devices_ = 4;
-    else
     #endif
-        num_eve_devices_ = 0;
 }
 
 static std::string get_ocl_dsp()
