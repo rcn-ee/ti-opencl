@@ -130,13 +130,13 @@ src/eve_firmware.h: $(EVE1_RPRC_PATH) $(EVE2_RPRC_PATH) \
             sed -e "s/\(0x..,\)\{90\}/&\n/g" -e "\$$a // bytes" > $@
 
 $(EVE1_RPRC_PATH): $(SOURCES) $(CONFIGS) $(libs)
-	make -f Makefile.eve TARGET=eve1 eve1.x
+	$(MAKE) -f Makefile.eve TARGET=eve1 eve1.x
 $(EVE2_RPRC_PATH): $(SOURCES) $(CONFIGS) $(libs)
-	make -f Makefile.eve TARGET=eve2 eve2.x
+	$(MAKE) -f Makefile.eve TARGET=eve2 eve2.x
 $(EVE3_RPRC_PATH): $(SOURCES) $(CONFIGS) $(libs)
-	make -f Makefile.eve TARGET=eve3 eve3.x
+	$(MAKE) -f Makefile.eve TARGET=eve3 eve3.x
 $(EVE4_RPRC_PATH): $(SOURCES) $(CONFIGS) $(libs)
-	make -f Makefile.eve TARGET=eve4 eve4.x
+	$(MAKE) -f Makefile.eve TARGET=eve4 eve4.x
 
 $(TARGET).x: $(PROJECT)/$(TARGET).xearp32F
 	mono $(OUT2RPRC) $< $(PROJECT)/$(TARGET).xearp32F.rprc
@@ -181,6 +181,7 @@ help:
 
 clean::
 	$(RMDIR) monitor_eve*
+	$(MAKE) -C ocl_tidl -f Makefile.eve clean
 
 
 #  ======== toolchain macros ========
