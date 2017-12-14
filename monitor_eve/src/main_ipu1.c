@@ -65,6 +65,7 @@
 #define MAX_NUM_COMPLETION_PENDING (16)
 
 /* private data */
+int              num_eve_devices;
 MessageQ_Handle  eveProxyQueue = NULL;
 MessageQ_QueueId eveQueues[MAX_NUM_EVES];
 
@@ -90,7 +91,7 @@ Int main(Int argc, Char* argv[])
     Log_print0(Diags_ENTRY, "--> main:");
 
     /* Check available EVE devices to see if OpenCL firmware applies */
-    int num_eve_devices = GetNumEVEDevices();
+    num_eve_devices = GetNumEVEDevices();
     if (num_eve_devices <= 0)
     {
         Log_print0(Diags_INFO | Diags_USER6,
@@ -158,7 +159,7 @@ Void smain(UArg arg0, UArg arg1)
 
     /* Attaching to EVEs */
     Log_print0(Diags_INFO | Diags_USER6, "Attaching to EVEs...");
-    for (i = 0; i < MAX_NUM_EVES; i++)
+    for (i = 0; i < num_eve_devices; i++)
     {
         const char *eve_name = (i == 0) ? "EVE1" :
                                (i == 1) ? "EVE2" :
@@ -180,7 +181,7 @@ Void smain(UArg arg0, UArg arg1)
 
     /* Opening MsgQs on EVEs */
     Log_print0(Diags_INFO | Diags_USER6, "Opening MsgQ on EVEs...");
-    for (i = 0; i < MAX_NUM_EVES; i++)
+    for (i = 0; i < num_eve_devices; i++)
     {
         const char *queue_name = (i == 0) ? "OCL:EVE1:MsgQ" :
                                  (i == 1) ? "OCL:EVE2:MsgQ" :
@@ -198,7 +199,7 @@ Void smain(UArg arg0, UArg arg1)
 
     /* Pre-allocating msgs to EVEs */
     Log_print0(Diags_INFO | Diags_USER6, "Pre-allocating msgs to EVEs...");
-    for (i = 0; i < MAX_NUM_EVES; i++)
+    for (i = 0; i < num_eve_devices; i++)
     {
         for (j = 0; j < MAX_NUM_COMPLETION_PENDING; j++)
         {
@@ -321,10 +322,18 @@ static int  GetNumEVEDevices()
     uint32_t board_type = (  *((uint32_t *) CTRL_WKUP_STD_FUSE_DIE_ID_2)
                            & 0xFF000000) >> 24;
     int      num_eves = 0;
-    if (board_type == 0x3E)  // AM5729
+    if (board_type == 0x3E || board_type == 0x4E)       // AM5729-E, AM5729
         num_eves = 4;
+    else if (board_type == 0x5F || board_type == 0xA6)  // AM5749-E, AM5749
+        num_eves = 2;
 
     Log_print1(Diags_INFO | Diags_USER6, "%d EVEs Available", num_eves);
+    if (num_eves > MAX_NUM_EVES)
+    {
+        num_eves = MAX_NUM_EVES;
+        Log_print1(Diags_INFO | Diags_USER6, "Capped to %d (max) EVEs",
+                   num_eves);
+    }
     return num_eves;
 }
 
