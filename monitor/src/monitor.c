@@ -1442,3 +1442,9 @@ void stop_counting(profiling_t *profiling)
         stop_counting_events(profiling);
 }
 
+#if defined(DEVICE_K2G)
+void OclPower_idle()
+{
+    asm(" IDLE");
+}
+#endif
