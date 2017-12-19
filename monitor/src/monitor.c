@@ -103,6 +103,7 @@ DDR (Registry_Desc, Registry_CURDESC);
 /* printfs are enabled ony for the duration of an OpenCL kernel */
 PRIVATE_NOALIGN (MessageQ_QueueId,    enable_printf) = MessageQ_INVALIDMESSAGEQ;
 PRIVATE_NOALIGN (bool,                edmamgr_initialized) = false;
+PRIVATE_NOALIGN (uint32_t,            config_reference_count) = 0;
 PRIVATE_NOALIGN (MessageQ_Handle,     dspQue)              = NULL;
 PRIVATE_NOALIGN (uint8_t,             n_cores);
 PRIVATE_NOALIGN (uint8_t,             master_core);
@@ -871,9 +872,14 @@ static void process_exit_command(ocl_msgq_message_t *msg_pkt)
 {
     enable_printf = MessageQ_INVALIDMESSAGEQ;
 
+    if (config_reference_count > 0)
+    {
+       config_reference_count -= 1;
     #if defined( OMP_ENABLED)
-    tomp_exitOpenMPforOpenCL();
+       if (config_reference_count == 0)
+          tomp_exitOpenMPforOpenCL();
     #endif
+    }
 
     /* Not sending a response to host, delete the msg */
     MessageQ_free((MessageQ_Msg)msg_pkt);
@@ -1095,23 +1101,49 @@ static void process_configuration_message(ocl_msgq_message_t* msgq_pkt)
     /* Get a pointer to the OpenCL payload in the message */
     Msg_t *ocl_msg = &(msgq_pkt->message);
 
-    n_cores = ocl_msg->u.configure_monitor.n_cores;
-    master_core = ocl_msg->u.configure_monitor.master_core;
+    uint8_t requested_n_cores = ocl_msg->u.configure_monitor.n_cores;
+    uint8_t requested_master_core = ocl_msg->u.configure_monitor.master_core;
     memcpy(local_core_nums, ocl_msg->u.configure_monitor.local_core_nums,
            sizeof(ocl_msg->u.configure_monitor.local_core_nums));
 
     MessageQ_free((MessageQ_Msg)msgq_pkt);
 
-    /* Do this early since the heap is initialized by OpenMP */
-    #if defined(OMP_ENABLED)
-    Log_print2(Diags_INFO,"Configuring OpenMP (%d, %d)\n", master_core,n_cores);
+    Log_print2(Diags_INFO,"Configuring Monitor (%d, %d)\n", 
+            master_core, n_cores);
 
-    if (tomp_initOpenMPforOpenCLPerApp(master_core, n_cores) < 0)
+    // Multiple processes may try to launch OpenCL/MP kernels.  
+    // The reference_count tracks how many processes are currently 
+    // using the OpenCL runtime.
+    if (config_reference_count == 0)
     {
-        Log_print0(Diags_INFO, "tomp_initOpenMPforOpenCL() failed");
-        System_abort("main: tomp_initOpenMPforOpenCL() failed");
+        master_core = requested_master_core;
+        n_cores = requested_n_cores;
+        config_reference_count = 1;
+
+        /* Do this early since the heap is initialized by OpenMP */
+        #if defined(OMP_ENABLED)
+        if (tomp_initOpenMPforOpenCLPerApp(master_core, n_cores) < 0)
+        {
+            Log_print0(Diags_INFO, "tomp_initOpenMPforOpenCL() failed");
+            System_abort("main: tomp_initOpenMPforOpenCL() failed");
+        }
+        Log_print0(Diags_INFO, "Initialized OpenMP.\n");
+        #endif
     }
-    #endif
+    else
+    {
+        // A new process cannot change the current configuration 
+        // of the Monitor.  Fix this to recover more gracefully.
+        if (!(requested_master_core == master_core &&
+              requested_n_cores == n_cores))
+        {
+            Log_print2(Diags_INFO, "Reconfiguring Monitor (%d, %d) failed\n",
+                    requested_master_core, requested_n_cores);
+            System_abort("main: Reconfiguring Monitor failed");
+        }
+        Log_print0(Diags_INFO, "Incremented Monitor reference count.\n");
+        config_reference_count++;
+    }
 
     if (!edmamgr_initialized)
     {
