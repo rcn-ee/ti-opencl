@@ -167,7 +167,6 @@ if (NOT BUILD_OUTPUT)
 endif()
 
 if (${BUILD_OS} MATCHES "SYS_BIOS")
-    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../eclipse ${CMAKE_CURRENT_BINARY_DIR}/eclipse)
     add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../packages ${CMAKE_CURRENT_BINARY_DIR}/packages)
 endif(${BUILD_OS} MATCHES "SYS_BIOS")
 
