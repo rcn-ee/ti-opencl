@@ -507,6 +507,15 @@ cl_int Kernel::workGroupInfo(DeviceInterface *device,
 
     switch (param_name)
     {
+        case CL_KERNEL_GLOBAL_WORK_SIZE:
+            {
+            three_size_t[0] = dep.kernel->workGroupSize();
+            three_size_t[1] = dep.kernel->workGroupSize();
+            three_size_t[2] = dep.kernel->workGroupSize();
+            value = &three_size_t;
+            value_length = sizeof(three_size_t);
+            }
+            break;
         case CL_KERNEL_WORK_GROUP_SIZE:
             SIMPLE_ASSIGN(size_t, dep.kernel->workGroupSize());
             break;

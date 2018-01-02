@@ -399,6 +399,7 @@ typedef struct _cl_buffer_region {
 #define CL_KERNEL_LOCAL_MEM_SIZE                    0x11B2
 #define CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE 0x11B3
 #define CL_KERNEL_PRIVATE_MEM_SIZE                  0x11B4
+#define CL_KERNEL_GLOBAL_WORK_SIZE                  0x11B5
 
 /* cl_event_info  */
 #define CL_EVENT_COMMAND_QUEUE                      0x11D0

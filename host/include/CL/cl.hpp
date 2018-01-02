@@ -691,7 +691,11 @@ public:
  * size is known statically.
  */
 template <int N>
-struct size_t : public cl::vector< ::size_t, N> { };
+struct size_t : public cl::vector< ::size_t, N> {
+public:
+	size_t() : cl::vector< ::size_t, N>( N ) {};
+
+};
 
 namespace detail {
 
@@ -921,14 +925,17 @@ struct GetInfoHelper<Func, CPP_TYPE> \
     F(cl_device_info, CL_DEVICE_DOUBLE_FP_CONFIG, cl_device_fp_config) \
     F(cl_device_info, CL_DEVICE_HALF_FP_CONFIG, cl_device_fp_config) \
     F(cl_device_info, CL_DEVICE_HOST_UNIFIED_MEMORY, cl_bool) \
+    F(cl_device_info, CL_DEVICE_OPENCL_C_VERSION, STRING_CLASS) \
     \
     F(cl_mem_info, CL_MEM_ASSOCIATED_MEMOBJECT, cl::Memory) \
     F(cl_mem_info, CL_MEM_OFFSET, ::size_t) \
     \
     F(cl_kernel_work_group_info, CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE, ::size_t) \
     F(cl_kernel_work_group_info, CL_KERNEL_PRIVATE_MEM_SIZE, cl_ulong) \
+    F(cl_kernel_work_group_info, CL_KERNEL_GLOBAL_WORK_SIZE, cl::size_t<3>) \
     \
-    F(cl_event_info, CL_EVENT_CONTEXT, cl::Context)
+    F(cl_event_info, CL_EVENT_CONTEXT, cl::Context) \
+    F(cl_device_info, CL_DEVICE_BUILT_IN_KERNELS, STRING_CLASS)
 #endif // CL_VERSION_1_1
 
 #if defined(USE_CL_DEVICE_FISSION)

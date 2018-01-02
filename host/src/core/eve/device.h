@@ -101,6 +101,7 @@ class EVEDevice : public DeviceInterface, public Lockable
         void dump_complete_pending();
         bool any_complete_pending();
         bool gotEnoughToWorkOn();
+        cl_ulong getMaxMemAllocSize() const;
         pthread_cond_t  *get_worker_cond()  { return &p_worker_cond;  }
         pthread_mutex_t *get_worker_mutex() { return &p_worker_mutex; }
 

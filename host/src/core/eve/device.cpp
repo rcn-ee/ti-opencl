@@ -464,6 +464,35 @@ int EVEDevice::mail_from(int *retcode)
     return trans_id_rx;
 }
 
+/******************************************************************************
+* cl_int EVEDevice::getMaxMemAllocSize()
+*
+* Capped at 1GB, primarily because that is the max buffer that can be
+* mapped into DSP addr space using mpax.  If there are no extended
+* memory available, reserve 16MB for loading OCL program code.
+******************************************************************************/
+cl_ulong EVEDevice::getMaxMemAllocSize() const
+{
+    cl_ulong cap = EnvVar::Instance().GetEnv <
+                   EnvVar::Var::TI_OCL_LIMIT_DEVICE_MAX_MEM_ALLOC_SIZE > (
+                                                      (cl_ulong)1ul << 30);
+    if (cap == 0)
+    {
+        printf("ERROR: TI_OCL_LIMIT_DEVICE_MAX_MEM_ALLOC_SIZE "
+               "must be a positive integer\n");
+        exit(1);
+    }
+
+    uint64_t heap1_size =
+    GetSHMHandler()->HeapSize(MemoryRange::Kind::CMEM_PERSISTENT,
+                              MemoryRange::Location::OFFCHIP);
+
+    if (GetSHMHandler()->HeapSize(MemoryRange::Kind::CMEM_ONDEMAND,
+                                  MemoryRange::Location::OFFCHIP) > 0)
+        return std::min(heap1_size, cap);
+
+    return std::min(heap1_size - (1 << 24), cap);
+}
 
 /******************************************************************************
 * cl_int EVEDevice::info
@@ -557,45 +586,17 @@ cl_int EVEDevice::info(cl_device_info param_name,
             break;
 
         case CL_DEVICE_MAX_READ_IMAGE_ARGS:
-            SIMPLE_ASSIGN(cl_uint, 0);          //images not supported
+            SIMPLE_ASSIGN(cl_uint, CL_NONE);          //images not supported
             break;
 
         case CL_DEVICE_MAX_WRITE_IMAGE_ARGS:
-            SIMPLE_ASSIGN(cl_uint, 0);          // images not supported
+            SIMPLE_ASSIGN(cl_uint, CL_NONE);          // images not supported
             break;
 
-        /*---------------------------------------------------------------------
-        * Capped at 1GB, primarily because that is the max buffer that can be
-        * mapped into DSP addr space using mpax.  If there are no extended
-        * memory available, reserve 16MB for loading OCL program code.
-        *--------------------------------------------------------------------*/
         case CL_DEVICE_MAX_MEM_ALLOC_SIZE:
-        {
-            cl_ulong cap = EnvVar::Instance().GetEnv<
-                         EnvVar::Var::TI_OCL_LIMIT_DEVICE_MAX_MEM_ALLOC_SIZE>(
-                                                          (cl_ulong)1ul << 30);
-            if (cap == 0)
-            {
-                printf("ERROR: TI_OCL_LIMIT_DEVICE_MAX_MEM_ALLOC_SIZE "
-                       "must be a positive integer\n");
-                exit(1);
-            }
-
-            uint64_t heap1_size =
-               GetSHMHandler()->HeapSize(MemoryRange::Kind::CMEM_PERSISTENT,
-                                         MemoryRange::Location::OFFCHIP);
-
-            if (GetSHMHandler()->HeapSize(MemoryRange::Kind::CMEM_ONDEMAND,
-                                     MemoryRange::Location::OFFCHIP) > 0)
-                SIMPLE_ASSIGN(cl_ulong,
-                    std::min(heap1_size, cap))
-            else
-                SIMPLE_ASSIGN(cl_ulong,
-                    std::min(heap1_size - (1<<24), cap))
-
+            SIMPLE_ASSIGN(cl_ulong, getMaxMemAllocSize());
             break;
-        }
-
+        
         case CL_DEVICE_IMAGE2D_MAX_WIDTH:
             SIMPLE_ASSIGN(size_t, 0);           // images not supported
             break;
@@ -621,7 +622,7 @@ cl_int EVEDevice::info(cl_device_info param_name,
             break;
 
         case CL_DEVICE_MAX_PARAMETER_SIZE:
-            SIMPLE_ASSIGN(size_t, 1024);
+            SIMPLE_ASSIGN(cl_uint, 128);  
             break;
 
         case CL_DEVICE_MAX_SAMPLERS:
@@ -629,7 +630,7 @@ cl_int EVEDevice::info(cl_device_info param_name,
             break;
 
         case CL_DEVICE_MEM_BASE_ADDR_ALIGN:
-            SIMPLE_ASSIGN(cl_uint, 1024);       // 128 byte aligned
+            SIMPLE_ASSIGN(cl_uint, 1024);  
             break;
 
         case CL_DEVICE_MIN_DATA_TYPE_ALIGN_SIZE:
@@ -637,15 +638,11 @@ cl_int EVEDevice::info(cl_device_info param_name,
             break;
 
         case CL_DEVICE_SINGLE_FP_CONFIG:
-           SIMPLE_ASSIGN(cl_device_fp_config,
-                    CL_FP_ROUND_TO_NEAREST | CL_FP_ROUND_TO_ZERO |
-                    CL_FP_ROUND_TO_INF | CL_FP_INF_NAN );
+           SIMPLE_ASSIGN(cl_uint, CL_NONE);     // not supported
             break;
 
         case CL_DEVICE_DOUBLE_FP_CONFIG:
-            SIMPLE_ASSIGN(cl_device_fp_config,
-                    CL_FP_FMA | CL_FP_ROUND_TO_NEAREST | CL_FP_ROUND_TO_ZERO |
-                    CL_FP_ROUND_TO_INF | CL_FP_INF_NAN | CL_FP_DENORM);
+            SIMPLE_ASSIGN(cl_uint, CL_NONE);    // not supported
            break;
 
         case CL_DEVICE_GLOBAL_MEM_CACHE_TYPE:
@@ -716,7 +713,7 @@ cl_int EVEDevice::info(cl_device_info param_name,
             break;
 
         case CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE:
-            SIMPLE_ASSIGN(cl_ulong, 1<<20);
+            SIMPLE_ASSIGN(cl_uint, 1<<20);
             break;
 
         case CL_DEVICE_MAX_CONSTANT_ARGS:
@@ -724,12 +721,12 @@ cl_int EVEDevice::info(cl_device_info param_name,
             break;
 
         case CL_DEVICE_LOCAL_MEM_TYPE:
-            SIMPLE_ASSIGN(cl_device_local_mem_type, CL_LOCAL);
+            SIMPLE_ASSIGN(cl_uint, CL_NONE);
             break;
 
         case CL_DEVICE_LOCAL_MEM_SIZE:
             {
-            SIMPLE_ASSIGN(cl_ulong, p_size_local_mem_);
+            SIMPLE_ASSIGN(cl_uint, CL_NONE);
             break;
             }
 
@@ -856,7 +853,7 @@ cl_int EVEDevice::info(cl_device_info param_name,
             break;
 
         case CL_DEVICE_OPENCL_C_VERSION:
-            STRING_ASSIGN("OpenCL C 1.2 Built In Kernels");
+            STRING_ASSIGN("OpenCL C not supported on custom device");
             break;
 
         default:
