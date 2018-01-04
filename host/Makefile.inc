@@ -78,3 +78,6 @@ RTOS_INSTALL_DIR?=$(LINUX_DEVKIT_ROOT)/usr/share/ti
 
 # OMP 
 OMP_DIR?=$(RTOS_INSTALL_DIR)/ti-omp-tree
+
+# Processor SDK Vision (remove once components are integrated into Processor SDK)
+PSDK_VISION?=PROCESSOR_SDK_VISION_03_02_00_00

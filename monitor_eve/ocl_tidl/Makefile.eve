@@ -34,13 +34,11 @@
 #  ======== Makefile.eve ========
 #
 
-## inherited from upper Makefile
+## inherited from upper Makefile via export
 #TI_OCL_ARP32_CGT_INSTALL
-#SDOMC_SHARED
 #XDAIS_DIR
-
-TIDL_DIR     ?= $(SDOMC_SHARED)/PROCESSOR_SDK_VISION_03_01_00_00/ti_components/algorithms/REL.TIDL.00.08.00.00
-DMAUTILS_DIR ?= $(SDOMC_SHARED)/PROCESSOR_SDK_VISION_03_01_00_00/ti_components/algorithms/REL.DMAUTILS.00.08.00.02
+#TIDL_DIR
+#DMAUTILS_DIR
 
 SOURCES  = tidl_impl.c ti_mem_manager.c
 
