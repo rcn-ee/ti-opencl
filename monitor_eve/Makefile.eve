@@ -51,11 +51,11 @@ OPENCL_SRC_DIR ?= ../host
 
 IPC_DIR        ?= $(RTOS_INSTALL_DIR)/ti-ipc-tree
 BIOS_DIR       ?= $(RTOS_INSTALL_DIR)/ti-sysbios-tree
-PDK_DIR        ?= $(SDOMC_SHARED)/PROCESSOR_SDK_VISION_03_01_00_00/ti_components/drivers/pdk_01_08_00_16
-TIDL_DIR     ?= $(SDOMC_SHARED)/PROCESSOR_SDK_VISION_03_01_00_00/ti_components/algorithms/REL.TIDL.00.08.00.00
-DMAUTILS_DIR ?= $(SDOMC_SHARED)/PROCESSOR_SDK_VISION_03_01_00_00/ti_components/algorithms/REL.DMAUTILS.00.08.00.02
+PDK_DIR        ?= $(SDOMC_SHARED)/$(PSDK_VISION)/ti_components/drivers/pdk_01_08_01_06
+TIDL_DIR     ?= $(SDOMC_SHARED)/$(PSDK_VISION)/ti_components/algorithms/REL.TIDL.01.00.00.00
+DMAUTILS_DIR ?= $(SDOMC_SHARED)/$(PSDK_VISION)/ti_components/algorithms/REL.DMAUTILS.00.08.00.02
 
-TI_OCL_ARP32_CGT_INSTALL ?= $(SDOMC_SHARED)/PROCESSOR_SDK_VISION_03_01_00_00/ti_components/cg_tools/linux/arp32_1.0.7
+TI_OCL_ARP32_CGT_INSTALL ?= $(SDOMC_SHARED)/$(PSDK_VISION)/ti_components/cg_tools/linux/arp32_1.0.7
 
 
 # OUT2RPRC            ?= $(VSDK_TOOLS_DIR)/out2rprc.exe
@@ -66,6 +66,8 @@ MULTICORE_IMAGE_GEN ?= $(PDK_DIR)/packages/ti/boot/sbl_auto/tools/multicore_imag
 
 export SDOMC_SHARED
 export TI_OCL_ARP32_CGT_INSTALL
+export TIDL_DIR
+export DMAUTILS_DIR
 XDAIS_DIR ?= $(RTOS_INSTALL_DIR)/ti-xdais-tree
 export XDAIS_DIR
 

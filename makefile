@@ -15,7 +15,7 @@ ifneq (,$(findstring 86, $(shell uname -m)))
 endif
 endif
 
-CLEAN_DIRS = builtins examples libm host/clocl monitor
+CLEAN_DIRS = builtins examples libm host/clocl monitor monitor_eve
 
 ifeq ($(BUILD_AM57),1)
     TARGET=am57

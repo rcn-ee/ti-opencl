@@ -46,9 +46,9 @@ OPENCL_SRC_DIR ?= ../host
 
 IPC_DIR        ?= $(RTOS_INSTALL_DIR)/ti-ipc-tree
 BIOS_DIR       ?= $(RTOS_INSTALL_DIR)/ti-sysbios-tree
-PDK_DIR        ?= $(SDOMC_SHARED)/PROCESSOR_SDK_VISION_03_01_00_00/ti_components/drivers/pdk_01_08_00_16
+PDK_DIR        ?= $(SDOMC_SHARED)/$(PSDK_VISION)/ti_components/drivers/pdk_01_08_01_06
 
-TI_OCL_M4_CGT_INSTALL ?= $(SDOMC_SHARED)/PROCESSOR_SDK_VISION_03_01_00_00/ti_components/cg_tools/linux/ti-cgt-arm_16.9.2.LTS
+TI_OCL_M4_CGT_INSTALL ?= $(SDOMC_SHARED)/$(PSDK_VISION)/ti_components/cg_tools/linux/ti-cgt-arm_16.9.2.LTS
 
 VISIONSDK_UTILS ?= src/visionsdk_utils
 

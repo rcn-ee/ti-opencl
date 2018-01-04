@@ -26,8 +26,8 @@ LIBS   += $(ULM_DIR)/libtiulm.ae66
 LIBS   += $(GDB_SERVER_DIR)/lib/gdb_server.ae66
 LIBS   += $(AET_DIR)/lib/libaet.ae66
 
-TIDL_DIR     ?= $(SDOMC_SHARED)/PROCESSOR_SDK_VISION_03_01_00_00/ti_components/algorithms/REL.TIDL.00.08.00.00
-DMAUTILS_DIR ?= $(SDOMC_SHARED)/PROCESSOR_SDK_VISION_03_01_00_00/ti_components/algorithms/REL.DMAUTILS.00.08.00.02
+TIDL_DIR     ?= $(SDOMC_SHARED)/$(PSDK_VISION)/ti_components/algorithms/REL.TIDL.01.00.00.00
+DMAUTILS_DIR ?= $(SDOMC_SHARED)/$(PSDK_VISION)/ti_components/algorithms/REL.DMAUTILS.00.08.00.02
 LIBS   += $(TIDL_DIR)/modules/ti_dl/lib/dsp/release/tidl_algo.lib
 LIBS   += $(DMAUTILS_DIR)/dmautils/libs/dsp/release/dmautils.lib
 
