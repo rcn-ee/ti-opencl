@@ -833,7 +833,7 @@ KernelEvent::KernelEvent(CommandQueue *parent,
     }
 
     // If kernel has zero arguments
-    if(local_work_size[0] == 0) return;
+    if (local_work_size && local_work_size[0] == 0) return;
 
     cl_uint i;
     for (i=0; i<work_dim; ++i)
