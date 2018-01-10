@@ -33,6 +33,8 @@
 /* multiple libraries can share the use of this fast memory, however, each  */
 /* library will use it exclusively */
 #define DMEM0_SIZE (20*1024)
+/* Need at least 7092B for evelib_imagePyramid_u8.c */
+#define TASK_STACK_SIZE 0x2C00
 #define DMEM1_SIZE (144*1024)
 
 //#pragma DATA_SECTION (DMEM0_SCRATCH, ".dmem0Sect");  // mapped to DMEM

@@ -86,7 +86,7 @@ EVEDevice::EVEDevice(unsigned char eve_id, SharedMemory* shm)
       p_eve_id_             (eve_id),
       p_cores               (1),
       p_num_events          (0),
-      p_eve_mhz_            (650),
+      p_eve_mhz_            (535),
       p_worker_dispatch     (0),
       p_worker_completion   (0),
       p_stop                (false),
