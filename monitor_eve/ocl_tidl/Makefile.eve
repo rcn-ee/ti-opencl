@@ -66,7 +66,7 @@ ocl_tidl.lib: $(OBJS) $(LIBS)
 %.oearp32F: %.c
 	@$(ECHO) "#"
 	@$(ECHO) "# Making $@ ..."
-	@$(CC) $(CPPFLAGS) $(CFLAGS) $(INCLUDES) --output_file=$@ -fc $<
+	@$(CC) $(CFLAGS) $(INCLUDES) --output_file=$@ -fc $<
 
 help:
 	@$(ECHO) "make                   # build executable"
@@ -80,10 +80,8 @@ clean::
 CC = $(TI_OCL_ARP32_CGT_INSTALL)/bin/cl-arp32 -c -O3
 AR = $(TI_OCL_ARP32_CGT_INSTALL)/bin/ar-arp32
 
-CPPFLAGS =
-CFLAGS  = --mem_model:data=far -O2
-CFLAGS += -qq -pdsw225
-CFLAGS += --silicon_version=v210
+CFLAGS  = -kh -kv -lu -o3 --silicon_version=v210 --gen_func_subsections
+CFLAGS += --display_error_number --diag_suppress=496 --diag_suppress=1311
 
 #  ======== standard macros ========
 ifneq (,$(wildcard $(XDC_DIR)/xdc.exe))

@@ -41,6 +41,7 @@
 #define TIDL_BLOCK_HEIGHT           (32U)
 #undef ALIGN_SIZE
 #define ALIGN_SIZE(x,y) (((x + (y-1)) / y) * y)
+#define MEM_CONTAMINATION_DIS
 
 
 // IVISION API. Declared in tidl_alg_int.h. Brings in too many dependencies,

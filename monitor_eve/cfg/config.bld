@@ -42,7 +42,7 @@ var MemSegDefine = xdc.loadCapsule("mem_segment_definition_linux.xs");
 var memmap = MemSegDefine.getMemSegmentDefinition_external(core)
 
 Build.platformTable["ti.platforms.evmDRA7XX:ipu1"] = {
-    externalMemoryMap: MemSegDefine.getMemSegmentDefinition_external(core),
+    externalMemoryMap: memmap,
     codeMemory: "IPU1_CODE_MEM",
     dataMemory: "IPU1_DATA_MEM",
     stackMemory: "IPU1_DATA_MEM",
@@ -51,7 +51,7 @@ Build.platformTable["ti.platforms.evmDRA7XX:ipu1"] = {
 
 Build.platformTable["ti.platforms.evmDRA7XX:eve1"] =
 {
-    externalMemoryMap: MemSegDefine.getMemSegmentDefinition_external(core),
+    externalMemoryMap: memmap,
     codeMemory:"EVE1_CODE_MEM",
     dataMemory:"EVE1_DATA_MEM",
     stackMemory:"EVE1_DATA_MEM"
@@ -59,7 +59,7 @@ Build.platformTable["ti.platforms.evmDRA7XX:eve1"] =
 
 Build.platformTable["ti.platforms.evmDRA7XX:eve2"] =
 {
-    externalMemoryMap: MemSegDefine.getMemSegmentDefinition_external(core),
+    externalMemoryMap: memmap,
     codeMemory:"EVE2_CODE_MEM",
     dataMemory:"EVE2_DATA_MEM",
     stackMemory:"EVE2_DATA_MEM"
@@ -67,7 +67,7 @@ Build.platformTable["ti.platforms.evmDRA7XX:eve2"] =
 
 Build.platformTable["ti.platforms.evmDRA7XX:eve3"] =
 {
-    externalMemoryMap: MemSegDefine.getMemSegmentDefinition_external(core),
+    externalMemoryMap: memmap,
     codeMemory:"EVE3_CODE_MEM",
     dataMemory:"EVE3_DATA_MEM",
     stackMemory:"EVE3_DATA_MEM"
@@ -75,7 +75,7 @@ Build.platformTable["ti.platforms.evmDRA7XX:eve3"] =
 
 Build.platformTable["ti.platforms.evmDRA7XX:eve4"] =
 {
-    externalMemoryMap: MemSegDefine.getMemSegmentDefinition_external(core),
+    externalMemoryMap: memmap,
     codeMemory:"EVE4_CODE_MEM",
     dataMemory:"EVE4_DATA_MEM",
     stackMemory:"EVE4_DATA_MEM"
