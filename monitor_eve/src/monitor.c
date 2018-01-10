@@ -43,6 +43,8 @@
 #include <ti/sysbios/BIOS.h>
 #include <ti/sysbios/knl/Task.h>
 #include <ti/sysbios/knl/Clock.h>
+#include <ti/sysbios/knl/Swi.h>
+#include <ti/sysbios/family/arp32/Hwi.h>
 #include <ti/ipc/MessageQ.h>
 #include <ti/ipc/MultiProc.h>
 #include <ti/ipc/HeapBufMP.h>
@@ -70,6 +72,9 @@
 #define EVEMSGQNAME2(core) ("OCL:" #core ":MsgQ")
 #define EVEMSGQNAME(core)  EVEMSGQNAME2(core)
 
+#define EVEPMMODID2(core) PMHAL_PRCM_MOD_##core
+#define EVEPMMODID(core) EVEPMMODID2(core)
+
 /* external functions */
 extern void* eve_rpc(void *p, int args_on_stack_size, void *args_in_reg);
 
@@ -91,7 +96,7 @@ MessageQ_QueueId    enable_printf = MessageQ_INVALIDMESSAGEQ;
 /* library will use it exclusively */
 #pragma DATA_SECTION (DMEM0_SCRATCH, ".dmem0Sect");
 uint8_t DMEM0_SCRATCH[DMEM0_SIZE]   __attribute__((aligned(4)));
-#pragma DATA_SECTION (task_stack, ".dmem0Sect");
+#pragma DATA_SECTION (task_stack,    ".dmem0Sect");
 uint8_t task_stack[TASK_STACK_SIZE] __attribute__((aligned(4)));
 #pragma DATA_SECTION (DMEM1_SCRATCH, ".dmem1Sect");
 uint8_t DMEM1_SCRATCH[DMEM1_SIZE]   __attribute__((aligned(4)));
@@ -107,13 +112,18 @@ Int main(Int argc, Char* argv[])
     MessageQ_Params msgqParams;
     Int             status;
 
+#if 0
     /* Doing a Timer Xbar configuration update as BIOS is hardcoding this
      * value
      * 6th Irq Cross bar instance is tied to 339th instance for Timer 14.
      * 7th Irq Cross bar instance is tied to 340th instance for Timer 15.
      */
-    //IntXbar_connect(6U, 340U);
-    //IntXbar_connect(7U, 341U);
+    IntXbar_connect(6U, 340U);
+    IntXbar_connect(7U, 341U);
+
+    /* Prepare for the Idle */
+    PMLIBCpuModePrepare(EVEPMMODID(EVECORE), PMLIB_IDLE_CPU_MODE_AUTOCG);
+#endif
 
     do
     {
@@ -133,7 +143,7 @@ Int main(Int argc, Char* argv[])
     taskParams.instance->name = "smain";
     taskParams.arg0 = (UArg)argc;
     taskParams.arg1 = (UArg)argv;
-    taskParams.stackSize = 0x1000;
+    taskParams.stackSize = TASK_STACK_SIZE;
     taskParams.stack     = (xdc_Ptr) task_stack;
     Task_create(smain, &taskParams, &eb);
 

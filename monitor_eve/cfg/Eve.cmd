@@ -29,3 +29,34 @@
 --retain="printf"
 --retain="puts"
 
+SECTIONS
+{
+  .tidl_lib_txtdata
+  {
+    *dmautils.lib<*.o*> (.text)
+    *tidl_algo.lib<tidl_conv2d*.o*> (.text)
+    *tidl_algo.lib<*kernel*.o*> (.text)
+    *tidl_algo.lib<*alg*.o*> (.text)
+  }   align = 0x8000 > CODEMEM  PAGE 1
+
+  GROUP
+  {
+      .bss            /* This order facilitates a single segment for */
+      .data           /* GDP-relative addressing                     */
+      .rodata
+  }  > DATAMEM PAGE 1
+
+  .tidl_lib_fardata
+  {
+    *tidl_algo.lib<*.o*> (.far)
+    *tidl_algo.lib<*.o*> (.const)
+  }  > DMEM  PAGE 1
+
+  .edma_utils_lib_fardata
+  {
+    *dmautils.lib<*.o*> (.far)
+    *dmautils.lib<*.o*> (.bss)
+    *dmautils.lib<*.o*> (.const)
+  }  > DMEM  PAGE 1
+}
+

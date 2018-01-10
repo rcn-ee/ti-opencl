@@ -50,6 +50,10 @@ PDK_DIR        ?= $(SDOMC_SHARED)/$(PSDK_VISION)/ti_components/drivers/pdk_01_08
 
 TI_OCL_M4_CGT_INSTALL ?= $(SDOMC_SHARED)/$(PSDK_VISION)/ti_components/cg_tools/linux/ti-cgt-arm_16.9.2.LTS
 
+CSL_LIB_M4    ?= $(PDK_DIR)/packages/ti/csl/lib/tda2xx/m4/release/ti.csl.aem4
+PM_HAL_LIB_M4 ?= $(PDK_DIR)/packages/ti/drv/pm/lib/tda2xx/m4/release/pm_hal.aem4
+SBL_LIB_M4    ?= $(PDK_DIR)/packages/ti/boot/sbl_auto/lib/tda2xx-evm/m4/release/sbl_lib.aem4
+
 VISIONSDK_UTILS ?= src/visionsdk_utils
 
 SOURCES  = main_ipu1.c eve_firmware.c
@@ -74,10 +78,7 @@ INCLUDES += -D$(DEVICE) -D$(SOC) -DNON_VISIONSDK_BUILD
 INCLUDES += -DIPU1_LOAD_EVES -DPROC_EVE1_INCLUDE
 INCLUDES += -DPROC_EVE2_INCLUDE -DPROC_EVE3_INCLUDE -DPROC_EVE4_INCLUDE
 
-libs = $(PDK_DIR)/packages/ti/boot/sbl_auto/lib/tda2xx-evm/m4/release/sbl_lib.aem4
-libs += $(PDK_DIR)/packages/ti/drv/pm/lib/tda2xx/m4/release/pm_hal.aem4
-libs += $(PDK_DIR)/packages/ti/csl/lib/tda2xx/m4/release/ti.csl.aem4
-
+libs = $(CSL_LIB_M4) $(PM_HAL_LIB_M4) $(SBL_LIB_M4)
 
 .PRECIOUS: %/compiler.opt %/linker.cmd
 
@@ -150,7 +151,7 @@ CPPFLAGS =
 CFLAGS = -qq -pdsw225 -ppd=$@.dep -ppa $(CCPROFILE_$(BUILD_TYPE)) -@$(CONFIG)/compiler.opt -I.
 
 # entry point is set to an aligned address so that IPC can load the slave
-LDFLAGS = -w -q -u _c_int00 -c -m $(@D)/obj/$(@F).map
+LDFLAGS = -w -x -q -u _c_int00 -c -m $(@D)/obj/$(@F).map
 LDLIBS = -l $(TI_OCL_M4_CGT_INSTALL)/lib/libc.a
 
 CCPROFILE_debug = -D_DEBUG_=1 --symdebug:dwarf

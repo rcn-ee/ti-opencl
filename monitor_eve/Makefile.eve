@@ -57,6 +57,9 @@ DMAUTILS_DIR ?= $(SDOMC_SHARED)/$(PSDK_VISION)/ti_components/algorithms/REL.DMAU
 
 TI_OCL_ARP32_CGT_INSTALL ?= $(SDOMC_SHARED)/$(PSDK_VISION)/ti_components/cg_tools/linux/arp32_1.0.7
 
+CSL_LIB_EVE ?= $(PDK_DIR)/packages/ti/csl/lib/tda2xx/arp32/release/ti.csl.aearp32F
+PM_LIB_EVE  ?= $(PDK_DIR)/packages/ti/drv/pm/lib/tda2xx/arp32/release/pm_lib.aearp32F
+#PM_HAL_LIB_EVE ?= $(PDK_DIR)/packages/ti/drv/pm/lib/tda2xx/arp32/release/pm_hal.aearp32F
 
 # OUT2RPRC            ?= $(VSDK_TOOLS_DIR)/out2rprc.exe
 # MULTICORE_IMAGE_GEN ?= $(VSDK_TOOLS_DIR)/MulticoreImageGen64.out
@@ -110,11 +113,11 @@ PKGPATH := $(PKGPATH)+$(XDC_DIR)/packages
 PKGPATH := $(PKGPATH)+$(PDK_DIR)/packages
 
 INCLUDES  = -i. -i $(OPENCL_SRC_DIR)/src/core/dsp
-INCLUDES += -D$(DEVICE) -D$(SOC) -DBUILD_ARP32
+INCLUDES += -D$(DEVICE) -D$(SOC) -DBUILD_ARP32 -DCORE_EVE -DVAYU_PLATFORM
 INCLUDES += -DEVECORE=$(TARGET_UP)
 
-libs = $(PDK_DIR)/packages/ti/csl/lib/tda2xx/arp32/release/ti.csl.aearp32F
-libs += $(PDK_DIR)/packages/ti/drv/pm/lib/tda2xx/arp32/release/pm_lib.aearp32F
+libs = $(CSL_LIB_EVE) $(PM_LIB_EVE)
+#libs += $(PM_HAL_LIB_EVE)
 libs += ocl_tidl/ocl_tidl.lib
 libs += $(TIDL_DIR)/modules/ti_dl/lib/eve/release/tidl_algo.lib
 libs += $(DMAUTILS_DIR)/dmautils/libs/eve/release/dmautils.lib
@@ -147,17 +150,19 @@ $(PROJECT)/$(TARGET).xearp32F: $(OBJS) $(libs) $(CONFIG)/linker.cmd
 	@$(ECHO) "#"
 	@$(ECHO) "# Making $@ ..."
 	$(LD) $(LDFLAGS) -o $@ $(OBJS) \
+            --define=CODEMEM=$(TARGET_UP)_CODE_MEM \
+            --define=DATAMEM=$(TARGET_UP)_DATA_MEM \
             $(addprefix -l ,$(libs)) $(CONFIG)/linker.cmd $(LDLIBS)
 
 $(PROJECT)/obj/%.oearp32F: %.c $(CONFIG)/compiler.opt
 	@$(ECHO) "#"
 	@$(ECHO) "# Making $@ ..."
-	$(CC) $(CPPFLAGS) $(CFLAGS) $(INCLUDES) --output_file=$@ -fc $<
+	$(CC) $(CFLAGS) $(INCLUDES) --output_file=$@ -fc $<
 
 $(PROJECT)/obj/%.oearp32F: %.asm $(CONFIG)/compiler.opt
 	@$(ECHO) "#"
 	@$(ECHO) "# Making $@ ..."
-	$(CC) $(CPPFLAGS) $(CFLAGS) $(INCLUDES) --output_file=$@ -fa $<
+	$(CC) $(CFLAGS) $(INCLUDES) --output_file=$@ -fa $<
 
 
 %/linker.cmd %/compiler.opt: $(CONFIG)/.config ;
@@ -190,19 +195,16 @@ clean::
 CC = $(TI_OCL_ARP32_CGT_INSTALL)/bin/cl-arp32 -c -O3
 LD = $(TI_OCL_ARP32_CGT_INSTALL)/bin/lnk-arp32
 
-CPPFLAGS =
-CFLAGS  = --mem_model:data=far
-CFLAGS += -qq -pdsw225 -ppd=$@.dep -ppa $(CCPROFILE_$(BUILD_TYPE)) -@$(CONFIG)/compiler.opt -I.
-CFLAGS += --silicon_version=v210
-
-# includes
+CFLAGS  = -kh -kv -lu -o3 --silicon_version=v210 --gen_func_subsections
+CFLAGS += --display_error_number --diag_suppress=496 --diag_suppress=1311
+CFLAGS += -@$(CONFIG)/compiler.opt -I.
 CFLAGS += -I $(XDAIS_DIR)/packages
 
 # entry point is set to an aligned address so that IPC can load the slave
-#LDFLAGS = -w -q -u _c_int00 -c -m $(@D)/obj/$(@F).map
 LDFLAGS  = --priority -w -x -m $(@D)/obj/$(@F).map
 LDFLAGS += --warn_sections -e=_c_int00 --silicon_version=arp32
-LDLIBS = -l cfg/Eve.cmd -l $(TI_OCL_ARP32_CGT_INSTALL)/lib/rtsarp32_v203.lib
+LDLIBS   = -l cfg/Eve.cmd
+LDLIBS  += -l $(TI_OCL_ARP32_CGT_INSTALL)/lib/rtsarp32_v203.lib
 #LDLIBS = -l $(TI_OCL_ARP32_CGT_INSTALL)/lib/rtsarp32_v200.lib
 
 CCPROFILE_debug = -D_DEBUG_=1 --symdebug:dwarf
