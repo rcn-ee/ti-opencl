@@ -54,26 +54,37 @@ config ti.platforms.generic.Platform.Instance CPU =
 
       /* DDR3_NC, DDR3_STACK and DDR3_HEAP placed in the first 32MB of
          CMEM. Maps to DSP_MEM_IOBUFS in custom_rsc_table_vayu_dsp.h */
+      /* Memory map for first 32MB of CMEM:
+         0xA000_0000 to 0xA002_0000: DSP, OpenMP .tomp_svNcMem
+         0xA002_0000 to 0xA010_0000: (hole)
+         0xA010_0000 to 0xA060_0000: EVE1, .intvecs (4K), code + data (rest)
+         0xA060_0000 to 0xA0B0_0000: EVE2, .intvecs (4K), code + data (rest)
+         0xA0B0_0000 to 0xA100_0000: EVE3, .intvecs (4K), code + data (rest)
+         0xA100_0000 to 0xA150_0000: EVE4, .intvecs (4K), code + data (rest)
+         0xA150_0000 to 0xA170_0000: EVE/IPU, SR0
+         0xA170_0000 to 0xA178_0000: (hole)
+         0xA178_0000 to 0xA180_0000: DSP, OpenMP ocl_service_omp task stask
+         0xA180_0000 to 0xA200_0000: DSP, OpenMP heap */
 
-      /* Non-cached DDR */
+      /* Non-cached DDR: 0xA000_0000 - 0xA100_0000 (MAR granularity) */
       [ "DDR3_NC",   { name: "DDR3_NC",
                           base: 0xA0000000,
-                          len:  0x01000000,
+                          len:  0x00020000,
                           space: "code/data",
                           access: "RWX", } ],
 
-      /* Cached DDR */
+      /* Cached DDR:     0xA100_0000 - 0xA200_0000 (MAR granularity) */
 
       /* Stack for ocl_service_omp task - 0x10000 for each core */
       [ "DDR3_STACK", { name: "DDR3_STACK",
-                          base: 0xA1000000,
+                          base: 0xA1780000,
                           len:  0x00020000,
                           space: "data",
                           access: "RWX", } ],
 
       [ "DDR3_HEAP", { name: "DDR3_HEAP",
-                          base: 0xA1020000,
-                          len:  0x00FE0000,
+                          base: 0xA1800000,
+                          len:  0x00800000,
                           space: "code/data",
                           access: "RWX", } ],
 

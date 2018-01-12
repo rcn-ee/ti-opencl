@@ -149,6 +149,7 @@ $(PROJECT)/$(TARGET).xearp32F: $(OBJS) $(libs) $(CONFIG)/linker.cmd
 	@$(ECHO) "#"
 	@$(ECHO) "# Making $@ ..."
 	$(LD) $(LDFLAGS) -o $@ $(OBJS) \
+            --define=VECSMEM=$(TARGET_UP)_VECS_MEM \
             --define=CODEMEM=$(TARGET_UP)_CODE_MEM \
             --define=DATAMEM=$(TARGET_UP)_DATA_MEM \
             $(addprefix -l ,$(libs)) $(CONFIG)/linker.cmd $(LDLIBS)

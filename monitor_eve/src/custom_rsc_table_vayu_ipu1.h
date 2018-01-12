@@ -246,7 +246,7 @@ struct my_resource_table ti_ipc_remoteproc_ResourceTable = {
     {
         TYPE_DEVMEM,
         IPU_TILER_MODE_0_1, L3_TILER_MODE_0_1,
-        SZ_256M, 0, 0, "IPU_TILER_MODE_0_1",
+        SZ_1M, 0, 0, "IPU_TILER_MODE_0_1",
     },
 
     {

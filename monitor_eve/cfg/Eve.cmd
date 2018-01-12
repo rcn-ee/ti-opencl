@@ -34,6 +34,15 @@
 /*     better L1P$ locality, etc.                                 */
 SECTIONS
 {
+  /* With updated secondary boot loader (SBL) library, vector table
+     and entry point need to be located in the same 1MB page, with
+     vector table placed at the beginning of 1MB page */
+  .entry_point_page
+  {
+    * (.vecs)
+    * (.text:_c_int00)
+  } align = 0x100000 > VECSMEM PAGE 1
+
   .tidl_lib_txtdata
   {
     *dmautils.lib<*.o*> (.text)
