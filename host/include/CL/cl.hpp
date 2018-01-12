@@ -685,16 +685,40 @@ public:
     }
 };  
     
-/*!
- * \brief size_t class used to interface between C++ and
- * OpenCL C calls that require arrays of size_t values, who's
- * size is known statically.
+/*! \brief class used to interface between C++ and
+ *  OpenCL C calls that require arrays of size_t values, whose
+ *  size is known statically.
  */
 template <int N>
-struct size_t : public cl::vector< ::size_t, N> {
-public:
-	size_t() : cl::vector< ::size_t, N>( N ) {};
+class size_t
+{ 
+private:
+    ::size_t data_[N];
 
+public:
+    //! \brief Initialize size_t to all 0s
+    size_t()
+    {
+        for( int i = 0; i < N; ++i ) {
+            data_[i] = 0;
+        }
+    }
+
+    ::size_t& operator[](int index)
+    {
+        return data_[index];
+    }
+
+    const ::size_t& operator[](int index) const
+    {
+        return data_[index];
+    }
+
+    //! \brief Conversion operator to T*.
+    operator ::size_t* ()             { return data_; }
+
+    //! \brief Conversion operator to const T*.
+    operator const ::size_t* () const { return data_; }
 };
 
 namespace detail {
@@ -2258,25 +2282,33 @@ public:
     NDRange(::size_t size0)
         : dimensions_(1)
     {
-        sizes_.push_back(size0);
+        sizes_[0] = size0;
     }
 
     NDRange(::size_t size0, ::size_t size1)
         : dimensions_(2)
     {
-        sizes_.push_back(size0);
-        sizes_.push_back(size1);
+        sizes_[0] = size0;
+        sizes_[1] = size1;
     }
 
     NDRange(::size_t size0, ::size_t size1, ::size_t size2)
         : dimensions_(3)
     {
-        sizes_.push_back(size0);
-        sizes_.push_back(size1);
-        sizes_.push_back(size2);
+        sizes_[0] = size0;
+        sizes_[1] = size1;
+        sizes_[2] = size2;
     }
 
-    operator const ::size_t*() const { return (const ::size_t*) sizes_; }
+    /*! \brief Conversion operator to const ::size_t *.
+     *  
+     *  \returns a pointer to the size of the first dimension.
+     */
+    operator const ::size_t*() const { 
+        return (const ::size_t*) sizes_; 
+    }
+
+    //! \brief Queries the number of dimensions in the range.
     ::size_t dimensions() const { return dimensions_; }
 };
 
