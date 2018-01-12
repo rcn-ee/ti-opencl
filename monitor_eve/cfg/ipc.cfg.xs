@@ -57,7 +57,7 @@ SharedRegion.setEntryMeta(0,
         len:            SR0Mem.len,
         ownerProcId:    MultiProc.getIdMeta(ownerSr0),
         isValid:        true,
-        cacheEnable:    true,
+        cacheEnable:    false,
         createHeap:     true,
         name:           "SR0"
     })

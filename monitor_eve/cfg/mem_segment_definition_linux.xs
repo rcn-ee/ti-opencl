@@ -70,43 +70,24 @@ var SR0_ADDR;
 var SR0_SIZE;
 
 var EVE1_CODE_ADDR;
-var EVE1_CODE_SIZE;
-
 var EVE1_DATA_ADDR;
-var EVE1_DATA_SIZE;
-
 var EVE1_VECS_ADDR;
-var EVE1_VECS_SIZE;
 
 var EVE2_CODE_ADDR;
-var EVE2_CODE_SIZE;
-
 var EVE2_DATA_ADDR;
-var EVE2_DATA_SIZE;
-
 var EVE2_VECS_ADDR;
-var EVE2_VECS_SIZE;
 
 var EVE3_CODE_ADDR;
-var EVE3_CODE_SIZE;
-
 var EVE3_DATA_ADDR;
-var EVE3_DATA_SIZE;
-
 var EVE3_VECS_ADDR;
-var EVE3_VECS_SIZE;
 
 var EVE4_CODE_ADDR;
-var EVE4_CODE_SIZE;
-
 var EVE4_DATA_ADDR;
-var EVE4_DATA_SIZE;
-
 var EVE4_VECS_ADDR;
-var EVE4_VECS_SIZE;
 
-var REMOTE_LOG_ADDR;
-var REMOTE_LOG_SIZE;
+var EVE_CODE_SIZE;
+var EVE_DATA_SIZE;
+var EVE_VECS_SIZE;
 
 var TRACE_BUF_BASE;
 var TRACE_BUF_LEN;
@@ -154,65 +135,37 @@ PM_DATA_BASE                = EXC_DATA_BASE + EXC_DATA_LEN;
  * dts file
  */
 
-/* The start address of the second mem section should be 16MB aligned.
- * This alignment is a must as a single 16MB mapping is used for EVE
- * to map SR0, EMOTE_LOG_MEM sections.
- * tlb_config_eveX.c need to be modified otherwise
- */
-SR0_SIZE                    = 11*MB;
-REMOTE_LOG_SIZE             =  1*MB;
-COMMON_SHM_BUFFER_SIZE      =  1*MB;
-
-/* The start address of the second mem section should be 16MB aligned.
- * This alignment is a must as a single 16MB mapping is used for EVE
- * to map SR0, EMOTE_LOG_MEM sections.
- * tlb_config_eveX.c need to be modified otherwise
- */
-SR0_ADDR                    = 0xC0000000;
-REMOTE_LOG_ADDR             = SR0_ADDR              + SR0_SIZE;
-COMMON_SHM_BUFFER           = REMOTE_LOG_ADDR       + REMOTE_LOG_SIZE;
+//SR0_SIZE                    = 0xE0000;
+SR0_SIZE                    = 2*MB;
+//SR0_ADDR                    = 0xA0020000;
+SR0_ADDR                    = 0xA1500000;
 
 
-/* The start address of EVE memory must be 16MB aligned. */
-EVE_START_ADDR              = 0xC2000000;
-/* EVE vecs space should be align with 16MB boundary, and if possible try to fit
- * the entire vecs+code+data in 16MB section. In this case a single TLB map would
- * be enough to map vecs+code+data of an EVE.
- * tlb_config_eveX.c need to be modified if any of these EVE memory sections or
- * SR1_FRAME_BUFFER_MEM section is modified.
+/* Old SBL: The start address of EVE memory must be 16MB aligned. */
+/* With updated SBL, EVE vecs space could be align with 1MB boundary,
+ * and if possible try to fit the entire vecs+code+data in the same 16MB
+ * section. In this case a single TLB map would be enough to map
+ * vecs+code+data of an EVE.
+ * tlb_config_eve.c needs to map these EVE memory sections accordingly.
  */
-EVE1_VECS_SIZE              = 0.5*MB;
-EVE1_CODE_SIZE              =   2*MB;
-EVE1_DATA_SIZE              =13.5*MB;
-EVE2_VECS_SIZE              = 0.5*MB;
-EVE2_CODE_SIZE              =   2*MB;
-EVE2_DATA_SIZE              =13.5*MB;
-EVE3_VECS_SIZE              = 0.5*MB;
-EVE3_CODE_SIZE              =   2*MB;
-EVE3_DATA_SIZE              =13.5*MB;
-EVE4_VECS_SIZE              = 0.5*MB;
-EVE4_CODE_SIZE              =   2*MB;
-EVE4_DATA_SIZE              =13.5*MB;
+EVE_START_ADDR              = 0xA0100000;
 
-/* EVE vecs space should be align with 16MB boundary, and if possible try to fit
- * the entire vecs+code+data in 16MB section. In this case a single TLB map would
- * be enough to map vecs+code+data of an EVE.
- * tlb_config_eveX.c need to be modified if any of these EVE memory sections or
- * SR1_FRAME_BUFFER_MEM section is modified.
- */
+EVE_VECS_SIZE              = 0x001000;
+EVE_CODE_SIZE              = 0x1FF000;
+EVE_DATA_SIZE              = 0x300000;
 
 EVE1_VECS_ADDR              = EVE_START_ADDR
-EVE1_CODE_ADDR              = EVE1_VECS_ADDR        + EVE1_VECS_SIZE;
-EVE1_DATA_ADDR              = EVE1_CODE_ADDR        + EVE1_CODE_SIZE;
-EVE2_VECS_ADDR              = EVE1_DATA_ADDR        + EVE1_DATA_SIZE;
-EVE2_CODE_ADDR              = EVE2_VECS_ADDR        + EVE2_VECS_SIZE;
-EVE2_DATA_ADDR              = EVE2_CODE_ADDR        + EVE2_CODE_SIZE;
-EVE3_VECS_ADDR              = EVE2_DATA_ADDR        + EVE2_DATA_SIZE;
-EVE3_CODE_ADDR              = EVE3_VECS_ADDR        + EVE3_VECS_SIZE;
-EVE3_DATA_ADDR              = EVE3_CODE_ADDR        + EVE3_CODE_SIZE;
-EVE4_VECS_ADDR              = EVE3_DATA_ADDR        + EVE3_DATA_SIZE;
-EVE4_CODE_ADDR              = EVE4_VECS_ADDR        + EVE4_VECS_SIZE;
-EVE4_DATA_ADDR              = EVE4_CODE_ADDR        + EVE4_CODE_SIZE;
+EVE1_CODE_ADDR              = EVE1_VECS_ADDR        + EVE_VECS_SIZE;
+EVE1_DATA_ADDR              = EVE1_CODE_ADDR        + EVE_CODE_SIZE;
+EVE2_VECS_ADDR              = EVE1_DATA_ADDR        + EVE_DATA_SIZE;
+EVE2_CODE_ADDR              = EVE2_VECS_ADDR        + EVE_VECS_SIZE;
+EVE2_DATA_ADDR              = EVE2_CODE_ADDR        + EVE_CODE_SIZE;
+EVE3_VECS_ADDR              = EVE2_DATA_ADDR        + EVE_DATA_SIZE;
+EVE3_CODE_ADDR              = EVE3_VECS_ADDR        + EVE_VECS_SIZE;
+EVE3_DATA_ADDR              = EVE3_CODE_ADDR        + EVE_CODE_SIZE;
+EVE4_VECS_ADDR              = EVE3_DATA_ADDR        + EVE_DATA_SIZE;
+EVE4_CODE_ADDR              = EVE4_VECS_ADDR        + EVE_VECS_SIZE;
+EVE4_DATA_ADDR              = EVE4_CODE_ADDR        + EVE_CODE_SIZE;
 
 function getMemSegmentDefinition_external(core)
 {
@@ -240,91 +193,79 @@ function getMemSegmentDefinition_external(core)
             comment : "EVE1_VECS_MEM",
             name    : "EVE1_VECS_MEM",
             base    : EVE1_VECS_ADDR,
-            len     : EVE1_VECS_SIZE
+            len     : EVE_VECS_SIZE
         }];
     memory[index++] = ["EVE1_CODE_MEM", {
             comment : "EVE1_CODE_MEM",
             name    : "EVE1_CODE_MEM",
             base    : EVE1_CODE_ADDR,
-            len     : EVE1_CODE_SIZE
+            len     : EVE_CODE_SIZE
         }];
     memory[index++] = ["EVE1_DATA_MEM", {
             comment : "EVE1_DATA_MEM",
             name    : "EVE1_DATA_MEM",
             base    : EVE1_DATA_ADDR,
-            len     : EVE1_DATA_SIZE
+            len     : EVE_DATA_SIZE
         }];
     memory[index++] = ["EVE2_VECS_MEM", {
             comment : "EVE2_VECS_MEM",
             name    : "EVE2_VECS_MEM",
             base    : EVE2_VECS_ADDR,
-            len     : EVE2_VECS_SIZE
+            len     : EVE_VECS_SIZE
         }];
     memory[index++] = ["EVE2_CODE_MEM", {
             comment : "EVE2_CODE_MEM",
             name    : "EVE2_CODE_MEM",
             base    : EVE2_CODE_ADDR,
-            len     : EVE2_CODE_SIZE
+            len     : EVE_CODE_SIZE
         }];
     memory[index++] = ["EVE2_DATA_MEM", {
             comment : "EVE2_DATA_MEM",
             name    : "EVE2_DATA_MEM",
             base    : EVE2_DATA_ADDR,
-            len     : EVE2_DATA_SIZE
+            len     : EVE_DATA_SIZE
         }];
     memory[index++] = ["EVE3_VECS_MEM", {
             comment : "EVE3_VECS_MEM",
             name    : "EVE3_VECS_MEM",
             base    : EVE3_VECS_ADDR,
-            len     : EVE3_VECS_SIZE
+            len     : EVE_VECS_SIZE
         }];
     memory[index++] = ["EVE3_CODE_MEM", {
             comment : "EVE3_CODE_MEM",
             name    : "EVE3_CODE_MEM",
             base    : EVE3_CODE_ADDR,
-            len     : EVE3_CODE_SIZE
+            len     : EVE_CODE_SIZE
         }];
     memory[index++] = ["EVE3_DATA_MEM", {
             comment : "EVE3_DATA_MEM",
             name    : "EVE3_DATA_MEM",
             base    : EVE3_DATA_ADDR,
-            len     : EVE3_DATA_SIZE
+            len     : EVE_DATA_SIZE
         }];
     memory[index++] = ["EVE4_VECS_MEM", {
             comment : "EVE4_VECS_MEM",
             name    : "EVE4_VECS_MEM",
             base    : EVE4_VECS_ADDR,
-            len     : EVE4_VECS_SIZE
+            len     : EVE_VECS_SIZE
         }];
     memory[index++] = ["EVE4_CODE_MEM", {
             comment : "EVE4_CODE_MEM",
             name    : "EVE4_CODE_MEM",
             base    : EVE4_CODE_ADDR,
-            len     : EVE4_CODE_SIZE
+            len     : EVE_CODE_SIZE
         }];
     memory[index++] = ["EVE4_DATA_MEM", {
             comment : "EVE4_DATA_MEM",
             name    : "EVE4_DATA_MEM",
             base    : EVE4_DATA_ADDR,
-            len     : EVE4_DATA_SIZE
+            len     : EVE_DATA_SIZE
         }];
     memory[index++] = ["SR0", {
             comment : "SR0",
             name    : "SR0",
             base    : SR0_ADDR,
             len     : SR0_SIZE
-        }];
-   memory[index++] = ["REMOTE_LOG_MEM", {
-            comment : "REMOTE_LOG_MEM",
-            name    : "REMOTE_LOG_MEM",
-            base    : REMOTE_LOG_ADDR,
-            len     : REMOTE_LOG_SIZE
-        }];
-    memory[index++] = ["COMMON_SHM_BUFFER", {
-            comment : "COMMON_SHM_BUFFER",
-            name    : "COMMON_SHM_BUFFER",
-            base    : COMMON_SHM_BUFFER,
-            len     : COMMON_SHM_BUFFER_SIZE
         }];
 
    memory[index++] = ["TRACE_BUF", {

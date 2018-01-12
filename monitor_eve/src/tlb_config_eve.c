@@ -113,14 +113,31 @@
 #define PHY_ADDR8   0x4A000000
 #define VIRT_ADDR8  0x4A000000
 
-#define PHY_ADDR9   0xC0000000
-#define VIRT_ADDR9  0xC0000000
+#define PHY_ADDR9   0xB6000000
+#define VIRT_ADDR9  0xB6000000
 
-#define PHY_ADDR10  0xA0000000
-#define VIRT_ADDR10 0xA0000000
+#define PHY_ADDR10  0xB7000000
+#define VIRT_ADDR10 0xB7000000
 
-#define PHY_ADDR11  0xA1000000
-#define VIRT_ADDR11 0xA1000000
+/* EVE1,2,3 are in the same 16MB memory: 0xA0,
+   EVE4 is in the next 16MB memory with SR0: 0xA1.
+   EVE1,2,3 needs to set up 0xA1 for SR0, EVE4 cannot have
+   duplicate TLB entries as it entry point page, so set up 0xA0. */
+#define EVE1 1
+#define EVE2 1
+#define EVE3 1
+#define EVE4 0
+#if EVECORE
+  #define PHY_ADDR11  0xA1000000
+  #define VIRT_ADDR11 0xA1000000
+#else
+  #define PHY_ADDR11  0xA0000000
+  #define VIRT_ADDR11 0xA0000000
+#endif
+#undef EVE1
+#undef EVE2
+#undef EVE3
+#undef EVE4
 
 #define PHY_ADDR12  0xA2000000
 #define VIRT_ADDR12 0xA2000000
