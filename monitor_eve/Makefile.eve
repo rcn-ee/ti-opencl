@@ -67,7 +67,6 @@ PM_LIB_EVE  ?= $(PDK_DIR)/packages/ti/drv/pm/lib/tda2xx/arp32/release/pm_lib.aea
 OUT2RPRC            ?= $(PDK_DIR)/packages/ti/boot/sbl_auto/tools/out2rprc/out2rprc.exe
 MULTICORE_IMAGE_GEN ?= $(PDK_DIR)/packages/ti/boot/sbl_auto/tools/multicore_image_generator/v1/MulticoreImageGen
 
-export SDOMC_SHARED
 export TI_OCL_ARP32_CGT_INSTALL
 export TIDL_DIR
 export DMAUTILS_DIR
@@ -104,7 +103,7 @@ OBJS     = $(addprefix $(PROJECT)/obj/, \
              $(patsubst %.asm,%.oearp32F, \
                $(patsubst %.c,%.oearp32F,$(SOURCES))))
 
-CONFIGS  = cfg/Eve.cfg cfg/config.bld cfg/BIOS_common.cfg
+CONFIGS  = cfg/Eve.cfg cfg/config.bld
 CONFIGS += cfg/ipc.cfg.xs cfg/mem_segment_definition_linux.xs
 
 PKGPATH := $(BIOS_DIR)/packages
