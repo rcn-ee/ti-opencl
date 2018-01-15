@@ -29,6 +29,9 @@
 --retain="printf"
 --retain="puts"
 
+/* Grouping kept the same as those in TIDL linker command file,   */
+/*     for relative addressing, internal memory (DMEM) placement, */
+/*     better L1P$ locality, etc.                                 */
 SECTIONS
 {
   .tidl_lib_txtdata
