@@ -11,24 +11,23 @@
 
 struct TIDL_CreateParams;
 
-void ocl_tidl_setup(TIDL_CreateParams *createParams,
-                      ConfigParams      *configParams,
-                      const char        *networkParamBuffer,
-                      unsigned char     *networkParamHeap,
-                      SetupParams       *setupParams);
+void ocl_tidl_setup(      TIDL_CreateParams* createParams,
+                          ConfigParams*      configParams,
+                    const uint8_t*           networkParamBuffer,
+                          uint8_t*           networkParamHeap,
+                          SetupParams*       setupParams);
 
-void ocl_tidl_initialize(const TIDL_CreateParams *createParams,
-                                 ConfigParams      *configParams,
-                                 const char        *NetworkParamBuffer,
-                                 uint8_t           *ExternalMemoryHeapBase,
-                                 const InitializeParams *initP,
-                                 uint8_t *l2HeapBase);
+void ocl_tidl_initialize(const TIDL_CreateParams* createParams,
+                               ConfigParams*      configParams,
+                         const uint8_t*           networkParamBuffer,
+                               uint8_t*           externalMemoryHeapBase,
+                         const InitializeParams*  initP,
+                               uint8_t*           l2HeapBase);
 
-void ocl_tidl_process(//TIDL_CreateParams *createParams, 
-                        ConfigParams      *configParams,
-                        ProcessParams     *processParams,
-                        const char        *inputFrame,
-                              char        *outputData);
+void ocl_tidl_process(      ConfigParams*  configParams,
+                            ProcessParams* processParams,
+                      const uint8_t*       inputFrame,
+                            uint8_t*       outputData);
 
 void ocl_tidl_cleanup();
 

@@ -25,6 +25,7 @@
  *   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  *   THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
+#include "ivision_util.h"
 #include "xdais_types.h"
 #include "itidl_ti.h"
 #include "tidl_alg_int.h"
@@ -36,6 +37,8 @@
 #include "ti_mem_manager.h"
 #include "common_defines.h"
 #include "tidl_impl.h"
+
+
  
 #define TIDL_BLOCK_WIDTH            (32U)
 #define TIDL_BLOCK_HEIGHT           (32U)
@@ -64,57 +67,30 @@ typedef struct IM_Fxns
   IVISION_Fxns * ivision;
 } IM_Fxns;
 
-typedef struct
-{
-    IALG_MemRec *memRec;
-    int          numMemRec;
-    TIDL_Handle  handle;
-    IVISION_BufDesc   inBufDesc[TIDL_MAX_ALG_IN_BUFS];
-    IVISION_BufDesc   outBufDesc[TIDL_MAX_ALG_OUT_BUFS];
-    IVISION_BufDesc   *inBufDescList[TIDL_MAX_ALG_IN_BUFS];
-    IVISION_BufDesc   *outBufDescList[TIDL_MAX_ALG_OUT_BUFS];
-
-    IVISION_InBufs    inBufs;
-    IVISION_OutBufs   outBufs;
-
-    TIMemObject memObj_DMEM0;
-    TIMemObject memObj_DMEM1;
-    TIMemObject memObj_EXTMEM;
-    TIMemObject memObj_NetworkParam;
-
-    char pad[60];
-
-} TIDL_State;
-
-
-
-static int32_t AllocMemRecords(IALG_MemRec * memRec,int32_t numMemRec,
-                               TIDL_State *state);
-static int32_t FreeMemRecords(IALG_MemRec * memRec,int32_t numMemRec,
-                               TIDL_State *state);
 
 static int32_t tidl_AllocNetInputMem(sTIDL_Network_t *net,
                               IVISION_BufDesc *BufDescList,
-                              TIDL_State *state);
+                              OCL_IVISION_State *state);
 static int32_t tidl_AllocNetOutputMem(sTIDL_Network_t *net,
                                IVISION_BufDesc *BufDescList,
-                               TIDL_State *state);
+                               OCL_IVISION_State *state);
 
-static int32_t tidl_allocNetParamsMem(sTIDL_Network_t *net, TIDL_State *state);
+static int32_t tidl_allocNetParamsMem(sTIDL_Network_t *net,
+                                      TIMemObject *memObj_NetworkParam);
 
 static int32_t tidl_fillNetParamsMem(sTIDL_Network_t *net, 
                                      const ConfigParams *params,
-                                     const char *NetworkParamBuffer);
+                                     const uint8_t *NetworkParamBuffer);
 
 static int32_t tidl_ReadNetInput(sTIDL_Network_t *net, 
                                  const ConfigParams *params,
                           IVISION_BufDesc *BufDescList, int32_t frameCount,
-                          const char *inputFrame);
+                          const uint8_t* inputFrame);
 
 static size_t tidl_WriteNetOutputMem (const TIDL_CreateParams *params,
                                 IVISION_BufDesc *BufDescList, 
                                 uint16_t numBuffs,
-                                char    *outputData);
+                                uint8_t*   outputData);
 
 #ifdef PRINT_NET_INFO
 static int32_t tidltb_printNetInfo(sTIDL_Network_t * pTIDLNetStructure, 
@@ -123,24 +99,22 @@ static int32_t tidltb_printNetInfo(sTIDL_Network_t * pTIDLNetStructure,
 
 void print_buffer(const unsigned char *p, int n);
 
-TIDL_State per_core_state[1] __attribute__((aligned(128)));
-#define DNUM 0
 
 
-void ocl_tidl_setup(TIDL_CreateParams *createParams,
-                   ConfigParams      *configParams,
-             const char              *networkParamBuffer,
-          unsigned char              *networkParamHeap,
-                   SetupParams       *setupParams)
+void ocl_tidl_setup(      TIDL_CreateParams* createParams,
+                          ConfigParams*      configParams,
+                    const uint8_t*           networkParamBuffer,
+                          uint8_t*           networkParamHeap,
+                          SetupParams*       setupParams)
 {
-    TIDL_State *state = &per_core_state[DNUM];
+    TIMemObject memObj_NetworkParam;
 
-    TI_CreateMemoryHandle(&state->memObj_NetworkParam, 
+    TI_CreateMemoryHandle(&memObj_NetworkParam, 
                           networkParamHeap,
                           setupParams->networkParamHeapSize);
 
     // Allocate space for network parameters
-    tidl_allocNetParamsMem(&createParams->net, state);
+    tidl_allocNetParamsMem(&createParams->net, &memObj_NetworkParam);
 
     // Initialize network parameters
     tidl_fillNetParamsMem(&createParams->net, configParams,
@@ -149,20 +123,19 @@ void ocl_tidl_setup(TIDL_CreateParams *createParams,
     //tidltb_printNetInfo(&createParams->net, createParams->currLayersGroupId);
 }
 
-
-void ocl_tidl_initialize(const TIDL_CreateParams *createParams, 
-                  ConfigParams      *configParams,
-                  const char        *NetworkParamBuffer,
-                  uint8_t *ExternalMemoryHeapBase,
-                  const InitializeParams *initP,
-                  uint8_t *l2HeapBase)
+void ocl_tidl_initialize(const TIDL_CreateParams* createParams, 
+                               ConfigParams*      configParams,
+                         const uint8_t*           networkParamBuffer,
+                               uint8_t*           externalMemoryHeapBase,
+                         const InitializeParams*  initP,
+                               uint8_t*           l2HeapBase)
 {
-    TIDL_State *state = &per_core_state[DNUM];
+    OCL_IVISION_State *state = &alg_state;
 
     // Initialize memory handles for use by the heaps
     TI_CreateMemoryHandle(&state->memObj_DMEM0, DMEM0_SCRATCH, DMEM0_SIZE);
     TI_CreateMemoryHandle(&state->memObj_DMEM1, DMEM1_SCRATCH, DMEM1_SIZE);
-    TI_CreateMemoryHandle(&state->memObj_EXTMEM, ExternalMemoryHeapBase,
+    TI_CreateMemoryHandle(&state->memObj_EXTMEM, externalMemoryHeapBase,
                           initP->tidlHeapSize);
 
     // Query number of memory record needed
@@ -195,10 +168,10 @@ void ocl_tidl_initialize(const TIDL_CreateParams *createParams,
         status = TIDL_init((IALG_Handle)(&handle),
                             state->memRec,NULL,(IALG_Params *)(createParams));
         printf("TIDL_init -> %d\n", status);
-        state->handle = (TIDL_Handle) state->memRec[0].base;
+        state->handle = (IVISION_Handle) state->memRec[0].base;
     }
 
-    TIDL_CreateParams *cp = state->handle->createParams;
+    TIDL_CreateParams *cp = ((TIDL_Handle)state->handle)->createParams;
 
     // Initialize input and output buffer descriptors
     state->inBufs.bufDesc  = state->inBufDescList;
@@ -220,20 +193,21 @@ void ocl_tidl_initialize(const TIDL_CreateParams *createParams,
     _tsc_start();
 }
 
-void ocl_tidl_process(//TIDL_CreateParams *createParams, 
-               ConfigParams      *configParams,
-               ProcessParams     *processParams,
-               const char        *inputFrame,
-                     char        *outputData)
+void ocl_tidl_process(      ConfigParams*  configParams,
+                            ProcessParams* processParams,
+                      const uint8_t*       inputFrame,
+                            uint8_t*       outputData)
 {
-    TIDL_State *state = &per_core_state[DNUM];
+    OCL_IVISION_State *state = &alg_state;
     TIDL_InArgs   inArgs;
     TIDL_outArgs  outArgs;
     outArgs.iVisionOutArgs.size       = sizeof(TIDL_outArgs);
     inArgs.iVisionInArgs.size         = sizeof(TIDL_InArgs);
     inArgs.iVisionInArgs.subFrameInfo = 0;
+
+    TIDL_Handle handle = (TIDL_Handle)state->handle;
  
-    printf("[%x] Processing frame %d, [%x -> %x]\n",  state->handle,
+    printf("[%x] Processing frame %d, [%x -> %x]\n",  handle,
                                                 processParams->frameIdx,
                                                 inputFrame,
                                                 outputData);
@@ -241,7 +215,7 @@ void ocl_tidl_process(//TIDL_CreateParams *createParams,
     assert (configParams->rawImage == 1);
     assert (configParams->randInput == 0);
 
-    tidl_ReadNetInput(&state->handle->createParams->net,
+    tidl_ReadNetInput(&handle->createParams->net,
                       configParams,
                       state->inBufDesc,
                       processParams->frameIdx,
@@ -250,7 +224,7 @@ void ocl_tidl_process(//TIDL_CreateParams *createParams,
     uint64_t cycles_end;
     uint64_t cycles_start = _tsc_gettime();
 
-    int32_t status = TIDL_process((IVISION_Handle)state->handle,
+    int32_t status = TIDL_process(state->handle,
       &state->inBufs,&state->outBufs,(IVISION_InArgs *)&inArgs,(IVISION_OutArgs *)&outArgs);
     cycles_end = _tsc_gettime();
     
@@ -260,7 +234,7 @@ void ocl_tidl_process(//TIDL_CreateParams *createParams,
 
     if (configParams->writeOutput)
     {
-        size_t bytesWritten = tidl_WriteNetOutputMem(state->handle->createParams, 
+        size_t bytesWritten = tidl_WriteNetOutputMem(handle->createParams, 
                                                      state->outBufDesc, 
                                                      state->outBufs.numBufs,
                                                      outputData);
@@ -274,82 +248,11 @@ void ocl_tidl_process(//TIDL_CreateParams *createParams,
 
 void ocl_tidl_cleanup()
 {
-    TIDL_State *state = &per_core_state[DNUM];
+    OCL_IVISION_State *state = &alg_state;
     // Cleanup
     int status = TIDL_free((IALG_Handle)(state->handle), state->memRec);
     printf("TIDL_free -> %d\n", status);
     FreeMemRecords(state->memRec, state->numMemRec, state);
-}
-
-int32_t AllocMemRecords(IALG_MemRec * memRec,int32_t numMemRec,
-                        TIDL_State *state)
-{
-  int32_t i;
-  TIMemHandle memHdl_DMEM0  = &state->memObj_DMEM0;
-  TIMemHandle memHdl_DMEM1  = &state->memObj_DMEM1;
-  TIMemHandle memHdl_EXTMEM = &state->memObj_EXTMEM;
-
-  for (i = 0; i < numMemRec; i++)
-  {
-    if(memRec[i].space == IALG_DARAM0) {
-      memRec[i].base = TI_GetMemoryChunk(memHdl_DMEM0, memRec[i].size, 
-        memRec[i].alignment);
-    }
-    else if(memRec[i].space == IALG_DARAM1) {
-      memRec[i].base = TI_GetMemoryChunk(memHdl_DMEM1, memRec[i].size, 
-        memRec[i].alignment);
-    }
-    else {
-      //memRec[i].base = (Void *) __calloc_ddr( memRec[i].size,1);
-      memRec[i].base = (Void *) TI_GetMemoryChunk(memHdl_EXTMEM,
-                                              memRec[i].size,
-                                              memRec[i].alignment);
-      memset(memRec[i].base, 0, memRec[i].size);
-    }
-
-    if(memRec[i].base == NULL)
-    {
-      return IALG_EFAIL;
-    }
-#ifndef MEM_CONTAMINATION_DIS
-    int32_t j;
-    /*Currently in test application all memory are used as scratch across 
-    process calls */       
-    if(memRec[i].space != IALG_DARAM0){        
-      for(j = 0; j < (memRec[i].size >> 2); j++){
-        //((int32_t*)memRec[i].base)[j] = 0xDEADBEEF;
-      }
-    }
-#endif
-  }
-  return IALG_EOK;
-}
-
-int32_t FreeMemRecords(IALG_MemRec * memRec,int32_t numMemRec,
-                       TIDL_State *state)
-{
-  int32_t i;
-  TIMemHandle memHdl_DMEM0  = &state->memObj_DMEM0;
-  TIMemHandle memHdl_DMEM1  = &state->memObj_DMEM1;
-  TIMemHandle memHdl_EXTMEM = &state->memObj_EXTMEM;
-
-  for (i = 0; i < numMemRec; i++)
-  {
-    if(memRec[i].base == NULL)
-    {
-      return IALG_EFAIL;
-    }
-    if(memRec[i].space == IALG_DARAM0) {
-      TI_ResetMemoryHandle(memHdl_DMEM0);
-    }
-    else if(memRec[i].space == IALG_DARAM1) {
-      TI_ResetMemoryHandle(memHdl_DMEM1);
-    }        
-    else {
-      TI_ResetMemoryHandle(memHdl_EXTMEM);
-    }
-  }
-  return IALG_EOK;
 }
 
 int32_t tidltb_isOutDataBuff(sTIDL_Network_t *pTIDLNetStructure, int32_t dataId,
@@ -391,7 +294,7 @@ int32_t tidltb_isInDataBuff(sTIDL_Network_t * pTIDLNetStructure, int32_t dataId,
 
 int32_t tidl_AllocNetInputMem(sTIDL_Network_t *net,
                               IVISION_BufDesc *BufDescList,
-                              TIDL_State *state)
+                              OCL_IVISION_State *state)
 {
   int32_t i,j;
   uint16_t tidlMaxPad     = TIDL_MAX_PAD_SIZE;
@@ -447,7 +350,7 @@ int32_t tidl_AllocNetInputMem(sTIDL_Network_t *net,
 
 int32_t tidl_AllocNetOutputMem(sTIDL_Network_t *net,
                                IVISION_BufDesc *BufDescList,
-                               TIDL_State *state)
+                               OCL_IVISION_State *state)
 {
   int32_t i,j;
   uint16_t tidlMaxPad     = TIDL_MAX_PAD_SIZE;
@@ -503,7 +406,7 @@ int32_t tidl_AllocNetOutputMem(sTIDL_Network_t *net,
 }
 
 int32_t tidl_allocNetParamsMem(sTIDL_Network_t *net,
-                               TIDL_State *state)
+                               TIMemObject *memObj_NetworkParam)
 {
   int32_t i;
   for(i = 0; i < net->numLayers; i++)
@@ -518,18 +421,18 @@ int32_t tidl_allocNetParamsMem(sTIDL_Network_t *net,
              /conv2dPrms->numGroups;
              
       conv2dPrms->weights.ptr = 
-                (int8_t *)TI_GetMemoryChunk(&state->memObj_NetworkParam, 
+                (int8_t *)TI_GetMemoryChunk(memObj_NetworkParam, 
                 conv2dPrms->weights.bufSize, 4);
 
       conv2dPrms->bias.bufSize= net->biasElementSize*conv2dPrms->numOutChannels;
-      conv2dPrms->bias.ptr= (int8_t *)TI_GetMemoryChunk(&state->memObj_NetworkParam, 
+      conv2dPrms->bias.ptr= (int8_t *)TI_GetMemoryChunk(memObj_NetworkParam, 
                                                     conv2dPrms->bias.bufSize,4);
     }
     else if(net->TIDLLayers[i].layerType   == TIDL_BiasLayer)
     {
       sTIDL_BiasParams_t *biasPrms =&net->TIDLLayers[i].layerParams.biasParams;
       biasPrms->bias.bufSize =  net->biasElementSize * biasPrms->numChannels;
-      biasPrms->bias.ptr = (int8_t *)TI_GetMemoryChunk(&state->memObj_NetworkParam, 
+      biasPrms->bias.ptr = (int8_t *)TI_GetMemoryChunk(memObj_NetworkParam, 
                                                      biasPrms->bias.bufSize, 4);
     }
     else if(net->TIDLLayers[i].layerType   == TIDL_BatchNormLayer)
@@ -539,12 +442,12 @@ int32_t tidl_allocNetParamsMem(sTIDL_Network_t *net,
       batchNormPrms->weights.bufSize =  
                  net->weightsElementSize * batchNormPrms->numChannels;       
       batchNormPrms->weights.ptr = 
-                (int8_t *)TI_GetMemoryChunk(&state->memObj_NetworkParam, 
+                (int8_t *)TI_GetMemoryChunk(memObj_NetworkParam, 
                 batchNormPrms->weights.bufSize, 4);
       batchNormPrms->bias.bufSize =  
                 net->biasElementSize * batchNormPrms->numChannels;
       batchNormPrms->bias.ptr = 
-                (int8_t *)TI_GetMemoryChunk(&state->memObj_NetworkParam, 
+                (int8_t *)TI_GetMemoryChunk(memObj_NetworkParam, 
                 batchNormPrms->bias.bufSize, 4);
       batchNormPrms->reluParams.slope.bufSize =  
                  net->slopeElementSize * batchNormPrms->numChannels;   
@@ -552,7 +455,7 @@ int32_t tidl_allocNetParamsMem(sTIDL_Network_t *net,
       {
 
         batchNormPrms->reluParams.slope.ptr = 
-          (int8_t *)TI_GetMemoryChunk(&state->memObj_NetworkParam, 
+          (int8_t *)TI_GetMemoryChunk(memObj_NetworkParam, 
           batchNormPrms->reluParams.slope.bufSize, 4);
       }
     }    
@@ -561,11 +464,11 @@ int32_t tidl_allocNetParamsMem(sTIDL_Network_t *net,
       sTIDL_InnerProductParams_t *ipPrms = 
                             &net->TIDLLayers[i].layerParams.innerProductParams;      
       ipPrms->bias.bufSize =  net->biasElementSize * ipPrms->numOutNodes;
-      ipPrms->bias.ptr = (int8_t *)TI_GetMemoryChunk(&state->memObj_NetworkParam, 
+      ipPrms->bias.ptr = (int8_t *)TI_GetMemoryChunk(memObj_NetworkParam, 
                                         ALIGN_SIZE(ipPrms->bias.bufSize,128),4);
       ipPrms->weights.bufSize =  net->weightsElementSize* ipPrms->numInNodes * 
                                  ipPrms->numOutNodes; //ipPrms->numChannels;
-      ipPrms->weights.ptr = (int8_t *)TI_GetMemoryChunk(&state->memObj_NetworkParam, 
+      ipPrms->weights.ptr = (int8_t *)TI_GetMemoryChunk(memObj_NetworkParam, 
                                      ALIGN_SIZE((ipPrms->weights.bufSize + 16*net->TIDLLayers[i].layerParams.innerProductParams.numInNodes), 1024),4);
     }     
   }
@@ -582,7 +485,6 @@ static void sparseConv2dCoffesS8(int8_t *ptr, int32_t n, uint8_t thr ,
 static void sparseConv2dCoffesS16(int16_t *ptr, int32_t n, uint8_t thr , 
                                   int32_t zeroWeightValue);
 
-
 #define FREAD(dst, elemsz, elemcnt, src) \
     do {\
         memcpy(dst, src, elemsz*elemcnt); \
@@ -591,9 +493,9 @@ static void sparseConv2dCoffesS16(int16_t *ptr, int32_t n, uint8_t thr ,
 
 int32_t tidl_fillNetParamsMem(sTIDL_Network_t *net, 
                               const ConfigParams *params,
-                              const char* NetworkParamBuffer)
+                              const uint8_t* NetworkParamBuffer)
 {
-  const char *fp1 = NetworkParamBuffer;
+  const uint8_t *fp1 = NetworkParamBuffer;
   int32_t i;
   uint32_t dataSize ;
   for(i = 0; i < net->numLayers; i++)
@@ -714,19 +616,19 @@ static void sparseConv2dCoffesS16(int16_t *ptr, int32_t n, uint8_t thr , int32_t
 //
 // tidl_ReadNetInput and helper functions
 //
-static int32_t readDataS8(const char *readPtr, int8_t *ptr, int16_t roi, int16_t n, 
+static int32_t readDataS8(const uint8_t *readPtr, int8_t *ptr, int16_t roi, int16_t n, 
                           int16_t width, int16_t height, int16_t pitch, 
                           int32_t chOffset);
 
 
 int32_t tidl_ReadNetInput(sTIDL_Network_t *net, const ConfigParams *params,
                           IVISION_BufDesc *BufDescList, int32_t frameCount,
-                          const char *inputFrame)
+                          const uint8_t *inputFrame)
 {
   int32_t i,j;
   uint16_t tidlMaxPad     = TIDL_MAX_PAD_SIZE;
   uint16_t numBuffs = 0;
-  const char *readPtr = inputFrame;
+  const uint8_t *readPtr = inputFrame;
 
   for(i = 0; i < net->numLayers; i++)
   {
@@ -757,7 +659,7 @@ int32_t tidl_ReadNetInput(sTIDL_Network_t *net, const ConfigParams *params,
   return 0;
 }
 
-static int32_t readDataS8(const char *readPtr, int8_t *ptr, int16_t roi, int16_t n, 
+static int32_t readDataS8(const uint8_t *readPtr, int8_t *ptr, int16_t roi, int16_t n, 
                           int16_t width, int16_t height, int16_t pitch, 
                           int32_t chOffset)
 {
@@ -790,7 +692,7 @@ static int32_t readDataS8(const char *readPtr, int8_t *ptr, int16_t roi, int16_t
 //
 // tidl_WriteNetOutputMem and helper functions
 //
-static size_t writeDataS8(char *writePtr, int8_t *ptr, int16_t n, 
+static size_t writeDataS8(uint8_t *writePtr, uint8_t *ptr, int16_t n, 
                           int16_t width, int16_t height, int16_t pitch, 
                           int32_t chOffset);
 
@@ -800,7 +702,7 @@ static sTIDL_DataParams_t *tidl_getDataBufDims(const sTIDL_Network_t *net,
 size_t tidl_WriteNetOutputMem (const TIDL_CreateParams *createParams,
                                 IVISION_BufDesc *BufDescList, 
                                 uint16_t numBuffs,
-                                char    *outputData)
+                                uint8_t* outputData)
 {
   int32_t i;
   uint16_t tidlMaxPad     = TIDL_MAX_PAD_SIZE;
@@ -815,7 +717,7 @@ size_t tidl_WriteNetOutputMem (const TIDL_CreateParams *createParams,
 
     nuChs = dataBuffParam->dimValues[1];
     size_t bytesWritten = writeDataS8(outputData,
-                ((int8_t *)BufDescList[i].bufPlanes[0].buf + 
+                ((uint8_t *)BufDescList[i].bufPlanes[0].buf + 
                 BufDescList[i].bufPlanes[0].width*tidlMaxPad + tidlMaxPad),
                 nuChs, BufDescList[i].bufPlanes[0].frameROI.width ,
                 BufDescList[i].bufPlanes[0].frameROI.height ,
@@ -829,7 +731,7 @@ size_t tidl_WriteNetOutputMem (const TIDL_CreateParams *createParams,
   return totalBytesWritten;
 }
 
-size_t writeDataS8(char *writePtr, int8_t *ptr, int16_t n, int16_t width,
+size_t writeDataS8(uint8_t *writePtr, uint8_t *ptr, int16_t n, int16_t width,
                    int16_t height, int16_t pitch, int32_t chOffset)
 {
   int32_t   i0, i1;
