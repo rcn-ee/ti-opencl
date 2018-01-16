@@ -40,7 +40,7 @@
 #TIDL_DIR
 #DMAUTILS_DIR
 
-SOURCES  = tidl_impl.c ti_mem_manager.c
+SOURCES  = ivision_util.c tidl_impl.c ti_mem_manager.c
 
 OBJS     = $(patsubst %.c,%.oearp32F,$(SOURCES))
 
