@@ -93,6 +93,35 @@ void Utils_eveLoaderPrintFxn(const char *message)
 }
 
 /**
+ * \brief   Override weak definition of vectable page mask in sbl_lib.
+ *
+ * OpenCL Memory Map Requirement: Use 1MB vector table page alignment to
+ * reduce memory usage for EVEs.  In fact, we can reuse part of the CMEM
+ * memory that we previously reserved for OpenCL DSP runtime.
+ * For this to work, entryPoint must be placed in the same 1MB page as
+ * the vector table, so that we can correctly derive vector table address
+ * from the entry point address.  This can be achieved by user application
+ * in linker command file placement.
+ * For example, if entryPoint is _c_int00, assuming that vector table
+ * memory is large enough to hold _c_int00 as well (vector table is
+ * usually very small, about 64 bytes), then add to linker command file:
+ *     SECTIONS
+ *     {
+ *       .entry_point_page
+ *       {
+ *         * (.vecs)
+ *         * (.text:_c_int00)
+ *       } align = 0x100000 > EVE_VECS_MEM PAGE 1
+ *     }
+ *
+ * \return  EVE vector table page mask.
+ */
+uint32_t SBLLibEVEGetVecTablePageMask()
+{
+    return 0xFFF00000U;
+}
+
+/**
  *******************************************************************************
  *
  * \brief Boots Eves with AppImage
