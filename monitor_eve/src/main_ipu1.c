@@ -319,15 +319,20 @@ static bool create_mqueue()
     return true;
 }
 
+#undef  CTRL_WKUP_STD_FUSE_DIE_ID_2
 #define CTRL_WKUP_STD_FUSE_DIE_ID_2  0x4AE0C20C
 static int  GetNumEVEDevices()
 {
     uint32_t board_type = (  *((uint32_t *) CTRL_WKUP_STD_FUSE_DIE_ID_2)
                            & 0xFF000000) >> 24;
     int      num_eves = 0;
-    if (board_type == 0x3E || board_type == 0x4E)       // AM5729-E, AM5729
+    if (     board_type == 0x3E ||  // AM5729-E (EtherCat)
+             board_type == 0x4E)    // AM5729
         num_eves = 4;
-    else if (board_type == 0x5F || board_type == 0xA6)  // AM5749-E, AM5749
+    else if (board_type == 0x5F ||  // AM5749-E (EtherCat)
+             board_type == 0xA6 ||  // AM5749
+             board_type == 0x69)    // AM5749IDK (shown on package sticker)
+                                    // (data sheet: 0x69 is Jacinto 6 Plus)
         num_eves = 2;
 
     Log_print1(Diags_INFO | Diags_USER6, "%d EVEs Available", num_eves);
