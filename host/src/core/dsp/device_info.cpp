@@ -188,9 +188,13 @@ void DeviceInfo::EVEDevicesAvailable()
     munmap(addr, pagesize);
     close(mem_fd);
 
-    if (board_type == 0x3E || board_type == 0x4E)       // AM5729-E, AM5729
+    if (     board_type == 0x3E ||  // AM5729-E (EtherCat)
+             board_type == 0x4E)    // AM5729
         num_eve_devices_ = 4;
-    else if (board_type == 0x5F || board_type == 0xA6)  // AM5749-E, AM5749
+    else if (board_type == 0x5F ||  // AM5749-E (EtherCat)
+             board_type == 0xA6 ||  // AM5749
+             board_type == 0x69)    // AM5749IDK (shown on package sticker)
+                                    // (data sheet: 0x69 is Jacinto 6 Plus)
         num_eve_devices_ = 2;
     #endif
 }
