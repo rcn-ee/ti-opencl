@@ -101,10 +101,10 @@ bool handle_event_completion(DSPDevice *device)
     }
 
     int retcode = CL_SUCCESS;
-    int k_id  = device->mail_from(&retcode);
+    int k_id  = device->mail_from(device->GetComputeUnits(), &retcode);
 
     /*-------------------------------------------------------------------------
-    * If this is a false completion message due to prinft traffic, etc.
+    * If this is a false completion message due to printf traffic, etc.
     *------------------------------------------------------------------------*/
     if (k_id < 0) return false;
 
@@ -178,7 +178,7 @@ bool handle_event_dispatch(DSPDevice *device)
 
     /*---------------------------------------------------------------------
     * Blocking if no available event in device queue.  This handle_dispatch
-    * will be waken up once events are pushed into device queue.
+    * will be woken up once events are pushed into device queue.
     *--------------------------------------------------------------------*/
     event = device->getEvent(stop);
 
@@ -652,12 +652,12 @@ void *dsp_worker_event_dispatch(void *data)
         * 1. Return true if device->stop() is true, time to stop working.
         * 2. If there is available event, handle the event dispatch:
         *    EITHER an event is dispatched, OR it waits for a mail slot to
-        *    become available to dispatch (will be waken up by the completion
+        *    become available to dispatch (will be woken up by the completion
         *    thread).
         * 3. If there is no available event, wait for an event to become
         *    available (either the application thread the completion thread
         *    will push more events onto the device queue), or wait for stop
-        *    command (will be waken up by application thread).
+        *    command (will be woken up by application thread).
         *--------------------------------------------------------------------*/
         if (handle_event_dispatch(device))  break;
 

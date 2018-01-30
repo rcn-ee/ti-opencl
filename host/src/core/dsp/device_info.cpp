@@ -136,10 +136,10 @@ void DeviceInfo::ComputeUnits_CmemBlocks_Available()
     cmem_block_offchip_ = oclcfg.GetCmemBlockOffChip();
     cmem_block_onchip_  = oclcfg.GetCmemBlockOnChip();
 
-    std::set<uint8_t> sysdsps = oclcfg.GetCompUnits();
+    DSPCoreSet sysdsps = oclcfg.GetCompUnits();
     if (comp_unit)
     {
-      std::set<uint8_t> userdsps = available_compute_units_;
+      DSPCoreSet userdsps = available_compute_units_;
       available_compute_units_.clear();
       std::set_intersection(userdsps.begin(), userdsps.end(),
                             sysdsps.begin(), sysdsps.end(),

@@ -38,7 +38,7 @@
 #include "cpu/device.h"
 #include "eve/device.h"
 #endif
-#include "dsp/device.h"
+#include "dsp/rootdevice.h"
 #include "dsp/device_info.h"
 
 /*-----------------------------------------------------------------------------
@@ -103,7 +103,7 @@ namespace Coal
         const DeviceInfo& device_info = DeviceInfo::Instance();
         for (int i = 0; i < device_info.GetNumDevices(); i++)
         {
-            Coal::DeviceInterface* device = new Coal::DSPDevice(i, shm);
+            Coal::DeviceInterface* device = new Coal::DSPRootDevice(i, shm);
             p_devices.push_back(desc(device));
         }
 #if defined(DEVICE_AM57) && !defined(_SYS_BIOS)

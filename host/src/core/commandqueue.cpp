@@ -396,7 +396,7 @@ void CommandQueue::pushEventsOnDevice(Event *ready_event,
     // enough to work on, and 2) not pushing won't cause starvation of this
     // commandqueue.  Not pushing can save p_event_list traversal time.
     // 2 is a QoS number, set to 2 for the time being
-    // imagaine there are multiple commandqueues on same device
+    // imagine there are multiple commandqueues on same device
     if(is_ooo && ready_event == NULL &&
        p_num_events_on_device > 2 && p_device->gotEnoughToWorkOn())
     {

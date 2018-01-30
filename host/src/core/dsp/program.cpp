@@ -118,7 +118,7 @@ bool DSPProgram::load()
     * Send the cache Inv command.  We do not wait here.  The wait will be
     * handled by the standard wait loop in the worker thread.
     *------------------------------------------------------------------------*/
-    p_device->mail_to(cacheMsg);
+    p_device->mail_to(cacheMsg, p_device->GetComputeUnits());
     return true;
 }
 

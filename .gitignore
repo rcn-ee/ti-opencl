@@ -59,4 +59,5 @@ packages/ti/opencl/platforms/am57x_rtos/package/
 packages/ti/opencl/OpenCL.h
 packages/ti/opencl/DSPMonitor.h
 *.swp
+*.swo
 

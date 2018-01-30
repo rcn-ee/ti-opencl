@@ -117,6 +117,8 @@ set(COAL_SRC_FILES
     core/dsp/driver.cpp
     core/dsp/buffer.cpp
     core/dsp/device.cpp
+    core/dsp/subdevice.cpp
+    core/dsp/rootdevice.cpp
     core/dsp/kernel.cpp
     core/dsp/worker.cpp
     core/dsp/mmap_resource.cpp

@@ -90,10 +90,10 @@ typedef struct
 *----------------------------------------------------------------------------*/
 typedef struct
 {
+    uint32_t        stall_cycle_threshold;
     int8_t          event_type;
     int8_t          event_number1;
     int8_t          event_number2;
-    uint32_t        stall_cycle_threshold;
 } profiling_t;
 
 /*-----------------------------------------------------------------------------
@@ -112,13 +112,15 @@ typedef struct
     uint32_t        args_on_stack_size;
     uint32_t        timeout_ms;
     profiling_t     profiling;
+    uint8_t         from_sub_device;
+    uint8_t         num_cores;
+    uint8_t         master_core;
 } kernel_msg_t;
 
 typedef struct
 {
     uint8_t n_cores;
     uint8_t master_core;
-    uint8_t local_core_nums[MAX_NUM_CORES];
 
     int ocl_qmss_hw_queue_base_idx;
     int ocl_qmss_first_desc_idx_in_linking_ram;

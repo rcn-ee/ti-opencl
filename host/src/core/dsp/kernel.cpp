@@ -27,6 +27,7 @@
  *****************************************************************************/
 #include "kernel.h"
 #include "device.h"
+#include "subdevice.h"
 #include "buffer.h"
 #include "program.h"
 #include "utils.h"
@@ -433,6 +434,12 @@ DSPKernelEvent::DSPKernelEvent(DSPDevice *device, KernelEvent *event)
     p_msg.u.k.kernel.Kernel_id     = p_kernel_id;
     p_msg.u.k.kernel.entry_point   = (unsigned)p_kernel->device_entry_pt();
     p_msg.u.k.kernel.data_page_ptr = (unsigned)p_kernel->data_page_ptr();
+    if (DSPSubDevice* sdev = dynamic_cast<DSPSubDevice*>(device))
+        p_msg.u.k.kernel.from_sub_device = 1;
+    else
+        p_msg.u.k.kernel.from_sub_device = 0;
+    p_msg.u.k.kernel.num_cores     = device->dspCores();
+    p_msg.u.k.kernel.master_core   = *device->GetComputeUnits().begin();
 
     /*------------------------------------------------------------------------
     * Set profiling params
@@ -848,7 +855,7 @@ cl_int DSPKernelEvent::run(Event::Type evtype)
     *--------------------------------------------------------------------*/
     p_device->push_complete_pending(p_kernel_id, p_event,
                                     p_device->numHostMails(p_msg));
-    p_device->mail_to(p_msg);
+    p_device->mail_to(p_msg, p_device->GetComputeUnits());
 
     /*-------------------------------------------------------------------------
     * Do not wait for completion
@@ -1251,7 +1258,7 @@ int DSPKernelEvent::debug_kernel_dispatch()
     if (p_debug_kernel != NODEBUG)
     {
 #if defined(DEVICE_AM57)
-        p_device->mail_to(debugMsg);
+        p_device->mail_to(debugMsg, p_device->GetComputeUnits());
 #endif
 
         size_t name_length;

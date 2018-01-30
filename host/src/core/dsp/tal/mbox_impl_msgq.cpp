@@ -36,6 +36,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <time.h>
+#include <set>
 
 #include "device_info.h"
 #include "mbox_impl_msgq.h"
@@ -88,7 +89,7 @@ MBoxMsgQ::MBoxMsgQ(Coal::DSPDevice *device)
     assert (status == Ipc_S_SUCCESS || status == Ipc_S_ALREADYSETUP);
 
     const tiocl::DeviceInfo& device_info = tiocl::DeviceInfo::Instance();
-    const std::set<uint8_t>& compute_units = device_info.GetComputeUnits();
+    const DSPCoreSet& compute_units = device_info.GetComputeUnits();
 
 #ifdef _SYS_BIOS
     /* Ipc_attach must be called in ProcSync_PAIR protocol */
@@ -172,9 +173,16 @@ MBoxMsgQ::MBoxMsgQ(Coal::EVEDevice *device)
 
 void MBoxMsgQ::write (uint8_t *buf, uint32_t size, uint32_t trans_id, 
                       uint8_t id)
-{ 
-    if (p_device)  assert(id < p_device->dspCores());
-    else           id = 0;
+{
+    if (p_device)
+    {
+        const DSPCoreSet& compute_units = p_device->GetComputeUnits();
+        assert(compute_units.find(id) != compute_units.end());
+    }
+    else
+    {
+        id = 0;
+    }
 
     ocl_msgq_message_t *msg = 
        (ocl_msgq_message_t *)MessageQ_alloc(heapId, sizeof(ocl_msgq_message_t));
@@ -297,7 +305,7 @@ static void lost_dsp()
     char const *dspnames[] = {"40800000.dsp", "41000000.dsp"};
 
     const tiocl::DeviceInfo& device_info = tiocl::DeviceInfo::Instance();
-    const std::set<uint8_t>& compute_units = device_info.GetComputeUnits();
+    const DSPCoreSet& compute_units = device_info.GetComputeUnits();
 
     for (int i : compute_units)
     {

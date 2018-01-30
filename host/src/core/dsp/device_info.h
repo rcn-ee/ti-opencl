@@ -29,7 +29,6 @@
 #define _DRIVER_H
 #include <cstdint>
 #include <string>
-#include <set>
 
 #include "../tiocl_types.h"
 
@@ -55,7 +54,7 @@ public:
     uint8_t      GetComputeUnitsPerDevice(int device) const; // was cores_per_dsp(int dsp);
     DSPDevicePtr GetSymbolAddress(const std::string &name) const;
 
-    const std::set<uint8_t>& GetComputeUnits() const { return available_compute_units_; }
+    const DSPCoreSet& GetComputeUnits() const { return available_compute_units_; }
 
     static const DeviceInfo& Instance();
 
@@ -69,7 +68,7 @@ private:
     uint8_t num_compute_units_;
     int32_t cmem_block_offchip_;
     int32_t cmem_block_onchip_;
-    std::set<uint8_t> available_compute_units_;
+    DSPCoreSet available_compute_units_;
     const SymbolAddressLookup* symbol_lookup_;
 };
 
