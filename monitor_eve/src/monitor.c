@@ -95,7 +95,7 @@ MessageQ_QueueId    enable_printf = MessageQ_INVALIDMESSAGEQ;
 /* multiple libraries can share the use of this fast memory, however, each  */
 /* library will use it exclusively */
 #pragma DATA_SECTION (DMEM0_SCRATCH, ".dmem0Sect");
-uint8_t DMEM0_SCRATCH[DMEM0_SIZE]   __attribute__((aligned(4)));
+uint8_t DMEM0_SCRATCH[DMEM0_SIZE+DMEM0_PAD_SIZE]   __attribute__((aligned(4)));
 #pragma DATA_SECTION (task_stack,    ".dmem0Sect");
 uint8_t task_stack[TASK_STACK_SIZE] __attribute__((aligned(4)));
 #pragma DATA_SECTION (DMEM1_SCRATCH, ".dmem1Sect");
