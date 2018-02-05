@@ -33,12 +33,14 @@
 /* multiple libraries can share the use of this fast memory, however, each  */
 /* library will use it exclusively */
 #define DMEM0_SIZE (20*1024)
+/* to work around an array out-of-bounds problem in TIDL */
+#define DMEM0_PAD_SIZE (256)
 /* Need at least 7092B for evelib_imagePyramid_u8.c */
 #define TASK_STACK_SIZE 0x2C00
 #define DMEM1_SIZE (144*1024)
 
 //#pragma DATA_SECTION (DMEM0_SCRATCH, ".dmem0Sect");  // mapped to DMEM
-extern uint8_t DMEM0_SCRATCH[DMEM0_SIZE];
+extern uint8_t DMEM0_SCRATCH[DMEM0_SIZE+DMEM0_PAD_SIZE];
 
 //#pragma DATA_SECTION (DMEM1_SCRATCH, ".dmem1Sect");  // mapped to EXTDMEM
 extern uint8_t DMEM1_SCRATCH[DMEM1_SIZE];
