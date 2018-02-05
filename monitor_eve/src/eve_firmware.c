@@ -31,7 +31,10 @@
  * ============================================================================
  */
 
+#define STRINGFY2(x) #x
+#define STRINGFY(x)  STRINGFY2(x)
+
 unsigned char gTDA2XX_EVE_FIRMWARE[] = {
-    #include "eve_firmware.h"
+    #include STRINGFY(DLA_FIRMWARE)
 };
 

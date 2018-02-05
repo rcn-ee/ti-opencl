@@ -72,11 +72,17 @@ PKGPATH := $(PKGPATH)+$(IPC_DIR)/packages
 PKGPATH := $(PKGPATH)+$(XDC_DIR)/packages
 PKGPATH := $(PKGPATH)+$(PDK_DIR)/packages
 
+ifeq ($(BUILD_DLA_FIRMWARE),1)
+DLA_FIRMWARE = dla-opencl/src/dla_firmware.h
+else
+DLA_FIRMWARE = src/dla_firmware.h
+endif
 INCLUDES  = -i. -i $(OPENCL_SRC_DIR)/src/core/dsp
 INCLUDES += -i $(VISIONSDK_UTILS)
 INCLUDES += -D$(DEVICE) -D$(SOC) -DNON_VISIONSDK_BUILD
 INCLUDES += -DIPU1_LOAD_EVES -DPROC_EVE1_INCLUDE
 INCLUDES += -DPROC_EVE2_INCLUDE -DPROC_EVE3_INCLUDE -DPROC_EVE4_INCLUDE
+INCLUDES += -DDLA_FIRMWARE="$(DLA_FIRMWARE)"
 
 libs = $(CSL_LIB_M4) $(PM_HAL_LIB_M4) $(SBL_LIB_M4)
 
@@ -89,7 +95,14 @@ all: eve_firmware
 	$(MAKE) server_ipu1.x
 
 eve_firmware:
-	$(MAKE) -f Makefile.eve BUILD_AM57=1 -j4
+ifeq ($(BUILD_DLA_FIRMWARE),1)
+	@$(ECHO) "Building development version of DLA firmware..."
+	$(MAKE) -C dla-opencl BUILD_AM57=1 -j4
+	@diff dla-opencl/src/dla_firmware.h src/dla_firmware.h > /dev/null ||\
+	    $(ECHO) "!!! dla_firmware.h diffs from pre-built version !!!"
+else
+	@$(ECHO) "Using prebuilt DLA firmware..."
+endif
 
 server_ipu1.x: bin/$(BUILD_TYPE)/server_ipu1.xem4
 bin/$(BUILD_TYPE)/server_ipu1.xem4: $(OBJS) $(libs) $(CONFIG)/linker.cmd
@@ -103,7 +116,7 @@ bin/$(BUILD_TYPE)/obj/%.oem4: %.c $(CONFIG)/compiler.opt
 	@$(ECHO) "# Making $@ ..."
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(INCLUDES) --output_file=$@ -fc $<
 
-src/eve_firmware.c: src/eve_firmware.h
+src/eve_firmware.c: $(DLA_FIRMWARE)
 	touch $@
 
 %/linker.cmd %/compiler.opt: $(CONFIG)/.config ;
@@ -134,7 +147,7 @@ help:
 
 clean::
 	$(RMDIR) bin
-	$(MAKE) -f Makefile.eve clean
+	if [ -d dla-opencl ]; then $(MAKE) -C dla-opencl clean; fi
 
 #  ======== install validation ========
 ifeq (install,$(MAKECMDGOALS))

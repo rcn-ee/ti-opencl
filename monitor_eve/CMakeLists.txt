@@ -1,7 +1,7 @@
 # Build monitor_eve
 
 if (BUILD_OUTPUT STREQUAL "all")
-    install(CODE "execute_process(COMMAND make -f Makefile BUILD_AM57=1 WORKING_DIRECTORY ${OCL_MONITOR_EVE_DIR})")
+    install(CODE "execute_process(COMMAND make -f Makefile BUILD_AM57=1 BUILD_DLA_FIRMWARE=${BUILD_DLA_FIRMWARE} WORKING_DIRECTORY ${OCL_MONITOR_EVE_DIR})")
 endif()
 
 # Install monitor_eve firmware
