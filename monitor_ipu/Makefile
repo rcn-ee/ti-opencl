@@ -56,9 +56,12 @@ SBL_LIB_M4    ?= $(PDK_DIR)/packages/ti/boot/sbl_auto/lib/tda2xx-evm/m4/release/
 
 VISIONSDK_UTILS ?= src/visionsdk_utils
 
-SOURCES  = main_ipu1.c eve_firmware.c
+SOURCES  = main_ipu1.c dla_firmware.c
 SOURCES += $(VISIONSDK_UTILS)/src/rtos/utils_common/src/utils_eveloader.c
 SOURCES += $(VISIONSDK_UTILS)/src/rtos/utils_common/src/eveloader/utils_eve_boot.c
+HEADERS  = custom_rsc_table_vayu_ipu1.h
+HEADERS += $(OPENCL_SRC_DIR)/src/core/dsp/tal/mbox_msgq_shared.h
+HEADERS += $(VISIONSDK_UTILS)/src/rtos/utils_common/include/utils_eveloader.h
 
 VPATH = src:$(VISIONSDK_UTILS)/src/rtos/utils_common/src:$(VISIONSDK_UTILS)/src/rtos/utils_common/src/eveloader
 
@@ -73,7 +76,7 @@ PKGPATH := $(PKGPATH)+$(XDC_DIR)/packages
 PKGPATH := $(PKGPATH)+$(PDK_DIR)/packages
 
 ifeq ($(BUILD_DLA_FIRMWARE),1)
-DLA_FIRMWARE = dla-opencl/src/dla_firmware.h
+DLA_FIRMWARE = monitor_dla/src/dla_firmware.h
 else
 DLA_FIRMWARE = src/dla_firmware.h
 endif
@@ -88,17 +91,17 @@ libs = $(CSL_LIB_M4) $(PM_HAL_LIB_M4) $(SBL_LIB_M4)
 
 .PRECIOUS: %/compiler.opt %/linker.cmd
 
-# always check if eve_firmware needs to be rebuild
-.PHONY: eve_firmware
+# always check if dla_firmware needs to be rebuild
+.PHONY: dla_firmware
 
-all: eve_firmware
+all: dla_firmware
 	$(MAKE) server_ipu1.x
 
-eve_firmware:
+dla_firmware:
 ifeq ($(BUILD_DLA_FIRMWARE),1)
 	@$(ECHO) "Building development version of DLA firmware..."
-	$(MAKE) -C dla-opencl BUILD_AM57=1 -j4
-	@diff dla-opencl/src/dla_firmware.h src/dla_firmware.h > /dev/null ||\
+	$(MAKE) -C monitor_dla BUILD_AM57=1 -j4
+	@diff monitor_dla/src/dla_firmware.h src/dla_firmware.h > /dev/null ||\
 	    $(ECHO) "!!! dla_firmware.h diffs from pre-built version !!!"
 else
 	@$(ECHO) "Using prebuilt DLA firmware..."
@@ -111,12 +114,12 @@ bin/$(BUILD_TYPE)/server_ipu1.xem4: $(OBJS) $(libs) $(CONFIG)/linker.cmd
 	$(LD) $(LDFLAGS) -o $@ $(OBJS) \
             $(addprefix -l ,$(libs)) $(CONFIG)/linker.cmd $(LDLIBS)
 
-bin/$(BUILD_TYPE)/obj/%.oem4: %.c $(CONFIG)/compiler.opt
+bin/$(BUILD_TYPE)/obj/%.oem4: %.c $(CONFIG)/compiler.opt $(HEADERS)
 	@$(ECHO) "#"
 	@$(ECHO) "# Making $@ ..."
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(INCLUDES) --output_file=$@ -fc $<
 
-src/eve_firmware.c: $(DLA_FIRMWARE)
+src/dla_firmware.c: $(DLA_FIRMWARE)
 	touch $@
 
 %/linker.cmd %/compiler.opt: $(CONFIG)/.config ;
@@ -147,7 +150,7 @@ help:
 
 clean::
 	$(RMDIR) bin
-	if [ -d dla-opencl ]; then $(MAKE) -C dla-opencl clean; fi
+	if [ -e monitor_dla/Makefile ]; then $(MAKE) -C monitor_dla clean; fi
 
 #  ======== install validation ========
 ifeq (install,$(MAKECMDGOALS))

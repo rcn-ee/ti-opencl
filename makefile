@@ -83,12 +83,12 @@ CMAKE_DEFINES += -DOCL_VERSION=$(OCL_FULL_VER)
 OCL_BUILD_DIR = build/$(TARGET)$(BUILD_OS)
 OCL_INSTALL_DIR = install/$(TARGET)$(BUILD_OS)
 ifeq ($(BUILD_DLA_FIRMWARE),1)
-    DLA_FIRMWARE_DIR = monitor_eve/dla-opencl
+    DLA_SUBMODULE = dla_submodule
 endif
 export DESTDIR?=$(CURDIR)/$(OCL_INSTALL_DIR)
 
 
-install: $(OCL_BUILD_DIR) $(DESTDIR) $(DLA_FIRMWARE_DIR)
+install: $(OCL_BUILD_DIR) $(DESTDIR) $(DLA_SUBMODULE)
 	cd $(OCL_BUILD_DIR) && cmake $(CMAKE_DEFINES) ../../host && $(MAKE) install
 
 .PHONY: build
@@ -122,8 +122,9 @@ $(OCL_BUILD_DIR):
 $(DESTDIR):
 	mkdir -p $(DESTDIR)
 
-monitor_eve/dla-opencl:
-	cd monitor_eve && git clone ssh://git@bitbucket.itg.ti.com/mctools/dla-opencl.git
+.PHONY: dla_submodule
+dla_submodule:
+	git submodule update --init
 
 change:
 	git log --pretty=format:"- %s%n%b" $(TAG).. ; \
