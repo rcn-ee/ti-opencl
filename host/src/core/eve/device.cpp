@@ -15,7 +15,7 @@
  *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  *   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+ *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  *   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
  *   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
  *   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
@@ -106,7 +106,7 @@ EVEDevice::EVEDevice(unsigned char eve_id, SharedMemory* shm)
     * initialize the mailboxes on the cores, so they can receive an exit cmd
     *------------------------------------------------------------------------*/
     p_mb = MBoxFactory::CreateMailbox(this);
-    
+
     /*-------------------------------------------------------------------------
     * Initialize BuiltIn Kernels
     *------------------------------------------------------------------------*/
@@ -117,7 +117,7 @@ EVEDevice::EVEDevice(unsigned char eve_id, SharedMemory* shm)
     k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
     k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Int32, false);
     p_kernel_entries.push_back(k);
-    
+
     k = new KernelEntry("tiocl_bik_vecadd", 2);
     k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
     k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
@@ -130,7 +130,6 @@ EVEDevice::EVEDevice(unsigned char eve_id, SharedMemory* shm)
     k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
     k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
     k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
-    k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
     p_kernel_entries.push_back(k);
 
     k = new KernelEntry("ocl_tidl_initialize", 11);
@@ -139,11 +138,9 @@ EVEDevice::EVEDevice(unsigned char eve_id, SharedMemory* shm)
     k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
     k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
     k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
-    k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
     p_kernel_entries.push_back(k);
 
     k = new KernelEntry("ocl_tidl_process", 12);
-    k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
     k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
     k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
     k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
@@ -220,8 +217,8 @@ EVEDevice::~EVEDevice()
 * DeviceBuffer *EVEDevice::createDeviceBuffer(MemObject *buffer)
 ******************************************************************************/
 DeviceBuffer *EVEDevice::createDeviceBuffer(MemObject *buffer, cl_int *rs)
-{ 
-    return (DeviceBuffer *)new DSPBuffer(p_shmHandler, buffer, rs); 
+{
+    return (DeviceBuffer *)new DSPBuffer(p_shmHandler, buffer, rs);
 }
 
 /******************************************************************************
@@ -624,7 +621,7 @@ cl_int EVEDevice::info(cl_device_info param_name,
         case CL_DEVICE_MAX_MEM_ALLOC_SIZE:
             SIMPLE_ASSIGN(cl_ulong, getMaxMemAllocSize());
             break;
-        
+
         case CL_DEVICE_IMAGE2D_MAX_WIDTH:
             SIMPLE_ASSIGN(size_t, 0);           // images not supported
             break;
@@ -650,7 +647,7 @@ cl_int EVEDevice::info(cl_device_info param_name,
             break;
 
         case CL_DEVICE_MAX_PARAMETER_SIZE:
-            SIMPLE_ASSIGN(cl_uint, 128);  
+            SIMPLE_ASSIGN(cl_uint, 128);
             break;
 
         case CL_DEVICE_MAX_SAMPLERS:
@@ -658,7 +655,7 @@ cl_int EVEDevice::info(cl_device_info param_name,
             break;
 
         case CL_DEVICE_MEM_BASE_ADDR_ALIGN:
-            SIMPLE_ASSIGN(cl_uint, 1024);  
+            SIMPLE_ASSIGN(cl_uint, 1024);
             break;
 
         case CL_DEVICE_MIN_DATA_TYPE_ALIGN_SIZE:
@@ -796,7 +793,7 @@ cl_int EVEDevice::info(cl_device_info param_name,
                           CL_QUEUE_PROFILING_ENABLE |
                           CL_QUEUE_KERNEL_TIMEOUT_COMPUTE_UNIT_TI);
             break;
-        
+
         case CL_DEVICE_BUILT_IN_KERNELS:
             {
                 bool first = true;
