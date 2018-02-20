@@ -5,7 +5,9 @@ CLOCL_FLAGS=
 
 include ../make_rtos.inc
 
+DSPLIB_LIB ?= dsplib_3_4_0_0.ae66
+
 bin/$(PROFILE)/fft_ocl.oa15fg: kernel.dsp_h
 
-kernel.dsp_h: kernel.cl dsplib.ae66
+kernel.dsp_h: kernel.cl $(DSPLIB_LIB)
 

@@ -22,7 +22,7 @@ ccode              simp    1wi             S/F            read                  
 conv1d             perf    ndr,1wi         B/E            map          host      C, edma                   async, local, query, vec
 dgemm              perf    iot             B/E            host         host      C, omp, msmc, edma, cache
 dspheap            simp    1wi             B/F                                   dspheap, msmc             functor
-dsplib_fft         simp    iot             S/E            read         event     C
+dsplib_fft         perf    ndr,1wi         B/E            host         host      C
 edmamgr            simp    1wi             B/E            read                   C, edma
 fftlib_offload     simp    iot             B/E                         host      C, omp
 float_compute      simp    ndr             B/F            host         host                                local, async, vec
@@ -258,8 +258,12 @@ in OpenMP C code for debugging.
 dsplib_fft example
 ===================
 
-An example to compute FFTs using a routine from the dsplib library. This
-illustrates calling a standard C library function from an OpenCL kernel.
+An example to compute multiple channels of FFTs using a routine from the
+dsplib library. This illustrates calling a standard C library function from
+an OpenCL kernel.  It also illustrates how to improve performance over
+multiple channels by moving data from DDR into internal local L2 memory
+with EDMA, and overlapping computation with data movement using double
+buffering.
 
 .. _ooo-examples:
 
