@@ -34,7 +34,6 @@
   __FUNC(TI_OCL_CACHE_KERNELS,                          char *) \
   __FUNC(TI_OCL_COMPUTE_UNIT_LIST,                      char *) \
   __FUNC(TI_OCL_CPU_DEVICE_ENABLE,                      char *) \
-  __FUNC(TI_OCL_CUSTOM_DEVICE_ENABLE,                   cl_int) \
   __FUNC(TI_OCL_DEBUG,                                  char *) \
   __FUNC(TI_OCL_DEVICE_PROGRAM_INFO,                    char *) \
   __FUNC(TI_OCL_DSP_1_25GHZ,                            char *) \
@@ -60,7 +59,7 @@ namespace tiocl {
 // - to be set by package parameter in TI-RTOS
 class EnvVar
 {
-  public: 
+  public:
     EnvVar();
     virtual ~EnvVar() {}
 
@@ -69,7 +68,6 @@ class EnvVar
       TI_OCL_CACHE_KERNELS = 0,
       TI_OCL_COMPUTE_UNIT_LIST,
       TI_OCL_CPU_DEVICE_ENABLE,
-      TI_OCL_CUSTOM_DEVICE_ENABLE,
       TI_OCL_DEBUG,
       TI_OCL_DEVICE_PROGRAM_INFO,
       TI_OCL_DSP_1_25GHZ,
