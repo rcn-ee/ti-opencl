@@ -66,11 +66,6 @@
 --retain="__free_*"
 --retain="__memalign_*"
 --retain="__trace_print*"
---retain="TIDL_numAlloc"
---retain="TIDL_alloc"
---retain="TIDL_init"
---retain="TIDL_process"
---retain="TIDL_free"
 
 
 #define L2_LINE_SIZE 128

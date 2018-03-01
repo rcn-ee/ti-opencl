@@ -121,7 +121,7 @@
 // to  DDR3_NC, DDR3_STACK and DDR3_HEAP in am57x/Platform.xdc
 #define PHYS_MEM_IOBUFS         0xA0000000
 #define DSP_MEM_IOBUFS          PHYS_MEM_IOBUFS
-#define DSP_MEM_IOBUFS_SIZE     (SZ_1M * 512)
+#define DSP_MEM_IOBUFS_SIZE     (SZ_1M * 256)
 
 // Must be marked non-cached by monitor
 #define DSP_MEM_IPC_VRING       0xFFF00000
