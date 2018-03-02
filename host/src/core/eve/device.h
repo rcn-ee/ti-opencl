@@ -116,7 +116,7 @@ class EVEDevice : public DeviceInterface, public Lockable
     private:
         unsigned int       p_cores;
         unsigned int       p_num_events;
-        float              p_eve_mhz_;
+        float              p_eve_mhz;
         pthread_t          p_worker_dispatch;
         pthread_t          p_worker_completion;
         std::list<Event *> p_events;

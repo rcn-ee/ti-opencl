@@ -86,7 +86,7 @@ EVEDevice::EVEDevice(unsigned char eve_id, SharedMemory* shm)
       p_eve_id_             (eve_id),
       p_cores               (1),
       p_num_events          (0),
-      p_eve_mhz_            (535),
+      p_eve_mhz             (0),
       p_worker_dispatch     (0),
       p_worker_completion   (0),
       p_stop                (false),
@@ -148,6 +148,17 @@ EVEDevice::EVEDevice(unsigned char eve_id, SharedMemory* shm)
 
     k = new KernelEntry("ocl_tidl_cleanup", 13);
     p_kernel_entries.push_back(k);
+
+    mail_to(frequencyMsg);
+
+    int ret = 0;
+    do
+    {
+        while (!mail_query())  ;
+        ret = mail_from();
+    } while (ret == -1);
+
+    p_eve_mhz = ret;
 }
 
 bool EVEDevice::hostSchedule() const
@@ -603,7 +614,7 @@ cl_int EVEDevice::info(cl_device_info param_name,
             break;
 
         case CL_DEVICE_MAX_CLOCK_FREQUENCY:
-            SIMPLE_ASSIGN(cl_uint, p_eve_mhz_);
+            SIMPLE_ASSIGN(cl_uint, p_eve_mhz);
             break;
 
         case CL_DEVICE_ADDRESS_BITS:

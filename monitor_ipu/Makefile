@@ -1,5 +1,5 @@
 #
-#  Copyright (c) 2013-2015 Texas Instruments Incorporated - http://www.ti.com
+#  Copyright (c) 2013-2018 Texas Instruments Incorporated - http://www.ti.com
 #  All rights reserved.
 #
 #  Redistribution and use in source and binary forms, with or without
@@ -48,22 +48,18 @@ IPC_DIR        ?= $(RTOS_INSTALL_DIR)/ti-ipc-tree
 BIOS_DIR       ?= $(RTOS_INSTALL_DIR)/ti-sysbios-tree
 PDK_DIR        ?= $(SDOMC_SHARED)/$(PSDK_VISION)/ti_components/drivers/pdk_01_08_01_06
 
-TI_OCL_M4_CGT_INSTALL ?= $(SDOMC_SHARED)/$(PSDK_VISION)/ti_components/cg_tools/linux/ti-cgt-arm_16.9.2.LTS
-
 CSL_LIB_M4    ?= $(PDK_DIR)/packages/ti/csl/lib/tda2xx/m4/release/ti.csl.aem4
 PM_HAL_LIB_M4 ?= $(PDK_DIR)/packages/ti/drv/pm/lib/tda2xx/m4/release/pm_hal.aem4
 SBL_LIB_M4    ?= $(PDK_DIR)/packages/ti/boot/sbl_auto/lib/tda2xx-evm/m4/release/sbl_lib.aem4
 
-VISIONSDK_UTILS ?= src/visionsdk_utils
-
 SOURCES  = main_ipu1.c dla_firmware.c
-SOURCES += $(VISIONSDK_UTILS)/src/rtos/utils_common/src/utils_eveloader.c
-SOURCES += $(VISIONSDK_UTILS)/src/rtos/utils_common/src/eveloader/utils_eve_boot.c
+SOURCES += utils_eveloader.c
+SOURCES += utils_eve_boot.c
 HEADERS  = custom_rsc_table_vayu_ipu1.h
 HEADERS += $(OPENCL_SRC_DIR)/src/core/dsp/tal/mbox_msgq_shared.h
-HEADERS += $(VISIONSDK_UTILS)/src/rtos/utils_common/include/utils_eveloader.h
+HEADERS += utils_eveloader.h
 
-VPATH = src:$(VISIONSDK_UTILS)/src/rtos/utils_common/src:$(VISIONSDK_UTILS)/src/rtos/utils_common/src/eveloader
+VPATH = src
 
 OBJS  = $(addprefix bin/$(BUILD_TYPE)/obj/,$(patsubst %.c,%.oem4,$(notdir $(SOURCES))))
 CONFIG = bin/$(BUILD_TYPE)/configuro
@@ -80,8 +76,7 @@ DLA_FIRMWARE = monitor_dla/src/dla_firmware.h
 else
 DLA_FIRMWARE = src/dla_firmware.h
 endif
-INCLUDES  = -i. -i $(OPENCL_SRC_DIR)/src/core/dsp
-INCLUDES += -i $(VISIONSDK_UTILS)
+INCLUDES  = -I. -Isrc -I $(OPENCL_SRC_DIR)/src/core/dsp
 INCLUDES += -D$(DEVICE) -D$(SOC) -DNON_VISIONSDK_BUILD
 INCLUDES += -DIPU1_LOAD_EVES -DPROC_EVE1_INCLUDE
 INCLUDES += -DPROC_EVE2_INCLUDE -DPROC_EVE3_INCLUDE -DPROC_EVE4_INCLUDE
@@ -102,7 +97,7 @@ ifeq ($(BUILD_DLA_FIRMWARE),1)
 	@$(ECHO) "Building development version of DLA firmware..."
 	$(MAKE) -C monitor_dla BUILD_AM57=1 -j4
 	@diff monitor_dla/src/dla_firmware.h src/dla_firmware.h > /dev/null ||\
-	    $(ECHO) "!!! dla_firmware.h diffs from pre-built version !!!"
+		$(ECHO) "!!! dla_firmware.h: monitor_ipu/src/dla_firmware.h not in sync with monitor_dla/src/dla_firmware.h. Commit to ti-opencl repo. !!!"
 else
 	@$(ECHO) "Using prebuilt DLA firmware..."
 endif
@@ -136,14 +131,6 @@ $(CONFIG)/.config: $(CONFIGS)
             cfg/Ipu1.cfg
 	@$(ECHO) "" > $@
 
-install:
-	@$(ECHO) "#"
-	@$(ECHO) "# Making $@ ..."
-	@$(MKDIR) $(EXEC_DIR)/debug
-	$(CP) bin/debug/server_ipu1.xem4 $(EXEC_DIR)/debug
-	@$(MKDIR) $(EXEC_DIR)/release
-	$(CP) bin/release/server_ipu1.xem4 $(EXEC_DIR)/release
-
 help:
 	@$(ECHO) "make                   # build executable"
 	@$(ECHO) "make clean             # clean everything"
@@ -152,19 +139,12 @@ clean::
 	$(RMDIR) bin
 	if [ -e monitor_dla/Makefile ]; then $(MAKE) -C monitor_dla clean; fi
 
-#  ======== install validation ========
-ifeq (install,$(MAKECMDGOALS))
-ifeq (,$(EXEC_DIR))
-$(error must specify EXEC_DIR)
-endif
-endif
-
 #  ======== toolchain macros ========
 CC = $(TI_OCL_M4_CGT_INSTALL)/bin/armcl -c
 LD = $(TI_OCL_M4_CGT_INSTALL)/bin/armcl -z
 
 CPPFLAGS =
-CFLAGS = -qq -pdsw225 -ppd=$@.dep -ppa $(CCPROFILE_$(BUILD_TYPE)) -@$(CONFIG)/compiler.opt -I.
+CFLAGS = -qq -pdsw225 -ppd=$@.dep -ppa $(CCPROFILE_$(BUILD_TYPE)) -@$(CONFIG)/compiler.opt
 
 # entry point is set to an aligned address so that IPC can load the slave
 LDFLAGS = -w -x -q -u _c_int00 -c -m $(@D)/obj/$(@F).map
@@ -173,22 +153,11 @@ LDLIBS = -l $(TI_OCL_M4_CGT_INSTALL)/lib/libc.a
 CCPROFILE_debug = -D_DEBUG_=1 --symdebug:dwarf
 CCPROFILE_release = -O2
 
-#  ======== standard macros ========
-ifneq (,$(wildcard $(XDC_DIR)/xdc.exe))
-    # use these on Windows
-    CP      = $(XDC_DIR)/bin/cp
-    ECHO    = $(XDC_DIR)/bin/echo
-    MKDIR   = $(XDC_DIR)/bin/mkdir -p
-    RM      = $(XDC_DIR)/bin/rm -f
-    RMDIR   = $(XDC_DIR)/bin/rm -rf
-else
-    # use these on Linux
-    CP      = cp
-    ECHO    = echo
-    MKDIR   = mkdir -p
-    RM      = rm -f
-    RMDIR   = rm -rf
-endif
+CP      = cp
+ECHO    = echo
+MKDIR   = mkdir -p
+RM      = rm -f
+RMDIR   = rm -rf
 
 #  ======== create output directories ========
 ifneq (clean,$(MAKECMDGOALS))

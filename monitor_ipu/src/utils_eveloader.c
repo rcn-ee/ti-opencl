@@ -15,7 +15,7 @@
  *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  *   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+ *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  *   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
  *   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
  *   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
@@ -51,7 +51,7 @@
 #include <ti/boot/sbl_auto/sbl_lib/sbl_lib.h>
 #include <ti/boot/sbl_auto/sbl_lib/sbl_lib_tda2xx.h>
 #include <ti/drv/pm/pmhal.h>
-#include <src/rtos/utils_common/include/utils_eveloader.h>
+#include "utils_eveloader.h"
 
 /*******************************************************************************
  *  GLOBAL VARIABLES

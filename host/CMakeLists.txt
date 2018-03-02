@@ -28,6 +28,9 @@ else()
     MESSAGE(FATAL_ERROR "No build target selected. Set cmake variable BUILD_TARGET")
 endif()
 
+# Suppress the "Up-to-date" messages from install
+set(CMAKE_INSTALL_MESSAGE LAZY)
+
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/modules)
 
 # OCL_VERSION defined in Makefile.inc
