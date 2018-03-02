@@ -1,4 +1,4 @@
-CXXFLAGS  = -O3 -Wall -Werror -fpic 
+CXXFLAGS  = -O3 -Wall -fpic
 CL6XFLAGS = -o3 --omp -mv6600 --abi=eabi -I$(TARGET_ROOTDIR)/usr/share/ti/opencl -I$(TI_OCL_CGT_INSTALL)/include -I$(TARGET_ROOTDIR)/usr/share/ti/cgt-c6x/include
 
 all: libcblas_dgemm_dsp.a

@@ -111,10 +111,14 @@ ifneq (,$(findstring 86, $(shell uname -m)))
 
     # gcc ARM cross compiler will not, by default, search the host's
     # /usr/include.  Explicitly specify here to find dependent vendor headers
-    CXXFLAGS += -I$(TARGET_ROOTDIR)/usr/include -idirafter /usr/include
+    # Do not use /usr/include on host machine, it might have different gcc
+    # versions and could cause problems.
+    CXXFLAGS += "--sysroot=$(TARGET_ROOTDIR)"
+    CXXFLAGS += -I$(TARGET_ROOTDIR)/usr/include
 
     # If cross-compiling, provide path to dependent ARM libraries on the
     # target filesystem
+    LDFLAGS += "--sysroot=$(TARGET_ROOTDIR)"
     LDFLAGS += -L$(TARGET_ROOTDIR)/lib -L$(TARGET_ROOTDIR)/usr/lib -Wl,-rpath-link,$(TARGET_ROOTDIR)/lib -Wl,-rpath-link,$(TARGET_ROOTDIR)/usr/lib
 
 else

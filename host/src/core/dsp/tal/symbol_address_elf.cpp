@@ -27,7 +27,6 @@
  *****************************************************************************/
 
 #include <gelf.h>
-#include <linux/elf-em.h>
 #include <libelf.h>
 #include <fcntl.h>
 #include <unistd.h>
