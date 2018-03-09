@@ -22,7 +22,7 @@ OCL_FULL_VER=$(OCL_MAJOR_VER).$(OCL_MINOR_VER).$(OCL_RELEASE_VER).$(OCL_PATCH_VE
 SDOMC_SHARED?=/cgnas
 
 # XDC (not included in CoreSDK)
-XDC_DIR?=$(SDOMC_SHARED)/xdctools_3_32_01_22_core
+XDC_DIR?=$(SDOMC_SHARED)/xdctools_3_50_03_33_core
 
 # TI C6x CGT
 TI_OCL_CGT_INSTALL?=$(SDOMC_SHARED)/ti-cgt-c6000-8.2.2-release-linux
@@ -44,7 +44,7 @@ else
     X86_LLVM_DIR?=$(SDOMC_SHARED)/llvm-3.6.0-20170608-x86_64
 endif
 
-CORESDK_VERSION ?= ti2017.04-rc2
+CORESDK_VERSION ?= ti2018.00-rc0
 
 ifeq ($(BUILD_K2H),1)
 	CORE_SDK?=$(SDOMC_SHARED)/ti-processor-sdk-linux-k2hk-evm-$(CORESDK_VERSION)
@@ -67,7 +67,7 @@ endif
 
 # ARM GCC
 ifeq (,$(findstring arm, $(UNAME_M)))
-    ARM_GCC_DIR?=$(SDOMC_SHARED)/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf
+    ARM_GCC_DIR?=$(SDOMC_SHARED)/gcc-linaro-7.2.1-2017.11-x86_64_arm-linux-gnueabihf
     GCC_ARM_NONE_TOOLCHAIN?=$(SDOMC_SHARED)/gcc-arm-none-eabi-4_9-2015q3
 endif
 
