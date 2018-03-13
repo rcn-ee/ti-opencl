@@ -1,5 +1,5 @@
-# Suppress the "Up-to-date" messages from install
-set(CMAKE_INSTALL_MESSAGE LAZY)
+# Suppress the "Up-to-date and Install" messages from install
+set(CMAKE_INSTALL_MESSAGE NEVER)
 
 # Clean the examples directory so that the install package is clean.
 # Assuming that opencl_examples directory is present otherwise will get a

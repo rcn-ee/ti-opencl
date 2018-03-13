@@ -36,11 +36,12 @@
 extern "C" {
 #endif
 
-#define OCL_TIDL_SUCCESS           (0)
-#define OCL_TIDL_ERROR             (1)
-#define OCL_TIDL_ALLOC_FAIL        (2)
-#define OCL_TIDL_MEMREC_ALLOC_FAIL (3)
-#define OCL_TIDL_PROCESS_FAIL      (4)
+#define OCL_TIDL_SUCCESS                (0)
+#define OCL_TIDL_ERROR                  (-1)
+#define OCL_TIDL_ALLOC_FAIL             (-2)
+#define OCL_TIDL_MEMREC_ALLOC_FAIL      (-3)
+#define OCL_TIDL_PROCESS_FAIL           (-4)
+#define OCL_TIDL_CREATE_PARAMS_MISMATCH (-5)
 
 #define OCL_TIDL_TRACE_OFF  (0)
 #define OCL_TIDL_TRACE_MIN  (1)
@@ -78,7 +79,7 @@ typedef struct
     uint32_t tidlHeapSize;
     uint32_t l2HeapSize;
     uint32_t l1HeapSize;
-    uint32_t errorCode;
+     int32_t errorCode;
     uint64_t cycles;
     uint32_t enableTrace;
     uint32_t numInBufs;
@@ -92,7 +93,7 @@ typedef struct
     uint32_t frameIdx;
     uint32_t bytesWritten;
     uint64_t cycles;
-    uint32_t errorCode;
+     int32_t errorCode;
     uint32_t enableTrace;
 } OCL_TIDL_ProcessParams;
 
@@ -101,8 +102,10 @@ typedef struct
     uint32_t noZeroCoeffsPercentage;
     uint32_t networkParamHeapSize;
     uint64_t cycles;
-    uint32_t errorCode;
+     int32_t errorCode;
     uint32_t enableTrace;
+    uint32_t sizeofTIDL_CreateParams;
+    uint32_t offsetofNet;
 } OCL_TIDL_SetupParams;
 
 #ifndef __OPENCL_VERSION__

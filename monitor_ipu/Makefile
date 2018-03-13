@@ -97,7 +97,12 @@ ifeq ($(BUILD_DLA_FIRMWARE),1)
 	@$(ECHO) "Building development version of DLA firmware..."
 	$(MAKE) -C monitor_dla BUILD_AM57=1 -j4
 	@diff monitor_dla/src/dla_firmware.h src/dla_firmware.h > /dev/null ||\
-		$(ECHO) "!!! dla_firmware.h: monitor_ipu/src/dla_firmware.h not in sync with monitor_dla/src/dla_firmware.h. Commit to ti-opencl repo. !!!"
+		$(ECHO) "\n"\
+	            "***********************************************************\n"\
+		        "* dla_firmware.h: monitor_ipu/src/dla_firmware.h not in \n"\
+	            "* sync with monitor_dla/src/dla_firmware.h.\n"\
+				"* Copy dla_firmware.h into ti-opencl repo and commit.\n"\
+	            "***********************************************************\n"
 else
 	@$(ECHO) "Using prebuilt DLA firmware..."
 endif
