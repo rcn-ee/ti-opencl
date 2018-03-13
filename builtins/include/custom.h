@@ -47,11 +47,31 @@ extern "C" {
 #define OCL_TIDL_TRACE_MED  (2)
 #define OCL_TIDL_TRACE_ALL  (3)
 
+#define OCL_TIDL_MAX_PAD_SIZE  (4)  // must be in sync with TIDL_MAX_PAD_SIZE
+                                    // in TIDL/modules/ti_dl/inc/itidl_ti.h
+
+#define OCL_TIDL_MAX_IN_BUFS   (8)  // current use cases: 1 (read 1 buf)
+#define OCL_TIDL_MAX_OUT_BUFS  (8)  // current use cases: 1 (write 1 buf)
+
+
 /* NOTE: uint64_t is 64bit aligned on ARM, 32bit aligned on EVE.
  * The cycles field must be placed at a 64bit aligned offset in the
  * structs below to avoid inconsistences when they are read/written
  * by ARM and EVE
  */
+
+typedef struct
+{
+    uint32_t bufferId;
+    uint32_t numROIs;            // corresponding to dimValues[0]
+    uint32_t numChannels;        // corresponding to dimValues[1]
+    uint32_t ROIHeight;          // corresponding to dimValues[2]
+    uint32_t ROIWidth;           // corresponding to dimValues[3]
+
+    uint32_t bufPlaneBufOffset;  // buf address offset to the heap base
+    uint32_t bufPlaneHeight;     // padded width
+    uint32_t bufPlaneWidth;      // padded width
+} OCL_TIDL_BufParams;
 
 typedef struct
 {
@@ -61,6 +81,10 @@ typedef struct
     uint32_t errorCode;
     uint64_t cycles;
     uint32_t enableTrace;
+    uint32_t numInBufs;
+    uint32_t numOutBufs;
+    OCL_TIDL_BufParams inBufs[OCL_TIDL_MAX_IN_BUFS];
+    OCL_TIDL_BufParams outBufs[OCL_TIDL_MAX_OUT_BUFS];
 } OCL_TIDL_InitializeParams;
 
 typedef struct
@@ -95,7 +119,8 @@ void ocl_tidl_initialize(const uint8_t*                  createParamsV,
 
 void ocl_tidl_process(OCL_TIDL_ProcessParams* processParams,
                       const uint8_t*          inputFrame,
-                      uint8_t*                outputData);
+                      uint8_t*                outputData,
+                      uint8_t*                externalMemory);
 
 void ocl_tidl_cleanup();
 #endif
