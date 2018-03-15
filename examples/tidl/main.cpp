@@ -44,16 +44,20 @@ bool __TI_show_debug_ = false;
 
 using namespace tidl;
 
-void RunConfiguration(const std::string& config_file, int num_devices);
-void RunAllConfigurations(int32_t num_devices);
+bool RunMultipleExecutors(const std::string& config_file_1,
+                          const std::string& config_file_2,
+                          uint32_t num_devices_available);
 
-static bool ReadFrame(ExecutionObject&     eo,
-                      int                  frame_idx,
-                      const Configuration& configuration,
-                      std::istream&        input_file);
+bool RunConfiguration(const std::string& config_file, int num_devices);
+bool RunAllConfigurations(int32_t num_devices);
 
-static bool WriteFrame(const ExecutionObject &eo,
-                       std::ostream& output_file);
+bool ReadFrame(ExecutionObject&     eo,
+               int                  frame_idx,
+               const Configuration& configuration,
+               std::istream&        input_file);
+
+bool WriteFrame(const ExecutionObject &eo,
+                std::ostream& output_file);
 
 static void ProcessArgs(int argc, char *argv[],
                         std::string& config_file,
@@ -84,15 +88,29 @@ int main(int argc, char *argv[])
     int         num_devices = 1;
     ProcessArgs(argc, argv, config_file, num_devices);
 
+    bool status = true;
     if (!config_file.empty())
-        RunConfiguration(config_file, num_devices);
+        status = RunConfiguration(config_file, num_devices);
     else
-        RunAllConfigurations(num_tidl_devices);
+    {
+        status = RunAllConfigurations(num_tidl_devices);
+        status &= RunMultipleExecutors(
+                     "testvecs/config/infer/tidl_config_j11_v2.txt",
+                     "testvecs/config/infer/tidl_config_j11_cifar.txt",
+                     num_tidl_devices);
+    }
 
+    if (!status)
+    {
+        std::cout << "tidl FAILED" << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    std::cout << "tidl PASSED" << std::endl;
     return EXIT_SUCCESS;
 }
 
-void RunConfiguration(const std::string& config_file, int num_devices)
+bool RunConfiguration(const std::string& config_file, int num_devices)
 {
     DeviceIds ids;
     for (int i = 0; i < num_devices; i++)
@@ -105,7 +123,7 @@ void RunConfiguration(const std::string& config_file, int num_devices)
     {
         std::cerr << "Error in configuration file: " << config_file
                   << std::endl;
-        exit(EXIT_FAILURE);
+        return false;
     }
 
     // Open input and output files
@@ -189,11 +207,14 @@ void RunConfiguration(const std::string& config_file, int num_devices)
     catch (tidl::Exception &e)
     {
         std::cerr << e.what() << std::endl;
+        status = false;
     }
 
 
     input_data_file.close();
     output_data_file.close();
+
+    return status;
 }
 
 namespace tidl {
@@ -202,38 +223,49 @@ extern bool CompareFrames(const std::string &F1, const std::string &F2,
                           int numFrames, int width, int height);
 }
 
-void RunAllConfigurations(int32_t num_devices)
+bool RunAllConfigurations(int32_t num_devices)
 {
     const std::vector<std::string> configurations
     { "dense_1x1",  "j11_bn", "j11_cifar", "j11_controlLayers",
       "j11_prelu", "j11_v2", "jseg21", "jseg21_tiscapes",
       "smallRoi", "squeeze1_1"};
 
+    int errors = 0;
     for (auto config : configurations)
     {
         std::string config_file = "testvecs/config/infer/tidl_config_"
                                   + config + ".txt";
         std::cout << "Running " << config << " on " << num_devices
                   << " devices..." << std::endl;
-        RunConfiguration(config_file, num_devices);
+
+        Configuration configuration;
+        bool status = configuration.ReadFromFile(config_file);
+        if (!status) { errors++; continue; }
+
+        status = RunConfiguration(config_file, num_devices);
+
+        if (!status) { errors++; continue; }
 
         // Check output against reference output
         std::string reference_output = "testvecs/reference/"
                                        + config + "_ref.bin";
 
-        bool status;
-
         // Reference for jseg21_tiscapes only has one frame
         if (config.compare("jseg21_tiscapes") == 0)
-            status = CompareFrames("stats_tool_out.bin", reference_output,
+            status = CompareFrames(configuration.outData, reference_output,
                                    1, 1024, 512);
         else
-            status = CompareFiles("stats_tool_out.bin", reference_output);
+            status = CompareFiles(configuration.outData, reference_output);
 
         if (status) std::cout << config << " : PASSED" << std::endl;
         else        std::cout << config << " : FAILED" << std::endl;
+
+        if (!status) errors++;
     }
 
+    if (errors > 0) return false;
+
+    return true;
 }
 
 
@@ -282,9 +314,6 @@ bool WriteFrame(const ExecutionObject &eo, std::ostream& output_file)
 void ProcessArgs(int argc, char *argv[], std::string& config_file,
                  int& num_devices)
 {
-    if (argc < 3)
-        return;
-
     const struct option long_options[] =
     {
         {"config_file", required_argument, 0, 'c'},
@@ -316,6 +345,7 @@ void ProcessArgs(int argc, char *argv[], std::string& config_file,
                       break;
 
             case 'h': DisplayHelp();
+                      exit(EXIT_SUCCESS);
                       break;
 
             case '?': // Error in getopt_long
@@ -329,12 +359,13 @@ void ProcessArgs(int argc, char *argv[], std::string& config_file,
     }
 }
 
-#define STRING(S)  XSTRING(S)
-#define XSTRING(S) #S
 void DisplayHelp()
 {
-    std::cout << "Usage: tidl -c <path to config file>\n"
+    std::cout << "Usage: tidl\n"
+                 "  Will run all available networks if tidl is invoked without"
+                 " any arguments.\n  Use -c to run a single network.\n"
                  "Optional arguments:\n"
+                 " -c                   Path to the configuration file\n"
                  " -n <number of cores> Number of cores to use (1 - 4)\n"
                  " -v                   Verbose output during execution\n"
                  " -h                   Help\n";

@@ -1,4 +1,4 @@
-EXE ?= tidl
+EXE = tidl
 
 RM = rm
 AR = ar
@@ -18,12 +18,9 @@ endif
 CXXFLAGS += -I. -I$(HOST_DIR)/inc -std=c++11
 
 HEADERS = 
-LIBS    = -lOpenCL -locl_util
+LIBS    = -lOpenCL -locl_util -lpthread
 
-tidl: SOURCES = main.cpp
-
-multiple_executors: SOURCES = multiple_executors.cpp
-multiple_executors: LIBS += -lpthread
+tidl: SOURCES = main.cpp multiple_executors.cpp
 
 $(EXE): $(HOST_LIB) $(HEADERS) $(DSP_OUTFILE) $(SOURCES)
 	$(CXX) $(CXXFLAGS) $(SOURCES) $(HOST_LIB) $(LDFLAGS) $(LIBS) -o $@

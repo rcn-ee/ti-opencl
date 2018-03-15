@@ -45,20 +45,17 @@
 #include "execution_object.h"
 #include "configuration.h"
 
-
 using namespace tidl;
 
+extern bool ReadFrame(ExecutionObject&     eo,
+               int                  frame_idx,
+               const Configuration& configuration,
+               std::istream&        input_file);
+
+extern bool WriteFrame(const ExecutionObject &eo,
+                std::ostream& output_file);
+
 void* run_network(void *data);
-
-static bool ReadFrame(ExecutionObject&     eo,
-                      int                  frame_idx,
-                      const Configuration& configuration,
-                      std::istream&        input_file);
-
-static bool WriteFrame(const ExecutionObject &eo,
-                       std::ostream& output_file);
-
-static void DisplayHelp();
 
 struct ThreadArg
 {
@@ -69,26 +66,41 @@ struct ThreadArg
 
 };
 
-int main(int argc, char *argv[])
+bool thread_status[2];
+
+bool RunMultipleExecutors(const std::string& config_file_1,
+                          const std::string& config_file_2,
+                          uint32_t num_devices_available)
 {
-    // Catch ctrl-c to ensure a clean exit
-    signal(SIGABRT, exit);
-    signal(SIGTERM, exit);
+    // If there is only 1 device available, skip
+    if (num_devices_available == 1)
+        return true;
 
-    ThreadArg arg1({DeviceId::ID2, DeviceId::ID3},
-                   "testvecs/config/infer/tidl_config_jseg21_tiscapes.txt");
+    DeviceIds ids1, ids2;
 
-    ThreadArg arg2({DeviceId::ID0, DeviceId::ID1},
-                   "testvecs/config/infer/tidl_config_j11_cifar.txt");
+    if (num_devices_available == 4)
+    {
+        ids1 = {DeviceId::ID2, DeviceId::ID3};
+        ids2 = {DeviceId::ID0, DeviceId::ID1};
+    }
+    else
+    {
+        ids1 = {DeviceId::ID0};
+        ids2 = {DeviceId::ID1};
+    }
 
+    // Set up devices and config files for each thread
+    ThreadArg arg1(ids2, config_file_1);
+    ThreadArg arg2(ids1, config_file_2);
 
     // Run network 1 in a thread
+    std::cout << std::endl << "Multiple Executor..." << std::endl;
     std::cout << "Running network "
               << arg1.config_file.substr(arg1.config_file.find("tidl"))
               << " on EVEs: ";
     for (DeviceId id : arg1.ids)
         std::cout << static_cast<int>(id) << " ";
-    std::cout << std::endl;
+    std::cout << " in thread 0" << std::endl;
 
     pthread_t network_thread_1;
     pthread_create(&network_thread_1, 0, &run_network, &arg1);
@@ -99,16 +111,25 @@ int main(int argc, char *argv[])
               << " on EVEs: ";
     for (DeviceId id : arg2.ids)
         std::cout << static_cast<int>(id) << " ";
-    std::cout << std::endl;
+    std::cout << " in thread 1" << std::endl;
 
     pthread_t network_thread_2;
     pthread_create(&network_thread_2, 0, &run_network, &arg2);
 
     // Wait for both networks to complete
-    pthread_join(network_thread_1, 0);
-    pthread_join(network_thread_2, 0);
+    void *thread_return_val1;
+    void *thread_return_val2;
+    pthread_join(network_thread_1, &thread_return_val1);
+    pthread_join(network_thread_2, &thread_return_val2);
 
-    return EXIT_SUCCESS;
+    if (thread_return_val1 == 0 || thread_return_val2 == 0)
+    {
+        std::cout << "Multiple executors: FAILED" << std::endl;
+        return false;
+    }
+
+    std::cout << "Multiple executors: PASSED" << std::endl;
+    return true;
 }
 
 
@@ -124,6 +145,8 @@ void* run_network(void *data)
     bool status = configuration.ReadFromFile(config_file);
     assert (status != false);
 
+    configuration.outData += std::to_string(pthread_self());
+
     // Open input and output files
     std::ifstream input_data_file(configuration.inData, std::ios::binary);
     std::ofstream output_data_file(configuration.outData, std::ios::binary);
@@ -134,106 +157,60 @@ void* run_network(void *data)
     size_t frame_sz = configuration.inWidth * configuration.inHeight *
                       configuration.inNumChannels;
 
-    // Create a executor with the approriate core type, number of cores
-    // and configuration specified
-    Executor executor(DeviceType::DLA, ids, configuration);
-
-    const ExecutionObjects& execution_objects = executor.GetExecutionObjects();
-    int num_eos = execution_objects.size();
-
-    // Allocate input and output buffers for each execution object
-    std::vector<void *> buffers;
-    for (auto &eo : execution_objects)
+    try
     {
-        ArgInfo in  = { ArgInfo(malloc_ddr<char>(frame_sz), frame_sz)};
-        ArgInfo out = { ArgInfo(malloc_ddr<char>(frame_sz), frame_sz)};
-        eo->SetInputOutputBuffer(in, out);
+        // Create a executor with the approriate core type, number of cores
+        // and configuration specified
+        Executor executor(DeviceType::DLA, ids, configuration);
 
-        buffers.push_back(in.ptr());
-        buffers.push_back(out.ptr());
+        const ExecutionObjects& execution_objects =
+                                                executor.GetExecutionObjects();
+        int num_eos = execution_objects.size();
+
+        // Allocate input and output buffers for each execution object
+        std::vector<void *> buffers;
+        for (auto &eo : execution_objects)
+        {
+            ArgInfo in  = { ArgInfo(malloc_ddr<char>(frame_sz), frame_sz)};
+            ArgInfo out = { ArgInfo(malloc_ddr<char>(frame_sz), frame_sz)};
+            eo->SetInputOutputBuffer(in, out);
+
+            buffers.push_back(in.ptr());
+            buffers.push_back(out.ptr());
+        }
+
+        // Process frames with available execution objects in a pipelined manner
+        // additional num_eos iterations to flush the pipeline (epilogue)
+        for (int frame_idx = 0;
+             frame_idx < configuration.numFrames + num_eos; frame_idx++)
+        {
+            ExecutionObject* eo = execution_objects[frame_idx % num_eos].get();
+
+            // Wait for previous frame on the same eo to finish processing
+            if (eo->ProcessFrameWait())
+                WriteFrame(*eo, output_data_file);
+
+            // Read a frame and start processing it with current eo
+            if (ReadFrame(*eo, frame_idx, configuration, input_data_file))
+                eo->ProcessFrameStartAsync();
+        }
+
+
+        for (auto b : buffers)
+            __free_ddr(b);
     }
-
-    // Process frames with available execution objects in a pipelined fashion
-    // additional num_eos iterations to flush the pipeline (epilogue)
-    for (int frame_idx = 0;
-         frame_idx < configuration.numFrames + num_eos; frame_idx++)
+    catch (tidl::Exception &e)
     {
-        ExecutionObject* eo = execution_objects[frame_idx % num_eos].get();
-
-        // Wait for previous frame on the same eo to finish processing
-        if (eo->ProcessFrameWait())
-            WriteFrame(*eo, output_data_file);
-
-        // Read a frame and start processing it with current eo
-        if (ReadFrame(*eo, frame_idx, configuration, input_data_file))
-            eo->ProcessFrameStartAsync();
+        std::cerr << e.what() << std::endl;
+        status = false;
     }
-
-
-    for (auto b : buffers)
-        __free_ddr(b);
 
     input_data_file.close();
     output_data_file.close();
 
-    return nullptr;
-}
+    // Return 1 for true, 0 for false. void * pattern follows example from:
+    // "Advanced programming in the Unix Environment"
+    if (!status) return ((void *)0);
 
-
-bool ReadFrame(ExecutionObject &eo, int frame_idx,
-               const Configuration& configuration,
-               std::istream& input_file)
-{
-    if (frame_idx >= configuration.numFrames)
-        return false;
-
-    char*  frame_buffer = eo.GetInputBufferPtr();
-    assert (frame_buffer != nullptr);
-
-    input_file.read(eo.GetInputBufferPtr(),
-                    eo.GetInputBufferSizeInBytes());
-
-    if (input_file.eof())
-        return false;
-
-    assert (input_file.good());
-
-    // Set the frame index  being processed by the EO. This is used to
-    // sort the frames before they are output
-    eo.SetFrameIndex(frame_idx);
-
-    if (input_file.good())
-        return true;
-
-    return false;
-}
-
-bool WriteFrame(const ExecutionObject &eo, std::ostream& output_file)
-{
-    output_file.write(
-            eo.GetOutputBufferPtr(), eo.GetOutputBufferSizeInBytes());
-    assert(output_file.good() == true);
-
-    if (output_file.good())
-        return true;
-
-    return false;
-}
-
-
-
-
-#define STRING(S)  XSTRING(S)
-#define XSTRING(S) #S
-void DisplayHelp()
-{
-    std::cout << "Usage: tidl -c <path to config file>\n"
-              #ifdef BUILDID
-              << "Version: " << STRING(BUILDID) << "\n"
-              #endif
-                 "Optional arguments:\n"
-                 " -n <number of cores> Number of cores to use (1 - 4)\n"
-                 " -t <d|e>             Type of core. d -> DSP, e -> DLA\n"
-                 " -v                   Verbose output during execution\n"
-                 " -h                   Help\n";
+    return ((void *)1);
 }
