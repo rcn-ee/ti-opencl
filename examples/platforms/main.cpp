@@ -100,8 +100,8 @@ int main(int argc, char *argv[])
              platforms[p].getInfo(CL_PLATFORM_PROFILE, &str);
              cout << "  Profile: " <<  str << endl;
 
-             getDevices(platforms[p], CL_DEVICE_TYPE_ALL);
-             getDevices(platforms[p], CL_DEVICE_TYPE_CUSTOM);
+             getDevices(platforms[p], CL_DEVICE_TYPE_ACCELERATOR |
+                                      CL_DEVICE_TYPE_CUSTOM);
         }
     }
 
