@@ -93,6 +93,10 @@ int main(int argc, char *argv[])
         status = RunConfiguration(config_file, num_devices);
     else
     {
+        //TODO: Use memory availability to determine # devices
+        // Run on 2 devices because there is not enough CMEM available by
+        // default
+        if (num_tidl_devices = 4) num_tidl_devices = 2;
         status = RunAllConfigurations(num_tidl_devices);
         status &= RunMultipleExecutors(
                      "testvecs/config/infer/tidl_config_j11_v2.txt",

@@ -51,8 +51,8 @@ else
 endif
 
 CXXFLAGS += -std=c++11 -Wall -Werror -Wno-error=ignored-attributes
-CXXFLAGS += -I$(TI_OCL_INSTALL)/usr/include
 CXXFLAGS += -I$(TI_OCL_INSTALL)/usr/share/ti/opencl
+CXXFLAGS += -I$(TARGET_ROOTDIR)/usr/share/ti/opencl
 CXXFLAGS += -Isrc -Iinc
 
 obj/%.o: src/%.cpp $(HEADERS)

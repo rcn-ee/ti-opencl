@@ -32,6 +32,7 @@ endef
 else  # Linux
 define make_in_dirs
 	for dir in $(1); do \
+	  echo "=============== " $$dir " =================" ; \
 	  $(MAKE) --no-print-directory $(MAKEFILE) -C $$dir $(2); \
 	done
 endef

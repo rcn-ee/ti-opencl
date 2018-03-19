@@ -15,7 +15,7 @@
  *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  *   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+ *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  *   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
  *   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
  *   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
@@ -55,11 +55,11 @@ const char *devtype(cl_device_type x)
     }
 }
 
+void getDevices(Platform& platform, cl_device_type type);
+
 /******************************************************************************
 * main
 ******************************************************************************/
-char ary[1<<20];
-
 #ifdef _TI_RTOS
 void ocl_main(UArg arg0, UArg arg1)
 {
@@ -79,7 +79,7 @@ int main(int argc, char *argv[])
     /*-------------------------------------------------------------------------
     * Begin OpenCL Setup code in try block to handle any errors
     *------------------------------------------------------------------------*/
-    try 
+    try
     {
          std::vector<Platform> platforms;
          Platform::get(&platforms);
@@ -100,66 +100,15 @@ int main(int argc, char *argv[])
              platforms[p].getInfo(CL_PLATFORM_PROFILE, &str);
              cout << "  Profile: " <<  str << endl;
 
-             cl_context_properties properties[] =
-              {CL_CONTEXT_PLATFORM, (cl_context_properties)(platforms[p])(), 0};
-
-             Context context(CL_DEVICE_TYPE_ALL, properties);
-
-             std::vector<Device> devices= context.getInfo<CL_CONTEXT_DEVICES>();
-
-             for (int d = 0; d < devices.size(); d++)
-             {
-                 devices[d].getInfo(CL_DEVICE_NAME, &str);
-                 cout << "    DEVICE: " << str << endl;
-
-                 bool ti_dsp = (str.find("C66") != std::string::npos);
-
-                 cl_device_type type;
-                 devices[d].getInfo(CL_DEVICE_TYPE, &type);
-                 cout << "      Type       : " << devtype(type) << endl;
-
-                 int num;
-                 devices[d].getInfo(CL_DEVICE_MAX_COMPUTE_UNITS, &num);
-                 cout << "      CompUnits  : " << num  << endl;
-
-                 cl_uint bignum;
-                 devices[d].getInfo(CL_DEVICE_MAX_CLOCK_FREQUENCY, &bignum);
-                 cout << "      Frequency  : " << (double) bignum / 1e3  
-                      << " GHz"<< endl;
-
-                 cl_ulong longnum;
-                 devices[d].getInfo(CL_DEVICE_GLOBAL_MEM_SIZE, &longnum);
-                 cout << "      Glb Mem    : " << setw(7) << longnum / 1024  
-                      << " KB" << endl;
-
-                 if (ti_dsp)
-                 {
-                     devices[d].getInfo(CL_DEVICE_GLOBAL_EXT1_MEM_SIZE_TI, &longnum);
-                     cout << "      GlbExt1 Mem: " << setw(7) << longnum / 1024  
-                          << " KB" << endl;
-
-                     devices[d].getInfo(CL_DEVICE_GLOBAL_EXT2_MEM_SIZE_TI, &longnum);
-                     cout << "      GlbExt2 Mem: " << setw(7) << longnum / 1024  
-                          << " KB" << endl;
-
-                     devices[d].getInfo(CL_DEVICE_MSMC_MEM_SIZE_TI, &longnum);
-                     cout << "      Msmc Mem   : " << setw(7) << longnum / 1024  
-                          << " KB" << endl;
-                 }
-
-                 devices[d].getInfo(CL_DEVICE_LOCAL_MEM_SIZE, &longnum);
-                 cout << "      Loc Mem    : " << setw(7) << longnum / 1024  << " KB" << endl;
-
-                 devices[d].getInfo(CL_DEVICE_MAX_MEM_ALLOC_SIZE, &longnum);
-                 cout << "      Max Alloc  : " << setw(7) << longnum / 1024  << " KB" << endl;
-             }
+             getDevices(platforms[p], CL_DEVICE_TYPE_ALL);
+             getDevices(platforms[p], CL_DEVICE_TYPE_CUSTOM);
         }
     }
 
     /*-------------------------------------------------------------------------
     * Let exception handling deal with any OpenCL error cases
     *------------------------------------------------------------------------*/
-    catch (Error err) 
+    catch (Error err)
     {
         cerr << "ERROR: " << err.what() << "(" << err.err() << ", "
              << ocl_decode_error(err.err()) << ")" << endl;
@@ -168,3 +117,62 @@ int main(int argc, char *argv[])
    RETURN(0);
 }
 
+
+void getDevices(Platform& platform, cl_device_type type)
+{
+     std::string str;
+     cl_context_properties properties[] =
+      {CL_CONTEXT_PLATFORM, (cl_context_properties)(platform)(), 0};
+
+     Context context(type, properties);
+
+
+     std::vector<Device> devices= context.getInfo<CL_CONTEXT_DEVICES>();
+
+     for (int d = 0; d < devices.size(); d++)
+     {
+         devices[d].getInfo(CL_DEVICE_NAME, &str);
+         cout << "    DEVICE: " << str << endl;
+
+         bool ti_dsp = (str.find("C66") != std::string::npos);
+
+         cl_device_type type;
+         devices[d].getInfo(CL_DEVICE_TYPE, &type);
+         cout << "      Type       : " << devtype(type) << endl;
+
+         int num;
+         devices[d].getInfo(CL_DEVICE_MAX_COMPUTE_UNITS, &num);
+         cout << "      CompUnits  : " << num  << endl;
+
+         cl_uint bignum;
+         devices[d].getInfo(CL_DEVICE_MAX_CLOCK_FREQUENCY, &bignum);
+         cout << "      Frequency  : " << (double) bignum / 1e3
+              << " GHz"<< endl;
+
+         cl_ulong longnum;
+         devices[d].getInfo(CL_DEVICE_GLOBAL_MEM_SIZE, &longnum);
+         cout << "      Glb Mem    : " << setw(7) << longnum / 1024
+              << " KB" << endl;
+
+         if (ti_dsp)
+         {
+             devices[d].getInfo(CL_DEVICE_GLOBAL_EXT1_MEM_SIZE_TI, &longnum);
+             cout << "      GlbExt1 Mem: " << setw(7) << longnum / 1024
+                  << " KB" << endl;
+
+             devices[d].getInfo(CL_DEVICE_GLOBAL_EXT2_MEM_SIZE_TI, &longnum);
+             cout << "      GlbExt2 Mem: " << setw(7) << longnum / 1024
+                  << " KB" << endl;
+
+             devices[d].getInfo(CL_DEVICE_MSMC_MEM_SIZE_TI, &longnum);
+             cout << "      Msmc Mem   : " << setw(7) << longnum / 1024
+                  << " KB" << endl;
+         }
+
+         devices[d].getInfo(CL_DEVICE_LOCAL_MEM_SIZE, &longnum);
+         cout << "      Loc Mem    : " << setw(7) << longnum / 1024  << " KB" << endl;
+
+         devices[d].getInfo(CL_DEVICE_MAX_MEM_ALLOC_SIZE, &longnum);
+         cout << "      Max Alloc  : " << setw(7) << longnum / 1024  << " KB" << endl;
+     }
+}
