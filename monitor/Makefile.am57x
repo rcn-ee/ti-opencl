@@ -26,6 +26,15 @@ LIBS   += $(ULM_DIR)/libtiulm.ae66
 LIBS   += $(GDB_SERVER_DIR)/lib/gdb_server.ae66
 LIBS   += $(AET_DIR)/lib/libaet.ae66
 
+ifeq ($(BUILD_DLA_FIRMWARE),1)
+OCL_TIDL_PATH = ../monitor_ipu/monitor_dla
+OCL_TIDL_LIB = $(OCL_TIDL_PATH)/dsp/ocl_tidl_dsp.lib
+else
+OCL_TIDL_LIB = libs/ocl_tidl_dsp.lib
+endif
+
+LIBS   += $(OCL_TIDL_LIB)
+
 OBJ_DIR = objs
 OBJS1=$(patsubst %.c,$(OBJ_DIR)/%.obj,$(SOURCES))
 OBJS=$(patsubst %.asm,$(OBJ_DIR)/%.obj,$(OBJS1))
@@ -148,4 +157,23 @@ clean:
 realclean: clean
 	@$(MAKE) -C $(LIBM_DIR) clean
 	@$(MAKE) -C $(BUILTINS_DIR) clean
+
+
+.PHONY: $(OCL_TIDL_LIB)
+
+$(OCL_TIDL_LIB):
+ifeq ($(BUILD_DLA_FIRMWARE),1)
+	@echo "Building development version of OCL TIDL library ..."
+	$(MAKE) -C $(OCL_TIDL_PATH) CORE=dsp BUILD_AM57=1
+	@diff $(OCL_TIDL_LIB) libs/ocl_tidl_dsp.lib > /dev/null ||\
+		echo "\n"\
+	            "***********************************************************\n"\
+				"* ocl_tidl_dsp.lib: libs/ocl_tidl_dsp.lib not in sync with\n"\
+	            "* $(OCL_TIDL_LIB)                \n"\
+				"* Copy ocl_tidl_dsp.lib into ti-opencl repo and commit.\n"\
+	            "***********************************************************\n"
+else
+	@echo "Using prebuilt OCL TIDL library ..."
+endif
+
 

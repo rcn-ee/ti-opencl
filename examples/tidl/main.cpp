@@ -48,8 +48,9 @@ bool RunMultipleExecutors(const std::string& config_file_1,
                           const std::string& config_file_2,
                           uint32_t num_devices_available);
 
-bool RunConfiguration(const std::string& config_file, int num_devices);
-bool RunAllConfigurations(int32_t num_devices);
+bool RunConfiguration(const std::string& config_file, int num_devices,
+                      DeviceType device_type);
+bool RunAllConfigurations(int32_t num_devices, DeviceType device_type);
 
 bool ReadFrame(ExecutionObject&     eo,
                int                  frame_idx,
@@ -61,7 +62,8 @@ bool WriteFrame(const ExecutionObject &eo,
 
 static void ProcessArgs(int argc, char *argv[],
                         std::string& config_file,
-                        int& num_devices);
+                        int& num_devices,
+                        DeviceType& device_type);
 
 static void DisplayHelp();
 
@@ -76,8 +78,11 @@ int main(int argc, char *argv[])
     signal(SIGTERM, exit);
 
     // If there are no devices capable of offloading TIDL on the SoC, exit
-    uint32_t num_tidl_devices = Executor::GetNumDevicesSupportingTIDL();
-    if (num_tidl_devices == 0)
+    uint32_t num_dla =
+                Executor::GetNumDevicesSupportingTIDL(DeviceType::DLA);
+    uint32_t num_dsp =
+                Executor::GetNumDevicesSupportingTIDL(DeviceType::DSP);
+    if (num_dla == 0 && num_dsp == 0)
     {
         std::cout << "TI DL not supported on this SoC." << std::endl;
         return EXIT_SUCCESS;
@@ -86,22 +91,31 @@ int main(int argc, char *argv[])
     // Process arguments
     std::string config_file;
     int         num_devices = 1;
-    ProcessArgs(argc, argv, config_file, num_devices);
+    DeviceType  device_type = DeviceType::DLA;
+    ProcessArgs(argc, argv, config_file, num_devices, device_type);
 
     bool status = true;
     if (!config_file.empty())
-        status = RunConfiguration(config_file, num_devices);
+        status = RunConfiguration(config_file, num_devices, device_type);
     else
     {
-        //TODO: Use memory availability to determine # devices
-        // Run on 2 devices because there is not enough CMEM available by
-        // default
-        if (num_tidl_devices = 4) num_tidl_devices = 2;
-        status = RunAllConfigurations(num_tidl_devices);
-        status &= RunMultipleExecutors(
+        if (num_dla > 0)
+        {
+            //TODO: Use memory availability to determine # devices
+            // Run on 2 devices because there is not enough CMEM available by
+            // default
+            if (num_dla = 4) num_dla = 2;
+            status = RunAllConfigurations(num_dla, DeviceType::DLA);
+            status &= RunMultipleExecutors(
                      "testvecs/config/infer/tidl_config_j11_v2.txt",
                      "testvecs/config/infer/tidl_config_j11_cifar.txt",
-                     num_tidl_devices);
+                     num_dla);
+        }
+
+        if (num_dsp > 0)
+        {
+            status &= RunAllConfigurations(num_dsp, DeviceType::DSP);
+        }
     }
 
     if (!status)
@@ -114,7 +128,8 @@ int main(int argc, char *argv[])
     return EXIT_SUCCESS;
 }
 
-bool RunConfiguration(const std::string& config_file, int num_devices)
+bool RunConfiguration(const std::string& config_file, int num_devices,
+                      DeviceType device_type)
 {
     DeviceIds ids;
     for (int i = 0; i < num_devices; i++)
@@ -144,7 +159,7 @@ bool RunConfiguration(const std::string& config_file, int num_devices)
     {
         // Create a executor with the approriate core type, number of cores
         // and configuration specified
-        Executor executor(DeviceType::DLA, ids, configuration);
+        Executor executor(device_type, ids, configuration);
 
 
         const ExecutionObjects& execution_objects =
@@ -227,12 +242,18 @@ extern bool CompareFrames(const std::string &F1, const std::string &F2,
                           int numFrames, int width, int height);
 }
 
-bool RunAllConfigurations(int32_t num_devices)
+bool RunAllConfigurations(int32_t num_devices, DeviceType device_type)
 {
-    const std::vector<std::string> configurations
-    { "dense_1x1",  "j11_bn", "j11_cifar", "j11_controlLayers",
-      "j11_prelu", "j11_v2", "jseg21", "jseg21_tiscapes",
-      "smallRoi", "squeeze1_1"};
+    std::vector<std::string> configurations;
+
+    if (device_type == DeviceType::DLA)
+        configurations = {"dense_1x1",  "j11_bn", "j11_cifar",
+                          "j11_controlLayers", "j11_prelu", "j11_v2",
+                          "jseg21", "jseg21_tiscapes", "smallRoi", "squeeze1_1"};
+    else
+        configurations = {"j11_bn",
+                          "j11_controlLayers", "j11_prelu", "j11_v2",
+                          "jseg21", "jseg21_tiscapes", "smallRoi", "squeeze1_1"};
 
     int errors = 0;
     for (auto config : configurations)
@@ -240,13 +261,15 @@ bool RunAllConfigurations(int32_t num_devices)
         std::string config_file = "testvecs/config/infer/tidl_config_"
                                   + config + ".txt";
         std::cout << "Running " << config << " on " << num_devices
-                  << " devices..." << std::endl;
+                  << " devices, type "
+                  << ((device_type == DeviceType::DLA) ? "EVE" : "DSP")
+                  << std::endl;
 
         Configuration configuration;
         bool status = configuration.ReadFromFile(config_file);
         if (!status) { errors++; continue; }
 
-        status = RunConfiguration(config_file, num_devices);
+        status = RunConfiguration(config_file, num_devices, device_type);
 
         if (!status) { errors++; continue; }
 
@@ -316,12 +339,13 @@ bool WriteFrame(const ExecutionObject &eo, std::ostream& output_file)
 
 
 void ProcessArgs(int argc, char *argv[], std::string& config_file,
-                 int& num_devices)
+                 int& num_devices, DeviceType& device_type)
 {
     const struct option long_options[] =
     {
         {"config_file", required_argument, 0, 'c'},
         {"num_devices", required_argument, 0, 'n'},
+        {"device_type", required_argument, 0, 't'},
         {"help",        no_argument,       0, 'h'},
         {"verbose",     no_argument,       0, 'v'},
         {0, 0, 0, 0}
@@ -343,6 +367,18 @@ void ProcessArgs(int argc, char *argv[], std::string& config_file,
 
             case 'n': num_devices = atoi(optarg);
                       assert (num_devices > 0 && num_devices <= 4);
+                      break;
+
+            case 't': if (*optarg == 'e')
+                          device_type = DeviceType::DLA;
+                      else if (*optarg == 'd')
+                          device_type = DeviceType::DSP;
+                      else
+                      {
+                          std::cerr << "Invalid argument to -t, only e or d"
+                                       " allowed" << std::endl;
+                          exit(EXIT_FAILURE);
+                      }
                       break;
 
             case 'v': __TI_show_debug_ = true;
@@ -371,6 +407,7 @@ void DisplayHelp()
                  "Optional arguments:\n"
                  " -c                   Path to the configuration file\n"
                  " -n <number of cores> Number of cores to use (1 - 4)\n"
+                 " -t <d|e>             Type of core. d -> DSP, e -> DLA\n"
                  " -v                   Verbose output during execution\n"
                  " -h                   Help\n";
 }

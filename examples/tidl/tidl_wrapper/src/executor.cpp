@@ -29,9 +29,9 @@ Executor::Executor(DeviceType core_type, const DeviceIds& ids,
 // on demand in the caller’s code where impl is not defined.
 Executor::~Executor() = default;
 
-uint32_t Executor::GetNumDevicesSupportingTIDL()
+uint32_t Executor::GetNumDevicesSupportingTIDL(DeviceType device_type)
 {
-    return Device::GetNumDevicesSupportingTIDL();
+    return Device::GetNumDevicesSupportingTIDL(device_type);
 }
 
 ExecutorImpl::ExecutorImpl(DeviceType core_type, const DeviceIds& ids):
@@ -42,7 +42,7 @@ ExecutorImpl::ExecutorImpl(DeviceType core_type, const DeviceIds& ids):
 {
     std::string name;
     if (core_type_m == DeviceType::DSP)
-        name  = "../dsp/ocl_wrapper.out";
+        name  = "dsp/ocl_wrapper.out";
     else if (core_type_m == DeviceType::DLA)
         name = STRING(SETUP_KERNEL) ";" STRING(INIT_KERNEL) ";" STRING(PROCESS_KERNEL) ";" STRING(CLEANUP_KERNEL);
 

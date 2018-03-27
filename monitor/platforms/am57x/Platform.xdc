@@ -39,17 +39,17 @@ config ti.platforms.generic.Platform.Instance CPU =
       *----------------------------------------------------------------------*/
       [ "DDR3",         { name: "DDR3", 
                           base: 0xFEC00000,
-			  len:  0x003E0000,
+			              len:  0x003F3000,
                           space: "code/data", 
-			  access: "RWX", } ],
+			              access: "RWX", } ],
 
       /* Each DSP core uses its own framework components data structure
          via remoteproc memory allocation for carveout */
       [ "DDR3_FC",     { name: "DDR3_FC",
-                          base: 0xFEFE0000,
-			  len:  0x00020000,
-                          space: "code/data",
-			  access: "RWX", } ],
+                         base: 0xFEFF3000,
+			             len:  0x0000D000,
+                         space: "code/data",
+			             access: "RWX", } ],
 
 
       /* DDR3_NC, DDR3_STACK and DDR3_HEAP placed in the first 32MB of
@@ -95,6 +95,7 @@ config ti.platforms.generic.Platform.Instance CPU =
                           space: "data",
                           access: "RWX", } ],
 
+      /* Range used to disable caching for RPMsg virtio memory (device_am57.c)*/
       [ "DDR3_NC2",   { name: "DDR3_NC2",
                           base: 0xFF100000,
                           len:  0x00F00000,

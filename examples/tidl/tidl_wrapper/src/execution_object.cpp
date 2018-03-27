@@ -205,8 +205,13 @@ bool ExecutionObject::Wait (CallType ct)
 
 uint64_t ExecutionObject::GetProcessCycles() const
 {
+    uint8_t factor = 1;
+
     // ARP32 running at half frequency of VCOP, multiply by 2 for VCOP cycles
-    return pimpl_m->shared_process_params_m.get()->cycles * 2;
+    if (pimpl_m->device_m->type() == CL_DEVICE_TYPE_CUSTOM)
+        factor = 2;
+
+    return pimpl_m->shared_process_params_m.get()->cycles * factor;
 }
 
 float ExecutionObject::GetProcessTimeInMilliSeconds() const

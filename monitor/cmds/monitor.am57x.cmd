@@ -66,6 +66,7 @@
 --retain="__free_*"
 --retain="__memalign_*"
 --retain="__trace_print*"
+--retain="ocl_dsp_tidl_*"
 
 
 #define L2_LINE_SIZE 128
@@ -273,3 +274,4 @@ SECTIONS
 --symbol_map=__ocl_cache_l1d_std=__cache_l1d_all
 --symbol_map=__ocl_cache_l1d_half=__cache_l1d_16k
 --symbol_map=__ocl_cache_l1d_wbinv_all=__cache_l1d_wbinv_all
+

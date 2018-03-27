@@ -89,8 +89,11 @@ class Executor
         //! available on this instance of the Executor
         const ExecutionObjects& GetExecutionObjects() const;
 
-        //! @return The number of devices supporting TI DL offload
-        static uint32_t GetNumDevicesSupportingTIDL();
+        //! @brief Returns the number of devices of the specified type
+        //! available for TI DL.
+        //! @param  device_type DSP or EVE/DLA device
+        //! @return number of devices available
+        static uint32_t GetNumDevicesSupportingTIDL(DeviceType device_type);
 
         Executor(const Executor&) = delete;
         Executor& operator= (const Executor&) = delete;

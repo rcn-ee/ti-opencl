@@ -71,7 +71,7 @@ class Device
 
         float GetFrequencyInMhz() const { return freq_in_mhz_m; }
 
-        static uint32_t GetNumDevicesSupportingTIDL();
+        static uint32_t GetNumDevicesSupportingTIDL(DeviceType device_type);
 
     protected:
 
@@ -102,7 +102,8 @@ class DspDevice: public Device
 
     protected:
         bool BuildProgramFromBinary(const std::string &binary_filename,
-                                    cl_device_id device_ids[]);
+                                    cl_device_id device_ids[],
+                                    int num_devices);
 };
 
 class EveDevice : public Device
@@ -117,7 +118,8 @@ class EveDevice : public Device
 
     protected:
         bool BuildProgramFromBinary(const std::string &kernel_names,
-                                    cl_device_id device_ids[]);
+                                    cl_device_id device_ids[],
+                                    int num_devices);
 
 };
 

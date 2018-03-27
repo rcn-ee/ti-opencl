@@ -42,6 +42,7 @@ extern "C" {
 #define OCL_TIDL_MEMREC_ALLOC_FAIL      (-3)
 #define OCL_TIDL_PROCESS_FAIL           (-4)
 #define OCL_TIDL_CREATE_PARAMS_MISMATCH (-5)
+#define OCL_TIDL_INIT_FAIL              (-6)
 
 #define OCL_TIDL_TRACE_OFF  (0)
 #define OCL_TIDL_TRACE_MIN  (1)

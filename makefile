@@ -131,3 +131,7 @@ change:
 
 version:
 	@echo $(OCL_VER)
+
+update_firmware:
+	cp -p monitor_ipu/monitor_dla/src/dla_firmware.h monitor_ipu/src/dla_firmware.h
+	cp -p monitor_ipu/monitor_dla/dsp/ocl_tidl_dsp.lib monitor/libs/ocl_tidl_dsp.lib

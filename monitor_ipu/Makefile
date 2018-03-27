@@ -95,7 +95,7 @@ all: dla_firmware
 dla_firmware:
 ifeq ($(BUILD_DLA_FIRMWARE),1)
 	@$(ECHO) "Building development version of DLA firmware..."
-	$(MAKE) -C monitor_dla BUILD_AM57=1 -j4
+	$(MAKE) -C monitor_dla CORE=eve BUILD_AM57=1 -j4
 	@diff monitor_dla/src/dla_firmware.h src/dla_firmware.h > /dev/null ||\
 		$(ECHO) "\n"\
 	            "***********************************************************\n"\
@@ -142,7 +142,10 @@ help:
 
 clean::
 	$(RMDIR) bin
-	if [ -e monitor_dla/Makefile ]; then $(MAKE) -C monitor_dla clean; fi
+	if [ -e monitor_dla/Makefile ]; then \
+		$(MAKE) -C monitor_dla CORE=eve clean; \
+		$(MAKE) -C monitor_dla CORE=dsp clean; \
+	fi
 
 #  ======== toolchain macros ========
 CC = $(TI_OCL_M4_CGT_INSTALL)/bin/armcl -c

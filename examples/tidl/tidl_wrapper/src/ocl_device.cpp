@@ -49,14 +49,6 @@ Device::Device(cl_device_type t, const DeviceIds& ids):
               device_type_m == CL_DEVICE_TYPE_ACCELERATOR ? "DSP" :
               device_type_m == CL_DEVICE_TYPE_CUSTOM ? "DLA" : "Unknown");
 
-    cl_int errcode;
-    context_m = clCreateContextFromType(0,              // properties
-                                        device_type_m,  // device_type
-                                        0,              // pfn_notify
-                                        0,              // user_data
-                                        &errcode);
-    errorCheck(errcode, __LINE__);
-
     for (int i = 0; i < MAX_DEVICES; i++)
         queue_m[i] = nullptr;
 
@@ -75,24 +67,84 @@ DspDevice::DspDevice(const DeviceIds& ids, const std::string &binary_filename):
                              &num_devices_found);    // num_devices
     errorCheck(errcode, __LINE__);
 
-    // Queue 0 on device 0
-    queue_m[0] = clCreateCommandQueue(context_m,
-                                      device_ids[0],
-                                      CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE,
-                                      &errcode);
+    if (num_devices_found != 1)
+        throw Exception("OpenCL DSP device not found",
+                        __FILE__, __FUNCTION__, __LINE__);
 
-    // Queue 1 on device 0
-    // The C66x DSPs on AM57x  are modeled as a single OpenCL device with
-    // 2 compute units.
-    // Create an additional queue as a workaround to emulate 2 devices. This
-    // workaround can be removed once the OpenCL runtime supports Sub-Devices.
-    queue_m[1] =  clCreateCommandQueue(context_m,
-                                      device_ids[0],
-                                      CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE,
-                                      &errcode);
-    errorCheck(errcode, __LINE__);
+    cl_int num_compute_units;
+    errcode = clGetDeviceInfo(device_ids[0],
+                              CL_DEVICE_MAX_COMPUTE_UNITS,
+                              sizeof(num_compute_units),
+                              &num_compute_units,
+                              nullptr);
 
-    BuildProgramFromBinary(binary_filename, device_ids);
+    if (num_compute_units == 1)
+    {
+        context_m = clCreateContextFromType(0,              // properties
+                                            device_type_m,  // device_type
+                                            0,              // pfn_notify
+                                            0,              // user_data
+                                            &errcode);
+        errorCheck(errcode, __LINE__);
+
+        // Queue 0 on device 0
+        queue_m[0] = clCreateCommandQueue(context_m,
+                                          device_ids[0],
+                                          0,
+                                          &errcode);
+        errorCheck(errcode, __LINE__);
+        BuildProgramFromBinary(binary_filename, device_ids, 1);
+    }
+    else
+    {
+        const cl_uint NUM_SUB_DEVICES = 2;
+
+        // Create 2 sub-device's, each consisting of a C66x DSP
+        cl_device_partition_property properties[3] =
+                                        { CL_DEVICE_PARTITION_EQUALLY, 1, 0 };
+
+        // Query the number of sub-devices that can be created
+        cl_uint n_sub_devices = 0;
+        errcode = clCreateSubDevices(device_ids[0],      // in_device
+                                     properties,         // properties
+                                     0,                  // num_devices
+                                     NULL,               // out_devices
+                                     &n_sub_devices);    // num_devices_ret
+        errorCheck(errcode, __LINE__);
+
+        assert(n_sub_devices == NUM_SUB_DEVICES);
+
+        // Create the sub-devices
+        cl_device_id sub_devices[NUM_SUB_DEVICES] = {0, 0};
+        errcode = clCreateSubDevices(device_ids[0],        // in_device
+                                     properties,           // properties
+                                     n_sub_devices,        // num_devices
+                                     sub_devices,          // out_devices
+                                     nullptr);             // num_devices_ret
+        errorCheck(errcode, __LINE__);
+
+        // Create a context containing the sub-devices
+        context_m = clCreateContext(NULL,               // properties
+                                    NUM_SUB_DEVICES,    // num_devices
+                                    sub_devices,        // devices
+                                    NULL,               // pfn_notify
+                                    NULL,               // user_data
+                                    &errcode);          // errcode_ret
+        errorCheck(errcode, __LINE__);
+
+        // Create queues to each sub-device
+        for (auto id : device_ids_m)
+        {
+            int index = static_cast<int>(id);
+            queue_m[index] = clCreateCommandQueue(context_m,
+                                          sub_devices[index],
+                                          0,
+                                          &errcode);
+            errorCheck(errcode, __LINE__);
+        }
+
+        BuildProgramFromBinary(binary_filename, sub_devices, NUM_SUB_DEVICES);
+    }
 
     errcode = clGetDeviceInfo(device_ids[0],
                                 CL_DEVICE_MAX_CLOCK_FREQUENCY,
@@ -119,6 +171,14 @@ EveDevice::EveDevice(const DeviceIds& ids, const std::string &kernel_names):
 
     assert (num_devices_found >= device_ids_m.size());
 
+    context_m = clCreateContextFromType(0,              // properties
+                                        device_type_m,  // device_type
+                                        0,              // pfn_notify
+                                        0,              // user_data
+                                        &errcode);
+    errorCheck(errcode, __LINE__);
+
+
     // Create command queues to OpenCL devices specified by the
     // device_ids_m set.
     for (auto id : device_ids_m)
@@ -131,7 +191,7 @@ EveDevice::EveDevice(const DeviceIds& ids, const std::string &kernel_names):
         errorCheck(errcode, __LINE__);
     }
 
-    BuildProgramFromBinary(kernel_names, all_device_ids);
+    BuildProgramFromBinary(kernel_names, all_device_ids, device_ids_m.size());
 
     errcode = clGetDeviceInfo(all_device_ids[0],
                                 CL_DEVICE_MAX_CLOCK_FREQUENCY,
@@ -143,7 +203,8 @@ EveDevice::EveDevice(const DeviceIds& ids, const std::string &kernel_names):
 
 
 bool DspDevice::BuildProgramFromBinary(const std::string &BFN,
-                                       cl_device_id device_ids[])
+                                       cl_device_id device_ids[],
+                                       int num_devices)
 {
     char *bin_arr;
     size_t bin_len = ocl_read_binary(BFN.c_str(), bin_arr);
@@ -153,18 +214,24 @@ bool DspDevice::BuildProgramFromBinary(const std::string &BFN,
     // Casting to make ocl_read_binary work with clCreateProgramWithBinary
     const unsigned char *bin_arrc = reinterpret_cast <const unsigned char *>(bin_arr);
 
+    size_t lengths[num_devices];
+    for (int i=0; i < num_devices; i++) lengths[i] = bin_len;
+
+    const unsigned char* binaries[num_devices];
+    for (int i=0; i < num_devices; i++) binaries[i] = bin_arrc;
+
     cl_int err;
     program_m = clCreateProgramWithBinary(context_m,
-                                          1,            // num_devices
-                                          device_ids,    // device_list
-                                          &bin_len,
-                                          &bin_arrc,
-                                          0,            // binary_status
+                                          num_devices,
+                                          device_ids,          // device_list
+                                          lengths,
+                                          binaries,
+                                          0,                   // binary_status
                                           &err);
     errorCheck(err, __LINE__);
 
-    const char *compile_options = "";
-    err = clBuildProgram(program_m, 1, device_ids, compile_options, 0, 0);
+    const char *options = "";
+    err = clBuildProgram(program_m, num_devices, device_ids, options, 0, 0);
     errorCheck(err, __LINE__);
 
     delete bin_arr;
@@ -173,7 +240,8 @@ bool DspDevice::BuildProgramFromBinary(const std::string &BFN,
 }
 
 bool EveDevice::BuildProgramFromBinary(const std::string& kernel_names,
-                                       cl_device_id device_ids[])
+                                       cl_device_id device_ids[],
+                                       int num_devices)
 {
     cl_int err;
     cl_device_id executor_device_ids[MAX_DEVICES];
@@ -183,7 +251,7 @@ bool EveDevice::BuildProgramFromBinary(const std::string& kernel_names,
         executor_device_ids[i++] = device_ids[static_cast<int>(id)];
 
     program_m = clCreateProgramWithBuiltInKernels(context_m,
-                                          device_ids_m.size(),  // num_devices
+                                          num_devices,
                                           executor_device_ids,  // device_list
                                           kernel_names.c_str(),
                                           &err);
@@ -324,7 +392,7 @@ void errorCheck(cl_int ret, int line)
 {
     if (ret != CL_SUCCESS)
     {
-        std::cerr << "ERROR: [" << line << "] " << error2string(ret) << std::endl;
+        std::cerr << "ERROR: [ Line: " << line << "] " << error2string(ret) << std::endl;
         exit(ret);
     }
 }
@@ -398,21 +466,72 @@ Device::Ptr Device::Create(DeviceType core_type, const DeviceIds& ids,
     return p;
 }
 
-// TI DL is supported only of the EVE custom device
-uint32_t Device::GetNumDevicesSupportingTIDL()
+static bool PlatformIsAM57()
 {
+    cl_platform_id id;
+    cl_int err;
+
+    err = clGetPlatformIDs(1, &id, nullptr);
+    if (err != CL_SUCCESS) return false;
+
+    // Check if the device name is AM57
+    size_t length;
+    err = clGetPlatformInfo(id, CL_PLATFORM_NAME, 0, nullptr, &length);
+    if (err != CL_SUCCESS) return false;
+
+    std::unique_ptr<char> name(new char[length]);
+
+    err = clGetPlatformInfo(id, CL_PLATFORM_NAME, length, name.get(), nullptr);
+    if (err != CL_SUCCESS) return false;
+
+    std::string platform_name(name.get());
+
+    if (platform_name.find("AM57") == std::string::npos)
+        return false;
+
+    return true;
+}
+
+// TI DL is supported on AM57x - EVE or C66x devices
+uint32_t Device::GetNumDevicesSupportingTIDL(DeviceType device_type)
+{
+    if (!PlatformIsAM57()) return 0;
+
+    // Convert DeviceType to OpenCL device type
+    cl_device_type t = (device_type == DeviceType::DLA) ?
+                                    CL_DEVICE_TYPE_CUSTOM :
+                                    CL_DEVICE_TYPE_ACCELERATOR;
+
+    // Find all the OpenCL devices available
     cl_uint num_devices_found;
     cl_device_id all_device_ids[MAX_DEVICES];
 
-    // Find all the OpenCL custom devices available
-    cl_int errcode = clGetDeviceIDs(0,              // platform
-                             CL_DEVICE_TYPE_CUSTOM, // device_type
-                             MAX_DEVICES,           // num_entries
-                             all_device_ids,        // devices
-                             &num_devices_found);   // num_devices
+    cl_int errcode = clGetDeviceIDs(0,                   // platform
+                                    t,                   // device_type
+                                    MAX_DEVICES,         // num_entries
+                                    all_device_ids,      // devices
+                                    &num_devices_found); // num_devices
 
-    if (errcode != CL_SUCCESS)
-        return 0;
 
+    if (errcode != CL_SUCCESS)            return 0;
+    if (num_devices_found == 0)           return 0;
+
+    // DSP, return the number of compute units since we maintain a
+    // queue to each compute unit (i.e. C66x DSP)
+    if (t == CL_DEVICE_TYPE_ACCELERATOR)
+    {
+        cl_int num_compute_units;
+        errcode = clGetDeviceInfo(all_device_ids[0],
+                                CL_DEVICE_MAX_COMPUTE_UNITS,
+                                sizeof(num_compute_units),
+                                &num_compute_units,
+                                nullptr);
+        if (errcode != CL_SUCCESS)
+            return 0;
+
+        return num_compute_units;
+    }
+
+    // EVE, return the number of devices since each EVE is a device
     return num_devices_found;
 }
