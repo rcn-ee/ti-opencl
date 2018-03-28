@@ -50,7 +50,7 @@ PDK_DIR        ?= $(SDOMC_SHARED)/$(PSDK_VISION)/ti_components/drivers/pdk_01_08
 
 CSL_LIB_M4    ?= $(PDK_DIR)/packages/ti/csl/lib/tda2xx/m4/release/ti.csl.aem4
 PM_HAL_LIB_M4 ?= $(PDK_DIR)/packages/ti/drv/pm/lib/tda2xx/m4/release/pm_hal.aem4
-SBL_LIB_M4    ?= $(PDK_DIR)/packages/ti/boot/sbl_auto/lib/tda2xx-evm/m4/release/sbl_lib.aem4
+SBL_LIB_M4    ?= lib/sbl_lib_1_9_0_9.aem4
 
 SOURCES  = main_ipu1.c dla_firmware.c
 SOURCES += utils_eveloader.c
