@@ -49,3 +49,5 @@
 |__kernel_abort
 |__trace_print*
 |ocl_dsp_tidl_*
+|__clock*
+|__scratch_l1d_start
