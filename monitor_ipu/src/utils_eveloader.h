@@ -67,7 +67,7 @@
 #endif
 
 #include <ti/csl/soc.h>
-#include <ti/boot/sbl_auto/sbl_lib/sbl_lib.h>
+#include "sbl_lib.h"
 
 /**
  *******************************************************************************

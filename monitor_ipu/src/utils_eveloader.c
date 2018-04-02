@@ -48,8 +48,6 @@
  *******************************************************************************
 */
 #include "stdint.h"
-#include <ti/boot/sbl_auto/sbl_lib/sbl_lib.h>
-#include <ti/boot/sbl_auto/sbl_lib/sbl_lib_tda2xx.h>
 #include <ti/drv/pm/pmhal.h>
 #include "utils_eveloader.h"
 

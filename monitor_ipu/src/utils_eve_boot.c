@@ -26,10 +26,9 @@
  *****************************************************************************/
 
 #include <stdint.h>
-#include <utils_eveloader.h>
+#include "utils_eveloader.h"
 #include <ti/csl/hw_types.h>
 #include <ti/csl/soc.h>
-#include <ti/boot/sbl_auto/sbl_lib/sbl_lib.h>
 #include <ti/drv/pm/pmhal.h>
 
 /****************************************************************

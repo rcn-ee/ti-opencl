@@ -57,7 +57,7 @@ SOURCES += utils_eveloader.c
 SOURCES += utils_eve_boot.c
 HEADERS  = custom_rsc_table_vayu_ipu1.h
 HEADERS += $(OPENCL_SRC_DIR)/src/core/dsp/tal/mbox_msgq_shared.h
-HEADERS += utils_eveloader.h
+HEADERS += sbl_lib.h sbl_lib_tda2xx.h utils_eveloader.h
 
 VPATH = src
 
