@@ -6,52 +6,50 @@ The examples in this section are included in the installation of the OpenCL
 product.  Not all of these examples are applicable to all supported device
 platforms.  
 
-These examples are usually small in scope and are intended to illustrate a
-technique, an extension, or a mode of operation.  The following table provides
+These examples are are intended to illustrate a technique, an extension, or
+a mode of operation.  The following table provides
 a high level map of the example name to the features that are highlighted by
 that example.
 
 The key to the codes in the table are in subsequent tables.
 
 ================== ======= =============== ============== ============ ========= ========================= ==================
-Name               Purpose Execute Model   Kernel Compile Buffer Model Profiling Extensions                Techniques
+Name               Type    Execute Model   Kernel Compile Buffer Model Profiling Extensions                Techniques
 ================== ======= =============== ============== ============ ========= ========================= ==================
-abort_exit         simp    ndr, iot, oot   B/E            read                   abort,exit
-blas               simp    iot             B/F            map                    C
-ccode              simp    1wi             S/F            read                   C
-conv1d             perf    ndr,1wi         B/E            map          host      C, edma                   async, local, query, vec
-dgemm              perf    iot             B/E            host         host      C, omp, msmc, edma, cache
-dspheap            simp    1wi             B/F                                   dspheap, msmc             functor
-dsplib_fft         perf    ndr,1wi         B/E            host         host      C
-edmamgr            simp    1wi             B/E            read                   C, edma
-fftlib_offload     simp    iot             B/E                         host      C, omp
-float_compute      simp    ndr             B/F            host         host                                local, async, vec
-mandelbrot         simp    ndr             S/F            read         host                                nDev
-matmpy             simp    1wi             B/F            read         host      C, msmc                   nDev, async, local
-null               info    iot             S/E                         host      
-offline            simp    ndr             B/F            read         event                               vec
-offline_embed      simp    ndr             B/E            read         event                               vec
-ooo                simp    oot             S/E            read         host                                event, native
-ooo_callback       simp    oot             S/E            read         host                                event, callback
-ooo_map            simp    oot             S/E            map          host                                event, native
-openmpbench_C_v3   info    iot             B/F            read                   C, omp
-platforms          info                                   query
-sgemm              perf    1wi             B/E            map          host      C, msmc, edma, cache      local, vec
-simple             simp    ndr             S/E            read                                             functor
-timeout            simp    ndr,iot,oot     B/E            read                   timeout
-vecadd             simp    ndr             S/E            host                                             vec
-vecadd_mpax        simp    ndr             S/E            map                                              extMem, query, vec
-vecadd_mpax_openmp simp    iot             S/F            map          event     C, omp                    extMem, query
-vecadd_openmp      simp    iot             S/F            read         event     C, omp
-vecadd_openmp_t    simp    iot             S/F            read         event     C, omp
+abort_exit         S       ndr,iot,oot     B/E            read                   abort,exit
+ccode              S       1wi             S/F            read                   C
+conv1d             P       ndr,1wi         B/E            map          host      C, edma                   async, local, query, vec
+dgemm              P       iot             B/E            host         host      C, omp, msmc, edma, cache
+dspheap            S       1wi             B/F                                   dspheap, msmc             functor
+dsplib_fft         P       ndr,1wi         B/E            host         host      C
+edmamgr            S       1wi             B/E            read                   C, edma
+float_compute      S       ndr             B/F            host         host                                local, async, vec
+mandelbrot         S       ndr             S/F            read         host                                nDev
+matmpy             S       1wi             B/F            read         host      C, msmc                   nDev, async, local
+null               I       iot             S/E                         host      
+offline            S       ndr             B/F            read         event                               vec
+offline_embed      S       ndr             B/E            read         event                               vec
+ooo                S       oot             S/E            read         host                                event, native
+ooo_callback       S       oot             S/E            read         host                                event, callback
+ooo_map            S       oot             S/E            map          host                                event, native
+platforms          I                                      query
+tidl               P       custom                         host         host                                
+sgemm              P       1wi             B/E            map          host      C, msmc, edma, cache      local, vec
+Simple             S       ndr             S/E            read                                             functor
+timeout            S       ndr,iot,oot     B/E            read                   timeout
+vecadd             S       ndr             S/E            host                                             vec
+vecadd_mpax        S       ndr             S/E            map                                              extMem, query, vec
+vecadd_openmp      S       iot             S/F            read         event     C, omp
+vecadd_openmp_t    S       iot             S/F            read         event     C, omp
+vecadd_subdevice   S       ndr             S/F            host         host                                vec
 ================== ======= =============== ============== ============ ========= ========================= ==================
 
 ======= =====================
-Purpose
+Type
 ======= =====================
-simp    Simple illustration
-perf    Performance motivated
-info    Information gathering
+S       Simple illustration
+P       Performance motivated
+I       Information gathering
 ======= =====================
 
 ============ ======================================================
@@ -86,6 +84,7 @@ ndr             Queues a generic NDRangeKernel with > 1 work-item per work-group
 1wi             Queues a NDRangeKernel with 1 work-item per work-group
 iot             Queues a Task (1 work-item) in an In Order Queue
 oot             Queues a Task (1 work-item) in an Out of Order Queue
+custom          Queues a builtin kernel onto a custom device
 =============== ================================================================
 
 ========== ============================================================

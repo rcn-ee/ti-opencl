@@ -161,7 +161,7 @@ bool RunConfiguration(const std::string& config_file, int num_devices,
         // and configuration specified
         Executor executor(device_type, ids, configuration);
 
-
+        // Query Executor for set of ExecutionObjects created
         const ExecutionObjects& execution_objects =
                                                 executor.GetExecutionObjects();
         int num_eos = execution_objects.size();
