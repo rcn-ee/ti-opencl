@@ -76,7 +76,8 @@ public:
     virtual bool CacheWbInv(uint64_t addr, void *host_addr, size_t sz) =0;
     virtual bool CacheWbInvAll() = 0;
 
-    // Methods to query heap size and maximum allocation size
+    // Methods to query heap base, heap size and maximum allocation size
+    virtual uint64_t HeapBase(MemoryRange::Kind k, MemoryRange::Location l) =0;
     virtual uint64_t HeapSize(MemoryRange::Kind k, MemoryRange::Location l) =0;
     virtual uint64_t HeapMaxAllocSize(MemoryRange::Kind k, MemoryRange::Location l)=0;
 

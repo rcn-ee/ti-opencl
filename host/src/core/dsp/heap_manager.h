@@ -322,6 +322,14 @@ template <typename Address, typename Length, typename Scope> class HeapManager
     }
 
     /*-------------------------------------------------------------------------
+    * base - where does the heap start
+    *------------------------------------------------------------------------*/
+    Address base() const
+    {
+        return start_addr_;
+    }
+
+    /*-------------------------------------------------------------------------
     * size - what was the original size of the heap
     *------------------------------------------------------------------------*/
     Length size() const 

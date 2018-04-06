@@ -118,7 +118,6 @@ EVEKernelEvent::EVEKernelEvent(EVEDevice *device, KernelEvent *event)
     p_msg.command           = TASK;
     p_msg.u.k_eve.Kernel_id = p_kernel_id;
     p_msg.u.k_eve.builtin_kernel_index = (unsigned) p_kernel->builtin_kernel_index();
-    p_msg.u.k_eve.eve_id    = p_device->GetEveId();
 }
 
 EVEKernelEvent::~EVEKernelEvent() { }

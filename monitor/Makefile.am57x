@@ -20,7 +20,10 @@ INCLUDES += -i $(AET_DIR)/include
 
 SOURCES = monitor.c util.c dsp_rpc.asm touch.asm builtins.c edma.c \
           edma_am57x_config.c device_am57.c
-HEADERS = src/edma.h src/monitor.h src/util.h src/trace.h src/custom_rsc_table_vayu_dsp.h
+HEADERS = src/edma.h src/monitor.h src/util.h src/trace.h \
+          src/custom_rsc_table_vayu_dsp.h \
+          $(OPENCL_SRC_DIR)/src/core/dsp/message.h \
+          $(OPENCL_SRC_DIR)/src/core/dsp/tal/mbox_msgq_shared.h
 LIBS    = cmds/monitor.$(PLATFORM).cmd
 LIBS   += $(ULM_DIR)/libtiulm.ae66
 LIBS   += $(GDB_SERVER_DIR)/lib/gdb_server.ae66

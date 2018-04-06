@@ -229,7 +229,7 @@ Void smain(UArg arg0, UArg arg1)
         {
             /* From host, command is not masked */
             /* Allocate msg to EVE */
-            int eve_id = ocl_msgq_pkt->message.u.k_eve.eve_id;
+            int eve_id = ocl_msgq_pkt->message.core_id;
             int slot   = eve_ocl_msgq_avail_slot[eve_id];
             ocl_msgq_message_t* eve_pkt = eve_ocl_msgq_pkt[eve_id][slot];
             slot += 1;

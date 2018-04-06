@@ -150,6 +150,14 @@ EVEDevice::EVEDevice(unsigned char eve_id, SharedMemory* shm)
     k = new KernelEntry("ocl_tidl_cleanup", 13);
     p_kernel_entries.push_back(k);
 
+    // Extra payload in frequencyMsg: OpenCL global memory info to EVE
+    frequencyMsg.u.configure_monitor.ocl_global_mem_addr =
+                              shm->HeapBase(MemoryRange::Kind::CMEM_PERSISTENT,
+                                            MemoryRange::Location::OFFCHIP);
+    frequencyMsg.u.configure_monitor.ocl_global_mem_size =
+                              shm->HeapSize(MemoryRange::Kind::CMEM_PERSISTENT,
+                                            MemoryRange::Location::OFFCHIP);
+
     mail_to(frequencyMsg);
 
     int ret = 0;
@@ -416,7 +424,8 @@ int EVEDevice::numHostMails(Msg_t &msg) const
 
 void EVEDevice::mail_to(Msg_t &msg, unsigned int core)
 {
-    msg.pid = p_pid;
+    msg.core_id = p_eve_id_;
+    msg.pid     = p_pid;
 
     ReportTrace("Sending message %d, pid %d\n", msg.command, msg.pid);
 

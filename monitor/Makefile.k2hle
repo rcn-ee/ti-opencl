@@ -152,7 +152,9 @@ SOURCES+= builtins.c
 SOURCES+= device_k2x.c
 SOURCES+= edma.c edma_config.c
 
-HEADERS = src/edma.h src/monitor.h src/util.h src/trace.h
+HEADERS = src/edma.h src/monitor.h src/util.h src/trace.h \
+          $(OPENCL_SRC_DIR)/src/core/dsp/message.h \
+          $(OPENCL_SRC_DIR)/src/core/dsp/tal/mbox_msgq_shared.h
 
 OBJS1=$(patsubst %.c,$(BUILD)/%.obj,$(SOURCES))
 OBJS=$(patsubst %.asm,$(BUILD)/%.obj,$(OBJS1))
@@ -215,8 +217,6 @@ $(BUILD)/%.obj : src/%.c $(COMP_OPTS) $(HEADERS)
 $(BUILD)/%.obj : src/%.asm $(COMP_OPTS)
 	@echo Compiling $<
 	$(CC) -@$(COMP_OPTS) $(INCLUDES) -c $<
-
-$(BUILD)/monitor.obj:  $(OPENCL_SRC_DIR)/src/core/dsp/message.h
 
 
 #--------------------------------------------------------------------------

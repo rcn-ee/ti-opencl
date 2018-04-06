@@ -43,7 +43,7 @@ typedef enum
 #define MAX_ARGS_IN_REG_SIZE (MAX_IN_REG_ARGUMENTS*2)
 #define EVE_MAX_ARGS_IN_REG_SIZE 3          // number of registers
 #define EVE_MAX_ARGS_ON_STACK_SIZE 128      // bytes
-#define EVE_MSG_COMMAND_MASK (0x80000000)   // used by IPU and EVE internally
+#define EVE_MSG_COMMAND_MASK (0x00008000)   // used by IPU and EVE internally
 
 #define MAX_ARGS_TOTAL_SIZE 1024
 
@@ -119,12 +119,10 @@ typedef struct
 
 typedef struct
 {
-    uint8_t n_cores;
-    uint8_t master_core;
-
-    int ocl_qmss_hw_queue_base_idx;
-    int ocl_qmss_first_desc_idx_in_linking_ram;
-    int ocl_qmss_first_memory_region_idx;
+    uint8_t         n_cores;
+    uint8_t         master_core;
+    uint32_t        ocl_global_mem_addr;
+    uint32_t        ocl_global_mem_size;
 } configure_monitor_t;
 
 typedef struct
@@ -143,7 +141,6 @@ typedef struct
 {
     uint32_t        Kernel_id;            // host-assigned id for this call
     uint32_t        builtin_kernel_index; // index into function table
-    uint32_t        eve_id;               // on which eve, logical index
     uint32_t        args_on_stack_size;   // number of bytes on stack
     uint32_t        args_in_reg[EVE_MAX_ARGS_IN_REG_SIZE];
     uint8_t         args_on_stack[EVE_MAX_ARGS_ON_STACK_SIZE];
@@ -151,7 +148,8 @@ typedef struct
 
 typedef struct 
 {
-    uint32_t      command;  // enum command_codes, use uint32_t in message
+    uint16_t      command;   // enum command_codes, use uint16_t in message
+    uint16_t      core_id;   // e.g. to which eve, logical index
     uint32_t      trans_id;
     uint32_t      pid;
     union
