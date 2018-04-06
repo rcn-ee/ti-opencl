@@ -23,6 +23,8 @@ monitor*/ocl_platforms/evmk2l/package
 monitor*/ocl_platforms/evmk2e/package
 monitor*/ocl_platforms/am57x*/package/
 monitor*/ocl_platforms/evmk2g/package
+monitor_ipu/bin
+monitor_ipu/src/dla_firmware.h
 eclipse/package
 install/
 monitor0

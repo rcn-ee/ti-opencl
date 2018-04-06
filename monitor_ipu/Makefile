@@ -97,12 +97,12 @@ dla_firmware:
 ifeq ($(BUILD_DLA_FIRMWARE),1)
 	@$(ECHO) "Building development version of DLA firmware..."
 	$(MAKE) -C monitor_dla CORE=eve BUILD_AM57=1 -j4
-	@diff monitor_dla/src/dla_firmware.h src/dla_firmware.h > /dev/null ||\
+	@diff monitor_dla/lib/dla_firmware.bin lib/dla_firmware.bin > /dev/null ||\
 		$(ECHO) "\n"\
 	            "***********************************************************\n"\
-		        "* dla_firmware.h: monitor_ipu/src/dla_firmware.h not in \n"\
-	            "* sync with monitor_dla/src/dla_firmware.h.\n"\
-				"* Copy dla_firmware.h into ti-opencl repo and commit.\n"\
+		        "* dla_firmware.bin: monitor_ipu/lib/dla_firmware.bin not in \n"\
+	            "* sync with monitor_dla/lib/dla_firmware.bin.\n"\
+				"* Copy dla_firmware.bin into ti-opencl repo and commit.\n"\
 	            "***********************************************************\n"
 else
 	@$(ECHO) "Using prebuilt DLA firmware..."
@@ -123,6 +123,10 @@ bin/$(BUILD_TYPE)/obj/%.oem4: %.c $(CONFIG)/compiler.opt $(HEADERS)
 src/dla_firmware.c: $(DLA_FIRMWARE)
 	touch $@
 
+src/dla_firmware.h: lib/dla_firmware.bin
+	hexdump -ve '1/1 "0x%02x,"' $< | \
+            sed -e "s/\(0x..,\)\{90\}/&\n/g" -e "\$$a // bytes" > $@
+
 %/linker.cmd %/compiler.opt: $(CONFIG)/.config ;
 $(CONFIG)/.config: $(CONFIGS)
 	@$(ECHO) "#"
@@ -142,7 +146,7 @@ help:
 	@$(ECHO) "make clean             # clean everything"
 
 clean::
-	$(RMDIR) bin
+	$(RMDIR) bin src/dla_firmware.h
 	if [ -e monitor_dla/Makefile ]; then \
 		$(MAKE) -C monitor_dla CORE=eve clean; \
 		$(MAKE) -C monitor_dla CORE=dsp clean; \
