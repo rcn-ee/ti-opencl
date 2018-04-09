@@ -314,8 +314,8 @@ void ExecutionObject::Impl::HostReadNetOutput()
             outBuf->ROIWidth,
             outBuf->ROIHeight,
             outBuf->bufPlaneWidth,
-            outBuf->bufPlaneWidth
-                * (outBuf->ROIHeight + 2 * OCL_TIDL_MAX_PAD_SIZE) );
+            ((outBuf->bufPlaneWidth * outBuf->bufPlaneHeight)/
+             outBuf->numChannels));
     }
     shared_process_params_m->bytesWritten = writePtr - (char *) out_m.ptr();
 }

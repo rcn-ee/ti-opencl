@@ -111,10 +111,10 @@
 #define L3_TILER_MODE_3         0x78000000
 #define DSP_TILER_MODE_3        0x78000000
 
-// Static DDR range used by monitor 
+// Static DDR range used by monitor
 // DDR3, DDR3_FC and SR_0 regions in platforms/am57/Platform.xdc
-#define DSP_MEM_DDR             0xFEC00000
-#define DSP_MEM_DDR_SIZE        (SZ_1M * 5)
+#define DSP_MEM_DDR             0xFEB00000
+#define DSP_MEM_DDR_SIZE        (SZ_1M * 6)
 
 // CMEM buffers mapped by MMU to PHYS_MEM_IOBUFS
 // If DSP_MEM_IOBUFS is modified, corresponding changes must be made

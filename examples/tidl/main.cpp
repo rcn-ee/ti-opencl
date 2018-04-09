@@ -252,7 +252,7 @@ bool RunAllConfigurations(int32_t num_devices, DeviceType device_type)
                           "jseg21", "jseg21_tiscapes", "smallRoi", "squeeze1_1"};
     else
         configurations = {"j11_bn",
-                          "j11_controlLayers", "j11_prelu", "j11_v2",
+                          "j11_controlLayers", "j11_v2",
                           "jseg21", "jseg21_tiscapes", "smallRoi", "squeeze1_1"};
 
     int errors = 0;

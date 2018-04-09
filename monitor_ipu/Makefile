@@ -46,7 +46,7 @@ OPENCL_SRC_DIR ?= ../host
 
 IPC_DIR        ?= $(RTOS_INSTALL_DIR)/ti-ipc-tree
 BIOS_DIR       ?= $(RTOS_INSTALL_DIR)/ti-sysbios-tree
-PDK_DIR        ?= $(SDOMC_SHARED)/$(PSDK_VISION)/ti_components/drivers/pdk_01_08_01_06
+PDK_DIR        ?= $(SDOMC_SHARED)/$(PSDK_VISION)/ti_components/drivers/pdk_01_09_00_17
 
 CSL_LIB_M4    ?= $(PDK_DIR)/packages/ti/csl/lib/tda2xx/m4/release/ti.csl.aem4
 PM_HAL_LIB_M4 ?= $(PDK_DIR)/packages/ti/drv/pm/lib/tda2xx/m4/release/pm_hal.aem4

@@ -36,6 +36,6 @@ $(HOST_LIB):
 	$(MAKE) -C $(HOST_DIR) $(HOST_LIB_NAME)
 
 clean::
-	$(RM) -f $(EXE)
+	$(RM) -f $(EXE) stats_tool_out.*
 	$(MAKE) -C $(HOST_DIR) clean
 	$(MAKE) -C dsp clean

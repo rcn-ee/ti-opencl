@@ -38,8 +38,8 @@ config ti.platforms.generic.Platform.Instance CPU =
       * DDR Related regions
       *----------------------------------------------------------------------*/
       [ "DDR3",         { name: "DDR3", 
-                          base: 0xFEC00000,
-			              len:  0x003F3000,
+                          base: 0xFEB00000,
+			              len:  0x004f3000,
                           space: "code/data", 
 			              access: "RWX", } ],
 

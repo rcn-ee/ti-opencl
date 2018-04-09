@@ -34,8 +34,10 @@
 #define TIDL_STRING_SIZE        (256)
 #define TIDL_MAX_PAD_SIZE       (4)
 #define TIDL_MAX_DATA_BUFS      (128)
-#define TIDL_MAX_ALG_IN_BUFS    (4)
-#define TIDL_MAX_ALG_OUT_BUFS   (4)
+#define TIDL_MAX_ALG_IN_BUFS    (16)
+#define TIDL_MAX_ALG_OUT_BUFS   (16)
+
+typedef float float32_tidl;
 
 /**
  @enum    eTIDL_LayerType
@@ -60,9 +62,10 @@ typedef enum
   TIDL_SplitLayer            = 13,
   TIDL_SliceLayer            = 14,
   TIDL_CropLayer             = 15,
-  TIDL_FlattenLayer         = 16,
+  TIDL_FlattenLayer          = 16,
   TIDL_DropOutLayer          = 17,
   TIDL_ArgMaxLayer           = 18,
+  TIDL_DetectionOutputLayer  = 19,
   TIDL_UnSuportedLayer       = 255
 }eTIDL_LayerType;
 
@@ -548,6 +551,68 @@ typedef struct {
 }sTIDL_ConvParams_t;
 
 /**
+ @struct  sTIDL_DetectOutputParams_t
+ @brief   This structure define the parmeters of Detection Output Layer
+           in TIDL
+ @param  priorBox
+          Buffer containing the data required to form prior Bboxs
+ @param  priorBoxSize
+          Siz of the priorBox buffer required to form prior Bboxs
+ @param  numClasses
+          number of classes to be detected in the detection Output
+ @param  backgroundLabelId
+          To indicate whether or not to ignore background class
+ @param  codeType
+          Indicates the coding type to be used for decoding Bboxs
+ @param  confThreshold
+          Value to indicates threshold above which objects to be
+          considered for detection
+ @param  nmsThreshold
+          Threshold Value used for finding overlap between the
+          bboxs in the NMS
+ @param  eta.
+          Value used to update the adaptive Threshold in the NMS
+ @param  topK
+          Number of top k objects to keep for class after applying NMS
+ @param  keepTopK
+          Number of top k objects to Keep in the final output
+ @param  shareLocation
+          Indicate whether same size Boxes used for all classes or not,
+          it is not supported in ti_dl
+ @param  varianceEncoded
+          Flag to indicate the variance used in decoding bboxes is
+          encoded along with locations are not
+*/
+typedef struct {
+  sBuffer_t priorBox;
+  int32_t  priorBoxSize;
+  int32_t  numClasses;
+  int32_t  backgroundLabelId;
+  int32_t  codeType;
+  float32_tidl  confThreshold;
+  float32_tidl  nmsThreshold;
+  float32_tidl  eta;
+  int32_t  topK;
+  int32_t  keepTopK;
+  int32_t  shareLocation;
+  int32_t  varianceEncoded;
+}sTIDL_DetectOutputParams_t;
+
+
+/**
+ @struct  sTIDL_ConcatParams_t
+ @brief   This structure define the parmeters of PriorBox layer
+           in TIDL
+ @param  priorBox
+          Buffer containing the priorBox parameters and variance
+*/
+typedef struct {
+  int32_t  axis;
+  int32_t  outDataQ;
+}sTIDL_ConcatParams_t;
+
+
+/**
  @struct  sTIDL_BatchNormParams_t
  @brief   This structure define the parmeters of Batch Norm layer
            in TIDL
@@ -745,6 +810,8 @@ typedef union {
   sTIDL_ArgMaxParams_t            argMaxParams;
   sTIDL_SoftMaxParams_t           softMaxParams;
   sTIDL_CropParams_t              cropParams;
+  sTIDL_ConcatParams_t            concatParams;
+  sTIDL_DetectOutputParams_t      detectOutParams;
   sTIDL_BiasParams_t              biasParams;
   sTIDL_BatchNormParams_t         batchNormParams;
 }sTIDL_LayerParams_t;
