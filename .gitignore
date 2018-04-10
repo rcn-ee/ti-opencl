@@ -1,5 +1,6 @@
 *.obj
 *.lib
+!/monitor/libs/ocl_tidl_dsp.lib
 *.bc
 libm.lib
 *.o
@@ -17,14 +18,12 @@ monitor*/monitor_dspc868x
 monitor*/monitor_evmk2h
 monitor*/monitor_evmk2l
 monitor*/monitor_evmk2e
-monitor*/ocl_platforms/dspc868x/package
-monitor*/ocl_platforms/evmk2h/package
-monitor*/ocl_platforms/evmk2l/package
-monitor*/ocl_platforms/evmk2e/package
-monitor*/ocl_platforms/am57x*/package/
-monitor*/ocl_platforms/evmk2g/package
-monitor_ipu/bin
-monitor_ipu/src/dla_firmware.h
+monitor*/platforms/dspc868x/package
+monitor*/platforms/evmk2h/package
+monitor*/platforms/evmk2l/package
+monitor*/platforms/evmk2e/package
+monitor*/platforms/am57x*/package/
+monitor*/platforms/evmk2g/package
 eclipse/package
 install/
 monitor0
@@ -54,7 +53,6 @@ build.log
 *.embed.h
 host/clocl/arm
 host/clocl/x86
-llvm33-install-x86
 packages/ti/opencl/lib/
 packages/ti/opencl/package/
 packages/ti/opencl/platforms/am57x_rtos/package/
@@ -62,4 +60,5 @@ packages/ti/opencl/OpenCL.h
 packages/ti/opencl/DSPMonitor.h
 *.swp
 *.swo
-
+/monitor_ipu/bin/
+monitor/monitor_am57x*
