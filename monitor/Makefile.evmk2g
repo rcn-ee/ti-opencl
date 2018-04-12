@@ -82,6 +82,7 @@ $(LIBM):
 BUILTINS_DIR=../builtins
 BUILTINS=$(BUILTINS_DIR)/dsp.lib
 
+
 $(BUILTINS): 
 	$(MAKE) -C $(BUILTINS_DIR)
 
@@ -107,7 +108,7 @@ SEDCMD = \
 CC= $(TI_OCL_CGT_INSTALL)/bin/cl6x -o3 -mv6600 --abi=eabi --gcc --mem_model:const=data --mem_model:data=far -fr=$(BUILD)
 #CC= $(TI_OCL_CGT_INSTALL)/bin/cl6x -o0 -g -mv6600 --abi=eabi --gcc --mem_model:const=data --mem_model:data=far -fr=$(BUILD)
 
-$(OUT): $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD) $(LIBS)
+$(OUT): $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD) $(LNK_DEFS) $(LIBS)
 	@echo Linking $(PLATFORM)
 	@$(CC) -z --priority -w -x -m$(BUILD)/dsp.map --define=DDR3_FCSECTION=DDR3_FC $^ -I$(TI_OCL_CGT_INSTALL)/lib -llibc.a -o $(OUT)
 	@echo Creating dsp.syms

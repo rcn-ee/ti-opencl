@@ -107,12 +107,12 @@ dsp1 : $(LINK_CMD1) $(BIN_DIR)/dsp1.out $(BIN_DIR)/dsp1.syms
 #---------------------------------------------------------------------------
 # Build monitors
 #----------------------------------------------------------------------------
-$(BIN_DIR)/dsp0.out: $(OBJ_DIR)/custom_rsc_table_vayu_dsp0.obj $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD0) $(LIBS)
+$(BIN_DIR)/dsp0.out: $(OBJ_DIR)/custom_rsc_table_vayu_dsp0.obj $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD0) $(LNK_DEFS) $(LIBS)
 	@echo Linking $@
 	@echo $(LINK_CMD0)
 	$(CC) -z --priority -w -x -m$@.map --define=DDR3_FCSECTION=DDR3_FC $^ -I$(TI_OCL_CGT_INSTALL)/lib -llibc.a -o $@
 
-$(BIN_DIR)/dsp1.out: $(OBJ_DIR)/custom_rsc_table_vayu_dsp1.obj $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD1) $(LIBS)
+$(BIN_DIR)/dsp1.out: $(OBJ_DIR)/custom_rsc_table_vayu_dsp1.obj $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD1) $(LNK_DEFS) $(LIBS)
 	@echo Linking $@
 	@echo $(LINK_CMD1)
 	$(CC) -z --priority -w -x -m$@.map --define=DDR3_FCSECTION=DDR3_FC $^ -I$(TI_OCL_CGT_INSTALL)/lib -llibc.a -o $@

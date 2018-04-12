@@ -143,6 +143,7 @@ BUILTINS=$(BUILTINS_DIR)/dsp.lib
 $(BUILTINS): 
 	@$(MAKE) -C $(BUILTINS_DIR) -j4 
 
+
 #---------------------------------------------------------------------------
 # build monitor
 #----------------------------------------------------------------------------
@@ -167,28 +168,28 @@ CC= $(TI_OCL_CGT_INSTALL)/bin/cl6x -o3 -mv6600 --abi=eabi --gcc --mem_model:cons
 $(BUILD)/%.syms: $(BUILD)/%.out
 	$(call create_dsp_syms, $<, $@)
 
-$(BUILD)/dsp0.out: $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD) $(LIBS)
+$(BUILD)/dsp0.out: $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD) $(LNK_DEFS) $(LIBS)
 	@$(CC) -z --define=DDR3_PER_CORE=DDR3_CORE0 --priority -w -x -m$@.map $^ -I$(TI_OCL_CGT_INSTALL)/lib -llibc.a -o $@
 
-$(BUILD)/dsp1.out: $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD) $(LIBS)
+$(BUILD)/dsp1.out: $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD) $(LNK_DEFS) $(LIBS)
 	@$(CC) -z --define=DDR3_PER_CORE=DDR3_CORE1 --priority -w -x -m$@.map $^ -I$(TI_OCL_CGT_INSTALL)/lib -llibc.a -o $@
 
-$(BUILD)/dsp2.out: $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD) $(LIBS)
+$(BUILD)/dsp2.out: $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD) $(LNK_DEFS) $(LIBS)
 	@$(CC) -z --define=DDR3_PER_CORE=DDR3_CORE2 --priority -w -x -m$@.map $^ -I$(TI_OCL_CGT_INSTALL)/lib -llibc.a -o $@
 
-$(BUILD)/dsp3.out: $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD) $(LIBS)
+$(BUILD)/dsp3.out: $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD) $(LNK_DEFS) $(LIBS)
 	@$(CC) -z --define=DDR3_PER_CORE=DDR3_CORE3 --priority -w -x -m$@.map $^ -I$(TI_OCL_CGT_INSTALL)/lib -llibc.a -o $@
 
-$(BUILD)/dsp4.out: $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD) $(LIBS)
+$(BUILD)/dsp4.out: $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD) $(LNK_DEFS) $(LIBS)
 	@$(CC) -z --define=DDR3_PER_CORE=DDR3_CORE4 --priority -w -x -m$@.map $^ -I$(TI_OCL_CGT_INSTALL)/lib -llibc.a -o $@
 
-$(BUILD)/dsp5.out: $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD) $(LIBS)
+$(BUILD)/dsp5.out: $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD) $(LNK_DEFS) $(LIBS)
 	@$(CC) -z --define=DDR3_PER_CORE=DDR3_CORE5 --priority -w -x -m$@.map $^ -I$(TI_OCL_CGT_INSTALL)/lib -llibc.a -o $@
 
-$(BUILD)/dsp6.out: $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD) $(LIBS)
+$(BUILD)/dsp6.out: $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD) $(LNK_DEFS) $(LIBS)
 	@$(CC) -z --define=DDR3_PER_CORE=DDR3_CORE6 --priority -w -x -m$@.map $^ -I$(TI_OCL_CGT_INSTALL)/lib -llibc.a -o $@
 
-$(BUILD)/dsp7.out: $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD) $(LIBS)
+$(BUILD)/dsp7.out: $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD) $(LNK_DEFS) $(LIBS)
 	@$(CC) -z --define=DDR3_PER_CORE=DDR3_CORE7 --priority -w -x -m$@.map $^ -I$(TI_OCL_CGT_INSTALL)/lib -llibc.a -o $@
 
 
