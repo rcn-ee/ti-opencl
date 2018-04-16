@@ -2,26 +2,26 @@
 TI Deep Learning (TIDL) example
 *******************************
 
-This example illustrates using the TIDL host API to offload deep learning network processing from a Linux application to the C66x DSPs or EVEs on AM57x devices.
+This example illustrates using the TI Neural Network (TINN) API to offload deep learning network processing from a Linux application to the C66x DSPs or DLAs on AM57x devices.
 
-OpenCL v1.2 added support for custom devices. The OpenCL runtime for a custom device implements the standard OpenCL host API functions. However, a custom device does not support OpenCL-C programs. Host programs can invoke a fixed set of kernels built into the runtime. The EVEs on AM57x SoCs are modeled as OpenCL custom devices with a fixed set of built-in kernels corresponding to TIDL.
+OpenCL v1.2 added support for custom devices. The OpenCL runtime for a custom device implements the standard OpenCL host API functions. However, a custom device does not support OpenCL-C programs. Host programs can invoke a fixed set of kernels built into the runtime. The DLAs on AM57x SoCs are modeled as OpenCL custom devices with a fixed set of built-in kernels corresponding to TIDL.
 
-The TIDL host API is a C++ API to abstract lower level OpenCL host APIs for custom devices. The host API enables AM57x applications to leverage EVEs or DSPs for deep learning. The API:
+The TINN API is a C++ API to abstract lower level OpenCL host APIs for custom devices. The TINN API enables AM57x applications to leverage DLAs or DSPs for deep learning. The API:
 
 * Enables easy integration of  TIDL into other frameworks such as OpenCV
 * Is low overhead - OpenCL APIs account for ~1.5% of overall per frame processing time (224x224 frame with 3 channels) 
-* Provides an example of using the OpenCL EVE custom device TIDL kernels
-* Provides a common abstraction for running TIDL networks on EVEs or C66x DSPs
+* Provides an example of using the OpenCL DLAs custom device TIDL kernels
+* Provides a common abstraction for running TIDL networks on DLAs or C66x DSPs
 
 .. note::
     DLA: TI Deep Learning Accelerator, also known as EVE.
 
-TIDL host API
--------------
+TINN API
+--------
 
-The figure below describes the relationship between TIDL host APIs, the user's application and OpenCL host APIs.
+The figure below describes the relationship between TINN APIs, the user's application and OpenCL host APIs.
 
-.. figure:: ../images/tidl_host_api.png
+.. figure:: ../images/tinn_api.png
 
 The API consistes of 3 classes with simple user interfaces:
 
@@ -29,8 +29,8 @@ The API consistes of 3 classes with simple user interfaces:
 * Executor
 * ExecutionObject
 
-Using the TIDL host API
-+++++++++++++++++++++++
+Using the TINN API
+++++++++++++++++++
 
 Step 1
 ======
@@ -56,7 +56,7 @@ Create a Configuration object by reading it from a file or by initializing it di
 
 Step 3
 ======
-Create an Executor with the approriate device type, set of devices and a configuration. In the snippet below, an Executor is created on 2 EVEs.
+Create an Executor with the approriate device type, set of devices and a configuration. In the snippet below, an Executor is created on 2 DLAs.
 
 .. code-block:: c++
 
@@ -119,8 +119,8 @@ The code snippet :ref:`tidl_main` illustrates using the API to offload a network
 
 For a complete example of using the API, refer ``/usr/share/ti/examples/opencl/tidl/main.cpp`` on the EVM filesystem.
 
-TIDL host API documentation
----------------------------
+TINN API documentation
+----------------------
 
 .. doxygennamespace:: tidl
     :project: TIDL

@@ -41,11 +41,17 @@
 
 namespace tidl {
 
-//! Enumerates the types of devices available
-enum class DeviceType { DSP, DLA };
+//! Enumerates types of devices available to offload the network.
+enum class DeviceType { DSP, /**< Offload to C66x DSP */
+                        DLA  /**< Offload to TI DLA */
+                      };
 
-//! Enumerates devices of a particular type
-enum class DeviceId : int { ID0=0, ID1, ID2, ID3 };
+//! Enumerates IDs for devices of a given type.
+enum class DeviceId : int { ID0=0, /**< DSP1 or DLA1 */
+                            ID1,   /**< DSP2 or DLA2 */
+                            ID2,   /**< DLA3 */
+                            ID3    /**< DLA4 */
+                          };
 
 //! Used to specify the set of devices available to an Executor
 typedef std::set<DeviceId> DeviceIds;
