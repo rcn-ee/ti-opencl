@@ -29,6 +29,7 @@
 #define __DSP_SUB_DEVICE_H__
 
 #include "../device.h"
+#include "../rootdevice.h"
 
 namespace Coal
 {
@@ -60,6 +61,7 @@ public:
     bool             any_complete_pending()  override { return p_parent->any_complete_pending(); }
     pthread_cond_t*  get_worker_cond()       override { return p_parent->get_worker_cond();      }
     pthread_mutex_t* get_worker_mutex()      override { return p_parent->get_worker_mutex();     }
+    const DSPDevice* GetRootDSPDevice()      const override { return p_root;                     }
 
     void push_complete_pending(uint32_t idx,
                                class Event* const data,
@@ -79,7 +81,9 @@ public:
                  unsigned core = 0)                  override
     { p_parent->mail_to(msg, compute_units, core); }
 
+
 private:
+    const DSPDevice* p_root;
 };
 
 }

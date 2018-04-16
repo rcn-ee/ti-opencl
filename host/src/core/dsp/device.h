@@ -104,6 +104,7 @@ public:
     virtual pthread_mutex_t* get_worker_mutex()         = 0;
     virtual float            dspMhz()            const  { return p_dsp_mhz; }
     virtual unsigned char    dspID()             const  { return p_dsp_id;  }
+    virtual const DSPDevice* GetRootDSPDevice()  const  = 0;
 
     /*-------------------------------------------------------------------------
     * Methods common to both DSPRootDevice and DSPSubDevice
@@ -114,6 +115,7 @@ public:
     std::string              builtinsHeader(void) const  { return "dsp.h";             }
     SharedMemory*            GetSHMHandler()      const  { return p_shmHandler;        }
     const DSPCoreSet&        GetComputeUnits()    const  { return p_compute_units;     }
+    DSPDevice*               GetParent()          const  { return p_parent;            }
     bool                     isProfilingEnabled() const
     {
         return p_profiling.event_type >= 1

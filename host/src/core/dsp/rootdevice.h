@@ -67,6 +67,7 @@ public:
 
     pthread_cond_t*  get_worker_cond()   override  { return &p_worker_cond;  }
     pthread_mutex_t* get_worker_mutex()  override  { return &p_worker_mutex; }
+    const DSPDevice* GetRootDSPDevice()  const override  { return this;      }
 
     void             init_ulm();
     void             setup_dsp_mhz();

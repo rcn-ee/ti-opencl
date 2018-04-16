@@ -38,6 +38,7 @@
 #include "sampler.h"
 #include "context.h"
 #include "deviceinterface.h"
+#include "dsp/device.h"
 
 #include <string>
 #include <iostream>
@@ -79,27 +80,51 @@ Kernel::~Kernel()
     }
 }
 
-const Kernel::DeviceDependent &Kernel::deviceDependent(DeviceInterface *device) const
+const Kernel::DeviceDependent& Kernel::deviceDependent(DeviceInterface* device) const
 {
-    for (size_t i=0; i<p_device_dependent.size(); ++i)
+    for (size_t i = 0; i < p_device_dependent.size(); ++i)
     {
-        const DeviceDependent &rs = p_device_dependent[i];
+        const DeviceDependent& rs = p_device_dependent[i];
 
-        if (rs.device == device || (!device && p_device_dependent.size() == 1))
-            return rs;
+        if (!device)
+        {
+            if (p_device_dependent.size() == 1) return rs;
+        }
+        else if (Coal::DSPDevice* dsp = dynamic_cast<Coal::DSPDevice*>(device))
+        {
+            const DSPDevice* root_device = dsp->GetRootDSPDevice();
+            const DeviceInterface* iroot_device = dynamic_cast<const DeviceInterface*>(root_device);
+            if (rs.device == iroot_device) return rs;
+        }
+        else
+        {
+            if (rs.device == device) return rs;
+        }
     }
 
     return null_dep;
 }
 
-Kernel::DeviceDependent &Kernel::deviceDependent(DeviceInterface *device)
+Kernel::DeviceDependent& Kernel::deviceDependent(DeviceInterface* device)
 {
-    for (size_t i=0; i<p_device_dependent.size(); ++i)
+    for (size_t i = 0; i < p_device_dependent.size(); ++i)
     {
-        DeviceDependent &rs = p_device_dependent[i];
+        DeviceDependent& rs = p_device_dependent[i];
 
-        if (rs.device == device || (!device && p_device_dependent.size() == 1))
-            return rs;
+        if (!device)
+        {
+            if (p_device_dependent.size() == 1) return rs;
+        }
+        else if (Coal::DSPDevice* dsp = dynamic_cast<Coal::DSPDevice*>(device))
+        {
+            const DSPDevice* root_device = dsp->GetRootDSPDevice();
+            const DeviceInterface* iroot_device = dynamic_cast<const DeviceInterface*>(root_device);
+            if (rs.device == iroot_device) return rs;
+        }
+        else
+        {
+            if (rs.device == device) return rs;
+        }
     }
 
     return null_dep;
