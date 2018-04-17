@@ -56,7 +56,6 @@ else()
             persistent_task_concurrent persistent_task_spanning
             persistent_common)
         LIST (APPEND OCL_EXAMPLES_INSTALL_LIST custom_device)
-        LIST (APPEND OCL_EXAMPLES_INSTALL_LIST tidl)
     endif()
 endif()
 SET(OCL_OMP_EXAMPLES_INSTALL_LIST vecadd_openmp vecadd_openmp_t dgemm)

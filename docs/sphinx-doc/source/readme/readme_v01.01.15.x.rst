@@ -5,7 +5,7 @@ v01.01.15.x
 New Features
 =============
 * Support for OpenCL sub-devices (see ``examples/vecadd_subdevice``)
-* OpenCL custom device for TI Deep Learning Library (TIDL) and TIDL host API. Refer :doc:`../examples/tidl`.
+* OpenCL custom device for TI Deep Learning Library (TIDL)
 
 Defect Fixes
 ============
