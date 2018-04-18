@@ -36,8 +36,10 @@
 
 #include <CL/cl.h>
 #include <string>
+#include <vector>
 #include "object.h"
 #include "icd.h"
+#include "kernelentry.h"
 
 /* This pulls in legacy::PassManager when using LLVM >= 3.5 */
 #include <llvm/PassManager.h>
@@ -55,6 +57,11 @@ class DeviceInterface;
 }
 
 struct _cl_device_id: public Coal::descriptor<Coal::DeviceInterface, _cl_device_id> {};
+
+namespace tiocl
+{
+class SharedMemory;
+}
 
 namespace Coal
 {
@@ -136,7 +143,25 @@ class DeviceInterface : public _cl_device_id, public Object
          * \return a \c Coal::DeviceKernel object
          */
         virtual DeviceKernel *createDeviceKernel(Kernel *kernel, 
-                                                 llvm::Function *function) = 0;
+                                                 llvm::Function *function)
+        { return nullptr; }
+
+        /**
+         * \brief Create a \c Coal::DeviceKernel object for this device using a
+         *        built-in kernel
+         * \param kernel \c Coal::Kernel containing the device-independent kernel
+         *               data
+         * \param kernel_entry a device-specific \c Coal::KernelEntry that describes
+         *                     a built-in kernel on the device
+         * \return a \c Coal::DeviceKernel object
+         */
+
+        virtual DeviceKernel *createDeviceBuiltInKernel(Kernel *kernel,
+                                                        KernelEntry *kernel_entry)
+        { return nullptr; }
+
+        virtual const std::vector<KernelEntry*> *getKernelEntries() const
+        { return nullptr; }
 
         /**
          * \brief Push an event on the device
@@ -181,6 +206,11 @@ class DeviceInterface : public _cl_device_id, public Object
          * \brief Ask device if it has enough work in its queue
          */
         virtual bool gotEnoughToWorkOn() { return false; }
+
+        /**
+         * \brief Get shared memory used by this device
+         */
+        virtual tiocl::SharedMemory* GetSHMHandler() const = 0;
 };
 
 /**
@@ -202,10 +232,10 @@ class DeviceBuffer
         virtual bool allocate() = 0;
 
         /**
-         * \brief \c Coal::DeviceInterface of this buffer
-         * \return parent \c Coal::DeviceInterface
+         * \brief \c tiocl::SharedMemory of this buffer
+         * \return parent \c tiocl::SharedMemory
          */
-        virtual DeviceInterface *device() const = 0;
+        virtual tiocl::SharedMemory* GetSHMHandler() const = 0;
 
         /**
          * \brief Allocation status
@@ -261,21 +291,8 @@ class DeviceProgram
          *
          * \return true if \b stdlib must be linked with the program
          */
-        virtual bool linkStdLib() const = 0;
-
-        /**
-         * \brief Create device-specific optimization passes
-         *
-         * This hook allows a device to add LLVM optimization passes to a
-         * \c llvm::PassManager . This way, devices needing function flattening
-         * or special analysis passes can have them run on the mode.
-         *
-         * \param manager \c llvm::PassManager to which add the passes
-         * \param optimize false if \c -cl-opt-disable was given at compilation
-         *                 time.
-         */
-        virtual void createOptimizationPasses(llvm::PassManager *manager,
-                                    bool optimize, bool hasBarrier=false) = 0;
+        virtual bool linkStdLib() const
+        { return false; }
 
         /**
          * \brief Build a device-specific representation of the program
@@ -290,7 +307,8 @@ class DeviceProgram
          * \param binary_filename \c char* binary already in file, if not NULL
          */
         virtual bool build(llvm::Module *module, std::string* binary_str,
-                           char *binary_filename) = 0;
+                           char *binary_filename)
+        { return false; }
 
         /**
          * \brief Extract binaries from MIXED binary

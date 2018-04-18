@@ -109,11 +109,16 @@ set(COAL_SRC_FILES
     core/util.cpp
     core/error_report.cpp
     core/oclenv.cpp
+    core/kernelentry.cpp
+    core/builtinprogram.cpp
+    core/builtinkernel.cpp
 
     core/dsp/program.cpp
     core/dsp/driver.cpp
     core/dsp/buffer.cpp
     core/dsp/device.cpp
+    core/dsp/subdevice.cpp
+    core/dsp/rootdevice.cpp
     core/dsp/kernel.cpp
     core/dsp/worker.cpp
     core/dsp/mmap_resource.cpp
@@ -155,6 +160,14 @@ set(COAL_SRC_FILES ${COAL_SRC_FILES}
     core/dsp/tal/shmem_provider_factory.cpp
     core/dsp/tal/symbol_address_elf.cpp
 )
+    if (AM57_BUILD)
+        set(COAL_SRC_FILES ${COAL_SRC_FILES}
+            core/eve/device.cpp
+            core/eve/worker.cpp
+            core/eve/program.cpp
+            core/eve/kernel.cpp
+           )
+    endif()
 endif()
 
 if (K2X_BUILD OR K2G_BUILD)

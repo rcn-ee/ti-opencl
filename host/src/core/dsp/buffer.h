@@ -41,21 +41,21 @@ class MemObject;
 class DSPBuffer : public DeviceBuffer
 {
     public:
-        DSPBuffer(DSPDevice *device, MemObject *buffer, cl_int *rs);
+        DSPBuffer(tiocl::SharedMemory *shm, MemObject *buffer, cl_int *rs);
         ~DSPBuffer();
 
         bool allocate();
-        DeviceInterface *device() const;
+        tiocl::SharedMemory *GetSHMHandler() const { return p_shm_; }
         DSPDevicePtr64 data() const ;
         void *nativeGlobalPointer() const ;
         bool allocated() const;
 
     private:
-        DSPDevice *    p_device;
-        MemObject *    p_buffer;
-        DSPDevicePtr64 p_data;
-        bool           p_data_malloced;
-        unsigned int   p_buffer_idx;
+        tiocl::SharedMemory * p_shm_;
+        MemObject *           p_buffer;
+        DSPDevicePtr64        p_data;
+        bool                  p_data_malloced;
+        unsigned int          p_buffer_idx;
 };
 }
 #endif

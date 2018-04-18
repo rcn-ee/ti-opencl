@@ -27,6 +27,7 @@
  *****************************************************************************/
 #include "kernel.h"
 #include "device.h"
+#include "subdevice.h"
 #include "buffer.h"
 #include "program.h"
 #include "utils.h"
@@ -39,6 +40,7 @@
 #include "../events.h"
 #include "../program.h"
 #include "../oclenv.h"
+#include "../error_report.h"
 
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Constants.h>
@@ -432,6 +434,12 @@ DSPKernelEvent::DSPKernelEvent(DSPDevice *device, KernelEvent *event)
     p_msg.u.k.kernel.Kernel_id     = p_kernel_id;
     p_msg.u.k.kernel.entry_point   = (unsigned)p_kernel->device_entry_pt();
     p_msg.u.k.kernel.data_page_ptr = (unsigned)p_kernel->data_page_ptr();
+    if (dynamic_cast<DSPSubDevice*>(device))
+        p_msg.u.k.kernel.from_sub_device = 1;
+    else
+        p_msg.u.k.kernel.from_sub_device = 0;
+    p_msg.u.k.kernel.num_cores     = device->dspCores();
+    p_msg.u.k.kernel.master_core   = *device->GetComputeUnits().begin();
 
     /*------------------------------------------------------------------------
     * Set profiling params
@@ -552,12 +560,19 @@ cl_int DSPKernelEvent::callArgs(unsigned max_args_size)
         size_t              size = arg.vecValueSize();
 
         if (size == 0)
-            QERR("Kernel argument has size of 0", CL_INVALID_ARG_SIZE);
+        {
+            ReportError(ErrorType::FatalNoExit, ErrorKind::KernelArgSizeZero);
+            return(CL_INVALID_ARG_SIZE);
+
+        }
 
         args_total_size += size;
         if (args_total_size > max_args_size)
-            QERR("Total size of arguments exceeds allowed maximum (1024 bytes)",
-                 CL_INVALID_KERNEL_ARGS);
+        {
+            ReportError(ErrorType::FatalNoExit,
+                        ErrorKind::KernelArgSizesMaxExceeded, 1024, "DSP");
+            return(CL_INVALID_KERNEL_ARGS);
+        }
 
         /*---------------------------------------------------------------------
         * We may have to perform some changes in the values (buffers, etc)
@@ -638,7 +653,11 @@ cl_int DSPKernelEvent::callArgs(unsigned max_args_size)
 
             case Kernel::Arg::Image2D:
             case Kernel::Arg::Image3D: 
-                QERR("Images not yet supported", CL_INVALID_KERNEL_ARGS);
+                {
+                    ReportError(ErrorType::FatalNoExit,
+                                ErrorKind::KernelArgImageNotSupported);
+                    return(CL_INVALID_KERNEL_ARGS);
+                }
                 break;
 
             /*-----------------------------------------------------------------
@@ -836,7 +855,7 @@ cl_int DSPKernelEvent::run(Event::Type evtype)
     *--------------------------------------------------------------------*/
     p_device->push_complete_pending(p_kernel_id, p_event,
                                     p_device->numHostMails(p_msg));
-    p_device->mail_to(p_msg);
+    p_device->mail_to(p_msg, p_device->GetComputeUnits());
 
     /*-------------------------------------------------------------------------
     * Do not wait for completion
@@ -1008,8 +1027,9 @@ cl_int DSPKernelEvent::allocate_temp_global(void)
 
         if (!(*p_addr64))
         {
-            QERR("Temporary memory for CL_MEM_USE_HOST_PTR buffer exceeds available global memory",
-                 CL_MEM_OBJECT_ALLOCATION_FAILURE);
+            ReportError(ErrorType::FatalNoExit,
+                        ErrorKind::TempMemAllocationFailed);
+            return(CL_MEM_OBJECT_ALLOCATION_FAILURE);
         }
 
         if (*p_addr64 < 0xFFFFFFFF)
@@ -1238,7 +1258,7 @@ int DSPKernelEvent::debug_kernel_dispatch()
     if (p_debug_kernel != NODEBUG)
     {
 #if defined(DEVICE_AM57)
-        p_device->mail_to(debugMsg);
+        p_device->mail_to(debugMsg, p_device->GetComputeUnits());
 #endif
 
         size_t name_length;

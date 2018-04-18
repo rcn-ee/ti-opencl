@@ -37,8 +37,8 @@
 
 using namespace Coal;
 
-DSPBuffer::DSPBuffer(DSPDevice *device, MemObject *buffer, cl_int *rs)
-     : DeviceBuffer(), p_device(device), p_buffer(buffer), p_data(0), 
+DSPBuffer::DSPBuffer(tiocl::SharedMemory *shm, MemObject *buffer, cl_int *rs)
+     : DeviceBuffer(), p_shm_(shm), p_buffer(buffer), p_data(0),
        p_data_malloced(false), p_buffer_idx(0)
 {
     if (buffer->type() != MemObject::SubBuffer &&
@@ -47,8 +47,7 @@ DSPBuffer::DSPBuffer(DSPDevice *device, MemObject *buffer, cl_int *rs)
         /*---------------------------------------------------------------------
         * We use the host ptr, we are already allocated
         *--------------------------------------------------------------------*/
-        if (device->GetSHMHandler()->clMallocQuery(buffer->host_ptr(),
-                                                   &p_data, NULL))
+        if (p_shm_->clMallocQuery(buffer->host_ptr(), &p_data, NULL))
             buffer->set_host_ptr_clMalloced();
         else
 #if defined(_SYS_BIOS)
@@ -68,8 +67,8 @@ DSPBuffer::~DSPBuffer()
     if (p_data_malloced)
     {
         if (p_buffer->flags() & CL_MEM_USE_MSMC_TI)
-             p_device->GetSHMHandler()->FreeMSMC(p_data);
-        else p_device->GetSHMHandler()->FreeGlobal(p_data);
+             p_shm_->FreeMSMC(p_data);
+        else p_shm_->FreeGlobal(p_data);
     }
 }
 
@@ -82,7 +81,7 @@ DSPDevicePtr64 DSPBuffer::data() const
         *--------------------------------------------------------------------*/
         SubBuffer *subbuf        = (SubBuffer *)p_buffer;
         MemObject *parent        = subbuf->parent();
-        DSPBuffer *parent_dspbuf = (DSPBuffer *)parent->deviceBuffer(p_device);
+        DSPBuffer *parent_dspbuf = (DSPBuffer *)parent->deviceBuffer(p_shm_);
 
         if (!parent_dspbuf->data()) parent_dspbuf->allocate();
         if (!parent_dspbuf->data()) { return 0; } //ERROR() 
@@ -117,7 +116,7 @@ bool DSPBuffer::allocate()
         *--------------------------------------------------------------------*/
         SubBuffer *subbuf        = (SubBuffer *)p_buffer;
         MemObject *parent        = subbuf->parent();
-        DSPBuffer *parent_dspbuf = (DSPBuffer *)parent->deviceBuffer(p_device);
+        DSPBuffer *parent_dspbuf = (DSPBuffer *)parent->deviceBuffer(p_shm_);
 
         if (!parent_dspbuf->data()) parent_dspbuf->allocate();
         if (!parent_dspbuf->data()) return false;
@@ -132,9 +131,9 @@ bool DSPBuffer::allocate()
     if (!p_data)
     {
         if (p_buffer->flags() & CL_MEM_USE_MSMC_TI)
-            p_data = p_device->GetSHMHandler()->AllocateMSMC(buf_size);
+            p_data = p_shm_->AllocateMSMC(buf_size);
         else
-            p_data = p_device->GetSHMHandler()->AllocateGlobal(buf_size, false);
+            p_data = p_shm_->AllocateGlobal(buf_size, false);
 
         if (!p_data) return false;
 
@@ -143,18 +142,12 @@ bool DSPBuffer::allocate()
 
     if (p_buffer->type() != MemObject::SubBuffer &&
         p_buffer->flags() & CL_MEM_COPY_HOST_PTR)
-        p_device->GetSHMHandler()->WriteToShmem(p_data,
-                                (uint8_t*)p_buffer->host_ptr(), buf_size);
+        p_shm_->WriteToShmem(p_data, (uint8_t*)p_buffer->host_ptr(), buf_size);
 
     // Say to the memobject that we are allocated
     p_buffer->deviceAllocated(this);
 
     return true;
-}
-
-DeviceInterface *DSPBuffer::device() const
-{
-    return p_device;
 }
 
 bool DSPBuffer::allocated() const

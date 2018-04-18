@@ -39,6 +39,7 @@
 #include "kernel.h"
 #include "propertylist.h"
 #include "deviceinterface.h"
+#include "dsp/device.h"
 #include "util.h"
 
 #include <string>
@@ -82,7 +83,8 @@ static bool ReadBinaryIntoString(const std::string &outfile,
 #endif
 
 Program::Program(Context *ctx)
-: Object(Object::T_Program, ctx), p_type(Invalid), p_state(Empty)
+: Object(Object::T_Program, ctx), p_type(Invalid), p_state(Empty),
+  p_device_list()
 {
 #ifndef _SYS_BIOS
     p_null_device_dependent.compiler = 0;
@@ -137,27 +139,51 @@ void Program::setDevices(cl_uint num_devices, DeviceInterface * const*devices)
     }
 }
 
-Program::DeviceDependent &Program::deviceDependent(DeviceInterface *device)
+Program::DeviceDependent& Program::deviceDependent(DeviceInterface* device)
 {
-    for (size_t i=0; i<p_device_dependent.size(); ++i)
+    for (size_t i = 0; i < p_device_dependent.size(); ++i)
     {
-        DeviceDependent &rs = p_device_dependent[i];
+        DeviceDependent& rs = p_device_dependent[i];
 
-        if (rs.device == device || (!device && p_device_dependent.size() == 1))
-            return rs;
+        if (!device)
+        {
+            if (p_device_dependent.size() == 1) return rs;
+        }
+        else if (Coal::DSPDevice* dsp = dynamic_cast<Coal::DSPDevice*>(device))
+        {
+            const DSPDevice* root_device = dsp->GetRootDSPDevice();
+            const DeviceInterface* iroot_device = dynamic_cast<const DeviceInterface*>(root_device);
+            if (rs.device == iroot_device) return rs;
+        }
+        else
+        {
+            if (rs.device == device) return rs;
+        }
     }
 
     return p_null_device_dependent;
 }
 
-const Program::DeviceDependent &Program::deviceDependent(DeviceInterface *device) const
+const Program::DeviceDependent& Program::deviceDependent(DeviceInterface* device) const
 {
-    for (size_t i=0; i<p_device_dependent.size(); ++i)
+    for (size_t i = 0; i < p_device_dependent.size(); ++i)
     {
-        const DeviceDependent &rs = p_device_dependent[i];
+        const DeviceDependent& rs = p_device_dependent[i];
 
-        if (rs.device == device || (!device && p_device_dependent.size() == 1))
-            return rs;
+        if (!device)
+        {
+            if (p_device_dependent.size() == 1) return rs;
+        }
+        else if (Coal::DSPDevice* dsp = dynamic_cast<Coal::DSPDevice*>(device))
+        {
+            const DSPDevice* root_device = dsp->GetRootDSPDevice();
+            const DeviceInterface* iroot_device = dynamic_cast<const DeviceInterface*>(root_device);
+            if (rs.device == iroot_device) return rs;
+        }
+        else
+        {
+            if (rs.device == device) return rs;
+        }
     }
 
     return p_null_device_dependent;
@@ -375,35 +401,42 @@ cl_int Program::loadBinaries(const unsigned char **data, const size_t *lengths,
     return CL_SUCCESS;
 }
 
-cl_int Program::build(const char *options,
-                      void (CL_CALLBACK *pfn_notify)(cl_program program,
-                                                     void *user_data),
-                      void *user_data, cl_uint num_devices,
-                      DeviceInterface * const*device_list)
+cl_int Program::build(const char* options,
+                      void (CL_CALLBACK* pfn_notify)(cl_program program,
+                              void* user_data),
+                      void* user_data, cl_uint num_devices,
+                      DeviceInterface* const* device_list,
+                      cl_uint num_root_devices,
+                      DeviceInterface* const* root_device_list)
 {
     // If we've already built this program and are re-building
     // (for example, with different user options) then clear out the
     // device dependent information in preparation for building again.
-    if( p_state == Built) resetDeviceDependent();
+    if (p_state == Built) resetDeviceDependent();
 
     p_state = Failed;
 
-    // Set device infos
+    /* Create deviceDependent structures only for the root devices */
     if (!p_device_dependent.size())
     {
-        setDevices(num_devices, device_list);
+        setDevices(num_root_devices, root_device_list);
     }
 
+    /* Keep a record of the devices the user requested to build
+     * this program for */
+    p_device_list.clear();
+    for (int i = 0; i < num_devices; i++) p_device_list.push_back(device_list[i]);
+
     // ASW TODO - optimize to compile for each device type only once.
-    for (cl_uint i=0; i<p_device_dependent.size(); ++i)
+    for (cl_uint i = 0; i < p_device_dependent.size(); ++i)
     {
-        DeviceDependent &dep = deviceDependent(device_list[i]);
+        DeviceDependent& dep = deviceDependent(root_device_list[i]);
 
 #ifndef _SYS_BIOS
         // Do we need to compile the source for each device ?
         if (p_type == Source)
         {
-            std::string opts(options ? options: "");
+            std::string opts(options ? options : "");
             std::string outfile;
 
             if (!dep.compiler->CompileAndLink(p_source, opts, outfile))
@@ -411,7 +444,7 @@ cl_int Program::build(const char *options,
 
             ReadBinaryIntoString(outfile, dep.unlinked_binary);
 
-            dep.native_binary_filename = new char[outfile.size()+1];
+            dep.native_binary_filename = new char[outfile.size() + 1];
             strcpy(dep.native_binary_filename, outfile.c_str());
 
             dep.is_native_binary = true;
@@ -432,7 +465,7 @@ cl_int Program::build(const char *options,
         // Now that the LLVM module is built, build the device-specific
         // representation
         if (!dep.program->build(dep.linked_module, &dep.unlinked_binary,
-                 dep.native_binary_filename))
+                                dep.native_binary_filename))
         {
             if (pfn_notify)
                 pfn_notify((cl_program)this, user_data);
@@ -484,8 +517,8 @@ cl_int Program::info(cl_program_info param_name,
         case CL_PROGRAM_NUM_DEVICES:
             // Use devices associated with any built kernels, otherwise use
             // the devices associated with the program context
-            if (p_device_dependent.size() != 0)
-               { SIMPLE_ASSIGN(cl_uint, p_device_dependent.size()); }
+            if (p_device_list.size()!=0)
+               { SIMPLE_ASSIGN(cl_uint, p_device_list.size()); }
             else
                return ((Context *)parent())->info(CL_CONTEXT_NUM_DEVICES,
                            param_value_size, param_value, param_value_size_ret);
@@ -494,13 +527,11 @@ cl_int Program::info(cl_program_info param_name,
         case CL_PROGRAM_DEVICES:
             // Use devices associated with any built kernels, otherwise use
             // the devices associated with the program context
-            if (p_device_dependent.size() != 0)
+            if (p_device_list.size()!=0)
             {
-               for (size_t i=0; i<p_device_dependent.size(); ++i)
+               for (size_t i=0; i<p_device_list.size(); ++i)
                {
-                  const DeviceDependent &dep = p_device_dependent[i];
-
-                  devices.push_back(desc(dep.device));
+                  devices.push_back(desc(p_device_list[i]));
                }
 
                value = devices.data();
@@ -520,9 +551,9 @@ cl_int Program::info(cl_program_info param_name,
             break;
 
         case CL_PROGRAM_BINARY_SIZES:
-            for (size_t i=0; i<p_device_dependent.size(); ++i)
+            for (size_t i=0; i<p_device_list.size(); ++i)
             {
-                const DeviceDependent &dep = p_device_dependent[i];
+                const DeviceDependent &dep = deviceDependent(p_device_list[i]);
 
                 binary_sizes.push_back(dep.unlinked_binary.size());
             }
@@ -533,17 +564,17 @@ cl_int Program::info(cl_program_info param_name,
 
         case CL_PROGRAM_BINARIES:
         {
-            // Special case : param_value points to an array of p_num_devices
+            // Special case : param_value points to an array of p_device_list.size()
             // application-allocated unsigned char* pointers. Check it's good
             // and std::memcpy the data
 
             unsigned char **binaries = (unsigned char **)param_value;
-            value_length = p_device_dependent.size() * sizeof(unsigned char *);
+            value_length = p_device_list.size() * sizeof(unsigned char *);
 
             if (param_value && param_value_size >= value_length)
-                for (size_t i=0; i<p_device_dependent.size(); ++i)
+                for (size_t i=0; i<p_device_list.size(); ++i)
                 {
-                    const DeviceDependent &dep = p_device_dependent[i];
+                    const DeviceDependent &dep = deviceDependent(p_device_list[i]);
                     unsigned char *dest = binaries[i];
 
                     if (!dest)

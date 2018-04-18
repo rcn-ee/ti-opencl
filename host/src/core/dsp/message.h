@@ -41,6 +41,9 @@ typedef enum
 #define MAX_NDR_DIMENSIONS   3
 #define MAX_IN_REG_ARGUMENTS 10
 #define MAX_ARGS_IN_REG_SIZE (MAX_IN_REG_ARGUMENTS*2)
+#define EVE_MAX_ARGS_IN_REG_SIZE 3          // number of registers
+#define EVE_MAX_ARGS_ON_STACK_SIZE 128      // bytes
+#define EVE_MSG_COMMAND_MASK (0x00008000)   // used by IPU and EVE internally
 
 #define MAX_ARGS_TOTAL_SIZE 1024
 
@@ -87,10 +90,10 @@ typedef struct
 *----------------------------------------------------------------------------*/
 typedef struct
 {
+    uint32_t        stall_cycle_threshold;
     int8_t          event_type;
     int8_t          event_number1;
     int8_t          event_number2;
-    uint32_t        stall_cycle_threshold;
 } profiling_t;
 
 /*-----------------------------------------------------------------------------
@@ -109,17 +112,17 @@ typedef struct
     uint32_t        args_on_stack_size;
     uint32_t        timeout_ms;
     profiling_t     profiling;
+    uint8_t         from_sub_device;
+    uint8_t         num_cores;
+    uint8_t         master_core;
 } kernel_msg_t;
 
 typedef struct
 {
-    uint8_t n_cores;
-    uint8_t master_core;
-    uint8_t local_core_nums[MAX_NUM_CORES];
-
-    int ocl_qmss_hw_queue_base_idx;
-    int ocl_qmss_first_desc_idx_in_linking_ram;
-    int ocl_qmss_first_memory_region_idx;
+    uint8_t         n_cores;
+    uint8_t         master_core;
+    uint32_t        ocl_global_mem_addr;
+    uint32_t        ocl_global_mem_size;
 } configure_monitor_t;
 
 typedef struct
@@ -131,9 +134,22 @@ typedef struct
     uint32_t        profiling_counter1_val;
 } command_retcode_t;
 
+/*-----------------------------------------------------------------------------
+* Kernel message to Eve
+*----------------------------------------------------------------------------*/
+typedef struct
+{
+    uint32_t        Kernel_id;            // host-assigned id for this call
+    uint32_t        builtin_kernel_index; // index into function table
+    uint32_t        args_on_stack_size;   // number of bytes on stack
+    uint32_t        args_in_reg[EVE_MAX_ARGS_IN_REG_SIZE];
+    uint8_t         args_on_stack[EVE_MAX_ARGS_ON_STACK_SIZE];
+} kernel_eve_t;
+
 typedef struct 
 {
-    uint32_t      command;  // enum command_codes, use uint32_t in message
+    uint16_t      command;   // enum command_codes, use uint16_t in message
+    uint16_t      core_id;   // e.g. to which eve, logical index
     uint32_t      trans_id;
     uint32_t      pid;
     union
@@ -144,6 +160,7 @@ typedef struct
             kernel_msg_t    kernel;
             flush_msg_t     flush;
         } k;
+        kernel_eve_t        k_eve;
         configure_monitor_t configure_monitor;
         command_retcode_t   command_retcode;
         char message[sizeof(kernel_config_t) + sizeof(kernel_msg_t) + 

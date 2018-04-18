@@ -118,7 +118,7 @@ bool DSPProgram::load()
     * Send the cache Inv command.  We do not wait here.  The wait will be
     * handled by the standard wait loop in the worker thread.
     *------------------------------------------------------------------------*/
-    p_device->mail_to(cacheMsg);
+    p_device->mail_to(cacheMsg, p_device->GetComputeUnits());
     return true;
 }
 
@@ -166,11 +166,6 @@ const char* DSPProgram::outfile_name() const
 DSPDevicePtr DSPProgram::data_page_ptr()
 {
     return p_dl->GetDataPagePointer();
-}
-
-void DSPProgram::createOptimizationPasses(llvm::PassManager *manager,
-                                          bool optimize, bool hasBarrier)
-{
 }
 
 /**

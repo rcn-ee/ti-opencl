@@ -33,6 +33,7 @@
 namespace Coal
 {
 class DSPDevice;
+class EVEDevice;
 }
 
 class MBox
@@ -51,5 +52,6 @@ class MBox
 namespace MBoxFactory
 {
 MBox* CreateMailbox(Coal::DSPDevice* device);
+MBox* CreateMailbox(Coal::EVEDevice* device);
 }
 

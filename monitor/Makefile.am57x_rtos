@@ -29,7 +29,9 @@ endif
 
 SOURCES = monitor.c util.c dsp_rpc.asm touch.asm builtins.c edma.c \
           edma_am57x_config.c device_am57.c
-HEADERS = src/edma.h src/monitor.h src/util.h src/trace.h
+HEADERS = src/edma.h src/monitor.h src/util.h src/trace.h \
+          $(OPENCL_SRC_DIR)/src/core/dsp/message.h \
+          $(OPENCL_SRC_DIR)/src/core/dsp/tal/mbox_msgq_shared.h
 LIBS    = cmds/monitor.am57x_rtos.cmd
 #LIBS   += $(ULM_DIR)/libtiulm.ae66
 #LIBS   += $(GDB_SERVER_DIR)/lib/gdb_server.ae66
@@ -73,6 +75,7 @@ LIBM=$(LIBM_DIR)/libm.lib
 #----------------------------------------------------------------------------
 BUILTINS_DIR=../builtins
 BUILTINS=$(BUILTINS_DIR)/dsp.lib
+
 
 SEDCMD = \
 	 sed -e 's|__MSMC_SIZE__|$(MSMC_SIZE)|g' \
@@ -122,7 +125,7 @@ dsp1 : $(LINK_CMD1) $(BIN_DIR)/dsp1.out $(BIN_DIR)/dsp1.syms
 #---------------------------------------------------------------------------
 # Build monitors
 #----------------------------------------------------------------------------
-$(BIN_DIR)/dsp0.out: $(OBJ_DIR)/$(OCLMAIN).obj $(LINK_CMD0) $(LIBS)
+$(BIN_DIR)/dsp0.out: $(OBJ_DIR)/$(OCLMAIN).obj $(LINK_CMD0) $(LNK_DEFS) $(LIBS)
 	@echo Linking $@
 	@echo $(LINK_CMD0)
 	$(CC) -z --priority -w -x --reread_libs -m$@.map \
@@ -130,7 +133,7 @@ $(BIN_DIR)/dsp0.out: $(OBJ_DIR)/$(OCLMAIN).obj $(LINK_CMD0) $(LIBS)
 	--define=DDR3_FCSECTION=DSP1_PROG --define=DDR3_NC=OCL_OMP_NOCACHE $^ \
 	-I$(TI_OCL_CGT_INSTALL)/lib -llibc.a -o $@
 
-$(BIN_DIR)/dsp1.out: $(OBJ_DIR)/$(OCLMAIN).obj $(LINK_CMD1) $(LIBS)
+$(BIN_DIR)/dsp1.out: $(OBJ_DIR)/$(OCLMAIN).obj $(LINK_CMD1) $(LNK_DEFS) $(LIBS)
 	@echo Linking $@
 	@echo $(LINK_CMD1)
 	$(CC) -z --priority -w -x -m$@.map \

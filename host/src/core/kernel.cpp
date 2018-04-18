@@ -38,6 +38,7 @@
 #include "sampler.h"
 #include "context.h"
 #include "deviceinterface.h"
+#include "dsp/device.h"
 
 #include <string>
 #include <iostream>
@@ -79,27 +80,51 @@ Kernel::~Kernel()
     }
 }
 
-const Kernel::DeviceDependent &Kernel::deviceDependent(DeviceInterface *device) const
+const Kernel::DeviceDependent& Kernel::deviceDependent(DeviceInterface* device) const
 {
-    for (size_t i=0; i<p_device_dependent.size(); ++i)
+    for (size_t i = 0; i < p_device_dependent.size(); ++i)
     {
-        const DeviceDependent &rs = p_device_dependent[i];
+        const DeviceDependent& rs = p_device_dependent[i];
 
-        if (rs.device == device || (!device && p_device_dependent.size() == 1))
-            return rs;
+        if (!device)
+        {
+            if (p_device_dependent.size() == 1) return rs;
+        }
+        else if (Coal::DSPDevice* dsp = dynamic_cast<Coal::DSPDevice*>(device))
+        {
+            const DSPDevice* root_device = dsp->GetRootDSPDevice();
+            const DeviceInterface* iroot_device = dynamic_cast<const DeviceInterface*>(root_device);
+            if (rs.device == iroot_device) return rs;
+        }
+        else
+        {
+            if (rs.device == device) return rs;
+        }
     }
 
     return null_dep;
 }
 
-Kernel::DeviceDependent &Kernel::deviceDependent(DeviceInterface *device)
+Kernel::DeviceDependent& Kernel::deviceDependent(DeviceInterface* device)
 {
-    for (size_t i=0; i<p_device_dependent.size(); ++i)
+    for (size_t i = 0; i < p_device_dependent.size(); ++i)
     {
-        DeviceDependent &rs = p_device_dependent[i];
+        DeviceDependent& rs = p_device_dependent[i];
 
-        if (rs.device == device || (!device && p_device_dependent.size() == 1))
-            return rs;
+        if (!device)
+        {
+            if (p_device_dependent.size() == 1) return rs;
+        }
+        else if (Coal::DSPDevice* dsp = dynamic_cast<Coal::DSPDevice*>(device))
+        {
+            const DSPDevice* root_device = dsp->GetRootDSPDevice();
+            const DeviceInterface* iroot_device = dynamic_cast<const DeviceInterface*>(root_device);
+            if (rs.device == iroot_device) return rs;
+        }
+        else
+        {
+            if (rs.device == device) return rs;
+        }
     }
 
     return null_dep;
@@ -298,7 +323,7 @@ cl_int Kernel::setArg(cl_uint index, size_t size, const void *value)
     * Special case for samplers (pointers in C++, uint32 in OpenCL).
     *------------------------------------------------------------------------*/
     if (size == sizeof(cl_sampler) && arg_size == 4 &&
-        (*(Object **)value)->isA(T_Sampler))
+        value != nullptr && (*(Object **)value)->isA(T_Sampler))
     {
         unsigned int bitfield = (*(Sampler **)value)->bitfield();
 
@@ -507,6 +532,15 @@ cl_int Kernel::workGroupInfo(DeviceInterface *device,
 
     switch (param_name)
     {
+        case CL_KERNEL_GLOBAL_WORK_SIZE:
+            {
+            three_size_t[0] = dep.kernel->workGroupSize();
+            three_size_t[1] = dep.kernel->workGroupSize();
+            three_size_t[2] = dep.kernel->workGroupSize();
+            value = &three_size_t;
+            value_length = sizeof(three_size_t);
+            }
+            break;
         case CL_KERNEL_WORK_GROUP_SIZE:
             SIMPLE_ASSIGN(size_t, dep.kernel->workGroupSize());
             break;

@@ -1,3 +1,6 @@
+# Suppress the "Up-to-date and Install" messages from install
+set(CMAKE_INSTALL_MESSAGE NEVER)
+
 # Clean the examples directory so that the install package is clean.
 # Assuming that opencl_examples directory is present otherwise will get a
 # cmake error. 
@@ -52,6 +55,7 @@ else()
             persistent_kernel_timeout persistent_messageq_concurrent
             persistent_task_concurrent persistent_task_spanning
             persistent_common)
+        LIST (APPEND OCL_EXAMPLES_INSTALL_LIST custom_device)
     endif()
 endif()
 SET(OCL_OMP_EXAMPLES_INSTALL_LIST vecadd_openmp vecadd_openmp_t dgemm)

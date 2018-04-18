@@ -317,6 +317,28 @@ CacheWbInvAll()
 
 template <class MIPolicy, class RWPolicy, class HeapPolicy>
 uint64_t SharedMemoryProvider<MIPolicy, RWPolicy, HeapPolicy>::
+HeapBase(MemoryRange::Kind k, MemoryRange::Location l)
+{
+    switch (k)
+    {
+        case MemoryRange::Kind::CMEM_PERSISTENT:
+        {
+            if (l == MemoryRange::Location::ONCHIP)
+                return HeapPolicy::msmc_heap_->base();
+            else
+                return HeapPolicy::ddr_heap1_->base();
+        }
+
+        case MemoryRange::Kind::CMEM_ONDEMAND:
+            return HeapPolicy::ddr_heap2_->base();
+
+        default:
+            return 0;
+    }
+}
+
+template <class MIPolicy, class RWPolicy, class HeapPolicy>
+uint64_t SharedMemoryProvider<MIPolicy, RWPolicy, HeapPolicy>::
 HeapSize(MemoryRange::Kind k, MemoryRange::Location l)
 {
     switch (k)

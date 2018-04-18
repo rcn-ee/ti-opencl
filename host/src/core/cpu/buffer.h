@@ -70,6 +70,9 @@ class CPUBuffer : public DeviceBuffer
         void *nativeGlobalPointer() const;
         bool allocated() const;
 
+        // System memory is represented as a nullptr SHMHandler
+        tiocl::SharedMemory *GetSHMHandler() const { return nullptr; }
+
     private:
         CPUDevice *p_device;
         MemObject *p_buffer;

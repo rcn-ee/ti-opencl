@@ -103,10 +103,11 @@ DDR (Registry_Desc, Registry_CURDESC);
 /* printfs are enabled ony for the duration of an OpenCL kernel */
 PRIVATE_NOALIGN (MessageQ_QueueId,    enable_printf) = MessageQ_INVALIDMESSAGEQ;
 PRIVATE_NOALIGN (bool,                edmamgr_initialized) = false;
+PRIVATE_NOALIGN (uint32_t,            config_reference_count) = 0;
 PRIVATE_NOALIGN (MessageQ_Handle,     dspQue)              = NULL;
-PRIVATE_NOALIGN (uint8_t,             n_cores);
+PRIVATE_NOALIGN (uint8_t,             config_n_cores);
+PRIVATE_NOALIGN (uint8_t,             config_master_core);
 PRIVATE_NOALIGN (uint8_t,             master_core);
-PRIVATE_1D_NOALIGN(uint8_t,           local_core_nums, MAX_NUM_CORES);
 PRIVATE_NOALIGN (jmp_buf,             monitor_jmp_buf);
 PRIVATE_NOALIGN (int,                 command_retcode)     = CL_SUCCESS;
 PRIVATE_NOALIGN (Task_Handle,         ocl_main_task);
@@ -154,7 +155,7 @@ static void process_exit_command  (ocl_msgq_message_t* msgq_msg);
 static void process_setup_debug_command(ocl_msgq_message_t* msgq_pkt);
 static void service_workgroup     (Msg_t* msg);
 static bool setup_ndr_chunks      (int dims, uint32_t* limits, uint32_t* offsets,
-                                   uint32_t *gsz, uint32_t* lsz);
+                                   uint32_t *gsz, uint32_t* lsz, uint32_t n_cores);
 static void process_configuration_message(ocl_msgq_message_t* msgq_pkt);
 static void timeout_clock_handler(UArg arg);
 static inline void setup_extended_memory(flush_msg_t* flush_msg);
@@ -175,7 +176,7 @@ static void ocl_monitor();
 
 #if defined(OMP_ENABLED)
 static void ocl_service_omp(UArg arg0, UArg arg1);
-extern tomp_initOpenMPforOpenCLPerApp(int master_core, int num_cores);
+extern tomp_initOpenMPforOpenCLPerApp(int config_master_core, int num_cores);
 extern tomp_exitOpenMPforOpenCL(void);
 extern void tomp_dispatch_once(void);
 extern void tomp_dispatch_finish(void);
@@ -192,6 +193,8 @@ void _minit(void) { }
 
 /*******************************************************************************
 * MASTER_CORE : One core acts as a master.  This macro identifies that thread
+* This macro is checking against the current master core configured by the most
+* recent kernel invocation
 *******************************************************************************/
 #define MASTER_CORE (DNUM == master_core)
 
@@ -267,7 +270,7 @@ int rtos_init_ocl_dsp_monitor(UArg argc, UArg argv)
 
         if (status < 0)
         {
-            Log_print0(Diags_INFO, "Ipc_attach failed");
+            Log_print0(Diags_USER6, "Ipc_attach failed");
             System_abort("Ipc_attach failed\n");
         }
     }
@@ -312,7 +315,7 @@ int rtos_init_ocl_dsp_monitor(UArg argc, UArg argv)
     timeout_clock = Clock_create(&timeout_clock_handler, 0, &clockParams, &eb);
     if (Error_check(&eb))
     {
-        Log_print0(Diags_INFO, "failed to create timeout clock");
+        Log_print0(Diags_USER6, "failed to create timeout clock");
         System_abort("main: failed to create timeout clock");
     }
     Clock_setTicks(0);
@@ -325,7 +328,7 @@ int rtos_init_ocl_dsp_monitor(UArg argc, UArg argv)
     sem_timeout = Semaphore_create(0, &semParams, &eb);
     if (Error_check(&eb))
     {
-        Log_print0(Diags_INFO, "failed to create ocl_timeout semaphore");
+        Log_print0(Diags_USER6, "failed to create ocl_timeout semaphore");
         System_abort("main: failed to create ocl_timeout semaphore");
     }
 
@@ -340,7 +343,7 @@ int rtos_init_ocl_dsp_monitor(UArg argc, UArg argv)
     /* create the dsp queue */
     if (!create_mqueue())
     {
-        Log_print0(Diags_INFO, "failed to create message queues");
+        Log_print0(Diags_USER6, "failed to create message queues");
         System_abort("main: create_mqueue() failed");
     }
 
@@ -491,10 +494,12 @@ static inline void reset_extended_memory(flush_msg_t* flush_msg)
 ******************************************************************************/
 static void process_task_command(ocl_msgq_message_t* msgq_pkt)
 {
-    Msg_t* Msg = &(msgq_pkt->message);
-    kernel_config_t * kcfg  = &Msg->u.k.config;
-    uint32_t  kernel_id = Msg->u.k.kernel.Kernel_id;
-    int      is_inorder = (kcfg->global_size[0] == IN_ORDER_TASK_SIZE);
+    Msg_t*              Msg             = &(msgq_pkt->message);
+    kernel_config_t *   kcfg            = &Msg->u.k.config;
+    uint32_t            kernel_id       = Msg->u.k.kernel.Kernel_id;
+    uint8_t             from_sub_device = Msg->u.k.kernel.from_sub_device;
+    int                 is_inorder      = (kcfg->global_size[0] == IN_ORDER_TASK_SIZE);
+    master_core                         = Msg->u.k.kernel.master_core;
     reset_intra_kernel_edma_channels();
 
     /*---------------------------------------------------------
@@ -531,7 +536,10 @@ static void process_task_command(ocl_msgq_message_t* msgq_pkt)
     void *   more_args      = (void *) Msg->u.k.kernel.args_on_stack_addr;
 
     #if defined(OMP_ENABLED)
-    if (is_inorder)
+    /* If this message originated from a root device, then running Omp
+     * Kernel is valid. If this message came from a sub device, then
+     * do not process Omp kernel. */
+    if (is_inorder && from_sub_device == 0)
     {
        omp_msgq_pkt = msgq_pkt;
        Semaphore_post(runOmpSem);
@@ -582,7 +590,6 @@ static void process_task_command(ocl_msgq_message_t* msgq_pkt)
        reset_extended_memory(flushMsgPtr);
        stop_counting(&(Msg->u.k.kernel.profiling));
        respond_to_host(msgq_pkt, kernel_id);
-
        flush_buffers(flushMsgPtr);
        TRACE(is_inorder ? ULM_OCL_IOT_CACHE_COHERENCE_COMPLETE :
                           ULM_OCL_OOT_CACHE_COHERENCE_COMPLETE, kernel_id, 0);
@@ -601,88 +608,106 @@ void ocl_service_omp(UArg arg0, UArg arg1)
 
     while (true)
     {
-       Semaphore_pend(runOmpSem, BIOS_WAIT_FOREVER);
+        Semaphore_pend(runOmpSem, BIOS_WAIT_FOREVER);
 
-       if (omp_msgq_pkt != NULL)
-       {
-          /*-------------------------------------------------------------------
-          * Run the in order Task.  OpenMP kernels run here.
-          *-------------------------------------------------------------------*/
-          Msg_t* Msg = &(omp_msgq_pkt->message);
-          uint32_t kernel_id = Msg->u.k.kernel.Kernel_id;
-          uint32_t more_args_size = Msg->u.k.kernel.args_on_stack_size;
-          void* more_args = (void *) Msg->u.k.kernel.args_on_stack_addr;
+        if (omp_msgq_pkt != NULL)
+        {
+            /*-------------------------------------------------------------------
+            * Run the in order Task.  OpenMP kernels run here.
+            *-------------------------------------------------------------------*/
+            Msg_t       *Msg            = &(omp_msgq_pkt->message);
+            uint32_t     kernel_id      = Msg->u.k.kernel.Kernel_id;
+            uint32_t     k_n_cores      = Msg->u.k.kernel.num_cores;
+            uint32_t     more_args_size = Msg->u.k.kernel.args_on_stack_size;
+            void        *more_args      = (void *) Msg->u.k.kernel.args_on_stack_addr;
+            flush_msg_t *flushMsgPtr    = &Msg->u.k.flush;
+            setup_extended_memory(flushMsgPtr);
 
-          flush_msg_t*  flushMsgPtr = &Msg->u.k.flush;
-          setup_extended_memory(flushMsgPtr);
+            /* For OpenMP kernels, the master core is the one that was set for the
+             * initial device configuration by a root device and not the one that
+             * may have been passed in through a kernel message from a sub device
+             * Check if we have the same configuration supplied by this kernel message
+             * */
+            if((config_master_core != master_core) || (config_n_cores != k_n_cores))
+            {
+                /* This message came from a different device than the one that
+                 * initially configured the monitor for OpenMP. Cannot proceed.
+                 * */
+                printf("TIOCL ERROR: OpenMP not supported on OpenCL sub devices\n");
+                flush_buffers(flushMsgPtr);
+                TRACE(ULM_OCL_IOT_CACHE_COHERENCE_COMPLETE, kernel_id, 0);
+                omp_msgq_pkt = NULL;
+                Semaphore_post(runOmpSem_complete);
+            }
 
-          if (MASTER_CORE)
-          {
-             TRACE(ULM_OCL_IOT_KERNEL_START, kernel_id, 0);
+            if (MASTER_CORE)
+            {
+                TRACE(ULM_OCL_IOT_KERNEL_START, kernel_id, 0);
 
-             if (!setjmp(monitor_jmp_buf))
-             {
+                if (!setjmp(monitor_jmp_buf))
+                {
+                    if (Msg->u.k.kernel.timeout_ms > 0)
+                    {
+                        Clock_setTimeout(timeout_clock, Msg->u.k.kernel.timeout_ms);
+                        Clock_start(timeout_clock);
+                    }
+
+                    dsp_rpc(&((kernel_msg_t *)&Msg->u.k.kernel)->entry_point,
+                            more_args, more_args_size);
+                    tomp_dispatch_finish();
+
+                    if (Msg->u.k.kernel.timeout_ms > 0)
+                        Clock_stop(timeout_clock);
+                }
+                else
+                {
+                    printf("Abnormal termination of In-order Task at 0x%08x\n",
+                           Msg->u.k.kernel.entry_point);
+                    tomp_dispatch_finish();
+                }
+
+                TRACE(ULM_OCL_IOT_KERNEL_COMPLETE, kernel_id, 0);
+                reset_extended_memory(flushMsgPtr);
+                stop_counting(&(Msg->u.k.kernel.profiling));
+                respond_to_host(omp_msgq_pkt, kernel_id);
+            }
+            else
+            {
                 if (Msg->u.k.kernel.timeout_ms > 0)
                 {
                     Clock_setTimeout(timeout_clock, Msg->u.k.kernel.timeout_ms);
                     Clock_start(timeout_clock);
                 }
 
-                dsp_rpc(&((kernel_msg_t *)&Msg->u.k.kernel)->entry_point,
-                         more_args, more_args_size);
-                tomp_dispatch_finish();
+                do
+                {
+                    if (!setjmp(monitor_jmp_buf))
+                        tomp_dispatch_once();
+                    else
+                    {
+                        printf("Abnormal termination of OpenMP In-order Task at 0x%08x\n",
+                               Msg->u.k.kernel.entry_point);
+                    }
+                }
+                while (!tomp_dispatch_is_finished());
 
                 if (Msg->u.k.kernel.timeout_ms > 0)
                     Clock_stop(timeout_clock);
-             }
-             else
-             {
-                printf("Abnormal termination of In-order Task at 0x%08x\n",
-                        Msg->u.k.kernel.entry_point);
-                tomp_dispatch_finish();
-             }
 
-             TRACE(ULM_OCL_IOT_KERNEL_COMPLETE, kernel_id, 0);
-             reset_extended_memory(flushMsgPtr);
-             stop_counting(&(Msg->u.k.kernel.profiling));
-             respond_to_host(omp_msgq_pkt, kernel_id);
-          }
-          else
-          {
-             if (Msg->u.k.kernel.timeout_ms > 0)
-             {
-                Clock_setTimeout(timeout_clock, Msg->u.k.kernel.timeout_ms);
-                Clock_start(timeout_clock);
-             }
+                reset_extended_memory(flushMsgPtr);
+                /* Not sending a response to host, delete the msg */
+                MessageQ_free((MessageQ_Msg)omp_msgq_pkt);
+            }
 
-             do
-             {
-                if (!setjmp(monitor_jmp_buf))
-                    tomp_dispatch_once();
-                else
-                    printf("Abnormal termination of OpenMP In-order Task at 0x%08x\n",
-                            Msg->u.k.kernel.entry_point);
-             }
-             while (!tomp_dispatch_is_finished());
-
-             if (Msg->u.k.kernel.timeout_ms > 0)
-                 Clock_stop(timeout_clock);
-
-             reset_extended_memory(flushMsgPtr);
-             /* Not sending a response to host, delete the msg */
-             MessageQ_free((MessageQ_Msg)omp_msgq_pkt);
-          }
-
-          flush_buffers(flushMsgPtr);
-          TRACE(ULM_OCL_IOT_CACHE_COHERENCE_COMPLETE, kernel_id, 0);
-
-          omp_msgq_pkt = NULL;
-          Semaphore_post(runOmpSem_complete);
-       }
-       else
-       {
-          /* Error */;
-       }
+            flush_buffers(flushMsgPtr);
+            TRACE(ULM_OCL_IOT_CACHE_COHERENCE_COMPLETE, kernel_id, 0);
+            omp_msgq_pkt = NULL;
+            Semaphore_post(runOmpSem_complete);
+        }
+        else
+        {
+            /* Error */;
+        }
     } /* while (true) */
 }
 #endif
@@ -693,8 +718,10 @@ void ocl_service_omp(UArg arg0, UArg arg1)
 ******************************************************************************/
 static void process_kernel_command(ocl_msgq_message_t *msgq_pkt)
 {
-    Msg_t           *msg = &(msgq_pkt->message);
-    kernel_config_t *cfg = &msg->u.k.config;
+    Msg_t           *msg        = &(msgq_pkt->message);
+    kernel_config_t *cfg        = &msg->u.k.config;
+    int32_t n_execution_cores   = msg->u.k.kernel.num_cores;
+    master_core                 = msg->u.k.kernel.master_core;
 
     int              done;
     uint32_t         workgroup = 0;
@@ -714,7 +741,8 @@ static void process_kernel_command(ocl_msgq_message_t *msgq_pkt)
     else
     {
         bool any_work = setup_ndr_chunks(cfg->num_dims, limits, offsets,
-                                        cfg->global_size, cfg->local_size);
+                                         cfg->global_size, cfg->local_size,
+                                         n_execution_cores);
         if (!any_work) return;
     }
 
@@ -793,9 +821,10 @@ static void process_kernel_command(ocl_msgq_message_t *msgq_pkt)
 * setup_ndr_chunks
 ******************************************************************************/
 static bool setup_ndr_chunks(int dims, uint32_t* limits, uint32_t* offsets,
-                                      uint32_t *gsz, uint32_t* lsz)
+                                      uint32_t *gsz, uint32_t* lsz,
+                                      uint32_t n_cores)
 {
-    // Degenrate case - only one core available
+    // Degenerate case - only one core available
     if (n_cores == 1)
         return true;
 
@@ -814,7 +843,10 @@ static bool setup_ndr_chunks(int dims, uint32_t* limits, uint32_t* offsets,
         {
             int wgs_core = num_wgs / num_chunks;
             int leftover = num_wgs % num_chunks;
-            int ldnum    = local_core_nums[DNUM];
+            /* ldnum (or logical DNUM) is the logical index of this core with
+             * respect to the master core for the device (or sub device) associated
+             * with this kernel execution */
+            int ldnum    = DNUM - master_core;
             // each of first "leftover" cores will get one extra wg
             limits[dims] = (wgs_core + (ldnum < leftover ? 1 : 0)) * lsz[dims];
             // each core before me will get "wgs_core" wgs, plus 1 wg in the
@@ -871,9 +903,14 @@ static void process_exit_command(ocl_msgq_message_t *msg_pkt)
 {
     enable_printf = MessageQ_INVALIDMESSAGEQ;
 
+    if (config_reference_count > 0)
+    {
+       config_reference_count -= 1;
     #if defined( OMP_ENABLED)
-    tomp_exitOpenMPforOpenCL();
+       if (config_reference_count == 0)
+          tomp_exitOpenMPforOpenCL();
     #endif
+    }
 
     /* Not sending a response to host, delete the msg */
     MessageQ_free((MessageQ_Msg)msg_pkt);
@@ -1045,7 +1082,7 @@ _CODE_ACCESS void __TI_writemsg(               unsigned char  command,
     MessageQ_setReplyQueue(dspQue,           (MessageQ_Msg)msg);
     int status = MessageQ_put(enable_printf, (MessageQ_Msg)msg);
     if (status != MessageQ_S_SUCCESS)
-        Log_print0(Diags_INFO, "__TI_writemsg: Message put failed");
+        Log_print0(Diags_USER6, "__TI_writemsg: Message put failed");
 
     return;
 }
@@ -1071,7 +1108,7 @@ static bool create_mqueue()
 
     if (dspQue == NULL)
     {
-        Log_print1(Diags_INFO,"create_mqueue: DSP %d MessageQ creation failed",
+        Log_print1(Diags_USER6,"create_mqueue: DSP %d MessageQ creation failed",
                    DNUM);
         return false;
     }
@@ -1095,29 +1132,53 @@ static void process_configuration_message(ocl_msgq_message_t* msgq_pkt)
     /* Get a pointer to the OpenCL payload in the message */
     Msg_t *ocl_msg = &(msgq_pkt->message);
 
-    n_cores = ocl_msg->u.configure_monitor.n_cores;
-    master_core = ocl_msg->u.configure_monitor.master_core;
-    memcpy(local_core_nums, ocl_msg->u.configure_monitor.local_core_nums,
-           sizeof(ocl_msg->u.configure_monitor.local_core_nums));
+    uint8_t requested_n_cores       = ocl_msg->u.configure_monitor.n_cores;
+    uint8_t requested_master_core   = ocl_msg->u.configure_monitor.master_core;
 
     MessageQ_free((MessageQ_Msg)msgq_pkt);
 
-    /* Do this early since the heap is initialized by OpenMP */
-    #if defined(OMP_ENABLED)
-    Log_print2(Diags_INFO,"Configuring OpenMP (%d, %d)\n", master_core,n_cores);
+    Log_print2(Diags_INFO,"Configuring Monitor (%d, %d)\n", 
+            requested_master_core, requested_n_cores);
 
-    if (tomp_initOpenMPforOpenCLPerApp(master_core, n_cores) < 0)
+    // Multiple processes may try to launch OpenCL/MP kernels.  
+    // The reference_count tracks how many processes are currently 
+    // using the OpenCL runtime.
+    if (config_reference_count == 0)
     {
-        Log_print0(Diags_INFO, "tomp_initOpenMPforOpenCL() failed");
-        System_abort("main: tomp_initOpenMPforOpenCL() failed");
+        config_master_core      = requested_master_core;
+        config_n_cores          = requested_n_cores;
+        config_reference_count  = 1;
+
+        /* Do this early since the heap is initialized by OpenMP */
+        #if defined(OMP_ENABLED)
+        if (tomp_initOpenMPforOpenCLPerApp(config_master_core, config_n_cores) < 0)
+        {
+            Log_print0(Diags_USER6, "tomp_initOpenMPforOpenCL() failed");
+            System_abort("main: tomp_initOpenMPforOpenCL() failed");
+        }
+        Log_print0(Diags_INFO, "Initialized OpenMP.\n");
+        #endif
     }
-    #endif
+    else
+    {
+        // A new process cannot change the current configuration 
+        // of the Monitor.  Fix this to recover more gracefully.
+        if (!(requested_master_core == config_master_core &&
+              requested_n_cores == config_n_cores))
+        {
+            Log_print2(Diags_USER6, "Reconfiguring Monitor (%d, %d) failed\n",
+                    requested_master_core, requested_n_cores);
+            System_abort("main: Reconfiguring Monitor failed");
+        }
+        Log_print0(Diags_INFO, "Incremented Monitor reference count.\n");
+        config_reference_count++;
+    }
 
     if (!edmamgr_initialized)
     {
         if (!initialize_edmamgr())
         {
-            Log_print0(Diags_INFO, "failed to initialize EdmaMgr");
+            Log_print0(Diags_USER6, "failed to initialize EdmaMgr");
             System_abort("EDMAMgr initialization failed\n");
         }
 
@@ -1125,7 +1186,7 @@ static void process_configuration_message(ocl_msgq_message_t* msgq_pkt)
         edmamgr_initialized = true;
     }
 
-    Log_print1(Diags_INFO, "\t (%d cores)\n", n_cores);
+    Log_print1(Diags_INFO, "\t (%d cores)\n", config_n_cores);
 }
 
 void __kernel_exit(int status)
@@ -1168,9 +1229,9 @@ void ocl_timeout(UArg arg0, UArg arg1)
         Semaphore_pend(sem_timeout, BIOS_WAIT_FOREVER);
         Log_print0(Diags_INFO, "--> ocl_timeout: kill&restart");
 
-        uint32_t  kernel_id = ocl_msgq_pkt->message.u.k.kernel.Kernel_id;
-        int       is_task   = (ocl_msgq_pkt->message.command == TASK);
-        int       is_inorder = (ocl_msgq_pkt->message.u.k.config.global_size[0]
+        uint32_t  kernel_id     = ocl_msgq_pkt->message.u.k.kernel.Kernel_id;
+        int       is_task       = (ocl_msgq_pkt->message.command == TASK);
+        int       is_inorder    = (ocl_msgq_pkt->message.u.k.config.global_size[0]
                                 == IN_ORDER_TASK_SIZE);
 
         reset_extended_memory(&ocl_msgq_pkt->message.u.k.flush);
@@ -1253,7 +1314,7 @@ Task_Handle create_task(Task_FuncPtr fxn, char *name, int priority,
     taskParams.stack = (xdc_Ptr) stack;
     task = Task_create(fxn, &taskParams, &eb);
     if (Error_check(&eb)) {
-        Log_print1(Diags_INFO, "create_task: failed to create %s",
+        Log_print1(Diags_USER6, "create_task: failed to create %s",
                    (xdc_IArg) name);
         System_abort("create_task failed");
     }
@@ -1281,7 +1342,7 @@ void start_counting_memory_events(profiling_t *profiling)
     AET_init();
     if (profiling_status = AET_claim())
     {
-        Log_print1(Diags_INFO, "AET CLAIM FAILED: %d", profiling_status);
+        Log_print1(Diags_USER6, "AET CLAIM FAILED: %d", profiling_status);
         return;
     }
 
@@ -1302,7 +1363,7 @@ void start_counting_memory_events(profiling_t *profiling)
     if (profiling_status = AET_setupJob(AET_JOB_TRIG_ON_EVENTS,
                                         &aet_job_params))
     {
-        Log_print1(Diags_INFO, "AET SETUP JOB FAILED: %d", profiling_status);
+        Log_print1(Diags_USER6, "AET SETUP JOB FAILED: %d", profiling_status);
         return;
     }
     profiling_job1_index = aet_job_params.jobIndex;
@@ -1326,7 +1387,7 @@ void start_counting_memory_events(profiling_t *profiling)
         if(profiling_status = AET_setupJob(AET_JOB_TRIG_ON_EVENTS,
                                            &aet_job_params))
         {
-            Log_print1(Diags_INFO, "AET SETUP JOB 2 FAILED: %d",
+            Log_print1(Diags_USER6, "AET SETUP JOB 2 FAILED: %d",
                        profiling_status);
             return;
         }
@@ -1336,7 +1397,7 @@ void start_counting_memory_events(profiling_t *profiling)
     // enable AET
     if (profiling_status = AET_enable())
     {
-        Log_print1(Diags_INFO, "AET ENABLE FAILED: %d", profiling_status);
+        Log_print1(Diags_USER6, "AET ENABLE FAILED: %d", profiling_status);
         return;
     }
     return;
@@ -1353,7 +1414,7 @@ void start_counting_stall_events(profiling_t *profiling)
     AET_init();
     if (profiling_status = AET_claim())
     {
-        Log_print1(Diags_INFO, "AET Claim FAILED: %d", profiling_status);
+        Log_print1(Diags_USER6, "AET Claim FAILED: %d", profiling_status);
         return;
     }
 
@@ -1378,7 +1439,7 @@ void start_counting_stall_events(profiling_t *profiling)
     if (profiling_status = AET_setupJob(AET_JOB_COUNT_STALLS,
                                         &aet_job_params))
     {
-        Log_print1(Diags_INFO, "AET SETUP JOB FAILED: %d", profiling_status);
+        Log_print1(Diags_USER6, "AET SETUP JOB FAILED: %d", profiling_status);
         return;
     }
     profiling_job1_index = aet_job_params.jobIndex;
@@ -1386,7 +1447,7 @@ void start_counting_stall_events(profiling_t *profiling)
     /* enable AET */
     if (profiling_status = AET_enable())
     {
-        Log_print1(Diags_INFO, "AET ENABLE FAILED: %d", profiling_status);
+        Log_print1(Diags_USER6, "AET ENABLE FAILED: %d", profiling_status);
         return;
     }
     return;

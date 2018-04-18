@@ -81,11 +81,6 @@ bool CPUProgram::linkStdLib() const
     return true;
 }
 
-void CPUProgram::createOptimizationPasses(llvm::PassManager *manager,
-                                          bool optimize, bool hasBarrier)
-{
-}
-
 bool CPUProgram::build(llvm::Module *module, std::string *binary_str,
                        char *binary_filename)
 {

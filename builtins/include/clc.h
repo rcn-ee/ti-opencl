@@ -377,7 +377,7 @@ _CLC_PROTECTED void   write_mem_fence  (cl_mem_fence_flags __flags);
 #define as_double16(__x)  __builtin_astype(__x, double16)
 
 #define _CLC_CONVERT_DECL(_FROM_TYPE, _TO_TYPE, _SUFFIX) \
-  _CLC_OVERLOAD _CLC_DECL _TO_TYPE convert_##_TO_TYPE##_SUFFIX(_FROM_TYPE __x);
+  _CLC_OVERLOAD _CLC_INLINE _CLC_DECL _TO_TYPE convert_##_TO_TYPE##_SUFFIX(_FROM_TYPE __x);
 
 #define _CLC_VECTOR_CONVERT_DECL(_FROM_TYPE, _TO_TYPE, _SUFFIX) \
   _CLC_CONVERT_DECL(_FROM_TYPE, _TO_TYPE, _SUFFIX) \

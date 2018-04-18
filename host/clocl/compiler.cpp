@@ -94,7 +94,11 @@ bool Compiler::compile(const std::string &options,
     }
     else
     {
-        codegen_opts.setDebugInfo(clang::CodeGenOptions::NoDebugInfo);
+        if (opt_symbols)
+            codegen_opts.setDebugInfo(clang::CodeGenOptions::FullDebugInfo);
+        else
+            codegen_opts.setDebugInfo(clang::CodeGenOptions::NoDebugInfo);
+
         codegen_opts.OptimizationLevel = 2;
         lang_opts.Optimize  = true;
     }

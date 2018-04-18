@@ -122,6 +122,9 @@ static const std::map<const ErrorKind, const std::string> ErrorStrings =
     {ErrorKind::MessageQueueCountMismatch,
      "Internal Error: Number of message queues (%d) does not match number of compute units (%d)"},
 
+    {ErrorKind::FailedToOpenEVEMessageQ,
+     "Failed to open EVE message queue"},
+
     {ErrorKind::LostDSP,
      "Communication to a DSP has been lost (likely due to an MMU fault).%s"},
 
@@ -133,6 +136,24 @@ static const std::map<const ErrorKind, const std::string> ErrorStrings =
 
     {ErrorKind::DaemonConfigOpenError,
      "Cannot parse mctd config file /etc/ti-mctd/ti_mctd_config.json. It is either missing or incorrect. Please check."},
+
+    {ErrorKind::KernelArgSizeZero,
+     "Kernel argument size of 0 not allowed."},
+
+    {ErrorKind::KernelArgSizeTooBig,
+     "Kernel argument size larger than %d not supported on %s device."},
+
+    {ErrorKind::KernelArgSizesMaxExceeded,
+     "Total size of kernel arguments exceeds allowed maximum (%d bytes) on %s device."},
+
+    {ErrorKind::KernelArgImageNotSupported,
+     "Image kernel argument not yet supported."},
+
+    {ErrorKind::TempMemAllocationFailed,
+     "Temporary memory for CL_MEM_USE_HOST_PTR buffer exceeds available global memory."},
+
+    {ErrorKind::InfoMessage,
+     "%s."},
 
     {ErrorKind::InfoMessage2,
      "%s%s."},

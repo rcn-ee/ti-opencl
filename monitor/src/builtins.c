@@ -43,9 +43,9 @@ far uint32_t l1d_size  = (uint32_t) &ocl_l1d_mem_size;
 *                     e.g. cu list: 0,1,2,3  -> local core num: 0, 1, 2, 3
 *                     e.g. cu list: 4,5,6,7  -> local core num: 0, 1, 2, 3
 ******************************************************************************/
-extern uint8_t local_core_nums[MAX_NUM_CORES];
+extern uint8_t master_core;
 EXPORT int __core_num()       { return DNUM; }
-EXPORT int __local_core_num() { return local_core_nums[DNUM]; }
+EXPORT int __local_core_num() { return DNUM - master_core; }
 
 EXPORT void*  __scratch_l1d_start() { return l1d_start; }
 

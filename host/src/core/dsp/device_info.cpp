@@ -29,10 +29,15 @@
 #include <cstdlib>
 #ifndef _SYS_BIOS
 #include <dirent.h>
+#include <sys/mman.h>
+#include <sys/types.h>
+#include <fcntl.h>
+#include <unistd.h>
 #endif
 #include <string>
 #include <iostream>
 #include <sstream>
+#include <sys/stat.h>
 
 #include "../tiocl_thread.h"
 #ifdef _SYS_BIOS
@@ -73,11 +78,12 @@ DeviceInfo::DeviceInfo()
     num_devices_ = 1;
 
     #if !defined(_SYS_BIOS)
+    // EVE device/program will not use this for symbol lookup
     symbol_lookup_ = CreateSymbolAddressLookup(FullyQualifiedPathToDspMonitor());
     #endif
 
     ComputeUnits_CmemBlocks_Available();
-
+    EVEDevicesAvailable();
 }
 
 DeviceInfo::~DeviceInfo()
@@ -130,10 +136,10 @@ void DeviceInfo::ComputeUnits_CmemBlocks_Available()
     cmem_block_offchip_ = oclcfg.GetCmemBlockOffChip();
     cmem_block_onchip_  = oclcfg.GetCmemBlockOnChip();
 
-    std::set<uint8_t> sysdsps = oclcfg.GetCompUnits();
+    DSPCoreSet sysdsps = oclcfg.GetCompUnits();
     if (comp_unit)
     {
-      std::set<uint8_t> userdsps = available_compute_units_;
+      DSPCoreSet userdsps = available_compute_units_;
       available_compute_units_.clear();
       std::set_intersection(userdsps.begin(), userdsps.end(),
                             sysdsps.begin(), sysdsps.end(),
@@ -149,7 +155,45 @@ void DeviceInfo::ComputeUnits_CmemBlocks_Available()
     num_compute_units_ = available_compute_units_.size();
 }
 
-#include <sys/stat.h>
+// Check which board we are on and determine number of EVE devices
+// available to the OpenCL runtime.
+void DeviceInfo::EVEDevicesAvailable()
+{
+    num_eve_devices_ = 0;
+
+    #if defined(DEVICE_AM57) && !defined(_SYS_BIOS)
+    int mem_fd = open("/dev/mem", O_RDONLY);
+    if (mem_fd == -1)
+        ReportError(ErrorType::Fatal, ErrorKind::FailedToOpenFileName,
+                    "/dev/mem");
+
+    #define CTRL_WKUP_STD_FUSE_DIE_ID_2  0x4AE0C20C
+    int pagesize = sysconf(_SC_PAGESIZE);
+    int offset = CTRL_WKUP_STD_FUSE_DIE_ID_2 % pagesize;
+    int begin  = CTRL_WKUP_STD_FUSE_DIE_ID_2 - offset;
+    void *addr = mmap(NULL, pagesize, PROT_READ, MAP_PRIVATE, mem_fd, begin);
+    if (addr == MAP_FAILED)
+    {
+        close(mem_fd);
+        ReportError(ErrorType::Fatal, ErrorKind::ShouldNotGetHere,
+                    __FILE__, __LINE__);
+    }
+    uint32_t board_type = (  *(((uint32_t *) addr) + (offset >> 2))
+                           & 0xFF000000 ) >> 24;
+    munmap(addr, pagesize);
+    close(mem_fd);
+
+    if (     board_type == 0x3E ||  // AM5729-E (EtherCat)
+             board_type == 0x4E)    // AM5729
+        num_eve_devices_ = 4;
+    else if (board_type == 0x5F ||  // AM5749-E (EtherCat)
+             board_type == 0xA6 ||  // AM5749
+             board_type == 0x69)    // AM5749IDK (shown on package sticker)
+                                    // (data sheet: 0x69 is Jacinto 6 Plus)
+        num_eve_devices_ = 2;
+    #endif
+}
+
 static std::string get_ocl_dsp()
 {
     std::string stdpath("/usr/share/ti/opencl");

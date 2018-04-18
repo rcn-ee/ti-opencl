@@ -288,6 +288,7 @@ public:
 #define __SET_KERNEL_ARGS_ERR               __ERR_STR(clSetKernelArg)
 #define __CREATE_PROGRAM_WITH_SOURCE_ERR    __ERR_STR(clCreateProgramWithSource)
 #define __CREATE_PROGRAM_WITH_BINARY_ERR    __ERR_STR(clCreateProgramWithBinary)
+#define __CREATE_PROGRAM_WITH_BUILT_IN_KERNELS_ERR __ERR_STR(clCreateProgramWithBuiltInKernels)
 #define __BUILD_PROGRAM_ERR                 __ERR_STR(clBuildProgram)
 #define __CREATE_KERNELS_IN_PROGRAM_ERR     __ERR_STR(clCreateKernelsInProgram)
 
@@ -684,13 +685,41 @@ public:
     }
 };  
     
-/*!
- * \brief size_t class used to interface between C++ and
- * OpenCL C calls that require arrays of size_t values, who's
- * size is known statically.
+/*! \brief class used to interface between C++ and
+ *  OpenCL C calls that require arrays of size_t values, whose
+ *  size is known statically.
  */
 template <int N>
-struct size_t : public cl::vector< ::size_t, N> { };
+class size_t
+{ 
+private:
+    ::size_t data_[N];
+
+public:
+    //! \brief Initialize size_t to all 0s
+    size_t()
+    {
+        for( int i = 0; i < N; ++i ) {
+            data_[i] = 0;
+        }
+    }
+
+    ::size_t& operator[](int index)
+    {
+        return data_[index];
+    }
+
+    const ::size_t& operator[](int index) const
+    {
+        return data_[index];
+    }
+
+    //! \brief Conversion operator to T*.
+    operator ::size_t* ()             { return data_; }
+
+    //! \brief Conversion operator to const T*.
+    operator const ::size_t* () const { return data_; }
+};
 
 namespace detail {
 
@@ -920,14 +949,17 @@ struct GetInfoHelper<Func, CPP_TYPE> \
     F(cl_device_info, CL_DEVICE_DOUBLE_FP_CONFIG, cl_device_fp_config) \
     F(cl_device_info, CL_DEVICE_HALF_FP_CONFIG, cl_device_fp_config) \
     F(cl_device_info, CL_DEVICE_HOST_UNIFIED_MEMORY, cl_bool) \
+    F(cl_device_info, CL_DEVICE_OPENCL_C_VERSION, STRING_CLASS) \
     \
     F(cl_mem_info, CL_MEM_ASSOCIATED_MEMOBJECT, cl::Memory) \
     F(cl_mem_info, CL_MEM_OFFSET, ::size_t) \
     \
     F(cl_kernel_work_group_info, CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE, ::size_t) \
     F(cl_kernel_work_group_info, CL_KERNEL_PRIVATE_MEM_SIZE, cl_ulong) \
+    F(cl_kernel_work_group_info, CL_KERNEL_GLOBAL_WORK_SIZE, cl::size_t<3>) \
     \
-    F(cl_event_info, CL_EVENT_CONTEXT, cl::Context)
+    F(cl_event_info, CL_EVENT_CONTEXT, cl::Context) \
+    F(cl_device_info, CL_DEVICE_BUILT_IN_KERNELS, STRING_CLASS)
 #endif // CL_VERSION_1_1
 
 #if defined(USE_CL_DEVICE_FISSION)
@@ -2250,25 +2282,33 @@ public:
     NDRange(::size_t size0)
         : dimensions_(1)
     {
-        sizes_.push_back(size0);
+        sizes_[0] = size0;
     }
 
     NDRange(::size_t size0, ::size_t size1)
         : dimensions_(2)
     {
-        sizes_.push_back(size0);
-        sizes_.push_back(size1);
+        sizes_[0] = size0;
+        sizes_[1] = size1;
     }
 
     NDRange(::size_t size0, ::size_t size1, ::size_t size2)
         : dimensions_(3)
     {
-        sizes_.push_back(size0);
-        sizes_.push_back(size1);
-        sizes_.push_back(size2);
+        sizes_[0] = size0;
+        sizes_[1] = size1;
+        sizes_[2] = size2;
     }
 
-    operator const ::size_t*() const { return (const ::size_t*) sizes_; }
+    /*! \brief Conversion operator to const ::size_t *.
+     *  
+     *  \returns a pointer to the size of the first dimension.
+     */
+    operator const ::size_t*() const { 
+        return (const ::size_t*) sizes_; 
+    }
+
+    //! \brief Queries the number of dimensions in the range.
     ::size_t dimensions() const { return dimensions_; }
 };
 
@@ -2470,6 +2510,38 @@ public:
                : NULL, &error);
 
         detail::errHandler(error, __CREATE_PROGRAM_WITH_BINARY_ERR);
+        if (err != NULL) {
+            *err = error;
+        }
+    }
+
+    /**
+     * Create program using builtin kernels.
+     * \param kernelNames Semi-colon separated list of builtin kernel names
+     */
+    Program(
+        const Context& context,
+        const VECTOR_CLASS<Device>& devices,
+        const STRING_CLASS& kernelNames,
+        cl_int* err = NULL)
+    {
+        cl_int error;
+
+
+        ::size_t numDevices = devices.size();
+        cl_device_id* deviceIDs = (cl_device_id*) alloca(numDevices * sizeof(cl_device_id));
+        for( ::size_t deviceIndex = 0; deviceIndex < numDevices; ++deviceIndex ) {
+            deviceIDs[deviceIndex] = (devices[deviceIndex])();
+        }
+        
+        object_ = ::clCreateProgramWithBuiltInKernels(
+            context(), 
+            (cl_uint) devices.size(),
+            deviceIDs,
+            kernelNames.c_str(), 
+            &error);
+
+        detail::errHandler(error, __CREATE_PROGRAM_WITH_BUILT_IN_KERNELS_ERR);
         if (err != NULL) {
             *err = error;
         }

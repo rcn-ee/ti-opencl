@@ -1,10 +1,30 @@
 /******************************************************************************
-* Copyright (c) 2012-2016, Texas Instruments Incorporated
-* All rights reserved.
-*
-* Property of Texas Instruments Incorporated. Restricted rights to use,
-* duplicate or disclose this code are granted through contract.
-******************************************************************************/
+ * Copyright (c) 2013-2018, Texas Instruments Incorporated - http://www.ti.com/
+ *   All rights reserved.
+ *
+ *   Redistribution and use in source and binary forms, with or without
+ *   modification, are permitted provided that the following conditions are met:
+ *       * Redistributions of source code must retain the above copyright
+ *         notice, this list of conditions and the following disclaimer.
+ *       * Redistributions in binary form must reproduce the above copyright
+ *         notice, this list of conditions and the following disclaimer in the
+ *         documentation and/or other materials provided with the distribution.
+ *       * Neither the name of Texas Instruments Incorporated nor the
+ *         names of its contributors may be used to endorse or promote products
+ *         derived from this software without specific prior written permission.
+ *
+ *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ *   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ *   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ *   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ *   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ *   SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ *   INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ *   CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ *   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+ *   THE POSSIBILITY OF SUCH DAMAGE.
+ *****************************************************************************/
 #ifndef _CORE_SCHEDULER_H
 #define _CORE_SCHEDULER_H
 
@@ -12,36 +32,52 @@
 #include <stdint.h>
 
 #include <algorithm>
-#include <array>
+#include <map>
 #include <iostream>
 
 #include "u_lockable.h"
+#include "../tiocl_types.h"
+
+typedef std::pair<uint8_t, int> CountType;
+struct CompareCount
+{
+    bool operator()(const CountType& left, const CountType& right) const
+    {
+        return left.second < right.second;
+    }
+};
+
+#define CORE_SCHEDULER_DEFAULT_DEPTH    4
 
 /******************************************************************************
-* CoreScheduler : 
+* CoreScheduler :
 ******************************************************************************/
 class CoreScheduler : public Lockable
 {
-  public:
-    CoreScheduler(uint32_t num_cores, uint32_t depth)
-        : num_cores_(num_cores), depth_(depth), total_count_(0)
-    { count_.fill(0); }
+public:
+    CoreScheduler(DSPCoreSet& compute_units, uint32_t depth)
+        : depth_(depth)
+    {
+        for (auto & core : compute_units)
+        {
+            count_[uint32_t(core)] = 0;
+        }
+    }
 
     /*-------------------------------------------------------------------------
     * Do not allow default construction, copy construction or assignment
     *------------------------------------------------------------------------*/
-    CoreScheduler() =delete;
-    CoreScheduler(const CoreScheduler&) =delete;
-    CoreScheduler& operator=(const CoreScheduler&) =delete;
+    CoreScheduler()                                                 = delete;
+    CoreScheduler(const CoreScheduler&)                             = delete;
+    CoreScheduler& operator=(const CoreScheduler&)                  = delete;
 
     /*-------------------------------------------------------------------------
-    * allocate any available core
+    * allocate any available core in the given set of compute units
     *------------------------------------------------------------------------*/
-    uint32_t allocate()
+    uint32_t allocate(const DSPCoreSet& compute_units)
     {
         Lock lock(this);
-
-        while (!any_core_available()) cv_.wait(lock.raw());
+        while (!any_core_available(compute_units)) cv_.wait(lock.raw());
         uint32_t core = core_select();
         core_reserve(core);
         return core;
@@ -53,7 +89,6 @@ class CoreScheduler : public Lockable
     uint32_t allocate(uint32_t core)
     {
         Lock lock(this);
-
         while (!core_available(core)) cv_.wait(lock.raw());
         core_reserve(core);
         return core;
@@ -65,8 +100,8 @@ class CoreScheduler : public Lockable
     void free(uint32_t core)
     {
         Lock lock(this);
-
-        assert(core < num_cores_);
+        /* Check if given core is in one of the compute units for this device */
+        assert(count_.find(core) != count_.end());
         core_release(core);
         cv_.notify_one();
     }
@@ -74,26 +109,33 @@ class CoreScheduler : public Lockable
     /*-------------------------------------------------------------------------
     * Class private data and functions
     *------------------------------------------------------------------------*/
-  private:
-     uint32_t                  num_cores_;
-     uint32_t                  depth_;
-     uint32_t                  total_count_;
-     std::array<uint32_t, 32>  count_;
-     CondVar                   cv_;
+private:
+    uint32_t                  depth_;
+    std::map<uint32_t, int>   count_;
+    CondVar                   cv_;
 
-     /*------------------------------------------------------------------------
-     * These are only called from public member functions who have already 
-     * locked a mutex, so no mutex locking is needed here.
-     *-----------------------------------------------------------------------*/
-     uint32_t any_core_available() const { return total_count_ < (num_cores_ * depth_); }
-     uint32_t core_available(uint32_t core) { return count_[core] < depth_; }
-     void     core_reserve  (uint32_t core) { count_[core]++; total_count_++; }
-     void     core_release  (uint32_t core) { count_[core]--; total_count_--; }
-     uint32_t core_select() const
-     {
-         auto it  = std::min_element(count_.begin(), count_.begin() + num_cores_);
-         return std::distance(count_.begin(), it);
-     }
+    /*------------------------------------------------------------------------
+    * These are only called from public member functions who have already
+    * locked a mutex, so no mutex locking is needed here.
+    *-----------------------------------------------------------------------*/
+    uint32_t any_core_available(const DSPCoreSet& compute_units)
+    {
+        int32_t total_capacity = compute_units.size() * depth_;
+        int32_t current_capacity = 0;
+        for (auto & core : compute_units)
+        {
+            current_capacity += count_[uint32_t(core)];
+        }
+        return current_capacity < total_capacity;
+    }
+    uint32_t core_available(uint32_t core)  {return count_[core] < depth_;}
+    void     core_reserve(uint32_t core)    {count_[core]++;}
+    void     core_release(uint32_t core)    {count_[core]--;}
+    uint32_t core_select() const
+    {
+        auto it  = std::min_element(count_.begin(), count_.end(), CompareCount());
+        return it->first;
+    }
 };
 
 #endif //_CORE_SCHEDULER_H

@@ -82,6 +82,7 @@ $(LIBM):
 BUILTINS_DIR=../builtins
 BUILTINS=$(BUILTINS_DIR)/dsp.lib
 
+
 $(BUILTINS): 
 	$(MAKE) -C $(BUILTINS_DIR)
 
@@ -91,7 +92,9 @@ $(BUILTINS):
 
 SOURCES = monitor.c util.c dsp_rpc.asm touch.asm builtins.c \
           edma.c edma3_tci66ak2g02_cfg.c device_k2g.c
-HEADERS = src/monitor.h src/util.h src/trace.h src/edma.h
+HEADERS = src/edma.h src/monitor.h src/util.h src/trace.h \
+          $(OPENCL_SRC_DIR)/src/core/dsp/message.h \
+          $(OPENCL_SRC_DIR)/src/core/dsp/tal/mbox_msgq_shared.h
 
 OBJS1=$(patsubst %.c,$(BUILD)/%.obj,$(SOURCES))
 OBJS=$(patsubst %.asm,$(BUILD)/%.obj,$(OBJS1))
@@ -105,7 +108,7 @@ SEDCMD = \
 CC= $(TI_OCL_CGT_INSTALL)/bin/cl6x -o3 -mv6600 --abi=eabi --gcc --mem_model:const=data --mem_model:data=far -fr=$(BUILD)
 #CC= $(TI_OCL_CGT_INSTALL)/bin/cl6x -o0 -g -mv6600 --abi=eabi --gcc --mem_model:const=data --mem_model:data=far -fr=$(BUILD)
 
-$(OUT): $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD) $(LIBS)
+$(OUT): $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD) $(LNK_DEFS) $(LIBS)
 	@echo Linking $(PLATFORM)
 	@$(CC) -z --priority -w -x -m$(BUILD)/dsp.map --define=DDR3_FCSECTION=DDR3_FC $^ -I$(TI_OCL_CGT_INSTALL)/lib -llibc.a -o $(OUT)
 	@echo Creating dsp.syms
@@ -121,8 +124,6 @@ $(BUILD)/%.obj : src/%.c $(COMP_OPTS) $(HEADERS)
 $(BUILD)/%.obj : src/%.asm $(COMP_OPTS)
 	@echo Compiling $<
 	@$(CC) -@$(COMP_OPTS) $(INCLUDES) -c $< 
-
-$(BUILD)/monitor.obj:  $(OPENCL_SRC_DIR)/src/core/dsp/message.h
 
 
 #--------------------------------------------------------------------------

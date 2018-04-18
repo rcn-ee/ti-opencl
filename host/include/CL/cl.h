@@ -58,6 +58,8 @@ typedef cl_uint             cl_device_mem_cache_type;
 typedef cl_uint             cl_device_local_mem_type;
 typedef cl_bitfield         cl_device_exec_capabilities;
 typedef cl_bitfield         cl_command_queue_properties;
+typedef intptr_t            cl_device_partition_property;
+typedef cl_bitfield         cl_device_affinity_domain;
 
 typedef intptr_t			cl_context_properties;
 typedef cl_uint             cl_context_info;
@@ -111,6 +113,7 @@ typedef struct _cl_buffer_region {
 #define CL_MAP_FAILURE                              -12
 #define CL_MISALIGNED_SUB_BUFFER_OFFSET             -13
 #define CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST -14
+#define CL_DEVICE_PARTITION_FAILED                  -18
 
 #define CL_INVALID_VALUE                            -30
 #define CL_INVALID_DEVICE_TYPE                      -31
@@ -147,6 +150,7 @@ typedef struct _cl_buffer_region {
 #define CL_INVALID_MIP_LEVEL                        -62
 #define CL_INVALID_GLOBAL_WORK_SIZE                 -63
 #define CL_INVALID_PROPERTY                         -64
+#define CL_INVALID_DEVICE_PARTITION_COUNT           -68
 
 /* OpenCL Version */
 #define CL_VERSION_1_0                              1
@@ -170,6 +174,7 @@ typedef struct _cl_buffer_region {
 #define CL_DEVICE_TYPE_CPU                          (1 << 1)
 #define CL_DEVICE_TYPE_GPU                          (1 << 2)
 #define CL_DEVICE_TYPE_ACCELERATOR                  (1 << 3)
+#define CL_DEVICE_TYPE_CUSTOM                       (1 << 4)
 #define CL_DEVICE_TYPE_ALL                          0xFFFFFFFF
 
 /* cl_device_info */
@@ -235,6 +240,13 @@ typedef struct _cl_buffer_region {
 #define CL_DEVICE_NATIVE_VECTOR_WIDTH_DOUBLE        0x103B
 #define CL_DEVICE_NATIVE_VECTOR_WIDTH_HALF          0x103C
 #define CL_DEVICE_OPENCL_C_VERSION                  0x103D
+#define CL_DEVICE_BUILT_IN_KERNELS                  0x103F
+#define CL_DEVICE_PARENT_DEVICE                     0x1042
+#define CL_DEVICE_PARTITION_MAX_SUB_DEVICES         0x1043
+#define CL_DEVICE_PARTITION_PROPERTIES              0x1044
+#define CL_DEVICE_PARTITION_AFFINITY_DOMAIN         0x1045
+#define CL_DEVICE_PARTITION_TYPE                    0x1046
+#define CL_DEVICE_REFERENCE_COUNT                   0x1047
 
 /* cl_device_fp_config - bitfield */
 #define CL_FP_DENORM                                (1 << 0)
@@ -270,6 +282,21 @@ typedef struct _cl_buffer_region {
 
 /* cl_context_info + cl_context_properties */
 #define CL_CONTEXT_PLATFORM                         0x1084
+
+
+/* cl_device_partition_property */
+#define CL_DEVICE_PARTITION_EQUALLY                 0x1086
+#define CL_DEVICE_PARTITION_BY_COUNTS               0x1087
+#define CL_DEVICE_PARTITION_BY_COUNTS_LIST_END      0x0
+#define CL_DEVICE_PARTITION_BY_AFFINITY_DOMAIN      0x1088
+
+/* cl_device_affinity_domain */
+#define CL_DEVICE_AFFINITY_DOMAIN_NUMA                     (1 << 0)
+#define CL_DEVICE_AFFINITY_DOMAIN_L4_CACHE                 (1 << 1)
+#define CL_DEVICE_AFFINITY_DOMAIN_L3_CACHE                 (1 << 2)
+#define CL_DEVICE_AFFINITY_DOMAIN_L2_CACHE                 (1 << 3)
+#define CL_DEVICE_AFFINITY_DOMAIN_L1_CACHE                 (1 << 4)
+#define CL_DEVICE_AFFINITY_DOMAIN_NEXT_PARTITIONABLE       (1 << 5)
 
 /* cl_command_queue_info */
 #define CL_QUEUE_CONTEXT                            0x1090
@@ -397,6 +424,7 @@ typedef struct _cl_buffer_region {
 #define CL_KERNEL_LOCAL_MEM_SIZE                    0x11B2
 #define CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE 0x11B3
 #define CL_KERNEL_PRIVATE_MEM_SIZE                  0x11B4
+#define CL_KERNEL_GLOBAL_WORK_SIZE                  0x11B5
 
 /* cl_event_info  */
 #define CL_EVENT_COMMAND_QUEUE                      0x11D0
@@ -473,6 +501,19 @@ clGetDeviceInfo(cl_device_id    /* device */,
                 size_t          /* param_value_size */, 
                 void *          /* param_value */,
                 size_t *        /* param_value_size_ret */) CL_API_SUFFIX__VERSION_1_0;
+
+extern CL_API_ENTRY cl_int CL_API_CALL
+clCreateSubDevices(cl_device_id                         /* in_device */,
+                   const cl_device_partition_property * /* properties */,
+                   cl_uint                              /* num_devices */,
+                   cl_device_id *                       /* out_devices */,
+                   cl_uint *                            /* num_devices_ret */) CL_API_SUFFIX__VERSION_1_2;
+
+extern CL_API_ENTRY cl_int CL_API_CALL
+clRetainDevice(cl_device_id /* device */) CL_API_SUFFIX__VERSION_1_2;
+
+extern CL_API_ENTRY cl_int CL_API_CALL
+clReleaseDevice(cl_device_id /* device */) CL_API_SUFFIX__VERSION_1_2;
 
 /* Context APIs  */
 extern CL_API_ENTRY cl_context CL_API_CALL
@@ -649,6 +690,13 @@ clCreateProgramWithBinary(cl_context                     /* context */,
                           const unsigned char **         /* binaries */,
                           cl_int *                       /* binary_status */,
                           cl_int *                       /* errcode_ret */) CL_API_SUFFIX__VERSION_1_0;
+
+extern CL_API_ENTRY cl_program CL_API_CALL
+clCreateProgramWithBuiltInKernels(cl_context            /* context */,
+                                  cl_uint               /* num_devices */,
+                                  const cl_device_id *  /* device_list */,
+                                  const char *          /* kernel_names */,
+                                  cl_int *              /* errcode_ret */) CL_API_SUFFIX__VERSION_1_1;
 
 extern CL_API_ENTRY cl_int CL_API_CALL
 clRetainProgram(cl_program /* program */) CL_API_SUFFIX__VERSION_1_0;

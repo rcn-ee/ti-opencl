@@ -1,7 +1,7 @@
 # Build monitor
 
 if(BUILD_OUTPUT STREQUAL "all" )
-    install(CODE "execute_process(COMMAND make -f Makefile -j4 BUILD_TARGET=${BUILD_TARGET} BUILD_OS=${BUILD_OS} WORKING_DIRECTORY ${OCL_MONITOR_DIR})")
+    install(CODE "execute_process(COMMAND make -f Makefile -j4 BUILD_TARGET=${BUILD_TARGET} BUILD_OS=${BUILD_OS} BUILD_DLA_FIRMWARE=${BUILD_DLA_FIRMWARE} WORKING_DIRECTORY ${OCL_MONITOR_DIR})")
 endif()
 
 # Install monitor, linker command file, and symbols

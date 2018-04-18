@@ -84,6 +84,7 @@ public:
     int32_t Unmap(void *host_addr, uint64_t buf_addr,
                   size_t sz, bool is_write) override;
 
+    uint64_t HeapBase(MemoryRange::Kind k, MemoryRange::Location l) override;
     uint64_t HeapSize(MemoryRange::Kind k, MemoryRange::Location l) override;
     uint64_t HeapMaxAllocSize(MemoryRange::Kind k, MemoryRange::Location l) override;
 

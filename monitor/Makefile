@@ -61,6 +61,17 @@ ifeq ($(TI_OCL_CGT_INSTALL),)
   $(error Monitor requires TI_OCL_CGT_INSTALL to point to C6000 Codegen tools)
 endif
 
+#----------------------------------------------------------------------------
+# LINKER DEFINES: dsp monitor build timestamp
+#----------------------------------------------------------------------------
+LNK_DEFS := --define=OCL_BUILD_VER=$(shell echo "" | \
+                awk '{ printf ("0x%02d%02d%02d%02d", $(OCL_MAJOR_VER), \
+                $(OCL_MINOR_VER), $(OCL_RELEASE_VER), $(OCL_PATCH_VER)); }') \
+            --define=OCL_BUILD_SHA=$(shell git rev-parse HEAD | \
+                awk '{ printf ("0x%.8s", $$1); }') \
+            --define=OCL_BUILD_DATE=$(shell date +0x%Y%m%d) \
+            --define=OCL_BUILD_TIME=$(shell date +0x%H%M%S)
+.PHONY: $(LNK_DEFS)
 
 ifeq ($(BUILD_TARGET), ARM_AM57)
     ifeq ($(BUILD_OS), SYS_BIOS)

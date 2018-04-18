@@ -36,6 +36,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <time.h>
+#include <set>
 
 #include "device_info.h"
 #include "mbox_impl_msgq.h"
@@ -68,6 +69,7 @@
 #endif
 
 #define HostMsgQueString    "OCL:MsgQ:%d"
+#define HostEveMsgQueString    "OCL:MsgQ:EVE%d:%d"
 
 using namespace Coal;
 using namespace tiocl;
@@ -87,7 +89,7 @@ MBoxMsgQ::MBoxMsgQ(Coal::DSPDevice *device)
     assert (status == Ipc_S_SUCCESS || status == Ipc_S_ALREADYSETUP);
 
     const tiocl::DeviceInfo& device_info = tiocl::DeviceInfo::Instance();
-    const std::set<uint8_t>& compute_units = device_info.GetComputeUnits();
+    const DSPCoreSet& compute_units = device_info.GetComputeUnits();
 
 #ifdef _SYS_BIOS
     /* Ipc_attach must be called in ProcSync_PAIR protocol */
@@ -146,10 +148,41 @@ MBoxMsgQ::MBoxMsgQ(Coal::DSPDevice *device)
                     j, p_device->dspCores());
 }
 
+
+MBoxMsgQ::MBoxMsgQ(Coal::EVEDevice *device)
+    : heapId(0), p_device(nullptr)
+{
+    /* Create the host message queue (inbound messages from EVEs) */
+    MessageQ_Params     msgqParams;
+    MessageQ_Params_init(&msgqParams);
+
+    char hostQueueName[32];
+    snprintf(hostQueueName, sizeof hostQueueName, HostEveMsgQueString,
+             device->GetEveId() + 1, getpid());
+    hostQueueName[sizeof hostQueueName - 1] = '\0';
+    hostQue = MessageQ_create(hostQueueName, &msgqParams);
+    assert (hostQue != NULL);
+
+    /* Open the EVE message queue (outbound messages to EVE) */
+    int eve_id = device->GetEveId();
+    int status = MessageQ_open(const_cast<char *>("OCL:EVEProxy:MsgQ"),
+                               &dspQue[0]);
+    if (status != MessageQ_S_SUCCESS)
+        ReportError(ErrorType::Fatal, ErrorKind::FailedToOpenEVEMessageQ);
+}
+
 void MBoxMsgQ::write (uint8_t *buf, uint32_t size, uint32_t trans_id, 
                       uint8_t id)
-{ 
-    assert(id < p_device->dspCores());
+{
+    if (p_device)
+    {
+        const DSPCoreSet& compute_units = p_device->GetComputeUnits();
+        assert(compute_units.find(id) != compute_units.end());
+    }
+    else
+    {
+        id = 0;
+    }
 
     ocl_msgq_message_t *msg = 
        (ocl_msgq_message_t *)MessageQ_alloc(heapId, sizeof(ocl_msgq_message_t));
@@ -167,7 +200,7 @@ void MBoxMsgQ::write (uint8_t *buf, uint32_t size, uint32_t trans_id,
     /* send message */
     int status = MessageQ_put(dspQue[id], (MessageQ_Msg)msg);
     if (status < 0)
-        lost_dsp();
+        if (p_device)  lost_dsp();
     assert (status == MessageQ_S_SUCCESS);
 
     return;
@@ -179,12 +212,12 @@ uint32_t MBoxMsgQ::read (uint8_t *buf, uint32_t *size, uint8_t* id)
 
     int status = MessageQ_get(hostQue, (MessageQ_Msg *)&msg, MessageQ_FOREVER);
     if (status < 0)
-        lost_dsp();
+        if (p_device)  lost_dsp();
 
     /*-------------------------------------------------------------------------
     * if a ptr to an id is passed in, return the core of the sender in it
     *------------------------------------------------------------------------*/
-    if (id != 0)
+    if (p_device && id != nullptr)
     {
         MessageQ_QueueId dspQueId = MessageQ_getReplyQueue(msg);
         auto     it   = std::find(dspQue, dspQue + p_device->dspCores(), dspQueId);
@@ -217,7 +250,8 @@ inline bool MBoxMsgQ::query(uint8_t id)
 MBoxMsgQ::~MBoxMsgQ(void)
 {    
     /* Close the DSP message queues */
-    for(int i = 0; i < p_device->dspCores(); ++i)
+    int num_queues = p_device ? p_device->dspCores() : 1;
+    for(int i = 0; i < num_queues; ++i)
     {
         int status = MessageQ_close(&dspQue[i]);
         assert(status == MessageQ_S_SUCCESS);
@@ -237,7 +271,7 @@ MBoxMsgQ::~MBoxMsgQ(void)
     int status = MessageQ_delete(&hostQue);
     assert (status == MessageQ_S_SUCCESS);
 
-    Ipc_stop();
+    if (p_device)  Ipc_stop();
 }
 
 /* Attempt to cleanly terminate when a DSP is lost on Linux. For now, implement
@@ -271,7 +305,7 @@ static void lost_dsp()
     char const *dspnames[] = {"40800000.dsp", "41000000.dsp"};
 
     const tiocl::DeviceInfo& device_info = tiocl::DeviceInfo::Instance();
-    const std::set<uint8_t>& compute_units = device_info.GetComputeUnits();
+    const DSPCoreSet& compute_units = device_info.GetComputeUnits();
 
     for (int i : compute_units)
     {

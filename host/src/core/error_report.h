@@ -62,10 +62,17 @@ enum class ErrorKind
     ShouldNotGetHere,
     PCIeDriverError,
     MessageQueueCountMismatch,
+    FailedToOpenEVEMessageQ,
     LostDSP,
     DaemonNotRunning,
     DaemonAlreadyRunning,
     DaemonConfigOpenError,
+    KernelArgSizeZero,
+    KernelArgSizeTooBig,
+    KernelArgSizesMaxExceeded,
+    KernelArgImageNotSupported,
+    TempMemAllocationFailed,
+    InfoMessage,
     InfoMessage2,
 };
 

@@ -15,13 +15,15 @@ ifneq (,$(findstring 86, $(shell uname -m)))
 endif
 endif
 
-CLEAN_DIRS = builtins examples libm host/clocl monitor
+CLEAN_DIRS = builtins examples libm host/clocl monitor monitor_ipu
 
 ifeq ($(BUILD_AM57),1)
     TARGET=am57
     BUILD_TARGET=ARM_AM57
     ifneq ($(BUILD_OS), SYS_BIOS)
         CMAKE_DEFINES += -DLINUX_DEVKIT_ROOT=$(LINUX_DEVKIT_ROOT)
+        BUILD_DLA_FIRMWARE ?= 1
+        CMAKE_DEFINES += -DBUILD_DLA_FIRMWARE=$(BUILD_DLA_FIRMWARE)
         export PATH:=$(ARM_GCC_DIR)/bin:$(PATH)
     else
         RTOS_PACKAGE_VER=$(shell echo $(OCL_FULL_VER) | sed 's/\<[0-9]\>/0&/g' | sed 's/\./_/g')
@@ -80,10 +82,13 @@ CMAKE_DEFINES += -DBUILD_TARGET=$(BUILD_TARGET)
 CMAKE_DEFINES += -DOCL_VERSION=$(OCL_FULL_VER)
 OCL_BUILD_DIR = build/$(TARGET)$(BUILD_OS)
 OCL_INSTALL_DIR = install/$(TARGET)$(BUILD_OS)
+ifeq ($(BUILD_DLA_FIRMWARE),1)
+    DLA_SUBMODULE = dla_submodule
+endif
 export DESTDIR?=$(CURDIR)/$(OCL_INSTALL_DIR)
 
 
-install: $(OCL_BUILD_DIR) $(DESTDIR)
+install: $(OCL_BUILD_DIR) $(DESTDIR) $(DLA_SUBMODULE)
 	cd $(OCL_BUILD_DIR) && cmake $(CMAKE_DEFINES) ../../host && $(MAKE) install
 
 .PHONY: build
@@ -117,8 +122,16 @@ $(OCL_BUILD_DIR):
 $(DESTDIR):
 	mkdir -p $(DESTDIR)
 
+.PHONY: dla_submodule
+dla_submodule:
+	git submodule update --init
+
 change:
 	git log --pretty=format:"- %s%n%b" $(TAG).. ; \
 
 version:
 	@echo $(OCL_VER)
+
+update_firmware:
+	cp -p monitor_ipu/monitor_dla/src/dla_firmware.h monitor_ipu/src/dla_firmware.h
+	cp -p monitor_ipu/monitor_dla/dsp/ocl_tidl_dsp.lib monitor/libs/ocl_tidl_dsp.lib

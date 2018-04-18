@@ -57,8 +57,6 @@ class DSPProgram : public DeviceProgram
 
         bool linkStdLib() const;
         const char* outfile_name() const;
-        void createOptimizationPasses(llvm::PassManager *manager,
-                                      bool optimize, bool hasBarrier=false);
         bool build(llvm::Module *module, std::string *binary_str, 
                    char *binary_filename=NULL);
         bool ExtractMixedBinary(const std::string &binary_str,

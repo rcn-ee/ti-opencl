@@ -36,8 +36,9 @@
 #include "object.h"
 #ifndef _SYS_BIOS
 #include "cpu/device.h"
+#include "eve/device.h"
 #endif
-#include "dsp/device.h"
+#include "dsp/rootdevice.h"
 #include "dsp/device_info.h"
 
 /*-----------------------------------------------------------------------------
@@ -82,54 +83,6 @@ __attribute__((destructor)) static void __delete_theplatform()
 #endif
 
 
-#ifndef _SYS_BIOS
-/******************************************************************************
-* begin_file_lock_crit_section
-******************************************************************************/
-static int begin_file_lock_crit_section(const char* fname)
-{
-    /*---------------------------------------------------------------------
-    * Create a lock, so only 1 OpenCL program can progress at a time.
-    * I'm not sure about the appropriateness of putting this in the ctor.
-    * We may look at delayed ctor of platform with this in it.
-    *--------------------------------------------------------------------*/
-    int lock_fd = open(fname, O_CREAT, 
-                     S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH);
-
-    std::string str_fname(fname);
-
-    if (lock_fd < 0) 
-    {
-        std::cout << "Can not open lock file " << str_fname << ", Aborting !" << std::endl;
-        exit(-1);
-    }
-
-    int res = flock(lock_fd, LOCK_EX|LOCK_NB);
-    if (res == -1)
-    {
-       if (errno == EWOULDBLOCK)
-       {
-           std::cout << "Waiting on lock " << str_fname << " ..." << std::endl;
-           res = flock(lock_fd, LOCK_EX);
-           if (res == -1)
-           {
-               std::cout << "Error Locking file " << str_fname << ", Aborting !" << std::endl;
-               exit(-1);
-           }
-           else std::cout << "Acquired lock " << str_fname << ", Proceeding!" << std::endl;
-       }
-       else
-       {
-           std::cout << "Error Locking file " << str_fname << ", Aborting !" << std::endl;
-           exit(-1);
-       }
-    }
-
-    return lock_fd;
-
-}
-#endif
- 
 namespace Coal
 {
     Platform::Platform() : dispatch(&dispatch_table)
@@ -145,13 +98,21 @@ namespace Coal
             p_devices.push_back(desc(device));
         }
 #endif
-        p_shmFactory = std::unique_ptr<tiocl::SharedMemoryProviderFactory>(new SharedMemoryProviderFactory); 
-        for (int i = 0; i < tiocl::DeviceInfo::Instance().GetNumDevices(); i++)
+        p_shmFactory = std::unique_ptr<tiocl::SharedMemoryProviderFactory>(new SharedMemoryProviderFactory);
+        tiocl::SharedMemory* shm = p_shmFactory->CreateSharedMemoryProvider(0);
+        const DeviceInfo& device_info = DeviceInfo::Instance();
+        for (int i = 0; i < device_info.GetNumDevices(); i++)
         {
-            tiocl::SharedMemory* shm = p_shmFactory->CreateSharedMemoryProvider(i);
-            Coal::DeviceInterface* device = new Coal::DSPDevice(i, shm);
+            Coal::DeviceInterface* device = new Coal::DSPRootDevice(i, shm);
             p_devices.push_back(desc(device));
         }
+#if defined(DEVICE_AM57) && !defined(_SYS_BIOS)
+        for (int i = 0; i < device_info.GetNumEVEDevices(); i++)
+        {
+            Coal::DeviceInterface* device = new Coal::EVEDevice(i, shm);
+            p_devices.push_back(desc(device));
+        }
+#endif
 
 #ifndef _SYS_BIOS
         signal(SIGINT,  exit);
@@ -165,13 +126,14 @@ namespace Coal
     Platform::~Platform()
     {
         ReportTrace("~Platform()\n");
-        for (int i = 0; i < p_devices.size(); i++)
+        // Free EVE devices first, if any, before DSP device
+        for (int i = p_devices.size() - 1; i >= 0; i--)
 	        delete pobj(p_devices[i]);
 
         p_shmFactory->DestroySharedMemoryProviders();
     }
 
-    cl_uint Platform::getDevices(cl_device_type device_type, 
+    cl_uint Platform::getDevices(cl_device_type device_type,
                                  cl_uint num_entries, cl_device_id * devices)
     {
         cl_uint device_number = 0;
@@ -184,6 +146,13 @@ namespace Coal
             cl_device_type type;
             auto device = pobj(p_devices[d]);
             device->info(CL_DEVICE_TYPE, sizeof(cl_device_type), &type,0);
+
+            // Spec v1.2, p36: if device_type requested is CL_DEVICE_TYPE_ALL,
+            // return all OpenCL devices available in the system
+            // except CL_DEVICE_TYPE_CUSTOM devices.
+            if (device_type == CL_DEVICE_TYPE_ALL &&
+                    type == CL_DEVICE_TYPE_CUSTOM)
+                continue;
 
             if (type & device_type)
             {
@@ -213,7 +182,7 @@ namespace Coal
             #define STRINGIZE(x) #x
             #define STRINGIZE2(x) STRINGIZE(x)
             case CL_PLATFORM_VERSION:
-                STRING_ASSIGN("OpenCL 1.1 TI product version " 
+                STRING_ASSIGN("OpenCL 1.1 TI product version "
                               STRINGIZE2(_PRODUCT_VERSION)
                               " (" __DATE__ " " __TIME__ ")");
                 break;

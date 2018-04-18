@@ -100,6 +100,9 @@ class CPUDevice : public DeviceInterface
 
         std::string builtinsHeader(void) const { return "cpu.h"; }
 
+        // System memory is represented as a nullptr SHMHandler
+        tiocl::SharedMemory* GetSHMHandler() const { return nullptr; }
+
     private:
         unsigned int p_cores, p_num_events;
         float       p_cpu_mhz;

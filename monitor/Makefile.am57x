@@ -20,11 +20,23 @@ INCLUDES += -i $(AET_DIR)/include
 
 SOURCES = monitor.c util.c dsp_rpc.asm touch.asm builtins.c edma.c \
           edma_am57x_config.c device_am57.c
-HEADERS = src/edma.h src/monitor.h src/util.h src/trace.h src/custom_rsc_table_vayu_dsp.h
+HEADERS = src/edma.h src/monitor.h src/util.h src/trace.h \
+          src/custom_rsc_table_vayu_dsp.h \
+          $(OPENCL_SRC_DIR)/src/core/dsp/message.h \
+          $(OPENCL_SRC_DIR)/src/core/dsp/tal/mbox_msgq_shared.h
 LIBS    = cmds/monitor.$(PLATFORM).cmd
 LIBS   += $(ULM_DIR)/libtiulm.ae66
 LIBS   += $(GDB_SERVER_DIR)/lib/gdb_server.ae66
 LIBS   += $(AET_DIR)/lib/libaet.ae66
+
+ifeq ($(BUILD_DLA_FIRMWARE),1)
+OCL_TIDL_PATH = ../monitor_ipu/monitor_dla
+OCL_TIDL_LIB = $(OCL_TIDL_PATH)/dsp/ocl_tidl_dsp.lib
+else
+OCL_TIDL_LIB = libs/ocl_tidl_dsp.lib
+endif
+
+LIBS   += $(OCL_TIDL_LIB)
 
 OBJ_DIR = objs
 OBJS1=$(patsubst %.c,$(OBJ_DIR)/%.obj,$(SOURCES))
@@ -95,12 +107,12 @@ dsp1 : $(LINK_CMD1) $(BIN_DIR)/dsp1.out $(BIN_DIR)/dsp1.syms
 #---------------------------------------------------------------------------
 # Build monitors
 #----------------------------------------------------------------------------
-$(BIN_DIR)/dsp0.out: $(OBJ_DIR)/custom_rsc_table_vayu_dsp0.obj $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD0) $(LIBS)
+$(BIN_DIR)/dsp0.out: $(OBJ_DIR)/custom_rsc_table_vayu_dsp0.obj $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD0) $(LNK_DEFS) $(LIBS)
 	@echo Linking $@
 	@echo $(LINK_CMD0)
 	$(CC) -z --priority -w -x -m$@.map --define=DDR3_FCSECTION=DDR3_FC $^ -I$(TI_OCL_CGT_INSTALL)/lib -llibc.a -o $@
 
-$(BIN_DIR)/dsp1.out: $(OBJ_DIR)/custom_rsc_table_vayu_dsp1.obj $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD1) $(LIBS)
+$(BIN_DIR)/dsp1.out: $(OBJ_DIR)/custom_rsc_table_vayu_dsp1.obj $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD1) $(LNK_DEFS) $(LIBS)
 	@echo Linking $@
 	@echo $(LINK_CMD1)
 	$(CC) -z --priority -w -x -m$@.map --define=DDR3_FCSECTION=DDR3_FC $^ -I$(TI_OCL_CGT_INSTALL)/lib -llibc.a -o $@
@@ -148,4 +160,23 @@ clean:
 realclean: clean
 	@$(MAKE) -C $(LIBM_DIR) clean
 	@$(MAKE) -C $(BUILTINS_DIR) clean
+
+
+.PHONY: $(OCL_TIDL_LIB)
+
+$(OCL_TIDL_LIB):
+ifeq ($(BUILD_DLA_FIRMWARE),1)
+	@echo "Building development version of OCL TIDL library ..."
+	$(MAKE) -C $(OCL_TIDL_PATH) CORE=dsp BUILD_AM57=1
+	@diff $(OCL_TIDL_LIB) libs/ocl_tidl_dsp.lib > /dev/null ||\
+		echo "\n"\
+	            "***********************************************************\n"\
+				"* ocl_tidl_dsp.lib: libs/ocl_tidl_dsp.lib not in sync with\n"\
+	            "* $(OCL_TIDL_LIB)                \n"\
+				"* Copy ocl_tidl_dsp.lib into ti-opencl repo and commit.\n"\
+	            "***********************************************************\n"
+else
+	@echo "Using prebuilt OCL TIDL library ..."
+endif
+
 

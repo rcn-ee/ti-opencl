@@ -166,7 +166,7 @@ void DLIF_trace(const char *fmt, ...)
     va_end(ap);
 }
 
-void DLIF_exit(ecode)
+void DLIF_exit(int ecode)
 {
     exit(ecode);
 }

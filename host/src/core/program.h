@@ -36,6 +36,7 @@
 
 #include "object.h"
 #include "icd.h"
+#include "kernelentry.h"
 
 #include <CL/cl.h>
 #include <string>
@@ -93,7 +94,8 @@ class Program : public _cl_program, public Object
         {
             Invalid, /*!< Invalid or unknown, type of a program not already loaded */
             Source,  /*!< Program made of sources that must be compiled and linked */
-            Binary   /*!< Program made of pre-built binaries that only need to be (transformed)/linked */
+            Binary,  /*!< Program made of pre-built binaries that only need to be (transformed)/linked */
+            BuiltIn  /*!< Program made of built-in kernels */
         };
 
         /**
@@ -158,16 +160,21 @@ class Program : public _cl_program, public Object
          *        specification.
          * \param pfn_notify callback function called at the end of the build
          * \param user_data user data given to \p pfn_notify
-         * \param num_devices number of devices for which binaries are being
+         * \param num_devices number of devices for which binaries should be
          *        built. If it's a source-based program, this can be 0.
-         * \param device_list list of devices for which the program will be built.
+         * \param device_list list of devices for which the program should be built.
+         * \param num_root_devices number of root devices for which binaries are being
+         *        built.
+         * \param root_device_list list of root devices for which the program will be built.
          * \return \c CL_SUCCESS if success, an error code otherwise
          */
-        cl_int build(const char *options,
-                     void (CL_CALLBACK *pfn_notify)(cl_program program,
-                                                    void *user_data),
-                     void *user_data, cl_uint num_devices,
-                     DeviceInterface * const*device_list);
+        cl_int build(const char* options,
+                     void (CL_CALLBACK* pfn_notify)(cl_program program,
+                             void* user_data),
+                     void* user_data, cl_uint num_devices,
+                     DeviceInterface* const* device_list,
+                     cl_uint num_root_devices,
+                     DeviceInterface* const* root_device_list);
 
         Type type() const;   /*!< \brief Type of the program */
         State state() const; /*!< \brief State of the program */
@@ -178,7 +185,7 @@ class Program : public _cl_program, public Object
          * \param errcode_ret return code (\c CL_SUCCESS if success)
          * \return a \c Coal::Kernel object corresponding to the given \p name
          */
-        Kernel *createKernel(const std::string &name, cl_int *errcode_ret);
+        virtual Kernel *createKernel(const std::string &name, cl_int *errcode_ret);
         
         /**
          * \brief Create all the kernels of the program
@@ -217,7 +224,7 @@ class Program : public _cl_program, public Object
 
          std::string source() { return p_source; }
 
-    private:
+    protected:
         Type        p_type;
         State       p_state;
         std::string p_source;
@@ -235,16 +242,20 @@ class Program : public _cl_program, public Object
 #ifndef _SYS_BIOS
             Compiler        * compiler;
 #endif
+            std::vector<KernelEntry*> loaded_kernel_entries;
         };
 
         std::vector<DeviceDependent> p_device_dependent;
         DeviceDependent              p_null_device_dependent;
 
-        void setDevices(cl_uint num_devices, DeviceInterface * const*devices);
-	void resetDeviceDependent();
-        DeviceDependent &deviceDependent(DeviceInterface *device);
-        const DeviceDependent &deviceDependent(DeviceInterface *device) const;
-        std::vector<llvm::Function *> kernelFunctions(DeviceDependent &dep);
+        void setDevices(cl_uint num_devices, DeviceInterface* const* devices);
+        void resetDeviceDependent();
+        DeviceDependent& deviceDependent(DeviceInterface* device);
+        const DeviceDependent& deviceDependent(DeviceInterface* device) const;
+        std::vector<llvm::Function*> kernelFunctions(DeviceDependent& dep);
+
+    private:
+        std::vector<DeviceInterface*> p_device_list;
 };
 
 }

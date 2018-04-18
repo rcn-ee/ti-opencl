@@ -26,10 +26,12 @@
  *   THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
 #include <cstdint>
+#include <set>
 
 #pragma once
 
-typedef uint32_t	DSPDevicePtr;
-typedef uint64_t	DSPDevicePtr64;
-typedef uint32_t	DSPVirtPtr;
+typedef uint32_t            DSPDevicePtr;
+typedef uint64_t            DSPDevicePtr64;
+typedef uint32_t            DSPVirtPtr;
+typedef std::set<uint8_t>   DSPCoreSet;
 // typedef uint64_t	DSPVirtPtr64;  // for future C7x?

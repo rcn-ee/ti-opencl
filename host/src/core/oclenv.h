@@ -59,7 +59,7 @@ namespace tiocl {
 // - to be set by package parameter in TI-RTOS
 class EnvVar
 {
-  public: 
+  public:
     EnvVar();
     virtual ~EnvVar() {}
 

@@ -93,6 +93,22 @@ void pobj_list(O **objs, D * const *descs, int n) {
     }
 }
 
+// Partial Vector overload of above
+template<typename O, class D>
+void pobj_list(O **objs, D const& descs) {
+    for (int i=0;i<descs.size();i++) {
+      objs[i] = pobj(descs[i]);
+    }
+}
+
+// Vector overload of above
+template<class O, class D>
+void pobj_list(O& objs, D const& descs) {
+    for (auto d : descs) {
+      objs.push_back(pobj(d));
+    }
+}
+
 // Convert a list of Clover objects to a list of API objects,
 // copying into a previously allocated list of at least size n.
 template<typename O, typename D>
@@ -107,6 +123,22 @@ template<typename O, typename D>
 void desc_list(D **descs, O * const*objs, int n) {
     for (int i=0;i<n;i++) {
        descs[i] = desc(objs[i]);
+    }
+}
+
+// Partial Vector overload of above
+template<class O, typename D>
+void desc_list(D **descs, O const& objs) {
+    for (int i=0;i<objs.size();i++) {
+      descs[i] = desc(objs[i]);
+    }
+}
+
+// Vector overload of above
+template<class O, class D>
+void desc_list(D& descs, O const& objs) {
+    for (auto o : objs) {
+      descs.push_back(desc(o));
     }
 }
 

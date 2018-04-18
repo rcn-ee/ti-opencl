@@ -90,6 +90,7 @@ const char* ocl_error_str(int ocl_error_num)
         case -12: return "CL_MAP_FAILURE";
         case -13: return "CL_MISALIGNED_SUB_BUFFER_OFFSET";
         case -14: return "CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST";
+        case -18: return "CL_DEVICE_PARTITION_FAILED";
 
         case -30: return "CL_INVALID_VALUE";
         case -31: return "CL_INVALID_DEVICE_TYPE";
@@ -126,6 +127,7 @@ const char* ocl_error_str(int ocl_error_num)
         case -62: return "CL_INVALID_MIP_LEVEL";
         case -63: return "CL_INVALID_GLOBAL_WORK_SIZE";
         case -64: return "CL_INVALID_PROPERTY";
+        case -68: return "CL_INVALID_DEVICE_PARTITION_COUNT";
 
         case -7101: return "CL_ERROR_KERNEL_ABORT_TI";
         case -7102: return "CL_ERROR_KERNEL_EXIT_TI";
