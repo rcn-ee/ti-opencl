@@ -830,7 +830,7 @@ cl_int EVEDevice::info(cl_device_info param_name,
             break;
 
         case CL_DEVICE_NAME:
-            STRING_ASSIGN("TI Embedded Vision Engine (EVE)");
+            STRING_ASSIGN("TI Deep Learning Accelerator (DLA)");
             break;
 
         case CL_DEVICE_VENDOR:

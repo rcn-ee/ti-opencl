@@ -136,10 +136,19 @@ nocache2_size         = size(SR_0);
 service_stack_start   = start(OCL_OMP_STACK);
 service_stack_size    = size(OCL_OMP_STACK);
 
+__OCL_BUILD_VER       = OCL_BUILD_VER;
+__OCL_BUILD_SHA       = OCL_BUILD_SHA;
+__OCL_BUILD_DATE      = OCL_BUILD_DATE;
+__OCL_BUILD_TIME      = OCL_BUILD_TIME;
+
 --export ocl_l1d_mem_start
 --export ocl_l1d_mem_size
 --export ocl_local_mem_start
 --export ocl_local_mem_size
+--export __OCL_BUILD_VER
+--export __OCL_BUILD_SHA
+--export __OCL_BUILD_DATE
+--export __OCL_BUILD_TIME
 
 
 /*-----------------------------------------------------------------------------

@@ -48,6 +48,12 @@ DSPSubDevice::DSPSubDevice(DSPDevice*                           parent_device,
     p_parent = parent_device;
 
     /*-------------------------------------------------------------------------
+    * Find and set root device
+    *------------------------------------------------------------------------*/
+    p_root = parent_device;
+    while (!dynamic_cast<const DSPRootDevice*>(p_root)) p_root = p_root->GetParent();
+
+    /*-------------------------------------------------------------------------
     * Set possible partition types
     *------------------------------------------------------------------------*/
     if (p_compute_units.size() > 1)

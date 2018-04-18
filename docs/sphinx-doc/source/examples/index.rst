@@ -12,4 +12,3 @@ Examples
    overview
    float_compute
    monte_carlo
-   tidl

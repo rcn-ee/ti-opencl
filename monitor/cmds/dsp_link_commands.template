@@ -55,6 +55,10 @@ SECTIONS
 }
 
 --export _ocl_local_overlay_start
+--export __OCL_BUILD_VER
+--export __OCL_BUILD_SHA
+--export __OCL_BUILD_DATE
+--export __OCL_BUILD_TIME
 --symbol_map=acosd=acos
 --symbol_map=acoshd=acosh
 --symbol_map=acospid=acospi

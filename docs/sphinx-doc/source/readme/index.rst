@@ -23,7 +23,7 @@ Processor SDK to OpenCL version map
 | Processor SDK | OpenCL     | Key features                          |
 +===============+============+=======================================+
 | 05.00.00.00   | 1.01.15.00 | - Added OpenCL TIDL custom device     |
-|               |            |   Refer :doc:`../examples/tidl`.      |
+|               |            |   to enable the TINN API.             |
 |               |            | - Enabled sub-device support          |
 +---------------+------------+---------------------------------------+
 | 04.02.00.09   | 1.01.14.09 | Fixed a virtual address space leak    |

@@ -44,7 +44,7 @@ else
     X86_LLVM_DIR?=$(SDOMC_SHARED)/llvm-3.6.0-20170608-x86_64
 endif
 
-CORESDK_VERSION ?= ti2018.00-rc0
+CORESDK_VERSION ?= ti2018.00-rc5
 
 ifeq ($(BUILD_K2H),1)
 	CORE_SDK?=$(SDOMC_SHARED)/ti-processor-sdk-linux-k2hk-evm-$(CORESDK_VERSION)

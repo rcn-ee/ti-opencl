@@ -168,11 +168,11 @@ clCreateSubDevices(cl_device_id                         d_device,
 
 #if defined(DEVICE_AM57) && !defined(_SYS_BIOS)
     /* Check if device is EVE, then return error */
-    if (Coal::EVEDevice* e = dynamic_cast<Coal::EVEDevice*>(parent_device))
+    if (dynamic_cast<Coal::EVEDevice*>(parent_device))
     { return CL_INVALID_DEVICE; }
 #endif
     /* Check if device is CPU, then return error */
-    if (Coal::CPUDevice* c = dynamic_cast<Coal::CPUDevice*>(parent_device))
+    if (dynamic_cast<Coal::CPUDevice*>(parent_device))
     { return CL_INVALID_DEVICE; }
 
     /* Create a local copy of the compute unit set */
@@ -296,8 +296,7 @@ IsValidSubDevice(cl_device_id d_device)
     auto device = pobj(d_device);
     if (!device->isA(Coal::Object::T_Device)) return false;
 
-    /* ReleaseDevice only applies to devices created by clCreateSubDevice */
-    if (Coal::DSPSubDevice* dsp = dynamic_cast<Coal::DSPSubDevice*>(device))
+    if (dynamic_cast<Coal::DSPSubDevice*>(device))
         return true;
 
     return false;
