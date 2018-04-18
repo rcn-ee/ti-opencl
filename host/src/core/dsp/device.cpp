@@ -672,14 +672,11 @@ cl_int DSPDevice::info(cl_device_info param_name,
         /* If this device is a sub device, it has partition properties */
         if (p_partition_type[0] != 0)
         {
-            /* The p_partition_type array is statically allocated
-             * to the maximum possible size suitable for devices with
-             * MAX_NUM_CORES i.e 8. Therefore, the size returned for
-             * a sub device with smaller number of cores must be computed
-             * using the dspCores() of its parent device,
-             * +1 for Type, +1 for End Marker and +1 for End 0 */
-            int size_of_partition_type = sizeof(cl_device_partition_property)
-                                         * (p_parent->dspCores() + 3);
+            /* Calculate the size of the p_partition_type array
+             * Starting num_elements=2 because +1 for End Marker, +1 for End 0 */
+            int size_of_partition_type = 0, it = 0, num_elements = 2;
+            while (p_partition_type[it++] != 0) ++num_elements;
+            size_of_partition_type = sizeof(cl_device_partition_property) * num_elements;
             MEM_ASSIGN(size_of_partition_type, &p_partition_type);
         }
             else {MEM_ASSIGN(0, 0);}
