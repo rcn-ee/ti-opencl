@@ -33,7 +33,7 @@ TI_OCL_M4_CGT_INSTALL ?= $(SDOMC_SHARED)/ti-cgt-arm_16.9.2.LTS
 # LLVM
 
 ifeq ($(BUILD_OS), SYS_BIOS)
-    ARM_LLVM_DIR?=$(SDOMC_SHARED)/llvm-3.6.0-20170608-sysbios
+    ARM_LLVM_DIR?=$(SDOMC_SHARED)/llvm-3.6.0-20180423-sysbios-gcc6.3.1
 else
     ARM_LLVM_DIR?=$(SDOMC_SHARED)/llvm-3.6.0-20170608-arm
 endif
@@ -57,6 +57,7 @@ else ifeq ($(BUILD_K2G),1)
 	CORE_SDK?=$(SDOMC_SHARED)/ti-processor-sdk-linux-k2g-evm-$(CORESDK_VERSION)
 else ifeq ($(BUILD_AM57),1)
 	CORE_SDK?=$(SDOMC_SHARED)/ti-processor-sdk-linux-am57xx-evm-$(CORESDK_VERSION)
+	DEFAULT_PSDK_RTOS?=$(SDOMC_SHARED)/ti-processor-sdk-rtos-am57xx-evm-$(CORESDK_VERSION)
 else
 endif
 
@@ -69,7 +70,7 @@ endif
 # ARM GCC
 ifeq (,$(findstring arm, $(UNAME_M)))
     ARM_GCC_DIR?=$(SDOMC_SHARED)/gcc-linaro-7.2.1-2017.11-x86_64_arm-linux-gnueabihf
-    GCC_ARM_NONE_TOOLCHAIN?=$(SDOMC_SHARED)/gcc-arm-none-eabi-4_9-2015q3
+    GCC_ARM_NONE_TOOLCHAIN?=$(SDOMC_SHARED)/gcc-arm-none-eabi-6-2017-q1-update
 endif
 
 # RTOS packages (BIOS, IPC, FC, EDMA3_LLD etc.)

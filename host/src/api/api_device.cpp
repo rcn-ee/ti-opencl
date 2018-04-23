@@ -170,10 +170,10 @@ clCreateSubDevices(cl_device_id                         d_device,
     /* Check if device is EVE, then return error */
     if (dynamic_cast<Coal::EVEDevice*>(parent_device))
     { return CL_INVALID_DEVICE; }
-#endif
     /* Check if device is CPU, then return error */
     if (dynamic_cast<Coal::CPUDevice*>(parent_device))
     { return CL_INVALID_DEVICE; }
+#endif
 
     /* Create a local copy of the compute unit set */
     DSPCoreSet compute_units_on_parent_device(dynamic_cast<Coal::DSPDevice*>(parent_device)->GetComputeUnits());

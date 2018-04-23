@@ -42,10 +42,10 @@ DSS_CMD                 = $(CCS_INSTALL_DIR)\ccs_base\scripting\bin\dss.bat
 NULLFILE                = NUL
 
 else  # Linux
-DEFAULT_PSDK_RTOS      ?= /cgnas/ti-processor-sdk-rtos-am57xx-evm-04.00.00.01-20170530
-GCC_ARM_NONE_TOOLCHAIN ?= /cgnas/gcc-arm-none-eabi-4_9-2015q3
+DEFAULT_PSDK_RTOS      ?= /cgnas/ti-processor-sdk-rtos-am57xx-evm-04.03.00.05-release
+GCC_ARM_NONE_TOOLCHAIN ?= /cgnas/gcc-arm-none-eabi-6-2017-q1-update
 
-TI_OCL_CGT_INSTALL     ?= /cgnas/ti-cgt-c6000-8.2.0-release-linux
+TI_OCL_CGT_INSTALL     ?= /cgnas/ti-cgt-c6000-8.2.2-release-linux
 DSS_CMD                 = $(CCS_INSTALL_DIR)/ccs_base/scripting/bin/dss.sh
 NULLFILE                = /dev/null
 endif
@@ -110,8 +110,7 @@ else
 endif
 
 objs = $(addprefix bin/$(PROFILE)/,$(patsubst %.cpp,%.oa15fg,$(srcs)))
-libs = -Wl,-T,$(CONFIG)/linker.cmd -lrdimon -lgcc -lc -lm -lnosys -lstdc++ \
-       -Wl,--start-group -Wl,--end-group
+libs = -Wl,-T,$(CONFIG)/linker.cmd -lstdc++ -lgcc -lc -lm -lrdimon
 
 .PRECIOUS: %/compiler.opt %/linker.cmd
 
@@ -195,11 +194,12 @@ endif
 
 #  ======== toolchain macros ========
 
-CXX_FLAGS += -Dfar= -D__DYNAMIC_REENT__ -D_TI_RTOS -fpermissive -std=c++0x
-CFLAGS   += -c -MD -MF $@.dep -MMD -MP -mcpu=cortex-a15 -mtune=cortex-a15 -mfloat-abi=hard -ffunction-sections -fdata-sections $(CCPROFILE_$(PROFILE)) @$(CONFIG)/compiler.opt -I"$(GCC_ARM_NONE_TOOLCHAIN)/arm-none-eabi/include" -I"$(GCC_ARM_NONE_TOOLCHAIN)/arm-none-eabi/include/newlib-nano" -I. -I$(TI_OCL_INSTALL)/usr/include
+CXX_FLAGS += -Dfar= -D__DYNAMIC_REENT__ -D_TI_RTOS -fpermissive -std=c++11
+CXX_FLAGS += -Wno-ignored-attributes
+CFLAGS   += -c -MD -MF $@.dep -MMD -MP -mcpu=cortex-a15 -mtune=cortex-a15 -mfloat-abi=hard -ffunction-sections -fdata-sections $(CCPROFILE_$(PROFILE)) @$(CONFIG)/compiler.opt -I"$(GCC_ARM_NONE_TOOLCHAIN)/arm-none-eabi/include/newlib-nano" -I. -I$(TI_OCL_INSTALL)/usr/include
 
-LDFLAGS += $(LDPROFILE_$(PROFILE)) -mfloat-abi=hard -nostartfiles --specs=nano.specs -Wl,-static -Wl,--gc-sections -Wl,-Map=$(@D)/$(@F).map
-LDLIBS += -L$(BIOS_INSTALL_DIR)/packages/gnu/targets/arm/libs/install-native/arm-none-eabi/lib/hard
+LDFLAGS += $(LDPROFILE_$(PROFILE)) -mfloat-abi=hard -nostartfiles -Wl,-static -Wl,--gc-sections
+LDLIBS += -L$(BIOS_INSTALL_DIR)/packages/gnu/targets/arm/libs/install-native/arm-none-eabi/lib/hard --specs=nano.specs
 
 CCPROFILE_debug = -g -ggdb -D_DEBUG_=1
 CCPROFILE_release = -O3

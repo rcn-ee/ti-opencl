@@ -36,10 +36,11 @@
 #include "assert.h"
 
 #ifdef _TI_RTOS
-#include <ti/sysbios/posix/_time.h>
+#include <ti/sysbios/posix/time.h>
 #include "dsp_compute.dsp_h"
 #include "../rtos_main.c"
 #else
+#include <time.h>
 #include <omp.h>
 #endif
 
