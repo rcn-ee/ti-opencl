@@ -45,6 +45,7 @@ else
 endif
 
 CORESDK_VERSION ?= ti2018.00-rc5
+TIDL_VERSION    ?= 01.01.00.01-20180430
 
 ifeq ($(BUILD_K2H),1)
 	CORE_SDK?=$(SDOMC_SHARED)/ti-processor-sdk-linux-k2hk-evm-$(CORESDK_VERSION)
