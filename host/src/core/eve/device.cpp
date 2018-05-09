@@ -487,7 +487,7 @@ int EVEDevice::mail_from(int *retcode)
 
     if (rxmsg.command == PRINT)
     {
-        std::cout << "[eve " << rxmsg.u.message[0] << "] "
+        std::cout << "[dla " << rxmsg.u.message[0] << "] "
                              << rxmsg.u.message+1;
         return -1;
     }
