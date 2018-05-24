@@ -170,10 +170,10 @@ clCreateSubDevices(cl_device_id                         d_device,
     /* Check if device is EVE, then return error */
     if (dynamic_cast<Coal::EVEDevice*>(parent_device))
     { return CL_INVALID_DEVICE; }
-#endif
     /* Check if device is CPU, then return error */
     if (dynamic_cast<Coal::CPUDevice*>(parent_device))
     { return CL_INVALID_DEVICE; }
+#endif
 
     /* Create a local copy of the compute unit set */
     DSPCoreSet compute_units_on_parent_device(dynamic_cast<Coal::DSPDevice*>(parent_device)->GetComputeUnits());
@@ -189,12 +189,19 @@ clCreateSubDevices(cl_device_id                         d_device,
     {
         case CL_DEVICE_PARTITION_EQUALLY:
             {
-                int partition_unit_size = properties[1];
+                cl_uint partition_unit_size = properties[1];
                 /* Set the number of sub devices that the device may be partitioned into according
                  * to the partitioning scheme specified in properties
                  * 1 DSP = 1 Device */
                 if (num_devices_ret != nullptr)
-                { *num_devices_ret = compute_units_on_parent_device.size(); }
+                {
+                    if (compute_units_on_parent_device.size() % partition_unit_size != 0 ||
+                        compute_units_on_parent_device.size() <= partition_unit_size     ||
+                        partition_unit_size == 0)
+                        return CL_INVALID_VALUE;
+
+                    *num_devices_ret = compute_units_on_parent_device.size() / partition_unit_size;
+                }
 
                 /* If out_devices is NULL, no devices need to be created.*/
                 if (out_devices == nullptr) return CL_SUCCESS;

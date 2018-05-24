@@ -28,7 +28,6 @@
 #include <iostream>
 #include <cstdlib>
 #include <iomanip>
-#include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -39,8 +38,10 @@
 #include "kernel.dsp_h"
 
 #ifdef _TI_RTOS
-#include <ti/sysbios/posix/_time.h>
+#include <ti/sysbios/posix/time.h>
 #include "../rtos_main.c"
+#else
+#include <time.h>
 #endif
 
 extern "C" {
@@ -417,7 +418,7 @@ void MatmulHost_ATLAS(enum CBLAS_ORDER mem_order,
 #endif
 }
 
-static ulong roundDownPower2(ulong value)
+static cl_ulong roundDownPower2(cl_ulong value)
 { return (value == 0) ? 0 :  1 << ilogb(value); }
 
 /*-----------------------------------------------------------------------------

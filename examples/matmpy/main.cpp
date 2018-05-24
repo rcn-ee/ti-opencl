@@ -34,15 +34,15 @@
 #include <cstdio>
 #include <signal.h>
 #include "ocl_util.h"
-#ifndef _TI_RTOS
-#include "omp.h"
-#endif
 
 #ifdef _TI_RTOS
-#include <ti/sysbios/posix/_time.h>
+#include <ti/sysbios/posix/time.h>
 #include "kernel.dsp_h"
 #include <assert.h>
 #include "../rtos_main.c"
+#else
+#include <time.h>
+#include "omp.h"
 #endif
 
 /******************************************************************************

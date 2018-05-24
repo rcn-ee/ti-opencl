@@ -52,9 +52,10 @@ extern "C" {
 #define OCL_TIDL_MAX_PAD_SIZE  (4)  // must be in sync with TIDL_MAX_PAD_SIZE
                                     // in TIDL/modules/ti_dl/inc/itidl_ti.h
 
-#define OCL_TIDL_MAX_IN_BUFS   (8)  // current use cases: 1 (read 1 buf)
-#define OCL_TIDL_MAX_OUT_BUFS  (8)  // current use cases: 1 (write 1 buf)
+#define OCL_TIDL_MAX_IN_BUFS   (16) // must >= TIDL_MAX_ALG_IN_BUFS
+#define OCL_TIDL_MAX_OUT_BUFS  (16) // in TIDL/moduels/ti_dl/inc/itidl_ti.h
 
+#define OCL_TIDL_DEFAULT_LAYERS_GROUP_ID  (1)
 
 /* NOTE: uint64_t is 64bit aligned on ARM, 32bit aligned on EVE.
  * The cycles field must be placed at a 64bit aligned offset in the
@@ -83,8 +84,10 @@ typedef struct
      int32_t errorCode;
     uint64_t cycles;
     uint32_t enableTrace;
+    uint32_t enableInternalInput;
     uint32_t numInBufs;
     uint32_t numOutBufs;
+    uint32_t bufAddrBase;
     OCL_TIDL_BufParams inBufs[OCL_TIDL_MAX_IN_BUFS];
     OCL_TIDL_BufParams outBufs[OCL_TIDL_MAX_OUT_BUFS];
 } OCL_TIDL_InitializeParams;
@@ -96,6 +99,10 @@ typedef struct
     uint64_t cycles;
      int32_t errorCode;
     uint32_t enableTrace;
+    uint32_t enableInternalInput;
+    uint32_t inDataQ[OCL_TIDL_MAX_IN_BUFS];
+    uint32_t outDataQ[OCL_TIDL_MAX_IN_BUFS];
+    uint32_t inBufAddr[OCL_TIDL_MAX_IN_BUFS];
 } OCL_TIDL_ProcessParams;
 
 typedef struct

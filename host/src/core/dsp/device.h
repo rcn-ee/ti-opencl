@@ -90,8 +90,7 @@ public:
     virtual int              mail_from(const DSPCoreSet& compute_units,
                                        int* retcode = nullptr) = 0;
     virtual void             mail_to(Msg_t& msg,
-                                     const DSPCoreSet& compute_units,
-                                     unsigned core = 0) = 0;
+                                     const DSPCoreSet& compute_units) = 0;
     virtual int              num_complete_pending()     = 0;
     virtual void             dump_complete_pending()    = 0;
     virtual bool             any_complete_pending()     = 0;
