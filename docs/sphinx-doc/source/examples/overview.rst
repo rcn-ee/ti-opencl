@@ -365,6 +365,12 @@ Two extended kernel event status are ``CL_ERROR_KERNEL_ABORT_TI`` and
 Note that these two functions can be called from either OpenCL C code
 or standard C code.
 
+.. note::
+  The latest TI RTOS migrated to use newlib-nano adn disabled C++
+  exceptions (http://processors.wiki.ti.com/index.php/SYS/BIOS_with_GCC_(CortexA)#What_are_the_limitations_of_newlib-nano_libc_compared_to_newlib_libc_.3F).
+  As a result, in OpenCL RTOS setup, this example won't run to full completion.
+  OpenCL Linux is not affected.
+
 .. _timeout-example:
 
 timeout example
@@ -375,12 +381,15 @@ property, how to set a timeout on a kernel, and how to query kernel
 event status to determine if a timeout has occurred.  Details of timeout
 extension can be found in :doc:`../extensions/kernel-timeout`.
 
+.. note::
+  The latest TI RTOS migrated to use newlib-nano adn disabled C++
+  exceptions (http://processors.wiki.ti.com/index.php/SYS/BIOS_with_GCC_(CortexA)#What_are_the_limitations_of_newlib-nano_libc_compared_to_newlib_libc_.3F).
+  As a result, in OpenCL RTOS setup, this example won't run to full completion.
+  OpenCL Linux is not affected.
+
 .. note:: 
 
    The following examples are available only available on 66AK2x
 
    * mandelbrot, mandelbrot_native
-   * vecadd_openmp, vecadd_openmp_t
    * vecadd_mpax, vecadd_mpax_openmp (not available on 66AK2G)
-   * sgemm
-   * dgemm

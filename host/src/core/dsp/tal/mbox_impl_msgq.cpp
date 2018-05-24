@@ -124,7 +124,7 @@ MBoxMsgQ::MBoxMsgQ(Coal::DSPDevice *device)
     /* Open the DSP message queues (outbound messages to DSPs) */
     assert(p_device->dspCores() <= Ocl_MaxNumDspMsgQueues);
 
-    int j = 0;
+    int n_opened_dspQues = 0;
     for(int i : compute_units)
     {
         assert(i < Ocl_MaxNumDspMsgQueues);
@@ -140,12 +140,15 @@ MBoxMsgQ::MBoxMsgQ(Coal::DSPDevice *device)
 #endif
 
         if(status == MessageQ_S_SUCCESS)
-            dspQue[j++] = queue;
+        {
+            dspQue[i] = queue;
+            n_opened_dspQues++;
+        }
     }
 
-    if (j != p_device->dspCores())
+    if (n_opened_dspQues != p_device->dspCores())
         ReportError(ErrorType::Fatal, ErrorKind::MessageQueueCountMismatch,
-                    j, p_device->dspCores());
+                    n_opened_dspQues, p_device->dspCores());
 }
 
 
@@ -209,7 +212,6 @@ void MBoxMsgQ::write (uint8_t *buf, uint32_t size, uint32_t trans_id,
 uint32_t MBoxMsgQ::read (uint8_t *buf, uint32_t *size, uint8_t* id)
 { 
     ocl_msgq_message_t *msg = NULL;
-
     int status = MessageQ_get(hostQue, (MessageQ_Msg *)&msg, MessageQ_FOREVER);
     if (status < 0)
         if (p_device)  lost_dsp();

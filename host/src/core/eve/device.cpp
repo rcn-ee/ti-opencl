@@ -485,15 +485,9 @@ int EVEDevice::mail_from(int *retcode)
 
     ReportTrace("Received message %d, for pid %d\n", rxmsg.command, rxmsg.pid);
 
-    if (rxmsg.command == ERROR)
-    {
-        std::cout << rxmsg.u.message;
-        return -1;
-    }
-
     if (rxmsg.command == PRINT)
     {
-        std::cout << "[eve " << rxmsg.u.message[0] << "] "
+        std::cout << "[dla " << rxmsg.u.message[0] << "] "
                              << rxmsg.u.message+1;
         return -1;
     }

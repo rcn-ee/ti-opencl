@@ -48,6 +48,9 @@
 #include "kernel.dsp_h"
 #ifdef _TI_RTOS
 #include "../rtos_main.c"
+#include <ti/sysbios/posix/time.h>
+#else
+#include <time.h>
 #endif
 
 #define __CL_ENABLE_EXCEPTIONS

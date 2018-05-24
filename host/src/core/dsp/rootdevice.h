@@ -54,8 +54,7 @@ public:
     int              mail_from(const DSPCoreSet& compute_units,
                                int* retcode = nullptr)           override;
     void             mail_to(Msg_t& msg,
-                             const DSPCoreSet& compute_units,
-                             unsigned core = 0)                  override;
+                             const DSPCoreSet& compute_units)    override;
     int              num_complete_pending()                      override;
     void             dump_complete_pending()                     override;
     bool             any_complete_pending()                      override;

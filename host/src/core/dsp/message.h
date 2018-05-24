@@ -32,8 +32,8 @@
 
 typedef enum
 {
-    READY, EXIT, TASK, NDRKERNEL, WORKGROUP, CACHEINV,
-    FREQUENCY, SUCCESS, ERROR, PRINT, BROADCAST, CONFIGURE_MONITOR,
+    EXIT, TASK, NDRKERNEL, CACHEINV,
+    FREQUENCY, PRINT, CONFIGURE_MONITOR,
     SETUP_DEBUG
 } command_codes;
 
@@ -169,9 +169,6 @@ typedef struct
 } Msg_t;
 
 static Msg_t exitMsg      = {EXIT};
-static Msg_t successMsg   = {SUCCESS};
-static Msg_t readyMsg     = {READY};
-static Msg_t errorMsg     = {ERROR};
 static Msg_t frequencyMsg = {FREQUENCY};
 static Msg_t cacheMsg     = {CACHEINV};
 static Msg_t debugMsg     = {SETUP_DEBUG};
@@ -201,5 +198,4 @@ static const uint32_t mbox_payload         = sizeof(Msg_t);
 
 #define IS_DEBUG_MODE(msg) (msg.u.k.config.WG_gid_start[0] == \
                             DEBUG_MODE_WG_GID_START)
-
 #endif

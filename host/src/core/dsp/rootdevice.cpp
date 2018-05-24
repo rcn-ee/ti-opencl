@@ -27,6 +27,7 @@
  *****************************************************************************/
 #include "rootdevice.h"
 #include "device_info.h"
+#include "core/error_report.h"
 /*-----------------------------------------------------------------------------
 * Add ULM memory state messages if ULM library is available
 *----------------------------------------------------------------------------*/
@@ -332,11 +333,6 @@ int DSPRootDevice::mail_from(const DSPCoreSet& compute_units, int* retcode)
     Msg_t    rxmsg;
     uint8_t  core;
     trans_id_rx = p_mb->from((uint8_t*)&rxmsg, &size_rx, &core);
-    if (rxmsg.command == ERROR)
-    {
-        std::cout << rxmsg.u.message;
-        return -1;
-    }
     if (rxmsg.command == PRINT)
     {
         std::cout << "[core " << rxmsg.u.message[0] << "] "
@@ -363,12 +359,10 @@ int DSPRootDevice::mail_from(const DSPCoreSet& compute_units, int* retcode)
 
 /******************************************************************************
  * DSPRootDevice::mail_to(Msg_t& msg,
- *                        unsigned int core,
  *                        const DSPCoreSet& compute_units)
 ******************************************************************************/
 void DSPRootDevice::mail_to(Msg_t& msg,
-                            const DSPCoreSet& compute_units,
-                            unsigned int core)
+                            const DSPCoreSet& compute_units)
 {
     msg.pid = p_pid;
     switch (msg.command)
@@ -378,10 +372,10 @@ void DSPRootDevice::mail_to(Msg_t& msg,
         * for this device
         *----------------------------------------------------------------*/
         case EXIT:
-        case CACHEINV:
         case NDRKERNEL:
-        case SETUP_DEBUG:
+        case CACHEINV:
         case CONFIGURE_MONITOR:
+        case SETUP_DEBUG:
             {
                 /* In debug mode send message to the first compute unit */
                 if (IS_DEBUG_MODE(msg))
@@ -426,14 +420,22 @@ void DSPRootDevice::mail_to(Msg_t& msg,
                 }
                 break;
             }
+        case FREQUENCY:
+        {
+            /* Send the frequency message only to the first compute unit */
+            auto first_compute_unit = compute_units.begin();
+            p_mb->to((uint8_t*)&msg, sizeof(Msg_t), *first_compute_unit);
+            break;
+        }
         /*-----------------------------------------------------------------
-        * otherwise send it to the designated core
+        * The default case should not be triggered as all possible messages
+        * have been handled in above cases
         *---------------------------------------------------------------*/
         default:
-            {
-                p_mb->to((uint8_t*)&msg, sizeof(Msg_t), core);
-                break;
-            }
+        {
+            ReportError(ErrorType::Fatal, ErrorKind::ShouldNotGetHere);
+            break;
+        }
     }
 }
 

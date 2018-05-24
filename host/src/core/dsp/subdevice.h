@@ -77,9 +77,8 @@ public:
     { return p_parent->mail_from(compute_units, retcode); }
 
     void mail_to(Msg_t& msg,
-                 const DSPCoreSet& compute_units,
-                 unsigned core = 0)                  override
-    { p_parent->mail_to(msg, compute_units, core); }
+                 const DSPCoreSet& compute_units)    override
+    { p_parent->mail_to(msg, compute_units); }
 
 
 private:

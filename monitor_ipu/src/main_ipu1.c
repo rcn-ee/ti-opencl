@@ -75,6 +75,7 @@ ocl_msgq_message_t* eve_ocl_msgq_pkt[MAX_NUM_EVES][MAX_NUM_COMPLETION_PENDING];
 int                 eve_ocl_msgq_avail_slot[MAX_NUM_EVES];
 
 /* private functions */
+static Void smain_idle(UArg arg0, UArg arg1);
 static Void smain(UArg arg0, UArg arg1);
 static bool create_mqueue();
 static int  GetNumEVEDevices();
@@ -93,14 +94,8 @@ Int main(Int argc, Char* argv[])
 
     /* Check available EVE devices to see if OpenCL firmware applies */
     num_eve_devices = GetNumEVEDevices();
-    if (num_eve_devices <= 0)
-    {
-        Log_print0(Diags_INFO | Diags_USER6,
-                   "OpenCL runtime firmware does not apply. Exit.");
-        return (-1);
-    }
 
-    /* SR0 requires Ipc_start() */
+    /* SR0, pm require Ipc_start() */
     do
     {
         status = Ipc_start();
@@ -115,10 +110,19 @@ Int main(Int argc, Char* argv[])
     taskParams.arg0 = (UArg)argc;
     taskParams.arg1 = (UArg)argv;
     taskParams.stackSize = 0x1000;
-    Task_create(smain, &taskParams, &eb);
+    if (num_eve_devices > 0)
+        Task_create(smain, &taskParams, &eb);
+    else
+        Task_create(smain_idle, &taskParams, &eb);
 
     if (Error_check(&eb)) {
         System_abort("main: failed to create application startup thread");
+    }
+    if (num_eve_devices <= 0)
+    {
+        Log_print0(Diags_INFO | Diags_USER6,
+                   "OpenCL runtime firmware does not apply. Idling...");
+        BIOS_start(); /* start scheduler, this never returns */
     }
 
     Log_print0(Diags_INFO | Diags_USER6, "Creating msg queue...");
@@ -147,6 +151,15 @@ Int main(Int argc, Char* argv[])
     return (0);
 }
 
+/*
+ *  ======== smain_idle ========
+ *  For the purpose of entering the SYS/BIOS idle loop, so that
+ *  power management idle function can be called for suspend/resume
+ */
+Void smain_idle(UArg arg0, UArg arg1)
+{
+    while (1)  Task_yield();
+}
 
 /*
  *  ======== smain ========
@@ -335,7 +348,7 @@ static int  GetNumEVEDevices()
                                     // (data sheet: 0x69 is Jacinto 6 Plus)
         num_eves = 2;
 
-    Log_print1(Diags_INFO | Diags_USER6, "%d EVEs Available", num_eves);
+    Log_print1(Diags_INFO | Diags_USER6, "%d EVE/DLAs Available", num_eves);
     if (num_eves > MAX_NUM_EVES)
     {
         num_eves = MAX_NUM_EVES;
