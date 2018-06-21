@@ -72,6 +72,8 @@ PKGPATH := $(PKGPATH)+$(IPC_DIR)/packages
 PKGPATH := $(PKGPATH)+$(XDC_DIR)/packages
 PKGPATH := $(PKGPATH)+$(PDK_DIR)/packages
 
+# If using pre-built EVE firmware, generate .h file from firmware binary
+# If building the firmware, directly use the .h file from the build
 ifeq ($(BUILD_DLA_FIRMWARE),1)
 DLA_FIRMWARE = monitor_dla/src/dla_firmware.h
 else
@@ -95,17 +97,10 @@ all: dla_firmware
 
 dla_firmware:
 ifeq ($(BUILD_DLA_FIRMWARE),1)
-	@$(ECHO) "Building development version of DLA firmware..."
+	@$(ECHO) "Building development version of EVE firmware..."
 	$(MAKE) -C monitor_dla CORE=eve BUILD_AM57=1 -j4
-	@diff monitor_dla/lib/dla_firmware.bin lib/dla_firmware.bin > /dev/null ||\
-		$(ECHO) "\n"\
-	            "***********************************************************\n"\
-		        "* dla_firmware.bin: monitor_ipu/lib/dla_firmware.bin not in \n"\
-	            "* sync with monitor_dla/lib/dla_firmware.bin.\n"\
-				"* Copy dla_firmware.bin into ti-opencl repo and commit.\n"\
-	            "***********************************************************\n"
 else
-	@$(ECHO) "Using prebuilt DLA firmware..."
+	@$(ECHO) "Using prebuilt EVE firmware..."
 endif
 
 server_ipu1.x: bin/$(BUILD_TYPE)/server_ipu1.xem4
@@ -123,7 +118,7 @@ bin/$(BUILD_TYPE)/obj/%.oem4: %.c $(CONFIG)/compiler.opt $(HEADERS)
 src/dla_firmware.c: $(DLA_FIRMWARE)
 	touch $@
 
-src/dla_firmware.h: lib/dla_firmware.bin
+src/dla_firmware.h: ${OCL_TIDL_FW_DIR}/eve_firmware.bin
 	hexdump -ve '1/1 "0x%02x,"' $< | \
             sed -e "s/\(0x..,\)\{90\}/&\n/g" -e "\$$a // bytes" > $@
 
