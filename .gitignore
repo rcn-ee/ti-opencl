@@ -62,3 +62,4 @@ packages/ti/opencl/DSPMonitor.h
 *.swo
 /monitor_ipu/bin/
 monitor/monitor_am57x*
+monitor_ipu/src/eve_firmware.h

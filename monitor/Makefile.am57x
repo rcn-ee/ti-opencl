@@ -29,8 +29,8 @@ LIBS   += $(ULM_DIR)/libtiulm.ae66
 LIBS   += $(GDB_SERVER_DIR)/lib/gdb_server.ae66
 LIBS   += $(AET_DIR)/lib/libaet.ae66
 
-ifeq ($(BUILD_DLA_FIRMWARE),1)
-OCL_TIDL_PATH = ../monitor_ipu/monitor_dla
+ifeq ($(BUILD_EVE_FIRMWARE),1)
+OCL_TIDL_PATH = ../monitor_ipu/monitor_eve
 OCL_TIDL_LIB = $(OCL_TIDL_PATH)/dsp/ocl_tidl_dsp.lib
 else
 OCL_TIDL_LIB = ${OCL_TIDL_FW_DIR}/ocl_tidl_dsp.lib
@@ -165,7 +165,7 @@ realclean: clean
 .PHONY: $(OCL_TIDL_LIB)
 
 $(OCL_TIDL_LIB):
-ifeq ($(BUILD_DLA_FIRMWARE),1)
+ifeq ($(BUILD_EVE_FIRMWARE),1)
 	@echo "Building development version of OCL TIDL library ..."
 	$(MAKE) -C $(OCL_TIDL_PATH) CORE=dsp BUILD_AM57=1
 else

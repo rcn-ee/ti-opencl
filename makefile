@@ -22,8 +22,8 @@ ifeq ($(BUILD_AM57),1)
     BUILD_TARGET=ARM_AM57
     ifneq ($(BUILD_OS), SYS_BIOS)
         CMAKE_DEFINES += -DLINUX_DEVKIT_ROOT=$(LINUX_DEVKIT_ROOT)
-        BUILD_DLA_FIRMWARE ?= 1
-        CMAKE_DEFINES += -DBUILD_DLA_FIRMWARE=$(BUILD_DLA_FIRMWARE)
+        BUILD_EVE_FIRMWARE ?= 1
+        CMAKE_DEFINES += -DBUILD_EVE_FIRMWARE=$(BUILD_EVE_FIRMWARE)
         export PATH:=$(ARM_GCC_DIR)/bin:$(PATH)
     else
         RTOS_PACKAGE_VER=$(shell echo $(OCL_FULL_VER) | sed 's/\<[0-9]\>/0&/g' | sed 's/\./_/g')
@@ -82,16 +82,16 @@ CMAKE_DEFINES += -DBUILD_TARGET=$(BUILD_TARGET)
 CMAKE_DEFINES += -DOCL_VERSION=$(OCL_FULL_VER)
 OCL_BUILD_DIR = build/$(TARGET)$(BUILD_OS)
 OCL_INSTALL_DIR = install/$(TARGET)$(BUILD_OS)
-ifeq ($(BUILD_DLA_FIRMWARE),1)
-    DLA_SUBMODULE = dla_submodule
+ifeq ($(BUILD_EVE_FIRMWARE),1)
+    EVE_SUBMODULE = eve_submodule
 else
-	DLA_SUBMODULE = opencl-firmware
+	EVE_SUBMODULE = opencl-firmware
 	export OCL_TIDL_FW_DIR=../opencl-firmware
 endif
 export DESTDIR?=$(CURDIR)/$(OCL_INSTALL_DIR)
 
 
-install: $(OCL_BUILD_DIR) $(DESTDIR) $(DLA_SUBMODULE)
+install: $(OCL_BUILD_DIR) $(DESTDIR) $(EVE_SUBMODULE)
 	cd $(OCL_BUILD_DIR) && cmake $(CMAKE_DEFINES) ../../host && $(MAKE) install
 
 .PHONY: build
@@ -125,8 +125,8 @@ $(OCL_BUILD_DIR):
 $(DESTDIR):
 	mkdir -p $(DESTDIR)
 
-.PHONY: dla_submodule
-dla_submodule:
+.PHONY: eve_submodule
+eve_submodule:
 	git submodule update --init
 
 opencl-firmware:
@@ -139,5 +139,5 @@ version:
 	@echo $(OCL_VER)
 
 update_firmware:
-	cp -p monitor_ipu/monitor_dla/src/dla_firmware.bin opencl-firmware/eve_firmware.bin
-	cp -p monitor_ipu/monitor_dla/dsp/ocl_tidl_dsp.lib opencl-firmware/ocl_tidl_dsp.lib
+	cp -p monitor_ipu/monitor_eve/src/eve_firmware.bin opencl-firmware/eve_firmware.bin
+	cp -p monitor_ipu/monitor_eve/dsp/ocl_tidl_dsp.lib opencl-firmware/ocl_tidl_dsp.lib
