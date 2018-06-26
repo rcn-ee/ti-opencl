@@ -54,6 +54,7 @@ The following is a sample configuration from K2H EVM:
             "cmem-block-onchip" : "1",
             "compute-unit-list" : "0,1,2,3,4,5,6,7",
             "linux-shmem-size-KB" : "128",
+            "eve-devices-disable" : "0",
     }
 
 ``cmem-block-offchip`` and ``cmem-block-onchip`` specify the CMEM block
@@ -75,6 +76,12 @@ dedicated for other uses.
 the daemon and OpenCL applications use to manage shared data structure.
 As already discussed in previous section, increase it if you see
 ``bad_alloc`` exception.
+
+``eve-devices-disable`` specifies whether to disable EVE devices,
+if available on the SoC (e.g. AM57x9s).  By default, the value is ``0``,
+which means EVE devices are enabled in OpenCL runtime.  Should user
+choose to not use available EVE devices in the OpenCL runtime,
+please change the value to ``1``.
 
 Restrictions on multiple OpenCL processes
 -----------------------------------------

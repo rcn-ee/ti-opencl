@@ -163,7 +163,7 @@ void DeviceInfo::EVEDevicesAvailable()
     num_eve_devices_ = 0;
 
     #if defined(DEVICE_AM57) && !defined(_SYS_BIOS)
-    if (eve_devices_disable_ != 0)  return;
+    if (eve_devices_disable_)  return;
 
     int mem_fd = open("/dev/mem", O_RDONLY);
     if (mem_fd == -1)

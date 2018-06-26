@@ -68,7 +68,7 @@ private:
     uint8_t num_compute_units_;
     int32_t cmem_block_offchip_;
     int32_t cmem_block_onchip_;
-    int32_t eve_devices_disable_;
+    bool    eve_devices_disable_;
     DSPCoreSet available_compute_units_;
     const SymbolAddressLookup* symbol_lookup_;
 };

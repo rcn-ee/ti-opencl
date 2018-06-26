@@ -43,7 +43,7 @@ extern "C"
 #define MAX_CMEM_BLOCKS  4
 #define INVALID_CMEM_BLOCKID  -2
 #define DEFAULT_LINUX_SHMEM_SIZE_KB  128
-#define DEFAULT_EVE_DEVICES_DISABLE  0
+#define DEFAULT_EVE_DEVICES_DISABLE  false
 
 /******************************************************************************
 * class MctDaemonConfig 
@@ -138,7 +138,7 @@ public:
 
     if (json_object_object_get_ex(oclcfg, "eve-devices-disable", &eves))
     {
-      eve_devices_disable_ = json_object_get_int(eves);
+      eve_devices_disable_ = (json_object_get_int(eves) != 0);
     }
 
     json_object_put(oclcfg);  // decrement refcount and free
@@ -163,14 +163,14 @@ public:
   int32_t GetCmemBlockOffChip()    const { return cmem_block_offchip_; }
   int32_t GetCmemBlockOnChip()     const { return cmem_block_onchip_; }
   int32_t GetLinuxShmemSizeKB()    const { return linux_shmem_size_KB_; }
-  int32_t GetEVEDevicesDisable()   const { return eve_devices_disable_; }
+  bool    GetEVEDevicesDisable()   const { return eve_devices_disable_; }
   std::set<uint8_t>& GetCompUnits()      { return comp_units_; }
 
 private:
   int32_t  cmem_block_offchip_;
   int32_t  cmem_block_onchip_;
   uint32_t linux_shmem_size_KB_;
-  int32_t  eve_devices_disable_;
+  bool     eve_devices_disable_;
   std::set<uint8_t> comp_units_;
 
   /*-------------------------------------------------------------------------
