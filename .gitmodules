@@ -1,3 +1,3 @@
 [submodule "monitor_ipu/monitor_dla"]
-	path = monitor_ipu/monitor_dla
-	url = ssh://git@bitbucket.itg.ti.com/mctools/dla-opencl-monitor.git
+	path = monitor_ipu/monitor_eve
+	url = ssh://git@bitbucket.itg.ti.com/mctools/eve-opencl-monitor.git

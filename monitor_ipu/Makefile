@@ -52,7 +52,7 @@ CSL_LIB_M4    ?= $(PDK_DIR)/packages/ti/csl/lib/tda2xx/m4/release/ti.csl.aem4
 PM_HAL_LIB_M4 ?= $(PDK_DIR)/packages/ti/drv/pm/lib/tda2xx/m4/release/pm_hal.aem4
 SBL_LIB_M4    ?= lib/sbl_lib_1_9_0_9.aem4
 
-SOURCES  = main_ipu1.c dla_firmware.c
+SOURCES  = main_ipu1.c eve_firmware.c
 SOURCES += utils_eveloader.c
 SOURCES += utils_eve_boot.c
 HEADERS  = custom_rsc_table_vayu_ipu1.h
@@ -72,40 +72,35 @@ PKGPATH := $(PKGPATH)+$(IPC_DIR)/packages
 PKGPATH := $(PKGPATH)+$(XDC_DIR)/packages
 PKGPATH := $(PKGPATH)+$(PDK_DIR)/packages
 
-ifeq ($(BUILD_DLA_FIRMWARE),1)
-DLA_FIRMWARE = monitor_dla/src/dla_firmware.h
+# If using pre-built EVE firmware, generate .h file from firmware binary
+# If building the firmware, directly use the .h file from the build
+ifeq ($(BUILD_EVE_FIRMWARE),1)
+EVE_FIRMWARE = monitor_eve/src/eve_firmware.h
 else
-DLA_FIRMWARE = src/dla_firmware.h
+EVE_FIRMWARE = src/eve_firmware.h
 endif
 INCLUDES  = -I. -Isrc -I $(OPENCL_SRC_DIR)/src/core/dsp
 INCLUDES += -D$(DEVICE) -D$(SOC) -DNON_VISIONSDK_BUILD
 INCLUDES += -DIPU1_LOAD_EVES -DPROC_EVE1_INCLUDE
 INCLUDES += -DPROC_EVE2_INCLUDE -DPROC_EVE3_INCLUDE -DPROC_EVE4_INCLUDE
-INCLUDES += -DDLA_FIRMWARE="$(DLA_FIRMWARE)"
+INCLUDES += -DEVE_FIRMWARE="$(EVE_FIRMWARE)"
 
 libs = $(CSL_LIB_M4) $(PM_HAL_LIB_M4) $(SBL_LIB_M4)
 
 .PRECIOUS: %/compiler.opt %/linker.cmd
 
-# always check if dla_firmware needs to be rebuild
-.PHONY: dla_firmware
+# always check if eve_firmware needs to be rebuild
+.PHONY: eve_firmware
 
-all: dla_firmware
+all: eve_firmware
 	$(MAKE) server_ipu1.x
 
-dla_firmware:
-ifeq ($(BUILD_DLA_FIRMWARE),1)
-	@$(ECHO) "Building development version of DLA firmware..."
-	$(MAKE) -C monitor_dla CORE=eve BUILD_AM57=1 -j4
-	@diff monitor_dla/lib/dla_firmware.bin lib/dla_firmware.bin > /dev/null ||\
-		$(ECHO) "\n"\
-	            "***********************************************************\n"\
-		        "* dla_firmware.bin: monitor_ipu/lib/dla_firmware.bin not in \n"\
-	            "* sync with monitor_dla/lib/dla_firmware.bin.\n"\
-				"* Copy dla_firmware.bin into ti-opencl repo and commit.\n"\
-	            "***********************************************************\n"
+eve_firmware:
+ifeq ($(BUILD_EVE_FIRMWARE),1)
+	@$(ECHO) "Building development version of EVE firmware..."
+	$(MAKE) -C monitor_eve CORE=eve BUILD_AM57=1 -j4
 else
-	@$(ECHO) "Using prebuilt DLA firmware..."
+	@$(ECHO) "Using prebuilt EVE firmware..."
 endif
 
 server_ipu1.x: bin/$(BUILD_TYPE)/server_ipu1.xem4
@@ -120,10 +115,10 @@ bin/$(BUILD_TYPE)/obj/%.oem4: %.c $(CONFIG)/compiler.opt $(HEADERS)
 	@$(ECHO) "# Making $@ ..."
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(INCLUDES) --output_file=$@ -fc $<
 
-src/dla_firmware.c: $(DLA_FIRMWARE)
+src/eve_firmware.c: $(EVE_FIRMWARE)
 	touch $@
 
-src/dla_firmware.h: lib/dla_firmware.bin
+src/eve_firmware.h: ${OCL_TIDL_FW_DIR}/eve_firmware.bin
 	hexdump -ve '1/1 "0x%02x,"' $< | \
             sed -e "s/\(0x..,\)\{90\}/&\n/g" -e "\$$a // bytes" > $@
 
@@ -146,10 +141,10 @@ help:
 	@$(ECHO) "make clean             # clean everything"
 
 clean::
-	$(RMDIR) bin src/dla_firmware.h
-	if [ -e monitor_dla/Makefile ]; then \
-		$(MAKE) -C monitor_dla CORE=eve clean; \
-		$(MAKE) -C monitor_dla CORE=dsp clean; \
+	$(RMDIR) bin src/eve_firmware.h
+	if [ -e monitor_eve/Makefile ]; then \
+		$(MAKE) -C monitor_eve CORE=eve clean; \
+		$(MAKE) -C monitor_eve CORE=dsp clean; \
 	fi
 
 #  ======== toolchain macros ========

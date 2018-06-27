@@ -348,7 +348,7 @@ static int  GetNumEVEDevices()
                                     // (data sheet: 0x69 is Jacinto 6 Plus)
         num_eves = 2;
 
-    Log_print1(Diags_INFO | Diags_USER6, "%d EVE/DLAs Available", num_eves);
+    Log_print1(Diags_INFO | Diags_USER6, "%d EVEs Available", num_eves);
     if (num_eves > MAX_NUM_EVES)
     {
         num_eves = MAX_NUM_EVES;

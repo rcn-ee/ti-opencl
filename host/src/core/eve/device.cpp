@@ -487,7 +487,7 @@ int EVEDevice::mail_from(int *retcode)
 
     if (rxmsg.command == PRINT)
     {
-        std::cout << "[dla " << rxmsg.u.message[0] << "] "
+        std::cout << "[eve " << rxmsg.u.message[0] << "] "
                              << rxmsg.u.message+1;
         return -1;
     }
@@ -824,7 +824,7 @@ cl_int EVEDevice::info(cl_device_info param_name,
             break;
 
         case CL_DEVICE_NAME:
-            STRING_ASSIGN("TI Deep Learning Accelerator (DLA)");
+            STRING_ASSIGN("TI Embedded Vision Engine (EVE)");
             break;
 
         case CL_DEVICE_VENDOR:

@@ -65,6 +65,6 @@
 #define STRINGFY(x)  STRINGFY2(x)
 
 unsigned char gTDA2XX_EVE_FIRMWARE[] = {
-    #include STRINGFY(DLA_FIRMWARE)
+    #include STRINGFY(EVE_FIRMWARE)
 };
 
