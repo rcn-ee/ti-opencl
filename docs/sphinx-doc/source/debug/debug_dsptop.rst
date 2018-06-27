@@ -34,7 +34,7 @@ next.  Details about the usage of dsptop can be found by running
   The patch content can also be incorporated into device tree file by
   in place modification.  Take K2HK for example,
 
-::
+.. code-block:: shell
 
   # locate your device tree file, e.g. in /boot if using sdcard,
     or /var/lib/tftpboot on host machine if booting over network
@@ -55,7 +55,7 @@ next.  Details about the usage of dsptop can be found by running
   impact functionality of dsptop and your application.  We are working on a fix
   to remove this message in the future releases.
 
-::
+.. code-block:: shell
 
     [  242.398541] ------------[ cut here ]------------
     [  242.403205] WARNING: CPU: 0 PID: 0 at drivers/bus/omap_l3_noc.c:147 l3_interrupt_handler+0x234/0x35c()

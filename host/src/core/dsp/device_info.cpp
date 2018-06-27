@@ -135,6 +135,7 @@ void DeviceInfo::ComputeUnits_CmemBlocks_Available()
     MctDaemonConfig oclcfg;
     cmem_block_offchip_ = oclcfg.GetCmemBlockOffChip();
     cmem_block_onchip_  = oclcfg.GetCmemBlockOnChip();
+    eve_devices_disable_ = oclcfg.GetEVEDevicesDisable();
 
     DSPCoreSet sysdsps = oclcfg.GetCompUnits();
     if (comp_unit)
@@ -162,6 +163,8 @@ void DeviceInfo::EVEDevicesAvailable()
     num_eve_devices_ = 0;
 
     #if defined(DEVICE_AM57) && !defined(_SYS_BIOS)
+    if (eve_devices_disable_)  return;
+
     int mem_fd = open("/dev/mem", O_RDONLY);
     if (mem_fd == -1)
         ReportError(ErrorType::Fatal, ErrorKind::FailedToOpenFileName,

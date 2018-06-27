@@ -366,8 +366,8 @@ Note that these two functions can be called from either OpenCL C code
 or standard C code.
 
 .. note::
-  The latest TI RTOS migrated to use newlib-nano adn disabled C++
-  exceptions (http://processors.wiki.ti.com/index.php/SYS/BIOS_with_GCC_(CortexA)#What_are_the_limitations_of_newlib-nano_libc_compared_to_newlib_libc_.3F).
+  The latest TI RTOS migrated to use newlib-nano and disabled C++
+  exceptions (`see limitations of newlib-nano libc <http://processors.wiki.ti.com/index.php/SYS/BIOS_with_GCC_(CortexA)#What_are_the_limitations_of_newlib-nano_libc_compared_to_newlib_libc_.3F>`_).
   As a result, in OpenCL RTOS setup, this example won't run to full completion.
   OpenCL Linux is not affected.
 
@@ -382,8 +382,8 @@ event status to determine if a timeout has occurred.  Details of timeout
 extension can be found in :doc:`../extensions/kernel-timeout`.
 
 .. note::
-  The latest TI RTOS migrated to use newlib-nano adn disabled C++
-  exceptions (http://processors.wiki.ti.com/index.php/SYS/BIOS_with_GCC_(CortexA)#What_are_the_limitations_of_newlib-nano_libc_compared_to_newlib_libc_.3F).
+  The latest TI RTOS migrated to use newlib-nano and disabled C++
+  exceptions (`see limitations of newlib-nano libc <http://processors.wiki.ti.com/index.php/SYS/BIOS_with_GCC_(CortexA)#What_are_the_limitations_of_newlib-nano_libc_compared_to_newlib_libc_.3F>`_).
   As a result, in OpenCL RTOS setup, this example won't run to full completion.
   OpenCL Linux is not affected.
 
