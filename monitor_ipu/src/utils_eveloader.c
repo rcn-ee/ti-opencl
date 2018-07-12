@@ -171,7 +171,7 @@ Int32 Utils_eveBoot(Int32 num_eve_devices)
     appImgParams.entryPoints        = &gUtilsEntryPoints;
     appImgParams.skipDDRCopy        = 1U;
 
-    Utils_loadAppImage(&appImgParams);
+    Utils_loadAppImage(&appImgParams, num_eve_devices);
 
 #ifdef PROC_EVE1_INCLUDE
     if (num_eve_devices >= 1)

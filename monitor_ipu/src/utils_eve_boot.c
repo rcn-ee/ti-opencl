@@ -94,8 +94,26 @@ Int32 Utils_dummyDDRRead(void   *dstAddr,
     return retVal;
 }
 
-Int32 Utils_loadAppImage(sbllibAppImageParseParams_t *imageParams)
+Int32 Utils_loadAppImage(sbllibAppImageParseParams_t *imageParams,
+                         Int32 num_eve_devices)
 {
+    /* Restrict loader to only load num_eve_devices EVE images,
+       firmware may contain more EVE images than available EVEs,
+       e.g. firmware has 4 EVE images, AM574x only has 2 EVEs */
+    Int32 numFiles = ((sbllibMetaHeaderStartV1_t *) (&gTDA2XX_EVE_FIRMWARE))
+                     ->numFiles;
+    Int32 fileNo;
+    for (fileNo = num_eve_devices; fileNo < numFiles; fileNo++)
+    {
+        sbllibMetaHeaderCoreV1_t *metaCore = ((sbllibMetaHeaderCoreV1_t *)
+                                 (&gTDA2XX_EVE_FIRMWARE +
+                                  sizeof(sbllibMetaHeaderStartV1_t) +
+                                  sizeof(sbllibMetaHeaderCoreV1_t) * fileNo));
+        /* Set coreId to 0xFFFFFFFFU so that loader won't load them */
+        /* See SBLLibMultiCoreImageParseV1() in sbl_lib_tda2xx_platform.c */
+        metaCore->coreId = 0xFFFFFFFFU;
+    }
+
     imageParams->appImageOffset = (UInt32) &gTDA2XX_EVE_FIRMWARE;
 
     SBLLibRegisterImageCopyCallback(&Utils_ddr3ReadLocal,
