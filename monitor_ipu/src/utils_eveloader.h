@@ -74,6 +74,7 @@
  *
  * \brief Boots Eves with AppImage
  *
+ * \param num_eve_devices  Number of EVEs
  *
  * \return SYSTEM_LINK_STATUS_SOK on success, else failure
  *
@@ -87,18 +88,21 @@ Int32 Utils_eveBoot(Int32 num_eve_devices);
  * \brief Load multi-core AppImage for EVEs
  *
  * \param imageParams  Parameters for parsing App Image
+ * \param num_eve_devices  Number of EVEs, App Image may contain more images
  *
  * \return SYSTEM_LINK_STATUS_SOK on success, else failure
  *
  *******************************************************************************
  */
-Int32 Utils_loadAppImage(sbllibAppImageParseParams_t *imageParams);
+Int32 Utils_loadAppImage(sbllibAppImageParseParams_t *imageParams,
+                         Int32 num_eve_devices);
 
 /**
  *******************************************************************************
  *
  * \brief Reset all EVE cores
  *
+ * \param num_eve_devices  Number of EVEs
  *
  * \return None
  *
