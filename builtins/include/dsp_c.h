@@ -15,7 +15,7 @@
  *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  *   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+ *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  *   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
  *   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
  *   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
@@ -73,6 +73,8 @@ int      __cache_l2_256k   (void);
 int      __cache_l2_512k   (void);
 void     __cache_l2_flush  (void);
 uint32_t __cache_l2_size   (void);
+void     __cache_l2_wbinv  (uint8_t* __ptr, size_t __size);
+void     __cache_l2_inv    (uint8_t* __ptr, size_t __size);
 
 void     __heap_init_ddr  (__global void *__ptr, size_t __size);
 void*    __malloc_ddr     (size_t __size);

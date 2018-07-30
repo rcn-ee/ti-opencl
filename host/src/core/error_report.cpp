@@ -35,6 +35,9 @@
 
 using namespace tiocl;
 
+const char* tiocl::command_code_string[] =
+{ "EXIT", "TASK", "NDR", "CINV", "FREQ", "PRINT", "CONFIGURE", "DEBUG" };
+
 static const std::map<const ErrorKind, const std::string> ErrorStrings =
 {
     {ErrorKind::PageSizeNotAvailable,
