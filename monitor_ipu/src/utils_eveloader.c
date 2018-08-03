@@ -133,11 +133,11 @@ Int32 Utils_eveBoot(Int32 num_eve_devices)
 {
     Int32 retVal = SYSTEM_LINK_STATUS_SOK;
     UInt32 sblBuildMode = SBLLIB_SBL_BUILD_MODE_PROD;
-    UInt32 oppId = SBLLIB_PRCM_DPLL_OPP_NOM;
     sbllibAppImageParseParams_t appImgParams;
     pmhalPrcmDpllConfig_t      *dpllParams;
     pmhalPrcmSysClkVal_t sysClkFreq = PMHALCMGetSysClockFreqEnum();
     sbllibInitParams_t sblInitPrms;
+    UInt32 oppId, multVal, dspMultVal, dspDivVal;
 
     /* Default initialization of SBL Lib Params */
     SBLLibInitParamsInit(&sblInitPrms);
@@ -146,19 +146,29 @@ Int32 Utils_eveBoot(Int32 num_eve_devices)
     sblInitPrms.printFxn = &Utils_eveLoaderPrintFxn;
     SBLLibInit(&sblInitPrms);
 
-    /* Configure DPLL EVE */
-    retVal = SBLLibGetDpllStructure(PMHAL_PRCM_DPLL_EVE,
-                                     sysClkFreq,
-                                     oppId,
-                                     &dpllParams);
-
-    retVal += PMHALCMDpllConfigure(PMHAL_PRCM_DPLL_EVE,
-                                   dpllParams,
-                                   PM_TIMEOUT_INFINITE);
-    if (SYSTEM_LINK_STATUS_SOK != retVal)
+    /* Configure DPLL EVE if it is not already configured, e.g. by u-boot */
+    multVal = PMHALCMDpllGetMultiplier(PMHAL_PRCM_DPLL_EVE);
+    if (multVal == 0U)
     {
-        Vps_printf("\n UTILS: EVELOADER: DPLL EVE not configured Correctly \n");
-        SBLLibAbortBoot();
+        oppId = SBLLIB_PRCM_DPLL_OPP_HIGH;
+        /* if DPLL DSP in OPP_NOM 600MHz, use OPP_NOM for EVE as well */
+        dspMultVal = PMHALCMDpllGetMultiplier(PMHAL_PRCM_DPLL_DSP);
+        dspDivVal  = PMHALCMDpllGetDivider(PMHAL_PRCM_DPLL_DSP);
+        if ((20U * dspMultVal / (dspDivVal + 1U)) <= 600U)  /* 20MHz sys_clk */
+            oppId = SBLLIB_PRCM_DPLL_OPP_NOM;
+
+        retVal = SBLLibGetDpllStructure(PMHAL_PRCM_DPLL_EVE,
+                                         sysClkFreq,
+                                         oppId,
+                                         &dpllParams);
+        retVal += PMHALCMDpllConfigure(PMHAL_PRCM_DPLL_EVE,
+                                       dpllParams,
+                                       PM_TIMEOUT_INFINITE);
+        if (SYSTEM_LINK_STATUS_SOK != retVal)
+        {
+            Vps_printf("\n EVELOADER: DPLL EVE not configured Correctly \n");
+            SBLLibAbortBoot();
+        }
     }
 
     /* Reset all EVEs */
