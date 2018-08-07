@@ -9,7 +9,7 @@ DEVICE    = DEVICE_AM572x
 SOC       = SOC_AM572x
 
 ## !Need -O* to inline CACHE_* functions!
-CC= $(TI_OCL_CGT_INSTALL)/bin/cl6x -o3 -mv6600 --abi=eabi --gcc --mem_model:const=data --mem_model:data=far -D_SYS_BIOS
+CC= $(TI_OCL_CGT_INSTALL)/bin/cl6x -o3 -mv6600 --abi=eabi --gcc --mem_model:const=data --mem_model:data=far -D_SYS_BIOS --vectypes=on
 AR= $(TI_OCL_CGT_INSTALL)/bin/ar6x
 
 INCLUDES  = -i. -i $(OPENCL_SRC_DIR)/src/core/dsp
@@ -28,7 +28,8 @@ INCLUDES += -DOMP_ENABLED
 endif
 
 SOURCES = monitor.c util.c dsp_rpc.asm touch.asm builtins.c edma.c \
-          edma_am57x_config.c device_am57.c
+          edma_am57x_config.c device_am57.c \
+		  printf.c _printfi.c _ltoa.c
 HEADERS = src/edma.h src/monitor.h src/util.h src/trace.h \
           $(OPENCL_SRC_DIR)/src/core/dsp/message.h \
           $(OPENCL_SRC_DIR)/src/core/dsp/tal/mbox_msgq_shared.h

@@ -91,6 +91,7 @@ private:
     pthread_t                       p_worker_dispatch;
     pthread_t                       p_worker_completion;
     std::vector<KernelEntry*>       p_kernel_entries;
+    uint32_t                        p_printf_coreid_show;
 };
 
 }

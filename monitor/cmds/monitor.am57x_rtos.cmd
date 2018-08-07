@@ -46,7 +46,6 @@
 --retain="ti_sysbios_family_c66_Cache_w*"
 --retain="ti_sysbios_family_c66_Cache_inv*"
 
---retain="printf"
 --retain="puts"
 --retain="_minit"
 --retain="malloc"

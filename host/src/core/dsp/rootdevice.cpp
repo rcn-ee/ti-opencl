@@ -28,6 +28,7 @@
 #include "rootdevice.h"
 #include "device_info.h"
 #include "core/error_report.h"
+#include "../oclenv.h"
 
 #ifdef _SYS_BIOS
 #include <ti/sysbios/knl/Task.h>
@@ -71,7 +72,9 @@ DSPRootDevice::DSPRootDevice(unsigned char dsp_id, SharedMemory* shm)
     p_dsp_id                      = dsp_id;
     const DeviceInfo& device_info = DeviceInfo::Instance();
     p_compute_units               = device_info.GetComputeUnits();
-
+    EnvVar&  env                  = EnvVar::Instance();
+    p_printf_coreid_show          = env.GetEnv<
+                                    EnvVar::Var::TI_OCL_PRINTF_COREID>(1);
     /*-------------------------------------------------------------------------
     * Set possible partition types
     *------------------------------------------------------------------------*/
@@ -379,8 +382,11 @@ int DSPRootDevice::mail_from(const DSPCoreSet& compute_units, int* retcode)
     {
         case PRINT:
         {
-            std::cout << "[core " << rxmsg.u.message[0] << "] "
-                      << rxmsg.u.message + 1;
+            if(p_printf_coreid_show == 1)
+            {
+                std::cout << "[core " << rxmsg.u.message[0] << "] ";
+            }
+            std::cout << rxmsg.u.message + 1;
             return -1;
             break;
         }

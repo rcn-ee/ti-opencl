@@ -43,7 +43,7 @@ USE_ION ?= 0
 ifeq ($(BUILD_OS), SYS_BIOS)
     ARM_LLVM_DIR?=$(SDOMC_SHARED)/llvm-3.6.0-20180423-sysbios-gcc6.3.1
 else
-    ARM_LLVM_DIR?=$(SDOMC_SHARED)/llvm-3.6.0-20190108-arm-g++7.2.1
+    ARM_LLVM_DIR?=$(SDOMC_SHARED)/llvm-3.6.0-20190820-arm-g++8.3.0
 endif
 
 NATIVE_GXX_VER := $(shell g++ -dumpversion | cut -f1 -d.)

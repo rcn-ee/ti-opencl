@@ -3,7 +3,7 @@ ifneq ($(MAKECMDGOALS),clean)
    ifeq (,$(wildcard $(PDK_DIR)/.))
       $(error Path specified for PDK_DIR(=$(PDK_DIR)) is not valid)
    endif
-   ifeq (,$(wildcard $(BIOS_DIR)/.)) 
+   ifeq (,$(wildcard $(BIOS_DIR)/.))
       $(error Path specified for BIOS_DIR(=$(BIOS_DIR)) is not valid)
    endif
    ifeq (,$(wildcard $(OMP_DIR)/.))
@@ -73,7 +73,7 @@ build: $(OUT)
 LIBM_DIR=../libm
 LIBM=$(LIBM_DIR)/libm.lib
 
-$(LIBM): 
+$(LIBM):
 	$(MAKE) -C $(LIBM_DIR)
 
 #----------------------------------------------------------------------------
@@ -83,7 +83,7 @@ BUILTINS_DIR=../builtins
 BUILTINS=$(BUILTINS_DIR)/dsp.lib
 
 
-$(BUILTINS): 
+$(BUILTINS):
 	$(MAKE) -C $(BUILTINS_DIR)
 
 #---------------------------------------------------------------------------
@@ -91,7 +91,8 @@ $(BUILTINS):
 #----------------------------------------------------------------------------
 
 SOURCES = monitor.c util.c dsp_rpc.asm touch.asm builtins.c \
-          edma.c edma3_tci66ak2g02_cfg.c device_k2g.c
+          edma.c edma3_tci66ak2g02_cfg.c device_k2g.c \
+		  printf.c _printfi.c _ltoa.c
 HEADERS = src/edma.h src/monitor.h src/util.h src/trace.h \
           $(OPENCL_SRC_DIR)/src/core/dsp/message.h \
           $(OPENCL_SRC_DIR)/src/core/dsp/tal/mbox_msgq_shared.h
@@ -105,7 +106,7 @@ SEDCMD = \
 	     -e 's|__L2SRAM_SIZE__|$(L2SRAM_SIZE)|g'
 
 ## !Need -O* to inline CACHE_* functions!
-CC= $(TI_OCL_CGT_INSTALL)/bin/cl6x -o3 -mv6600 --abi=eabi --gcc --mem_model:const=data --mem_model:data=far -fr=$(BUILD)
+CC= $(TI_OCL_CGT_INSTALL)/bin/cl6x -o3 -mv6600 --abi=eabi --gcc --mem_model:const=data --mem_model:data=far -fr=$(BUILD) --vectypes=on
 #CC= $(TI_OCL_CGT_INSTALL)/bin/cl6x -o0 -g -mv6600 --abi=eabi --gcc --mem_model:const=data --mem_model:data=far -fr=$(BUILD)
 
 $(OUT): $(OBJS) $(BUILTINS) $(LIBM) $(LINK_CMD) $(LNK_DEFS) $(LIBS)
@@ -123,7 +124,7 @@ $(BUILD)/%.obj : src/%.c $(COMP_OPTS) $(HEADERS)
 
 $(BUILD)/%.obj : src/%.asm $(COMP_OPTS)
 	@echo Compiling $<
-	@$(CC) -@$(COMP_OPTS) $(INCLUDES) -c $< 
+	@$(CC) -@$(COMP_OPTS) $(INCLUDES) -c $<
 
 
 #--------------------------------------------------------------------------

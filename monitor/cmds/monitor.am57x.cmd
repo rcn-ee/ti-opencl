@@ -50,7 +50,6 @@
 --retain="ti_sdo_ipc_MessageQ_*"
 --retain="MessageQ_*"
 
---retain="printf"
 --retain="puts"
 --retain="_minit"
 --retain="malloc"

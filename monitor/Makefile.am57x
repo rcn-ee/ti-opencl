@@ -9,7 +9,7 @@ OMP_ENABLED    ?= 1
 export OMP_ENABLED
 
 ## !Need -O* to inline CACHE_* functions!
-CC= $(TI_OCL_CGT_INSTALL)/bin/cl6x -o3 -mv6600 --abi=eabi --gcc --mem_model:const=data --mem_model:data=far
+CC= $(TI_OCL_CGT_INSTALL)/bin/cl6x -o3 -mv6600 --abi=eabi --gcc --mem_model:const=data --mem_model:data=far --vectypes=on
 
 INCLUDES  = -i. -i $(OPENCL_SRC_DIR)/src/core/dsp
 INCLUDES += -i $(PDK_DIR)/packages -i $(TI_OCL_CGT_INSTALL)/include \
@@ -26,6 +26,7 @@ INCLUDES += -i $(GDB_SERVER_DIR)/include -DGDB_ENABLED
 INCLUDES += -i $(AET_DIR)/include
 
 SOURCES = monitor.c util.c dsp_rpc.asm touch.asm builtins.c edma.c \
+		  printf.c _printfi.c _ltoa.c \
           edma_am57x_config.c device_am57.c \
           dsp_builtins.c dsp_builtins_table.c
 HEADERS = src/edma.h src/monitor.h src/util.h src/trace.h \

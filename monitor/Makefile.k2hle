@@ -152,6 +152,7 @@ SOURCES = monitor.c dsp_rpc.asm util.c touch.asm
 SOURCES+= builtins.c
 SOURCES+= device_k2x.c
 SOURCES+= edma.c edma_config.c
+SOURCES+= printf.c _printfi.c _ltoa.c
 
 HEADERS = src/edma.h src/monitor.h src/util.h src/trace.h \
           $(OPENCL_SRC_DIR)/src/core/dsp/message.h \
@@ -161,7 +162,7 @@ OBJS1=$(patsubst %.c,$(BUILD)/%.obj,$(SOURCES))
 OBJS=$(patsubst %.asm,$(BUILD)/%.obj,$(OBJS1))
 
 ## !Need -O* to inline CACHE_* functions!
-CC= $(TI_OCL_CGT_INSTALL)/bin/cl6x -o3 -mv6600 --abi=eabi --gcc --mem_model:const=data --mem_model:data=far -fr=$(BUILD)
+CC= $(TI_OCL_CGT_INSTALL)/bin/cl6x -o3 -mv6600 --abi=eabi --gcc --mem_model:const=data --mem_model:data=far -fr=$(BUILD) --vectypes=on
 #CC= $(TI_OCL_CGT_INSTALL)/bin/cl6x -o0 -g -mv6600 --abi=eabi --gcc --mem_model:const=data --mem_model:data=far -fr=$(BUILD)
 
 
