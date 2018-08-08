@@ -131,7 +131,8 @@ void ocl_tidl_initialize(const uint8_t*                  createParamsV,
 void ocl_tidl_process(OCL_TIDL_ProcessParams* processParams,
                       const uint8_t*          inputFrame,
                       uint8_t*                outputData,
-                      uint8_t*                externalMemory);
+                      uint8_t*                externalMemory,
+                      uint8_t*                traceBufferParams);
 
 void ocl_tidl_cleanup();
 #endif
