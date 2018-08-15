@@ -13,7 +13,7 @@ To enable concurrent processes to dispatch OpenCL APIs, a daemon was added (``ti
 
 #. Manage the OpenCL contiguous memory (CMEM) heap. Since multiple processes with OpenCL APIs share the heap, the daemon provides a centralized location to manage the heap.
 
-#. OpenCL DSP monitor lifetime management (only on K2x SoCs).  On K2x devices, the ti-mctd daemon uses MPM to reset, load and run the OpenCL monitor on the DSPs during boot. 
+#. OpenCL DSP monitor lifetime management (only on K2x SoCs).  On K2x devices, the ti-mctd daemon uses MPM to reset, load and run the OpenCL monitor on the DSPs during boot.
 
 The ti-mctd daemon is started during boot as a systemd service. The associated systemd unit file is located at ``/lib/systemd/system/ti-mct-daemon.service``
 
@@ -22,9 +22,9 @@ The ti-mctd daemon is started during boot as a systemd service. The associated s
     The daemon can be stopped by the user by executing ``pkill ti-mctd`` and restarted by executing ``ti-mctd``. Scenarios in which the user will need to restart the daemon include:
 
     #. The DSPs crash  (or)
-    #. The Linux inter-process shared memory heap managed by the daemon runs out of space (application terminates with a ``boost::interprocess::bad_alloc`` exception). 
-           
-    
+    #. The Linux inter-process shared memory heap managed by the daemon runs out of space (application terminates with a ``boost::interprocess::bad_alloc`` exception).
+
+
 With scenario #2, the ``ti-mctd`` daemon can be stopped and restarted with a larger Linux shared memory region specified in the daemon config file, ``/etc/ti-mctd/ti_mctd_config.json``. E.g.
 
 .. code-block:: bash
@@ -38,8 +38,35 @@ With scenario #2, the ``ti-mctd`` daemon can be stopped and restarted with a lar
 
 ti-mct-heapcheck
 ----------------
-There is also another program, ``ti-mct-heap-check``. This program prints out the current state of the OpenCL CMEM heap.  The –c option can be used to garbage collect any allocated blocks associated with non-running processes.
- 
+``ti-mct-heap-check`` prints the current state of the OpenCL CMEM heap. For example, the output below was generated when ``ti-mct-heap-check`` was run during the execution of an OpenCL program.
+
+.. code-block:: bash
+
+   root@am57xx-evm:~/test# ti-mct-heap-check
+   -- ddr_heap1 ------------------------------
+   Addr : 0xa2000000
+   Size : 0xa000000
+   Avail: 0x9ffcf00
+   Align: 0x80
+   Free:
+        addr: 0xa2000000 size: 0x16a000
+        addr: 0xa216a800 size: 0x2df800
+        addr: 0xa244b180 size: 0x395000
+        addr: 0xa27e1900 size: 0x981e700
+   Aloc:
+        addr: 0xa216a000 size: 0x800 pid: 27112
+        addr: 0xa244a000 size: 0xc00 pid: 27112
+        addr: 0xa244ac00 size: 0x580 pid: 27112
+        addr: 0xa27e0180 size: 0xd00 pid: 27112
+        addr: 0xa27e0e80 size: 0x900 pid: 27112
+        addr: 0xa27e1780 size: 0x180 pid: 27112
+
+..  note::
+    ti-mct-heap-check will not print anything if the OpenCL heap has not been created. The heap is created on demand when the first process with OpenCL APIs executes.
+
+The –c option can be used to free any allocated blocks which have not been freed by the process that allocated them. This situation typically occurs when a process terminates abnormally.
+
+
 ti-mctd config file
 -------------------
 Starting from OpenCL product version 1.1.13, the ``ti-mctd`` daemon reads
