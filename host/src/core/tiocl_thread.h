@@ -27,7 +27,12 @@
  *****************************************************************************/
 
 #ifdef _SYS_BIOS
-#include <ti/sysbios/posix/pthread.h>
+  #include <ti/sysbios/BIOS.h>
+  #if ti_sysbios_BIOS_version <= (0x65200)
+  #include <ti/sysbios/posix/pthread.h>
+  #else
+  #include <ti/posix/gcc/pthread.h>
+  #endif
 #else
 #include <pthread.h>
 #endif
