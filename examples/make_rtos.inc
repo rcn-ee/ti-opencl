@@ -42,10 +42,10 @@ DSS_CMD                 = $(CCS_INSTALL_DIR)\ccs_base\scripting\bin\dss.bat
 NULLFILE                = NUL
 
 else  # Linux
-DEFAULT_PSDK_RTOS      ?= /cgnas/ti-processor-sdk-rtos-am57xx-evm-04.03.00.05-release
-GCC_ARM_NONE_TOOLCHAIN ?= /cgnas/gcc-arm-none-eabi-6-2017-q1-update
+DEFAULT_PSDK_RTOS      ?= /cgnas/ti-processor-sdk-rtos-am57xx-evm-05.00.00.15-release
+GCC_ARM_NONE_TOOLCHAIN ?= $(wildcard $(DEFAULT_PSDK_RTOS)/gcc-arm-none-eabi-*)
+TI_OCL_CGT_INSTALL     ?= $(wildcard $(DEFAULT_PSDK_RTOS)/ti-cgt-c6000_*)
 
-TI_OCL_CGT_INSTALL     ?= /cgnas/ti-cgt-c6000-8.2.2-release-linux
 DSS_CMD                 = $(CCS_INSTALL_DIR)/ccs_base/scripting/bin/dss.sh
 NULLFILE                = /dev/null
 endif
@@ -110,7 +110,7 @@ else
 endif
 
 objs = $(addprefix bin/$(PROFILE)/,$(patsubst %.cpp,%.oa15fg,$(srcs)))
-libs = -Wl,-T,$(CONFIG)/linker.cmd -lstdc++ -lgcc -lc -lm -lrdimon
+libs = -Wl,-T,$(CONFIG)/linker.cmd -lstdc++ -lgcc -lm
 
 .PRECIOUS: %/compiler.opt %/linker.cmd
 
@@ -199,7 +199,7 @@ CXX_FLAGS += -Wno-ignored-attributes
 CFLAGS   += -c -mcpu=cortex-a15 -mabi=aapcs -mapcs -mfpu=neon -mfloat-abi=hard -ffunction-sections -fdata-sections $(CCPROFILE_$(PROFILE)) @$(CONFIG)/compiler.opt -I"$(GCC_ARM_NONE_TOOLCHAIN)/arm-none-eabi/include/newlib-nano" -I. -I$(TI_OCL_INSTALL)/usr/include
 
 LDFLAGS += $(LDPROFILE_$(PROFILE)) -mfloat-abi=hard -nostartfiles -static -Wl,--gc-sections
-LDLIBS += -L$(BIOS_INSTALL_DIR)/packages/gnu/targets/arm/libs/install-native/arm-none-eabi/lib/hard --specs=nano.specs -u _printf_float
+LDLIBS += -L$(BIOS_INSTALL_DIR)/packages/gnu/targets/arm/libs/install-native/arm-none-eabi/lib/hard --specs=nano.specs -u _printf_float --specs=rdimon.specs
 
 CCPROFILE_debug = -g -ggdb -D_DEBUG_=1
 CCPROFILE_release = -O3
