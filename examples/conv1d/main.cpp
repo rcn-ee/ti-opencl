@@ -37,8 +37,12 @@
 #include "ti_kernels.dsp_h"
 
 #ifdef _TI_RTOS
-#include <ti/sysbios/posix/_time.h>
 #include "../rtos_main.c"
+    #if ti_sysbios_BIOS_version <= (0x65200)
+    #include <ti/sysbios/posix/time.h>
+    #else
+    #include <ti/posix/gcc/time.h>
+    #endif
 #endif
 
 // input image is COLSxROWS, filtered output image is COLSxROWS

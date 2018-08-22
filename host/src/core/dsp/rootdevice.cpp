@@ -28,6 +28,11 @@
 #include "rootdevice.h"
 #include "device_info.h"
 #include "core/error_report.h"
+
+#ifdef _SYS_BIOS
+#include <ti/sysbios/knl/Task.h>
+#endif
+
 /*-----------------------------------------------------------------------------
 * Add ULM memory state messages if ULM library is available
 *----------------------------------------------------------------------------*/

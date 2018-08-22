@@ -50,6 +50,7 @@
   #if ti_sysbios_BIOS_version < (0x64601)
   #include <sched.h>
   #endif
+  #include <ti/sysbios/knl/Task.h>
   #define  usleep   Task_sleep
 #endif
 #include <errno.h>
