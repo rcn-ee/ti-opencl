@@ -15,7 +15,7 @@
  *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  *   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+ *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  *   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
  *   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
  *   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
@@ -84,7 +84,7 @@ using namespace tiocl;
 
 
 DSPKernel::DSPKernel(DSPDevice *device, Kernel *kernel, llvm::Function *function)
-: DeviceKernel(), p_device(device), p_kernel(kernel), 
+: DeviceKernel(), p_device(device), p_kernel(kernel),
     p_device_entry_pt((DSPDevicePtr)0),
     p_data_page_ptr  ((DSPDevicePtr)0xffffffff),
     p_function(function)
@@ -107,12 +107,12 @@ T k_exp(T base, unsigned int e)
 /*-----------------------------------------------------------------------------
 * This and the next function are called from the multiple worker threads. They
 * may all enter the set the name section, but they will all set the same value,
-* so even though there is a race, there is no race error. when work group 
+* so even though there is a race, there is no race error. when work group
 * division is pushed down to the dsp, the race will go away.
 *----------------------------------------------------------------------------*/
-DSPDevicePtr  DSPKernel::device_entry_pt() 
-{ 
-    if (!p_device_entry_pt) 
+DSPDevicePtr  DSPKernel::device_entry_pt()
+{
+    if (!p_device_entry_pt)
     {
         size_t name_length;
         p_kernel->info(CL_KERNEL_FUNCTION_NAME, 0, 0, &name_length);
@@ -127,16 +127,16 @@ DSPDevicePtr  DSPKernel::device_entry_pt()
         p_device_entry_pt = prog->query_symbol((char*)name);
         free (name);
     }
-    return p_device_entry_pt; 
+    return p_device_entry_pt;
 }
 
 /******************************************************************************
-* The data page pointer can frequently be 0, so we will initialize it to be 
+* The data page pointer can frequently be 0, so we will initialize it to be
 * 0xffffffff as a start value instead of 0.
 ******************************************************************************/
 DSPDevicePtr  DSPKernel::data_page_ptr()
-{ 
-    if (p_data_page_ptr == (DSPDevicePtr)0xffffffff) 
+{
+    if (p_data_page_ptr == (DSPDevicePtr)0xffffffff)
     {
         Program    *p     = (Program *)p_kernel->parent();
         DSPProgram *prog  = (DSPProgram *)(p->deviceDependentProgram(p_device));
@@ -145,7 +145,7 @@ DSPDevicePtr  DSPKernel::data_page_ptr()
         //p_data_page_ptr = prog->query_symbol("__TI_STATIC_BASE");
         p_data_page_ptr = prog->data_page_ptr();
     }
-    return p_data_page_ptr; 
+    return p_data_page_ptr;
 }
 
 /******************************************************************************
@@ -211,7 +211,7 @@ size_t DSPKernel::guessWorkGroupSize(cl_uint num_dims, cl_uint dim,
 * From Wikipedia : http://www.wikipedia.org/wiki/Power_of_two#Algorithm_to_round_up_to_power_of_two
 *----------------------------------------------------------------------------*/
 template <class T>
-T next_power_of_two(T k) 
+T next_power_of_two(T k)
 {
     if (k == 0) return 1;
 
@@ -224,14 +224,14 @@ T next_power_of_two(T k)
 /******************************************************************************
 * workGroupSize()
 ******************************************************************************/
-size_t DSPKernel::workGroupSize()  const 
-{ 
+size_t DSPKernel::workGroupSize()  const
+{
 
     int wi_alloca_size = p_kernel->get_wi_alloca_size();
 
     /*-------------------------------------------------------------------------
     * Get the device max limit size, which can change if the environment
-    * variable TI_OCL_WG_SIZE_LIMIT is used 
+    * variable TI_OCL_WG_SIZE_LIMIT is used
     *-------------------------------------------------------------------------*/
     size_t wgsize = 0;
     p_device->info(CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(wgsize),&wgsize,NULL);
@@ -252,18 +252,18 @@ size_t DSPKernel::workGroupSize()  const
         * Subtract any local buffer space from the total L2 available space
         *--------------------------------------------------------------------*/
         local_mem_size -= localMemSize();
-     
+
         /*---------------------------------------------------------------------
-        * Use the smaller of the device limit or up to available L2 mem of 
-        * wi_alloca space per kernel.   
+        * Use the smaller of the device limit or up to available L2 mem of
+        * wi_alloca space per kernel.
         *---------------------------------------------------------------------*/
         return MIN(wgsize, local_mem_size / wi_alloca_size);
     }
 
     /*-------------------------------------------------------------------------
-    * If the kernel has any local buffer arguments, then restrict wgsize to 
-    * the amount of L2 left after static locals are accounted for.  This does 
-    * not call localMemSize, becuase it can vary based on whether it is called 
+    * If the kernel has any local buffer arguments, then restrict wgsize to
+    * the amount of L2 left after static locals are accounted for.  This does
+    * not call localMemSize, becuase it can vary based on whether it is called
     * before or after local buffer arguments are set.
     *------------------------------------------------------------------------*/
     else if (p_kernel->hasLocals())
@@ -285,17 +285,17 @@ size_t DSPKernel::workGroupSize()  const
 }
 
 size_t DSPKernel::preferredWorkGroupSizeMultiple() const
-{ 
+{
     uint32_t wgsz = workGroupSize();
-    return MIN(128, round_down_power2(wgsz)); 
+    return MIN(128, round_down_power2(wgsz));
 }
 
- 
+
 /******************************************************************************
-* localMemSize() 
+* localMemSize()
 *   This does not comprehend barrier variable expansion that may be allocated
-*   int L2.  We will not know the size until we know the local size in the 
-*   DSPKernelEvent.  If a reqd_work_group_size pragma is used, we could know 
+*   int L2.  We will not know the size until we know the local size in the
+*   DSPKernelEvent.  If a reqd_work_group_size pragma is used, we could know
 *   here.  TODO
 ******************************************************************************/
 cl_ulong DSPKernel::localMemSize() const
@@ -320,7 +320,7 @@ DSPDevice *      DSPKernel::device()   const { return p_device; }
 * locals_in_kernel_extent
 *
 * Assuming an L2 layout beyond the monitor reserved area like the below:
-*    return the kernel .ocl_local_overlay address and a kernel specific 
+*    return the kernel .ocl_local_overlay address and a kernel specific
 *    .ocl_local_overlay size.
 *
 * +=========+====================+=================+===============+=========+
@@ -331,7 +331,7 @@ DSPDevice *      DSPKernel::device()   const { return p_device; }
 * L2 start                                                   scratch start
 *
 ******************************************************************************/
-DSPDevicePtr DSPKernel::locals_in_kernel_extent(uint32_t &ret_size) const 
+DSPDevicePtr DSPKernel::locals_in_kernel_extent(uint32_t &ret_size) const
 {
     Program    *p     = (Program *)p_kernel->parent();
     DSPProgram *prog  = (DSPProgram *)(p->deviceDependentProgram(p_device));
@@ -369,9 +369,9 @@ DSPDevicePtr DSPKernel::locals_as_args_extent(uint32_t &ret_size) const
     {
         const Kernel::Arg &arg = kernel()->arg(i);
 
-        if (arg.kind() == Kernel::Arg::Buffer && 
+        if (arg.kind() == Kernel::Arg::Buffer &&
             arg.file() == Kernel::Arg::Local)
-              local_args_size += 
+              local_args_size +=
                        ROUNDUP(arg.allocAtKernelRuntime(), MIN_BLOCK_SIZE);
     }
 
@@ -407,9 +407,9 @@ DSPKernelEvent::DSPKernelEvent(DSPDevice *device, KernelEvent *event)
 : p_ret_code(CL_SUCCESS),
   p_device(device), p_event(event), p_kernel((DSPKernel*)event->deviceKernel()),
   p_debug_kernel(NODEBUG), p_num_arg_words(0), p_timeout_ms(0),
-  p_WG_alloca_start(0), 
+  p_WG_alloca_start(0),
   argref_offset(0)
-{ 
+{
     p_kernel_id = __sync_fetch_and_add(&kernelID, 1);
 
     EnvVar& env = EnvVar::Instance();
@@ -429,7 +429,7 @@ DSPKernelEvent::DSPKernelEvent(DSPDevice *device, KernelEvent *event)
     p_ret_code = callArgs(MAX_ARGS_TOTAL_SIZE);
 
     /*-------------------------------------------------------------------------
-    * Populate some of the kernel_msg_t structure. 
+    * Populate some of the kernel_msg_t structure.
     *------------------------------------------------------------------------*/
     p_msg.u.k.kernel.Kernel_id     = p_kernel_id;
     p_msg.u.k.kernel.entry_point   = (unsigned)p_kernel->device_entry_pt();
@@ -478,8 +478,8 @@ int getarg_inreg_index(int sz, int &first_apair, int &first_bpair,
 {
     int index;   // index of [A4,A5,B4,B5,A6,A7,B6,B7...], start from 0
     if (sz <= 8)        // fits in a pair, e.g. A5:A4
-    { 
-        if (first_apair <= first_bpair) 
+    {
+        if (first_apair <= first_bpair)
         {
             index = (first_apair - REG_START)*2;
             if (index+1 >= TOTAL_REGS) return -1;
@@ -521,7 +521,7 @@ int getarg_inreg_index(int sz, int &first_apair, int &first_bpair,
 void setarg_inreg(int index, int sz, unsigned int *args_in_reg, void *pval)
 {
     if (sz <= 8)        // fits in a pair, e.g. A5:A4
-    { 
+    {
         memcpy(&args_in_reg[index], pval, sz);  // Little Endian!!!
     }
     else if (sz == 16)  // fits in a quad, e.g. A7:A6:A5:A4
@@ -600,8 +600,8 @@ cl_int DSPKernelEvent::callArgs(unsigned max_args_size)
 
                     /*-----------------------------------------------------
                     * Since the only reader and writer of local memory (L2)
-                    * will be the core itself, I do not believe we need 
-                    * to flush local buffers for correctness. 
+                    * will be the core itself, I do not believe we need
+                    * to flush local buffers for correctness.
                     *----------------------------------------------------*/
                     //p_flush_bufs->push_back(DSPMemRange(lbuf, lbufsz));
                 }
@@ -618,11 +618,11 @@ cl_int DSPKernelEvent::callArgs(unsigned max_args_size)
                     }
                     else
                     {
-                        DSPBuffer *dspbuf = 
+                        DSPBuffer *dspbuf =
                                    (DSPBuffer *)buffer->deviceBuffer(p_device);
                         buffer->allocate(p_device);
                         DSPDevicePtr64 addr64 = dspbuf->data();
-                        
+
                         if (addr64 < 0xFFFFFFFF)
                             buf_ptr = addr64;
                         else
@@ -631,7 +631,7 @@ cl_int DSPKernelEvent::callArgs(unsigned max_args_size)
 
                         if (buffer->get_host_ptr_clMalloced())
                             p_hostptr_clMalloced_bufs.push_back(buffer);
-      
+
                         if (! WRITE_ONLY_BUFFER(buffer))
                             p_flush_bufs.push_back(DSPMemRange(DSPPtrPair(
                                      addr64, buf_dspvirtptr), buffer->size()));
@@ -652,7 +652,7 @@ cl_int DSPKernelEvent::callArgs(unsigned max_args_size)
             }
 
             case Kernel::Arg::Image2D:
-            case Kernel::Arg::Image3D: 
+            case Kernel::Arg::Image3D:
                 {
                     ReportError(ErrorType::FatalNoExit,
                                 ErrorKind::KernelArgImageNotSupported);
@@ -661,7 +661,7 @@ cl_int DSPKernelEvent::callArgs(unsigned max_args_size)
                 break;
 
             /*-----------------------------------------------------------------
-            * Non-Buffers 
+            * Non-Buffers
             *----------------------------------------------------------------*/
             default:
                 args_in_reg_index = getarg_inreg_index(size, AP, BP, AQ, BQ);
@@ -671,20 +671,20 @@ cl_int DSPKernelEvent::callArgs(unsigned max_args_size)
 
                     if (arg.is_subword_int_uns())
                     {
-                        if (size == 1) 
+                        if (size == 1)
                             dummy = (unsigned) *((unsigned char*)arg.data());
-                        else if (size == 2)  
+                        else if (size == 2)
                             dummy = (unsigned) *((unsigned short*)arg.data());
                     }
                     else
                     {
-                        if (size == 1) 
+                        if (size == 1)
                             dummy = (int) *((signed char*)arg.data());
-                        else if (size == 2)  
+                        else if (size == 2)
                             dummy = (int) *((short*)arg.data());
                     }
 
-                    void *p_data = (dummy == 0) ? (void*)arg.data() 
+                    void *p_data = (dummy == 0) ? (void*)arg.data()
                                                 : (void *) &dummy;
                     size         = (dummy == 0) ? size : 4;
 
@@ -719,7 +719,7 @@ cl_int DSPKernelEvent::callArgs(unsigned max_args_size)
                     memcpy(&args_of_argref[argref_offset], arg.data(), size);
                     argref_offset = ROUNDUP(argref_offset + size, 8);
                 }
-                    
+
                 break;
         }
     }
@@ -742,7 +742,7 @@ cl_int DSPKernelEvent::callArgs(unsigned max_args_size)
 /******************************************************************************
 * debug_pause
 ******************************************************************************/
-static void debug_pause(uint32_t entry, uint32_t dsp_id, 
+static void debug_pause(uint32_t entry, uint32_t dsp_id,
                         const char* outfile, char *name, DSPDevicePtr load_addr,
                         bool is_gdbc6x)
 {
@@ -789,7 +789,7 @@ cl_int DSPKernelEvent::run(Event::Type evtype)
     uint32_t     remaining_l2_size;
     DSPDevicePtr local_scratch;
 
-    cl_int err = allocate_and_assign_local_buffers(remaining_l2_size, 
+    cl_int err = allocate_and_assign_local_buffers(remaining_l2_size,
                                                    local_scratch);
     if (err != CL_SUCCESS) return err;
 
@@ -847,7 +847,7 @@ cl_int DSPKernelEvent::run(Event::Type evtype)
 
     /*---------------------------------------------------------------------
     * For host scheduled devices, i.e. AM57, NDRkernels send to all cores.
-    * The monitor will determine how to divide the work. Need to wait on 
+    * The monitor will determine how to divide the work. Need to wait on
     * all replies.
     * Order!! After switching to two worker threads, we must push the complete
     * pending first, then send out the mails, to prevent the extrememly fast
@@ -880,7 +880,7 @@ cl_int DSPKernelEvent::allocate_and_assign_local_buffers(
 
     for (size_t i = 0; i < p_local_bufs.size(); ++i)
     {
-        DSPVirtPtr *p_arg_word     = p_local_bufs[i].first; 
+        DSPVirtPtr *p_arg_word     = p_local_bufs[i].first;
         unsigned    local_buf_size = p_local_bufs[i].second;
 
         uint32_t rounded_sz = ROUNDUP(local_buf_size, MIN_BLOCK_SIZE);
@@ -889,7 +889,7 @@ cl_int DSPKernelEvent::allocate_and_assign_local_buffers(
             QERR("Total size of local buffers exceeds available local size",
                  CL_MEM_OBJECT_ALLOCATION_FAILURE);
         }
-        
+
         *p_arg_word        = local_scratch;
         local_scratch     += rounded_sz;
         remaining_l2_size -= rounded_sz;
@@ -916,7 +916,7 @@ cl_int DSPKernelEvent::init_kernel_runtime_variables(Event::Type evtype,
                            p_event->global_work_size(2) == 1);
 
     /*-------------------------------------------------------------------------
-    * Overloaded use of this field.  The WG_gid_start fields are not 
+    * Overloaded use of this field.  The WG_gid_start fields are not
     * communicated from host to device, which allows this overload.
     *------------------------------------------------------------------------*/
     cfg->WG_gid_start[0] = p_debug_kernel != NODEBUG ? DEBUG_MODE_WG_GID_START
@@ -941,7 +941,7 @@ cl_int DSPKernelEvent::init_kernel_runtime_variables(Event::Type evtype,
         * i.e. the fields in the else clause below.
         *--------------------------------------------------------------------*/
     }
-    else 
+    else
     {
         p_msg.command = NDRKERNEL;
 
@@ -961,7 +961,7 @@ cl_int DSPKernelEvent::init_kernel_runtime_variables(Event::Type evtype,
     * Allocate temporary space for kernel variable expanded private data.
     * Will attempt allocation from faster to slower memory.
     *------------------------------------------------------------------------*/
-    cfg->WG_alloca_size = p_kernel->kernel()->get_wi_alloca_size() * 
+    cfg->WG_alloca_size = p_kernel->kernel()->get_wi_alloca_size() *
         p_event->local_work_size(0) * p_event->local_work_size(1) *
         p_event->local_work_size(2);
 
@@ -983,7 +983,7 @@ cl_int DSPKernelEvent::init_kernel_runtime_variables(Event::Type evtype,
             local_scratch      += rounded_sz;
             remaining_l2_size  -= rounded_sz;
         }
-        else 
+        else
         {
             SharedMemory *shm = p_device->GetSHMHandler();
             p_WG_alloca_start = shm->AllocateMSMC(chip_alloca_size);
@@ -1022,7 +1022,7 @@ cl_int DSPKernelEvent::allocate_temp_global(void)
         MemObject      *buffer       =  p_hostptr_tmpbufs[i].first;
         DSPDevicePtr64 *p_addr64     = &p_hostptr_tmpbufs[i].second.first;
         DSPVirtPtr     *p_arg_word   =  p_hostptr_tmpbufs[i].second.second;
-        
+
         *p_addr64 = shm->AllocateGlobal(buffer->size(), false);
 
         if (!(*p_addr64))
@@ -1070,10 +1070,7 @@ cl_int DSPKernelEvent::flush_special_use_host_ptr_buffers(void)
         total_buf_size += buffer->size();
     }
 
-    /*-------------------------------------------------------------------------
-    * Threshold is 32MB.
-    *------------------------------------------------------------------------*/
-    int  threshold  = (32<<20);
+    int  threshold  = CMEM_THRESHOLD;
     bool wb_inv_all = false;
     if (total_buf_size >= threshold)  wb_inv_all = shm->CacheWbInvAll();
 
@@ -1145,13 +1142,13 @@ cl_int DSPKernelEvent::setup_extended_memory_mappings()
         keystone_mmap_resources_t mpax_res;
         memcpy(&mpax_res, p_device->get_mpax_default_res(),
                sizeof(keystone_mmap_resources_t));
-        if (keystone_mmap_resource_alloc(num_64bit_bufs, phys_addrs, lengths, 
+        if (keystone_mmap_resource_alloc(num_64bit_bufs, phys_addrs, lengths,
                   prots, virt_addrs, &mpax_res) != KEYSTONE_MMAP_RESOURCE_NOERR)
         {
             QERR("MPAX allocation failed",
                  CL_OUT_OF_RESOURCES);
         }
-    
+
         // set the MPAX settings in the message
         uint32_t mpax_used = 0;
         for (; mpax_res.mapping[mpax_used].segsize_power2 > 0; mpax_used += 1)
@@ -1164,7 +1161,7 @@ cl_int DSPKernelEvent::setup_extended_memory_mappings()
                | DEFAULT_PERMISSION;
         }
         p_msg.u.k.flush.num_mpaxs = mpax_used;
-    
+
         // set the virtual address in arguments
         for (int i = 0; i < p_64bit_bufs.size(); ++i)
         {
@@ -1237,7 +1234,7 @@ cl_int DSPKernelEvent::setup_stack_based_arguments()
         }
 
         if (argref_offset > 0)
-            memcpy(((char*)mapped_addr)+rounded_args_on_stack_size, 
+            memcpy(((char*)mapped_addr)+rounded_args_on_stack_size,
                     args_of_argref, argref_offset);
 
         shm->Unmap(mapped_addr, args_addr, args_in_mem_size, true);
@@ -1270,7 +1267,7 @@ int DSPKernelEvent::debug_kernel_dispatch()
         Program    *p     = (Program *)p_kernel->kernel()->parent();
         DSPProgram *prog  = (DSPProgram *)(p->deviceDependentProgram(p_device));
 
-        debug_pause(p_kernel->device_entry_pt(), p_device->dspID(), 
+        debug_pause(p_kernel->device_entry_pt(), p_device->dspID(),
                     prog->outfile_name(), name, prog->LoadAddress(),
                     (p_debug_kernel == GDBC6X));
         free (name);
@@ -1294,8 +1291,8 @@ void DSPKernelEvent::free_tmp_bufs()
 
     for (int i = 0; i < p_hostptr_tmpbufs.size(); ++i)
     {
-        MemObject *buffer     = p_hostptr_tmpbufs[i].first; 
-        DSPDevicePtr64 addr64 = p_hostptr_tmpbufs[i].second.first; 
+        MemObject *buffer     = p_hostptr_tmpbufs[i].first;
+        DSPDevicePtr64 addr64 = p_hostptr_tmpbufs[i].second.first;
 
         if (! READ_ONLY_BUFFER(buffer))
         {

@@ -39,10 +39,9 @@
 
 using namespace tiocl;
 
-
 template<typename MapPolicy>
 CMEM<MapPolicy>::CMEM(const MemoryRange& r) :
-    MemoryProvider(r), threshold_ (32 << 20)
+    MemoryProvider(r), threshold_ (CMEM_THRESHOLD)
 {
     MapPolicy::Configure(r);
 }

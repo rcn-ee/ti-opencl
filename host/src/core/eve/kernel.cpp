@@ -15,7 +15,7 @@
  *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  *   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+ *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  *   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
  *   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
  *   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
@@ -63,7 +63,7 @@ using namespace Coal;
 using namespace tiocl;
 
 
-EVEKernel::EVEKernel(EVEDevice *device, Kernel *kernel, 
+EVEKernel::EVEKernel(EVEDevice *device, Kernel *kernel,
                      KernelEntry *kernel_entry)
 : DeviceKernel(), p_device(device), p_kernel(kernel), p_kernel_entry(kernel_entry)
 {
@@ -113,7 +113,7 @@ EVEKernelEvent::EVEKernelEvent(EVEDevice *device, KernelEvent *event)
     p_ret_code  = callArgs(EVE_MAX_ARGS_ON_STACK_SIZE);
 
     /*-------------------------------------------------------------------------
-    * Populate some of the kernel_msg_t structure. 
+    * Populate some of the kernel_msg_t structure.
     *------------------------------------------------------------------------*/
     p_msg.command           = TASK;
     p_msg.u.k_eve.Kernel_id = p_kernel_id;
@@ -215,11 +215,11 @@ cl_int EVEKernelEvent::callArgs(unsigned max_args_size)
                     }
                     else
                     {
-                        DSPBuffer *dspbuf = 
+                        DSPBuffer *dspbuf =
                                    (DSPBuffer *)buffer->deviceBuffer(p_device);
                         buffer->allocate(p_device);
                         DSPDevicePtr64 addr64 = dspbuf->data();
-                        
+
                         if (addr64 < 0xFFFFFFFF)
                             buf_ptr = addr64;
                         else
@@ -246,7 +246,7 @@ cl_int EVEKernelEvent::callArgs(unsigned max_args_size)
             }
 
             case Kernel::Arg::Image2D:
-            case Kernel::Arg::Image3D: 
+            case Kernel::Arg::Image3D:
                 {
                     ReportError(ErrorType::FatalNoExit,
                                 ErrorKind::KernelArgImageNotSupported);
@@ -255,7 +255,7 @@ cl_int EVEKernelEvent::callArgs(unsigned max_args_size)
                 break;
 
             /*-----------------------------------------------------------------
-            * Non-Buffers 
+            * Non-Buffers
             *----------------------------------------------------------------*/
             default:
                 if (num_args_in_reg < EVE_MAX_ARGS_IN_REG_SIZE)  // args_in_reg
@@ -264,20 +264,20 @@ cl_int EVEKernelEvent::callArgs(unsigned max_args_size)
 
                     if (arg.is_subword_int_uns())
                     {
-                        if (size == 1) 
+                        if (size == 1)
                             dummy = (unsigned) *((unsigned char*)arg.data());
-                        else if (size == 2)  
+                        else if (size == 2)
                             dummy = (unsigned) *((unsigned short*)arg.data());
                     }
                     else
                     {
-                        if (size == 1) 
+                        if (size == 1)
                             dummy = (int) *((signed char*)arg.data());
-                        else if (size == 2)  
+                        else if (size == 2)
                             dummy = (int) *((short*)arg.data());
                     }
 
-                    void *p_data = (dummy == 0) ? (void*)arg.data() 
+                    void *p_data = (dummy == 0) ? (void*)arg.data()
                                                 : (void *) &dummy;
                     size         = (dummy == 0) ? size : 4;
 
@@ -287,7 +287,7 @@ cl_int EVEKernelEvent::callArgs(unsigned max_args_size)
                 {
                     SETMOREARG(size, arg.data());
                 }
-                    
+
                 break;
         }
     }
@@ -347,7 +347,7 @@ cl_int EVEKernelEvent::allocate_temp_global(void)
         MemObject      *buffer       =  p_hostptr_tmpbufs[i].first;
         DSPDevicePtr64 *p_addr64     = &p_hostptr_tmpbufs[i].second.first;
         DSPVirtPtr     *p_arg_word   =  p_hostptr_tmpbufs[i].second.second;
-        
+
         *p_addr64 = shm->AllocateGlobal(buffer->size(), false);
 
         if (!(*p_addr64))
@@ -394,7 +394,7 @@ cl_int EVEKernelEvent::flush_special_use_host_ptr_buffers(void)
     /*-------------------------------------------------------------------------
     * Threshold is 32MB.
     *------------------------------------------------------------------------*/
-    int  threshold  = (32<<20);
+    int  threshold  = CMEM_THRESHOLD;
     bool wb_inv_all = false;
     if (total_buf_size >= threshold)  wb_inv_all = shm->CacheWbInvAll();
 
@@ -426,8 +426,8 @@ void EVEKernelEvent::free_tmp_bufs()
 
     for (int i = 0; i < p_hostptr_tmpbufs.size(); ++i)
     {
-        MemObject *buffer     = p_hostptr_tmpbufs[i].first; 
-        DSPDevicePtr64 addr64 = p_hostptr_tmpbufs[i].second.first; 
+        MemObject *buffer     = p_hostptr_tmpbufs[i].first;
+        DSPDevicePtr64 addr64 = p_hostptr_tmpbufs[i].second.first;
 
         if (! READ_ONLY_BUFFER(buffer))
         {
