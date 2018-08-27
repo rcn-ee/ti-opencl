@@ -77,7 +77,9 @@ static int strncasecmp(const char* s1, const char* s2, size_t n)
 /* C implementation of 'bool' type.                                          */
 /*****************************************************************************/
 typedef int BOOL;
+#undef  TRUE
 #define TRUE    1
+#undef  FALSE
 #define FALSE   0
 
 #endif
