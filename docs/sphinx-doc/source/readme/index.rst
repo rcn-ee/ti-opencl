@@ -5,6 +5,7 @@ Release Notes
 .. toctree::
    :maxdepth: 1
 
+   readme_v01.01.16.x
    readme_v01.01.15.x
    readme_v01.01.14.x
    readme_v01.01.13.x
@@ -22,8 +23,10 @@ Processor SDK to OpenCL version map
 +---------------+------------+---------------------------------------+
 | Processor SDK | OpenCL     | Key features                          |
 +===============+============+=======================================+
+| 05.01.x.x     | 1.01.16.x  | Changes required for TIDL API v1.1    |
++---------------+------------+---------------------------------------+
 | 05.00.00.00   | 1.01.15.00 | - Added OpenCL TIDL custom device     |
-|               |            |   to enable the TINN API.             |
+|               |            |   to enable TIDL API v1.0             |
 |               |            | - Enabled sub-device support          |
 +---------------+------------+---------------------------------------+
 | 04.02.00.09   | 1.01.14.09 | Fixed a virtual address space leak    |
