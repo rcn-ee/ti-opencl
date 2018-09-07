@@ -92,6 +92,7 @@ void ReportTrace(const char *fmt, ...);
 #define ReportTrace(...)
 #endif
 
+extern const char* command_code_string[];
 }
 
 

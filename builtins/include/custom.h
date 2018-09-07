@@ -45,8 +45,8 @@ extern "C" {
 #define OCL_TIDL_INIT_FAIL              (-6)
 
 #define OCL_TIDL_TRACE_OFF  (0)
-#define OCL_TIDL_TRACE_MIN  (1)
-#define OCL_TIDL_TRACE_MED  (2)
+#define OCL_TIDL_TRACE_HEAP (1)
+#define OCL_TIDL_TRACE_API  (2)
 #define OCL_TIDL_TRACE_ALL  (3)
 
 #define OCL_TIDL_MAX_PAD_SIZE  (4)  // must be in sync with TIDL_MAX_PAD_SIZE
@@ -129,9 +129,8 @@ void ocl_tidl_initialize(const uint8_t*                  createParamsV,
                          uint8_t*                        l2HeapBase);
 
 void ocl_tidl_process(OCL_TIDL_ProcessParams* processParams,
-                      const uint8_t*          inputFrame,
-                      uint8_t*                outputData,
-                      uint8_t*                externalMemory);
+                      uint8_t*                externalMemoryHeapBase,
+                      uint8_t*                traceBufferParams);
 
 void ocl_tidl_cleanup();
 #endif

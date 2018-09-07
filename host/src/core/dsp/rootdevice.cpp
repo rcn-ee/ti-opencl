@@ -338,25 +338,42 @@ int DSPRootDevice::mail_from(const DSPCoreSet& compute_units, int* retcode)
     Msg_t    rxmsg;
     uint8_t  core;
     trans_id_rx = p_mb->from((uint8_t*)&rxmsg, &size_rx, &core);
-    if (rxmsg.command == PRINT)
+
+    ReportTrace("Received message from DSP %d: %d (%s), for pid %d\n",
+                core,
+                rxmsg.command, command_code_string[rxmsg.command], rxmsg.pid);
+
+    switch (rxmsg.command)
     {
-        std::cout << "[core " << rxmsg.u.message[0] << "] "
-                  << rxmsg.u.message + 1;
-        return -1;
-    }
-    if ((rxmsg.command == NDRKERNEL) || (rxmsg.command == TASK))
-    {
-        command_retcode_t* profiling_data = &(rxmsg.u.command_retcode);
-        recordProfilingData(profiling_data, core);
-    }
-    if (rxmsg.command == EXIT)
-    {
-        p_exit_acked = true;
-        return -1;
-    }
-    if (rxmsg.command == TASK && IS_OOO_TASK(rxmsg))
-    {
-        if (compute_units.find(core) != compute_units.end()) core_scheduler_->free(core);
+        case PRINT:
+        {
+            std::cout << "[core " << rxmsg.u.message[0] << "] "
+                      << rxmsg.u.message + 1;
+            return -1;
+            break;
+        }
+
+        case EXIT:
+        {
+            p_exit_acked = true;
+            return -1;
+            break;
+        }
+
+        case NDRKERNEL:
+        case TASK:
+        {
+            command_retcode_t* profiling_data = &(rxmsg.u.command_retcode);
+            recordProfilingData(profiling_data, core);
+            if (rxmsg.command == TASK && IS_OOO_TASK(rxmsg))
+            {
+                if (compute_units.find(core) != compute_units.end())
+                    core_scheduler_->free(core);
+            }
+            break;
+        }
+        default:
+            break;
     }
     if (retcode != nullptr)  *retcode = rxmsg.u.command_retcode.retcode;
     return trans_id_rx;

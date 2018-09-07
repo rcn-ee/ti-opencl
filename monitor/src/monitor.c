@@ -1137,11 +1137,11 @@ static void process_configuration_message(ocl_msgq_message_t* msgq_pkt)
 
     MessageQ_free((MessageQ_Msg)msgq_pkt);
 
-    Log_print2(Diags_INFO,"Configuring Monitor (%d, %d)\n", 
+    Log_print2(Diags_INFO,"Configuring Monitor (%d, %d)\n",
             requested_master_core, requested_n_cores);
 
-    // Multiple processes may try to launch OpenCL/MP kernels.  
-    // The reference_count tracks how many processes are currently 
+    // Multiple processes may try to launch OpenCL/MP kernels.
+    // The reference_count tracks how many processes are currently
     // using the OpenCL runtime.
     if (config_reference_count == 0)
     {
@@ -1161,7 +1161,7 @@ static void process_configuration_message(ocl_msgq_message_t* msgq_pkt)
     }
     else
     {
-        // A new process cannot change the current configuration 
+        // A new process cannot change the current configuration
         // of the Monitor.  Fix this to recover more gracefully.
         if (!(requested_master_core == config_master_core &&
               requested_n_cores == config_n_cores))

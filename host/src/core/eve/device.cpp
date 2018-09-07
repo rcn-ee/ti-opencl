@@ -144,7 +144,6 @@ EVEDevice::EVEDevice(unsigned char eve_id, SharedMemory* shm)
     k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
     k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
     k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
-    k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
     p_kernel_entries.push_back(k);
 
     k = new KernelEntry("ocl_tidl_cleanup", 13);
