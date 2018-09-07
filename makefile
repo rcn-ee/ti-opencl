@@ -139,5 +139,5 @@ version:
 	@echo $(OCL_VER)
 
 update_firmware:
-	cp -p monitor_ipu/monitor_eve/src/eve_firmware.bin opencl-firmware/eve_firmware.bin
+	cp -p monitor_ipu/monitor_eve/lib/eve_firmware.bin opencl-firmware/eve_firmware.bin
 	cp -p monitor_ipu/monitor_eve/dsp/ocl_tidl_dsp.lib opencl-firmware/ocl_tidl_dsp.lib
