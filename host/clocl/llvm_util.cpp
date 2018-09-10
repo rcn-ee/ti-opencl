@@ -15,7 +15,7 @@
  *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  *   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+ *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  *   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
  *   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
  *   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
@@ -53,7 +53,7 @@ bool isKernelFunction(llvm::Function &F)
 
         if (ker->getOperand(0))
             if (llvm::Value *value =
-                        dyn_cast<llvm::ValueAsMetadata>(ker->getOperand(0))->getValue())
+                        cast<llvm::ValueAsMetadata>(ker->getOperand(0))->getValue())
                 if (llvm::cast<llvm::Function>(value) == &F)
                     return true;
     }
@@ -73,7 +73,7 @@ bool getReqdWGSize(llvm::Function &F, int wgsizes[3])
 
         assert (ker->getNumOperands() > 0);
 
-        if (llvm::Value *value = dyn_cast<llvm::ValueAsMetadata>(ker->getOperand(0))->getValue())
+        if (llvm::Value *value = cast<llvm::ValueAsMetadata>(ker->getOperand(0))->getValue())
         {
             if (llvm::cast<llvm::Function>(value) == &F)
             {

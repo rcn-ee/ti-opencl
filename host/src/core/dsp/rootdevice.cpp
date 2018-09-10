@@ -404,6 +404,7 @@ void DSPRootDevice::mail_to(Msg_t& msg,
                 {
                     /* Get iterator to first element in set */
                     auto first_compute_unit = compute_units.begin();
+                    assert(first_compute_unit != compute_units.end());
                     p_mb->to((uint8_t*)&msg, sizeof(Msg_t), *first_compute_unit);
                 }
                 else
@@ -446,6 +447,7 @@ void DSPRootDevice::mail_to(Msg_t& msg,
         {
             /* Send the frequency message only to the first compute unit */
             auto first_compute_unit = compute_units.begin();
+            assert(first_compute_unit != compute_units.end());
             p_mb->to((uint8_t*)&msg, sizeof(Msg_t), *first_compute_unit);
             break;
         }

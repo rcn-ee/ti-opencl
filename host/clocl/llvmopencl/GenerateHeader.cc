@@ -1,18 +1,18 @@
 // LLVM module pass to get information from kernel functions.
-// 
+//
 // Copyright (c) 2011 Universidad Rey Juan Carlos
 // Copyright (c) 2013-2016, Texas Instruments Incorporated - http://www.ti.com/
-// 
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -53,11 +53,11 @@ Header("header",
 
 namespace {
   class GenerateHeader : public ModulePass {
-  
+
   public:
     static char ID;
     GenerateHeader() : ModulePass(ID) {}
-    
+
     virtual void getAnalysisUsage(AnalysisUsage &AU) const;
     virtual bool runOnModule(Module &M);
 
@@ -97,12 +97,12 @@ GenerateHeader::runOnModule(Module &M)
   for (Module::iterator mi = M.begin(), me = M.end(); mi != me; ++mi) {
     if (!Workgroup::isKernelToProcess(*mi))
       continue;
-  
+
     Function *F = mi;
 
-    ProcessPointers(F, out);    
+    ProcessPointers(F, out);
     ProcessReqdWGSize(F, out);
-    
+
     Function *new_kernel = ProcessAutomaticLocals(F, out);
     if (new_kernel != F)
       changed = true;
@@ -115,7 +115,7 @@ GenerateHeader::runOnModule(Module &M)
 
       /* Delete the old kernels. */
       for (FunctionMapping::const_iterator i = kernels.begin(),
-             e = kernels.end(); i != e; ++i) 
+             e = kernels.end(); i != e; ++i)
         {
           Function *old_kernel = (*i).first;
           Function *new_kernel = (*i).second;
@@ -130,7 +130,7 @@ GenerateHeader::runOnModule(Module &M)
 
 void
 GenerateHeader::ProcessReqdWGSize(Function *F,
-                                  raw_fd_ostream &out) 
+                                  raw_fd_ostream &out)
 {
 
   unsigned LocalSizeX = 0, LocalSizeY = 0, LocalSizeZ = 0;
@@ -139,7 +139,7 @@ GenerateHeader::ProcessReqdWGSize(Function *F,
   if (size_info) {
     for (unsigned i = 0, e = size_info->getNumOperands(); i != e; ++i) {
       llvm::MDNode *KernelSizeInfo = size_info->getOperand(i);
-      if (dyn_cast<ValueAsMetadata>(KernelSizeInfo->getOperand(0).get())->getValue() != F) 
+      if (cast<ValueAsMetadata>(KernelSizeInfo->getOperand(0).get())->getValue() != F)
         continue;
       LocalSizeX = (llvm::cast<ConstantInt>(
                      llvm::cast<ConstantAsMetadata>(
@@ -219,7 +219,7 @@ GenerateHeader::ProcessPointers(Function *F,
       out << ", " << is_pointer[i];
   }
   out << "}\n";
-  
+
   out << "#define _" << F->getName() << "_ARG_IS_LOCAL {";
   if (num_args != 0) {
     out << is_local[0];
@@ -227,7 +227,7 @@ GenerateHeader::ProcessPointers(Function *F,
       out << ", " << is_local[i];
   }
   out << "}\n";
-  
+
   out << "#define _" << F->getName() << "_ARG_IS_IMAGE {";
   if (num_args != 0) {
     out << is_image[0];
@@ -235,7 +235,7 @@ GenerateHeader::ProcessPointers(Function *F,
       out << ", " << is_image[i];
   }
   out << "}\n";
-  
+
   out << "#define _" << F->getName() << "_ARG_IS_SAMPLER {";
   if (num_args != 0) {
     out << is_sampler[0];
@@ -258,7 +258,7 @@ GenerateHeader::ProcessAutomaticLocals(Function *F,
   Module *M = F->getParent();
   const DataLayout DLayout(F->getParent());
   const DataLayout *TD = &DLayout;
-  
+
   SmallVector<GlobalVariable *, 8> locals;
 
   SmallVector<Type *, 8> parameters;
@@ -266,7 +266,7 @@ GenerateHeader::ProcessAutomaticLocals(Function *F,
          e = F->arg_end();
        i != e; ++i)
     parameters.push_back(i->getType());
-    
+
   for (Module::global_iterator i = M->global_begin(),
          e = M->global_end();
        i != e; ++i) {
@@ -281,7 +281,7 @@ GenerateHeader::ProcessAutomaticLocals(Function *F,
       parameters.push_back(i->getType());
     }
   }
-    
+
   out << "#define _" << F->getName() << "_NUM_LOCALS "<< locals.size() << "\n";
   out << "#define _" << F->getName() << "_LOCAL_SIZE {";
   if (!locals.empty()) {
@@ -289,7 +289,7 @@ GenerateHeader::ProcessAutomaticLocals(Function *F,
     for (unsigned i = 1; i < locals.size(); ++i)
       out << ", " << TD->getTypeAllocSize(locals[i]->getInitializer()->getType());
   }
-  out << "}\n";    
+  out << "}\n";
 
   return F;
 }

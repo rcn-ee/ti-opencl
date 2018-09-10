@@ -65,14 +65,14 @@ class BufferEvent : public Event
 
         /**
          * \brief Check that a buffer is correctly aligned for a device
-         * 
+         *
          * OpenCL supports sub-buffers of buffers (\c Coal::SubBuffer). They
          * have to be aligned on a certain device-dependent boundary.
-         * 
+         *
          * This function checks that \p buffer is correctly aligned for
          * \p device. If \p buffer is not a \c Coal::SubBuffer, this function
          * returns true.
-         * 
+         *
          * \return true if the buffer is aligned or not a \c Coal::SubBuffer
          */
         static bool isSubBufferAligned(const MemObject *buffer,
@@ -166,6 +166,12 @@ class FillBufferEvent : public BufferEvent
         size_t offset() const;       /*!< \brief Offset in the buffer of the operation, in bytes */
         size_t cb() const;           /*!< \brief Number of bytes to fill */
 
+
+        // Remove to avoid copying pointer to allocated memory and resulting
+        // double free.
+        FillBufferEvent(const FillBufferEvent&) =delete;
+        FillBufferEvent& operator=(const FillBufferEvent&) =delete;
+
     private:
         void *p_pattern;
         size_t p_pattern_size, p_offset, p_cb;
@@ -195,11 +201,11 @@ class MapBufferEvent : public BufferEvent
 
         /**
          * \brief Set the memory location at which the data has been mapped
-         * 
+         *
          * This function is called by the device when it has successfully mapped
-         * the buffer. It must be called inside 
+         * the buffer. It must be called inside
          * \c Coal::DeviceInterface::initEventDeviceData().
-         * 
+         *
          * \param ptr the address at which the buffer has been mapped
          */
         void setPtr(void *ptr);
@@ -248,12 +254,12 @@ class MapImageEvent : public BufferEvent
 
         /**
          * \brief Set the memory location at which the image is mapped
-         * 
+         *
          * This function must be called by
          * \c Coal::DeviceInterface::initEventDeviceData(). Row and slice pitches
          * must also be set by this function by calling \c setRowPitch() and
          * \c setSlicePitch().
-         * 
+         *
          * \param ptr pointer at which the data is available
          */
         void setPtr(void *ptr);
@@ -320,7 +326,7 @@ class CopyBufferEvent : public BufferEvent
 
 /**
  * \brief Events related to rectangular (or cubic) memory regions
- * 
+ *
  * This event is the base for all the *BufferRect events, and the Image ones.
  */
 class ReadWriteCopyBufferRectEvent : public BufferEvent
@@ -458,7 +464,7 @@ class WriteBufferRectEvent : public ReadWriteBufferRectEvent
 
 /**
  * \brief Reading or writing images
- * 
+ *
  * This class only converts some of the arguments given to its constructor
  * to the one of \c Coal::ReadWriteBufferRectEvent. For example, the source row
  * and slice pitches are read from the \c Coal::Image2D object.
@@ -585,10 +591,10 @@ class CopyBufferToImageEvent : public CopyBufferRectEvent
 
 /**
  * \brief Executing a native function as a kernel
- * 
+ *
  * This event builds an argument list to give to the native function. It needs
  * for example to replace all occurence of a \c Coal::MemObject by a pointer
- * to data the host CPU can actually access, using 
+ * to data the host CPU can actually access, using
  * \c Coal::DeviceBuffer::nativeGlobalPointer().
  */
 class NativeKernelEvent : public Event
@@ -663,14 +669,14 @@ class KernelEvent : public Event
 
 /**
  * \brief Executing a task kernel
- * 
+ *
  * This event is simple a \c Coal::KernelEvent with:
- * 
+ *
  * - \c work_dim() set to 1
  * - \c global_work_offset() set to {0}
  * - \c global_work_size() set to {1}
  * - \c local_work_size() set to {1}
- * 
+ *
  * It's in fact a \c Coal::KernelEvent containing only one single work-item.
  */
 class TaskEvent : public KernelEvent
@@ -687,16 +693,16 @@ class TaskEvent : public KernelEvent
 
 /**
  * \brief User event
- * 
- * This event is a bit special as it is created by a call to 
+ *
+ * This event is a bit special as it is created by a call to
  * \c clCreateUserEvent() and doesn't belong to an event queue. Thus, a mean had
  * to be found for all to work.
- * 
+ *
  * The solution is the \c addDependentCommandQueue() function, called every time
  * the user event is added to a command queue. When this event becomes completed,
  * \c flushQueues() is called to allow all the \c Coal::CommandQueue objects
  * containing this event to push more events on their device.
- * 
+ *
  * This way, command queues are not blocked by user events.
  */
 class UserEvent : public Event

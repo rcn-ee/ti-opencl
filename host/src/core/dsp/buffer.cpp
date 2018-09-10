@@ -15,7 +15,7 @@
  *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  *   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+ *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  *   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
  *   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
  *   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
@@ -83,8 +83,9 @@ DSPDevicePtr64 DSPBuffer::data() const
         MemObject *parent        = subbuf->parent();
         DSPBuffer *parent_dspbuf = (DSPBuffer *)parent->deviceBuffer(p_shm_);
 
+        if (!parent_dspbuf)         { return 0; }
         if (!parent_dspbuf->data()) parent_dspbuf->allocate();
-        if (!parent_dspbuf->data()) { return 0; } //ERROR() 
+        if (!parent_dspbuf->data()) { return 0; } //ERROR()
 
         return parent_dspbuf->data() + subbuf->offset();
     }
@@ -118,6 +119,7 @@ bool DSPBuffer::allocate()
         MemObject *parent        = subbuf->parent();
         DSPBuffer *parent_dspbuf = (DSPBuffer *)parent->deviceBuffer(p_shm_);
 
+        if (!parent_dspbuf)         return false;
         if (!parent_dspbuf->data()) parent_dspbuf->allocate();
         if (!parent_dspbuf->data()) return false;
 
