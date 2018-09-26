@@ -25,7 +25,7 @@
  *  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
 
-#include "string.h"
+#include <string.h>
 #include "util.h"
 #include "monitor.h"
 #include <ti/csl/csl_xmc.h>
@@ -43,7 +43,7 @@ EXPORT void __mfence(void)
 {
     _mfence(); // Wait until data written to memory
     _mfence(); // Second one because of a bug (KeyStone I FAE alert)
-    
+
     // sprz332b.pdf, Advisory 24 - Require 16 NOPs after MFENCE after certain
     // cache coherency operations
     asm(" NOP 9");
@@ -109,7 +109,7 @@ void enableCache(unsigned first, unsigned last)
 }
 
 /******************************************************************************
-* cacheWbInvAllL2 
+* cacheWbInvAllL2
 *     Write back and invalidate all cache
 ******************************************************************************/
 void cacheWbInvAllL2 ()
@@ -123,13 +123,13 @@ void cacheWbInvAllL2 ()
 }
 
 /******************************************************************************
-* cacheInvAllL2 
+* cacheInvAllL2
 *     Invalidate all cache
 ******************************************************************************/
 void cacheInvAllL2 ()
 {
     uint32_t lvInt = _disable_interrupts();
-    CACHE_wbInvAllL1d(CACHE_NOWAIT); 
+    CACHE_wbInvAllL1d(CACHE_NOWAIT);
     __mfence();
     // THIS NEED TO BE INLINED!!! USE -O* WHEN COMPILING!
     CACHE_invAllL2(CACHE_NOWAIT);
@@ -139,7 +139,7 @@ void cacheInvAllL2 ()
     return;
 }
 /******************************************************************************
-* cacheWbInvL2 
+* cacheWbInvL2
 *     Write back and invalidate all cache
 ******************************************************************************/
 void cacheWbInvL2 (uint8_t* bufferPtr, uint32_t bufferSize)
@@ -153,14 +153,14 @@ void cacheWbInvL2 (uint8_t* bufferPtr, uint32_t bufferSize)
 }
 
 /******************************************************************************
-* cacheInvL2 
+* cacheInvL2
 *     Write back and invalidate all cache
 ******************************************************************************/
 void cacheInvL2 (uint8_t* bufferPtr, uint32_t bufferSize)
 {
     uint32_t lvInt = _disable_interrupts();
 
-    CACHE_wbInvL1d(bufferPtr, bufferSize, CACHE_NOWAIT); 
+    CACHE_wbInvL1d(bufferPtr, bufferSize, CACHE_NOWAIT);
     __mfence();
     CACHE_invL2(bufferPtr, bufferSize, CACHE_NOWAIT);
     CSL_XMC_invalidatePrefetchBuffer();

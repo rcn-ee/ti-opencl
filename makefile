@@ -98,6 +98,10 @@ install: $(OCL_BUILD_DIR) $(DESTDIR) $(EVE_SUBMODULE)
 build: $(OCL_BUILD_DIR)
 	cd $(OCL_BUILD_DIR) && cmake $(CMAKE_DEFINES) ../../host && $(MAKE)
 
+install_nomonitors: $(OCL_BUILD_DIR) $(DESTDIR)
+	cd $(OCL_BUILD_DIR) && cmake -DBUILD_OUTPUT=lib $(CMAKE_DEFINES) ../../host && $(MAKE) install
+	cd $(OCL_BUILD_DIR) && cmake -DBUILD_OUTPUT=clocl $(CMAKE_DEFINES) ../../host && $(MAKE) install
+
 package: $(OCL_BUILD_DIR)
 	cd $(OCL_BUILD_DIR) && cmake $(CMAKE_DEFINES) ../../host && $(MAKE) package
 
@@ -129,8 +133,14 @@ $(DESTDIR):
 eve_submodule:
 	git submodule update --init
 
+ifeq ($(USE_EXTERNAL_FW_REPO),1)
+FW_REPO=git://git.ti.com/opencl/opencl-firmware.git
+else
+FW_REPO=ssh://git@bitbucket.itg.ti.com/mctools/opencl-firmware.git
+endif
+
 opencl-firmware:
-	git clone --depth 1 ssh://git@bitbucket.itg.ti.com/mctools/opencl-firmware.git
+	git clone --depth 1 $(FW_REPO)
 
 change:
 	git log --pretty=format:"- %s%n%b" $(TAG).. ; \
