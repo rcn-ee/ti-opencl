@@ -44,7 +44,7 @@ else
     X86_LLVM_DIR?=$(SDOMC_SHARED)/llvm-3.6.0-20170608-x86_64
 endif
 
-CORESDK_VERSION ?= 05.01.00.05-20180906
+CORESDK_VERSION ?= 05.01.00.11-release
 TIDL_VERSION    ?= 01.01.00.01-20180521
 
 ifeq ($(BUILD_K2H),1)
@@ -70,7 +70,7 @@ endif
 # ARM GCC
 ifeq (,$(findstring arm, $(UNAME_M)))
     ARM_GCC_DIR?=$(SDOMC_SHARED)/gcc-linaro-7.2.1-2017.11-x86_64_arm-linux-gnueabihf
-    GCC_ARM_NONE_TOOLCHAIN?=$(SDOMC_SHARED)/gcc-arm-none-eabi-6-2017-q1-update
+    GCC_ARM_NONE_TOOLCHAIN?=$(SDOMC_SHARED)/gcc-arm-none-eabi-7-2017-q4-major
 endif
 
 # RTOS packages (BIOS, IPC, FC, EDMA3_LLD etc.)

@@ -401,6 +401,7 @@ template <typename Address, typename Length, typename Scope> class HeapManager
             { std::cout << ex.what() << std::endl; exit(EXIT_FAILURE); }
     }
 
+#ifndef _SYS_BIOS
     /*-------------------------------------------------------------------------
      * process_exists - Does a PID represent a running process?
      *------------------------------------------------------------------------*/
@@ -432,6 +433,7 @@ template <typename Address, typename Length, typename Scope> class HeapManager
         catch(Exception &ex)
             { std::cout << ex.what() << std::endl; exit(EXIT_FAILURE); }
     }
+#endif
 
     /*-------------------------------------------------------------------------
     * HeapManager::free_all_pid 
