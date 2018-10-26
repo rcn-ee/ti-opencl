@@ -47,8 +47,6 @@
   __FUNC(TI_OCL_PROFILING_EVENT_NUMBER2,                cl_int) \
   __FUNC(TI_OCL_PROFILING_STALL_CYCLE_THRESHOLD,        cl_int) \
   __FUNC(TI_OCL_WG_SIZE_LIMIT,                          cl_int) \
-  __FUNC(TI_OCL_WORKER_NICE,                            cl_int) \
-  __FUNC(TI_OCL_WORKER_SLEEP,                           cl_int) \
   __FUNC(TARGET_ROOTDIR,                                char *) \
 
 
@@ -81,8 +79,6 @@ class EnvVar
       TI_OCL_PROFILING_EVENT_NUMBER2,
       TI_OCL_PROFILING_STALL_CYCLE_THRESHOLD,
       TI_OCL_WG_SIZE_LIMIT,
-      TI_OCL_WORKER_NICE,
-      TI_OCL_WORKER_SLEEP,
       TARGET_ROOTDIR,
     };
 
