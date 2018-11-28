@@ -76,7 +76,6 @@ extern "C"
 
 #define ROUNDUP(val, pow2)   (((val) + (pow2) - 1) & ~((pow2) - 1))
 #define QERR(msg, retcode)   do { std::cerr << "OCL ERROR: " << msg << std::endl; return retcode; } while(0)
-#define ERR(x) std::cerr << x << std::endl
 #define ERROR() std::cerr << "Unknown error in dsp/kernel.cpp" << std::endl
 
 using namespace Coal;
@@ -118,6 +117,7 @@ DSPDevicePtr  DSPKernel::device_entry_pt()
         p_kernel->info(CL_KERNEL_FUNCTION_NAME, 0, 0, &name_length);
 
         void *name = malloc(name_length);
+        assert (name != nullptr);
         p_kernel->info(CL_KERNEL_FUNCTION_NAME, name_length, name, 0);
 
         Program    *p     = (Program *)p_kernel->parent();

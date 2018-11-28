@@ -1,18 +1,18 @@
 // TargetAddressSpaces.cc - map the fixed "logical" address-space ids to,
 //                          the target-specific ones, if needed
-// 
+//
 // Copyright (c) 2013-2015 Pekka Jääskeläinen / TUT
-// 
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -49,7 +49,7 @@ using namespace llvm;
 namespace {
   static
   RegisterPass<pocl::TargetAddressSpaces> X
-  ("target-address-spaces", 
+  ("target-address-spaces",
    "Convert the logical address space ids to the target specific ones.");
 }
 
@@ -178,7 +178,7 @@ TargetAddressSpaces::runOnModule(llvm::Module &M) {
     addrSpaceMap[POCL_ADDRESS_SPACE_LOCAL] = 4;
     /* LLVM 3.2 detects 'constant' as cuda_constant (5) in the fake
        address space map. Add it for compatibility. */
-    addrSpaceMap[5] = addrSpaceMap[POCL_ADDRESS_SPACE_CONSTANT] = 5;     
+    addrSpaceMap[5] = addrSpaceMap[POCL_ADDRESS_SPACE_CONSTANT] = 5;
   } else if (arch.startswith("mips")) {
     addrSpaceMap[POCL_ADDRESS_SPACE_GLOBAL] =
         addrSpaceMap[POCL_ADDRESS_SPACE_LOCAL] =
@@ -201,17 +201,17 @@ TargetAddressSpaces::runOnModule(llvm::Module &M) {
   /* Collect the functions to process first because we add
      a new function per modified function which invalidates
      the Module's function iterator. */
-  for (llvm::Module::iterator functionI = M.begin(), functionE = M.end(); 
+  for (llvm::Module::iterator functionI = M.begin(), functionE = M.end();
        functionI != functionE; ++functionI) {
-    if (functionI->empty() || functionI->getName().startswith("_GLOBAL")) 
+    if (functionI->empty() || functionI->getName().startswith("_GLOBAL"))
       continue;
     unhandledFuncs.push_back(functionI);
   }
 
-  for (std::vector<llvm::Function*>::iterator i = unhandledFuncs.begin(), 
+  for (std::vector<llvm::Function*>::iterator i = unhandledFuncs.begin(),
          e = unhandledFuncs.end(); i != e; ++i) {
     llvm::Function &F = **i;
-   
+
     /* Convert the FunctionType. Because there is no mutator API in
        LLVM for this, we need to recreate the whole darn function :( */
     SmallVector<Type *, 8> parameters;
@@ -242,7 +242,7 @@ TargetAddressSpaces::runOnModule(llvm::Module &M) {
     class AddressSpaceReMapper : public ValueMapTypeRemapper {
     public:
       AddressSpaceReMapper(std::map<unsigned, unsigned> &addrSpaceMap) :
-        addrSpaceMap_(addrSpaceMap) {}      
+        addrSpaceMap_(addrSpaceMap) {}
       Type* remapType(Type *type) {
         Type *newType = ConvertedType(type, addrSpaceMap_);
         if (newType == type) return type;
@@ -270,7 +270,7 @@ TargetAddressSpaces::runOnModule(llvm::Module &M) {
     llvm::Value &global = *globalI;
     changed |= UpdateAddressSpace(global, addrSpaceMap);
   }
-  
+
   /* Replace all references to the old function to the new one.
      Also, for LLVM 3.4, replace the pointercasts to bitcasts in
      case the new address spaces are the same in both sides. */
@@ -279,7 +279,7 @@ TargetAddressSpaces::runOnModule(llvm::Module &M) {
   for (; fI != fE; ++fI) {
     llvm::Function &F = *fI;
     for (llvm::Function::iterator bbi = F.begin(), bbe = F.end(); bbi != bbe;
-         ++bbi) 
+         ++bbi)
       for (llvm::BasicBlock::iterator ii = bbi->begin(), ie = bbi->end(); ii != ie;
            ++ii) {
         llvm::Instruction *instr = ii;
@@ -293,22 +293,22 @@ TargetAddressSpaces::runOnModule(llvm::Module &M) {
             continue;
 
           llvm::ReplaceInstWithInst
-          (instr, 
+          (instr,
            CastInst::CreatePointerCast
-           (instr->getOperand(0), dyn_cast<CastInst>(instr)->getDestTy()));
+           (instr->getOperand(0), cast<CastInst>(instr)->getDestTy()));
 
           // Start from the beginning just in case the iterators have
           // been invalidated.
           ii = bbi->begin();
           continue;
         }
-        
+
         if (!isa<CallInst>(instr)) continue;
 
         llvm::CallInst *call = cast<CallInst>(instr);
         llvm::Function *calledF = call->getCalledFunction();
         if (funcReplacements.find(calledF) == funcReplacements.end()) continue;
-         
+
         call->setCalledFunction(funcReplacements[calledF]);
       }
   }
@@ -324,7 +324,7 @@ TargetAddressSpaces::runOnModule(llvm::Module &M) {
     }
 
     if (i->first->getNumUses() > 0) {
-      for (Value::use_iterator ui = i->first->use_begin(), 
+      for (Value::use_iterator ui = i->first->use_begin(),
              ue = i->first->use_end(); ui != ue; ++ui) {
         User* user = (*ui).getUser();
         user->dump();

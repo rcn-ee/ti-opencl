@@ -55,12 +55,12 @@ static inline cl_int queueEvent(Coal::CommandQueue *queue,
 #if 0
         /*---------------------------------------------------------------------
         * It is up to the user to release events for reuse.  If they do not
-        * they will have a memory leak for old events.  This can impact 
+        * they will have a memory leak for old events.  This can impact
         * memory performance since the old event memory is likely already warm
         * in cache.
         *--------------------------------------------------------------------*/
         /*---------------------------------------------------------------------
-        * We should also reduce the reference count of the old event, because 
+        * We should also reduce the reference count of the old event, because
         * user_app_event is now interested in a different event.
         *--------------------------------------------------------------------*/
         old_event = pobj(*event);
@@ -856,9 +856,18 @@ clEnqueueMarkerWithWaitList(cl_command_queue    d_command_queue,
     {
         // Get the events in command_queue
         events = command_queue->events(count, false);
+        if (!events) return CL_OUT_OF_HOST_MEMORY;
+
         if (count != 0)
         {
             e_wait_list = (cl_event *)std::malloc(count * sizeof(cl_event));
+
+            if (!e_wait_list)
+            {
+                free(events);
+                return CL_OUT_OF_HOST_MEMORY;
+            }
+
             desc_list(e_wait_list, events, count);
         }
         num_events_in_wait_list = count;

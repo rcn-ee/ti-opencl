@@ -15,7 +15,7 @@
  *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  *   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+ *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  *   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
  *   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
  *   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
@@ -247,7 +247,7 @@ bool handle_event_dispatch(EVEDevice *device)
         {
             ReadWriteBufferEvent *e = (ReadWriteBufferEvent *)event;
 
-            if (e->buffer()->flags() & CL_MEM_USE_HOST_PTR) 
+            if (e->buffer()->flags() & CL_MEM_USE_HOST_PTR)
             {
                 if (t == Event::ReadBuffer)
                      memcpy(e->ptr(), e->buffer()->host_ptr(), e->cb());
@@ -275,7 +275,7 @@ bool handle_event_dispatch(EVEDevice *device)
             DSPDevicePtr64 dst_addr;
             void *pdst;
 
-            if (e->buffer()->flags() & CL_MEM_USE_HOST_PTR) 
+            if (e->buffer()->flags() & CL_MEM_USE_HOST_PTR)
             {
                 pdst = (char *)e->buffer()->host_ptr() + e->offset();
             }
@@ -293,7 +293,7 @@ bool handle_event_dispatch(EVEDevice *device)
                     memcpy((char *)pdst + i * pattern_size,
                            pattern, pattern_size);
 
-            if (! (e->buffer()->flags() & CL_MEM_USE_HOST_PTR)) 
+            if (! (e->buffer()->flags() & CL_MEM_USE_HOST_PTR))
                 shm->Unmap(pdst, dst_addr, e->cb(), true);
             break;
         }
@@ -310,7 +310,7 @@ bool handle_event_dispatch(EVEDevice *device)
 
             if (e->source()->flags() & CL_MEM_USE_HOST_PTR)
                  psrc = (char*)e->source()->host_ptr() + e->src_offset();
-            else 
+            else
             {
                 DSPBuffer *src = (DSPBuffer*)e->source()->deviceBuffer(device);
                 src_addr = (DSPDevicePtr64)src->data() + e->src_offset();
@@ -319,7 +319,7 @@ bool handle_event_dispatch(EVEDevice *device)
 
             if (e->destination()->flags() & CL_MEM_USE_HOST_PTR)
                  pdst = (char *)e->destination()->host_ptr() + e->dst_offset();
-            else 
+            else
             {
                 DSPBuffer *dst = (DSPBuffer*)e->destination()->deviceBuffer(device);
                 dst_addr = (DSPDevicePtr64)dst->data() + e->dst_offset();
@@ -340,24 +340,24 @@ bool handle_event_dispatch(EVEDevice *device)
         case Event::WriteBufferRect:
 	{
 	   ReadWriteBufferRectEvent *e = (ReadWriteBufferRectEvent *)event;
-	   
+
 	   // Calculate the start points for each block of memory referenced
 	   DSPDevicePtr64 buf_start;
            uint8_t *      host_start;
 
-	   if (e->buffer()->flags() & CL_MEM_USE_HOST_PTR) 
+	   if (e->buffer()->flags() & CL_MEM_USE_HOST_PTR)
 	      buf_start = (DSPDevicePtr64)e->buffer()->host_ptr();
 	   else
 	      buf_start = ((DSPBuffer *)e->source()->deviceBuffer(device))
                                                                  ->data();
-	   
-	   buf_start += e->src_origin(2) * e->src_slice_pitch() + 
-	                e->src_origin(1) * e->src_row_pitch()   + 
+
+	   buf_start += e->src_origin(2) * e->src_slice_pitch() +
+	                e->src_origin(1) * e->src_row_pitch()   +
 	                e->src_origin(0);
 
-	   host_start  = (uint8_t *)e->ptr() + 
-	                 e->dst_origin(2) * e->dst_slice_pitch() + 
-	                 e->dst_origin(1) * e->dst_row_pitch()   + 
+	   host_start  = (uint8_t *)e->ptr() +
+	                 e->dst_origin(2) * e->dst_slice_pitch() +
+	                 e->dst_origin(1) * e->dst_row_pitch()   +
 		         e->dst_origin(0);
 
 	   // Map the device/host buffers to the appopriate src/dst operands
@@ -372,7 +372,7 @@ bool handle_event_dispatch(EVEDevice *device)
 	      src_start       = buf_start;
 	      src_row_pitch   = e->src_row_pitch();
 	      src_slice_pitch = e->src_slice_pitch();
-	      
+
 	      dst_start       = (DSPDevicePtr64) host_start;
 	      dst_row_pitch   = e->dst_row_pitch();
 	      dst_slice_pitch = e->dst_slice_pitch();
@@ -382,7 +382,7 @@ bool handle_event_dispatch(EVEDevice *device)
 	      src_start       = (DSPDevicePtr64) host_start;
 	      src_row_pitch   = e->dst_row_pitch();
 	      src_slice_pitch = e->dst_slice_pitch();
-	      
+
 	      dst_start       = buf_start;
 	      dst_row_pitch   = e->src_row_pitch();
 	      dst_slice_pitch = e->src_slice_pitch();
@@ -409,7 +409,7 @@ bool handle_event_dispatch(EVEDevice *device)
 	      for(cl_uint y = 0; y < ydim; y++)
 	      {
 		 // Copy a row
-		 if (e->buffer()->flags() & CL_MEM_USE_HOST_PTR) 
+		 if (e->buffer()->flags() & CL_MEM_USE_HOST_PTR)
 		    memcpy((void *)dst_cur_row, (void *)src_cur_row, xdim);
 		 else
 		 {
@@ -418,7 +418,7 @@ bool handle_event_dispatch(EVEDevice *device)
 		    else
 		        shm->WriteToShmem( dst_cur_row, (uint8_t *)src_cur_row, xdim);
 		    }
-		    
+
 		    // Proceed to next row
 		    src_cur_row += src_row_pitch;
 		    dst_cur_row += dst_row_pitch;
@@ -437,13 +437,13 @@ bool handle_event_dispatch(EVEDevice *device)
 
 	   // Calculate the offsets into each buffer
 	   size_t src_offset, dst_offset;
-	   
-	   src_offset = e->src_origin(2) * e->src_slice_pitch() + 
-	                e->src_origin(1) * e->src_row_pitch()   + 
+
+	   src_offset = e->src_origin(2) * e->src_slice_pitch() +
+	                e->src_origin(1) * e->src_row_pitch()   +
 		        e->src_origin(0);
 
-	   dst_offset = e->dst_origin(2) * e->dst_slice_pitch() + 
-		        e->dst_origin(1) * e->dst_row_pitch()   + 
+	   dst_offset = e->dst_origin(2) * e->dst_slice_pitch() +
+		        e->dst_origin(1) * e->dst_row_pitch()   +
 		        e->dst_origin(0);
 
 	   // Set up start points for the copy. If it is a DSP buffer, we'll
@@ -452,7 +452,7 @@ bool handle_event_dispatch(EVEDevice *device)
 
 	   if (e->source()->flags() & CL_MEM_USE_HOST_PTR)
 	      src_start = (DSPDevicePtr64)e->source()->host_ptr() + src_offset;
-	   else 
+	   else
 	   {
 	      DSPBuffer *src = (DSPBuffer*)e->source()->deviceBuffer(device);
 	      src_start = src->data() + src_offset;
@@ -460,22 +460,22 @@ bool handle_event_dispatch(EVEDevice *device)
 
 	   if (e->destination()->flags() & CL_MEM_USE_HOST_PTR)
 	      dst_start = (DSPDevicePtr64)e->destination()->host_ptr() + dst_offset;
-	   else 
+	   else
 	   {
 	      DSPBuffer *dst=(DSPBuffer*)e->destination()->deviceBuffer(device);
 	      dst_start = dst->data() + dst_offset;
 	   }
 
-	   // The dimensions of the region to be copied 
+	   // The dimensions of the region to be copied
 	   cl_ulong xdim = e->region(0);
 	   cl_ulong ydim = e->region(1);
 	   cl_ulong zdim = e->region(2);
-	   
+
 	   // If we need to map memory we will currently map a slice
 	   // at a time.  So determine the size of a 2D slice
 	   size_t src_slice_size = ydim * e->src_row_pitch()-e->src_origin(0);
 	   size_t dst_slice_size = ydim * e->dst_row_pitch()-e->dst_origin(0);
-	    
+
 	   // Set up the initial copy point
 	   DSPDevicePtr64 src_cur_slice = src_start;
 	   DSPDevicePtr64 dst_cur_slice = dst_start;
@@ -492,7 +492,7 @@ bool handle_event_dispatch(EVEDevice *device)
 	      if (!(e->source()->flags() & CL_MEM_USE_HOST_PTR))
 		    src_cur_row = src_cur_mslice = (uint8_t *)
 		        shm->Map(src_cur_slice, src_slice_size,true);
-		
+
 	      if (!(e->destination()->flags() & CL_MEM_USE_HOST_PTR))
 		    dst_cur_row = dst_cur_mslice = (uint8_t *)
 		        shm->Map(dst_cur_slice, dst_slice_size,false);
@@ -502,12 +502,12 @@ bool handle_event_dispatch(EVEDevice *device)
 	      {
 		 // Copy current row
 		 memcpy(dst_cur_row, src_cur_row, xdim);
-		 
+
 		 // Proceed to next row
 		 src_cur_row += e->src_row_pitch();
 		 dst_cur_row += e->dst_row_pitch();
 	      }
-		
+
 	      // If necessary, unmap the current slice
 	      if (!(e->source()->flags() & CL_MEM_USE_HOST_PTR))
 		    shm->Unmap(src_cur_mslice, src_cur_slice, src_slice_size, false);
@@ -539,7 +539,7 @@ bool handle_event_dispatch(EVEDevice *device)
 
             /*-----------------------------------------------------------
             * for USE_HOST_PTR, the buffer store is already on the host and
-            * map should not be needed.  
+            * map should not be needed.
             -----------------------------------------------------------*/
             if (e->buffer()->flags() & CL_MEM_USE_HOST_PTR) break;
 
@@ -563,14 +563,14 @@ bool handle_event_dispatch(EVEDevice *device)
 
             /*-----------------------------------------------------------
             * for USE_HOST_PTR, the buffer store is already on the host and
-            * unmap should not be needed.  
+            * unmap should not be needed.
             -----------------------------------------------------------*/
             if (e->buffer()->flags() & CL_MEM_USE_HOST_PTR) break;
 
             if (e->buffer()->type() != Coal::MemObject::Buffer &&
                 e->buffer()->type() != Coal::MemObject::SubBuffer)
                 ERR(1, "UnmapMemObject: MapImage/Unmap not support yet");
-            MapBufferEvent *mbe = (MapBufferEvent *) 
+            MapBufferEvent *mbe = (MapBufferEvent *)
                                   e->buffer()->removeMapEvent(e->mapping());
             if (mbe == NULL)
                 ERR(1, "UnmapMemObject: host_ptr not from previous maps");
@@ -581,7 +581,7 @@ bool handle_event_dispatch(EVEDevice *device)
             shm->Unmap(e->mapping(), map_dsp_addr,
                               mbe->cb(), ((mbe->flags() & CL_MAP_WRITE) != 0));
 
-            if (queue) queue->releaseEvent(mbe); 
+            if (queue) queue->releaseEvent(mbe);
             break;
         }
 
@@ -621,7 +621,7 @@ bool handle_event_dispatch(EVEDevice *device)
     // an event may be released once it is Complete
     if (queue_props & CL_QUEUE_PROFILING_ENABLE)
        event->updateTiming(Event::End);
-    event->setStatus((errcode == CL_SUCCESS) ?  Event::Complete : 
+    event->setStatus((errcode == CL_SUCCESS) ?  Event::Complete :
                                                (Event::Status)errcode);
 
     return false;
@@ -632,14 +632,6 @@ bool handle_event_dispatch(EVEDevice *device)
 ******************************************************************************/
 void *eve_worker_event_dispatch(void *data)
 {
-    EnvVar& env = EnvVar::Instance();
-    int   env_nice  = env.GetEnv<EnvVar::Var::TI_OCL_WORKER_NICE>(4);
-    int   env_sleep = env.GetEnv<EnvVar::Var::TI_OCL_WORKER_SLEEP>(-1);
-#ifndef _SYS_BIOS
-    pid_t tid       = syscall(SYS_gettid);
-
-    setpriority(PRIO_PROCESS, tid, env_nice);
-#endif
     EVEDevice *device = (EVEDevice *)data;
 
     while (true)
@@ -656,8 +648,6 @@ void *eve_worker_event_dispatch(void *data)
         *    command (will be waken up by application thread).
         *--------------------------------------------------------------------*/
         if (handle_event_dispatch(device))  break;
-
-        if (env_sleep >= 0) usleep(env_sleep);
     }
 
     return NULL;
@@ -668,14 +658,6 @@ void *eve_worker_event_dispatch(void *data)
 ******************************************************************************/
 void *eve_worker_event_completion(void *data)
 {
-    EnvVar& env = EnvVar::Instance();
-    int   env_nice  = env.GetEnv<EnvVar::Var::TI_OCL_WORKER_NICE>(4);
-    int   env_sleep = env.GetEnv<EnvVar::Var::TI_OCL_WORKER_SLEEP>(-1);
-#ifndef _SYS_BIOS
-    pid_t tid       = syscall(SYS_gettid);
-
-    setpriority(PRIO_PROCESS, tid, env_nice);
-#endif
     EVEDevice *device = (EVEDevice *)data;
 
     while (true)
@@ -687,8 +669,6 @@ void *eve_worker_event_completion(void *data)
         *    completion.
         *--------------------------------------------------------------------*/
         if (handle_event_completion(device))  break;
-
-        if (env_sleep >= 0) usleep(env_sleep);
     }
 
     return NULL;

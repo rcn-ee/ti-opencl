@@ -11,8 +11,8 @@ UNAME_M:=$(shell uname -m)
 # debian/changelog!!!
 OCL_MAJOR_VER=1
 OCL_MINOR_VER=1
-OCL_RELEASE_VER=16
-OCL_PATCH_VER=01
+OCL_RELEASE_VER=17
+OCL_PATCH_VER=00
 OCL_VER=$(OCL_MAJOR_VER).$(OCL_MINOR_VER).$(OCL_RELEASE_VER)
 OCL_DPKG_NAME=ti-opencl
 OCL_VERSIONED_NAME=$(OCL_DPKG_NAME)_$(OCL_VER)
@@ -44,8 +44,8 @@ else
     X86_LLVM_DIR?=$(SDOMC_SHARED)/llvm-3.6.0-20170608-x86_64
 endif
 
-CORESDK_VERSION ?= 05.01.00.05-20180906
-TIDL_VERSION    ?= 01.01.00.01-20180521
+CORESDK_VERSION ?= 05.02.00.04-20181125
+TIDL_VERSION    ?= 05_02_00_04-203-2018-11-25_21-23-39
 
 ifeq ($(BUILD_K2H),1)
 	CORE_SDK?=$(SDOMC_SHARED)/ti-processor-sdk-linux-k2hk-evm-$(CORESDK_VERSION)
@@ -70,7 +70,7 @@ endif
 # ARM GCC
 ifeq (,$(findstring arm, $(UNAME_M)))
     ARM_GCC_DIR?=$(SDOMC_SHARED)/gcc-linaro-7.2.1-2017.11-x86_64_arm-linux-gnueabihf
-    GCC_ARM_NONE_TOOLCHAIN?=$(SDOMC_SHARED)/gcc-arm-none-eabi-6-2017-q1-update
+    GCC_ARM_NONE_TOOLCHAIN?=$(SDOMC_SHARED)/gcc-arm-none-eabi-7-2017-q4-major
 endif
 
 # RTOS packages (BIOS, IPC, FC, EDMA3_LLD etc.)

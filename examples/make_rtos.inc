@@ -42,7 +42,7 @@ DSS_CMD                 = $(CCS_INSTALL_DIR)\ccs_base\scripting\bin\dss.bat
 NULLFILE                = NUL
 
 else  # Linux
-DEFAULT_PSDK_RTOS      ?= /cgnas/ti-processor-sdk-rtos-am57xx-evm-05.00.00.15-release
+DEFAULT_PSDK_RTOS      ?= /cgnas/ti-processor-sdk-rtos-am57xx-evm-05.01.00.11-release
 GCC_ARM_NONE_TOOLCHAIN ?= $(wildcard $(DEFAULT_PSDK_RTOS)/gcc-arm-none-eabi-*)
 TI_OCL_CGT_INSTALL     ?= $(wildcard $(DEFAULT_PSDK_RTOS)/ti-cgt-c6000_*)
 

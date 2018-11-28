@@ -74,6 +74,7 @@ typedef struct
     uint32_t bufPlaneBufOffset;  // buf address offset to the heap base
     uint32_t bufPlaneHeight;     // padded width
     uint32_t bufPlaneWidth;      // padded width
+    uint32_t contextSize;        // aligned context size
 } OCL_TIDL_BufParams;
 
 typedef struct
@@ -84,7 +85,7 @@ typedef struct
      int32_t errorCode;
     uint64_t cycles;
     uint32_t enableTrace;
-    uint32_t enableInternalInput;
+    uint32_t numContexts;
     uint32_t numInBufs;
     uint32_t numOutBufs;
     uint32_t bufAddrBase;
@@ -99,10 +100,10 @@ typedef struct
     uint64_t cycles;
      int32_t errorCode;
     uint32_t enableTrace;
-    uint32_t enableInternalInput;
-    uint32_t inDataQ[OCL_TIDL_MAX_IN_BUFS];
-    uint32_t outDataQ[OCL_TIDL_MAX_IN_BUFS];
-    uint32_t inBufAddr[OCL_TIDL_MAX_IN_BUFS];
+    uint32_t dataQ[OCL_TIDL_MAX_IN_BUFS];
+    // pad OCL_TIDL_ProcessParams size to be multiple of 128 bytes to avoid
+    // false sharing (L2 cacheline size: (C66, 128 bytes), (A15, 64 bytes)
+    uint32_t padding[10];
 } OCL_TIDL_ProcessParams;
 
 typedef struct
@@ -130,7 +131,8 @@ void ocl_tidl_initialize(const uint8_t*                  createParamsV,
 
 void ocl_tidl_process(OCL_TIDL_ProcessParams* processParams,
                       uint8_t*                externalMemoryHeapBase,
-                      uint8_t*                traceBufferParams);
+                      uint8_t*                traceBufferParams,
+                      uint32_t                contextIndex);
 
 void ocl_tidl_cleanup();
 #endif

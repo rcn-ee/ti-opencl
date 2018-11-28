@@ -194,8 +194,9 @@ cl_int Context::info(cl_context_info param_name,
             break;
 
         case CL_CONTEXT_DEVICES:
-            device_ids = 
+            device_ids =
               (cl_device_id *)std::malloc(p_num_devices * sizeof(cl_device_id));
+            if (!device_ids) return CL_OUT_OF_HOST_MEMORY;
             MEM_ASSIGN(p_num_devices * sizeof(cl_device_id), device_ids);
             desc_list(device_ids, p_devices, p_num_devices);
             break;

@@ -286,13 +286,13 @@ void CommandQueue::releaseEvent(Event *e)
 ******************************************************************************/
 void CommandQueue::cleanEvents()
 {
-    bool is_inorder = 
+    bool is_inorder =
                   (p_properties & CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE) == 0;
 
     pthread_mutex_lock(&p_event_list_mutex);
 
     // No need to cleanEvents() every time an event finishes, so that we can
-    // save on the event traversal time.  16 is a number that can be tuned 
+    // save on the event traversal time.  16 is a number that can be tuned
     // (e.g. using ooo example).
     if (p_num_events_completed < 16 && p_num_events_on_device > 0 &&
         p_events.size() - p_num_events_completed > 0)
@@ -324,7 +324,7 @@ void CommandQueue::cleanEvents()
             clReleaseEvent(desc(event));
 #endif
         }
-        else if (is_inorder) 
+        else if (is_inorder)
         {
             // In Order Queue events are dispatched and completed in Order
             break;
@@ -446,7 +446,7 @@ void CommandQueue::pushEventsOnDevice(Event *ready_event,
         }
 
         // If OOO queue threshold is met, skip examining the rest of events
-        if(ready_event == NULL && 
+        if(ready_event == NULL &&
            non_complete_events_traversed > OOO_QUEUE_PUSH_EVENTS_THRESHOLD)
             break;
         non_complete_events_traversed += 1;
@@ -538,7 +538,7 @@ void CommandQueue::pushEventsOnDevice(Event *ready_event,
 Event **CommandQueue::events(unsigned int &count,
                              bool include_completed_events)
 {
-    Event **result = NULL;
+    Event **result = nullptr;
 
     pthread_mutex_lock(&p_event_list_mutex);
 
@@ -546,6 +546,12 @@ Event **CommandQueue::events(unsigned int &count,
     if (count > 0)
     {
         result = (Event **)std::malloc(count * sizeof(Event *));
+
+        if (!result)
+        {
+            pthread_mutex_unlock(&p_event_list_mutex);
+            return nullptr;
+        }
 
         // Copy each event of the list into result, retaining them
         unsigned int index = 0;
@@ -672,7 +678,7 @@ Event::~Event()
 }
 
 /******************************************************************************
-* bool Event::isInstantaneous() 
+* bool Event::isInstantaneous()
 ******************************************************************************/
 bool Event::isInstantaneous() const
 {

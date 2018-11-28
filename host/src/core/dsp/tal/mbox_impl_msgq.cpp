@@ -15,7 +15,7 @@
  *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  *   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+ *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  *   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
  *   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
  *   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
@@ -174,7 +174,7 @@ MBoxMsgQ::MBoxMsgQ(Coal::EVEDevice *device)
         ReportError(ErrorType::Fatal, ErrorKind::FailedToOpenEVEMessageQ);
 }
 
-void MBoxMsgQ::write (uint8_t *buf, uint32_t size, uint32_t trans_id, 
+void MBoxMsgQ::write (uint8_t *buf, uint32_t size, uint32_t trans_id,
                       uint8_t id)
 {
     if (p_device)
@@ -187,7 +187,7 @@ void MBoxMsgQ::write (uint8_t *buf, uint32_t size, uint32_t trans_id,
         id = 0;
     }
 
-    ocl_msgq_message_t *msg = 
+    ocl_msgq_message_t *msg =
        (ocl_msgq_message_t *)MessageQ_alloc(heapId, sizeof(ocl_msgq_message_t));
     assert (msg != NULL);
 
@@ -210,7 +210,7 @@ void MBoxMsgQ::write (uint8_t *buf, uint32_t size, uint32_t trans_id,
 }
 
 uint32_t MBoxMsgQ::read (uint8_t *buf, uint32_t *size, uint8_t* id)
-{ 
+{
     ocl_msgq_message_t *msg = NULL;
     int status = MessageQ_get(hostQue, (MessageQ_Msg *)&msg, MessageQ_FOREVER);
     if (status < 0)
@@ -250,7 +250,7 @@ inline bool MBoxMsgQ::query(uint8_t id)
 
 
 MBoxMsgQ::~MBoxMsgQ(void)
-{    
+{
     /* Close the DSP message queues */
     int num_queues = p_device ? p_device->dspCores() : 1;
     for(int i = 0; i < num_queues; ++i)
@@ -259,12 +259,12 @@ MBoxMsgQ::~MBoxMsgQ(void)
         assert(status == MessageQ_S_SUCCESS);
     }
 
-    /* Unblocks reader thread that is blocked on a MessageQ_get(). The 
-     * MessageQ_get() call will return with status MessageQ_E_UNBLOCKED 
-     * indicating that it returned due to a MessageQ_unblock() rather than a 
-     * timeout or a received message. This call should only be used during a 
-     * shutdown sequence in order to ensure that there is no blocked reader 
-     * on a queue before deleting the queue. 
+    /* Unblocks reader thread that is blocked on a MessageQ_get(). The
+     * MessageQ_get() call will return with status MessageQ_E_UNBLOCKED
+     * indicating that it returned due to a MessageQ_unblock() rather than a
+     * timeout or a received message. This call should only be used during a
+     * shutdown sequence in order to ensure that there is no blocked reader
+     * on a queue before deleting the queue.
      * A queue may not be used after it has been unblocked.
      */
     MessageQ_unblock(hostQue);
@@ -309,6 +309,7 @@ static void lost_dsp()
     const tiocl::DeviceInfo& device_info = tiocl::DeviceInfo::Instance();
     const DSPCoreSet& compute_units = device_info.GetComputeUnits();
 
+    bool status = true;
     for (int i : compute_units)
     {
         if(!(i >= 0 && i < (sizeof dspnames / sizeof *dspnames)))
@@ -319,8 +320,13 @@ static void lost_dsp()
             "echo " + dspname + " >/sys/bus/platform/drivers/omap-rproc/unbind; "
             "echo " + dspname + " >/sys/bus/platform/drivers/omap-rproc/bind";
 
-        system(command.c_str());
+        if (system(command.c_str()) != 0)
+            status = false;
     }
+
+    if (!status)
+        ReportError(ErrorType::Fatal, ErrorKind::LostDSP,
+                    " The runtime is unable to recover. A reboot is required");
 
     /* Sleep again before exiting to make sure all DSPs are finished resetting
      * to be ready for the next application */

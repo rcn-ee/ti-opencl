@@ -4,7 +4,7 @@ Environment Variables
 
 These environment variables can be used to control OpenCL behavior and provide visibility for debugging.
 
-.. envvar:: TI_OCL_KEEP_FILES          
+.. envvar:: TI_OCL_KEEP_FILES
 
     When OpenCL C kernels are compiled for DSPs, the result is a binary
     .out file in the /tmp sub-directory. They are then subsequently available
@@ -15,7 +15,7 @@ These environment variables can be used to control OpenCL behavior and provide v
     leave the temporary files in /tmp. Inspecting the assembly file associated
     with the out file, can be useful to see how well your code was optimized.
 
-.. envvar:: TI_OCL_DEBUG               
+.. envvar:: TI_OCL_DEBUG
 
     Setting this environment variable modifies the execution of OpenCL
     applications to enable debug of the OpenCL C kernels.  If your application
@@ -36,7 +36,7 @@ These environment variables can be used to control OpenCL behavior and provide v
     to execute only on DSP core 0.  Details can be found in
     :doc:`debug/index`.
 
-.. envvar:: TI_OCL_CACHE_KERNELS       
+.. envvar:: TI_OCL_CACHE_KERNELS
 
     On-line compilation of kernels is a useful feature for portable OpenCL
     programs. All the detail required to compile kernels for devices is
@@ -46,9 +46,9 @@ These environment variables can be used to control OpenCL behavior and provide v
     the results in a database in /tmp. Running the application again without
     modification of the kernel source or the options used to compile it,
     results in the compilation step being bypassed, and the use of the cached
-    kernel binary. 
-    
-    .. Warning:: 
+    kernel binary.
+
+    .. Warning::
 
         If OpenCL C kernels call standard C code, modifications to the standard
         C code are not seen by the OpenCL runtime and a cached result may be
@@ -56,16 +56,16 @@ These environment variables can be used to control OpenCL behavior and provide v
         disable this environment variable or clean the cache anytime the
         standard C code is modified.
 
-    
+
     .. Warning::
 
         Using this environment variable causes persistent data to accumulate in
         /tmp, and /tmp may grow to capacity causing run-time errors. If this
         occurs, remove cached objects in /tmp or increase the size of the /tmp
-        partition. To explicitly remove the cache, execute the 
-        command: :command:`rm -f /tmp/opencl*`.  
-    
-    .. Note:: 
+        partition. To explicitly remove the cache, execute the
+        command: :command:`rm -f /tmp/opencl*`.
+
+    .. Note::
 
         The OpenCL compilation cache is automatically removed during a Linux reboot
 
@@ -103,18 +103,18 @@ These environment variables can be used to control OpenCL behavior and provide v
         Prior to OpenCL product version 1.1.13, this environment variable is
         available only on AM572x.
 
-.. envvar::  TI_OCL_LOAD_KERNELS_ONCHIP 
+.. envvar::  TI_OCL_LOAD_KERNELS_ONCHIP
 
     By default, OpenCL kernel related code and global data is allocated out of
     DDR memory. If this environment variable is set, kernel related code and
-    global data is allocated out of MSMC memory. 
+    global data is allocated out of MSMC memory.
 
     ..Warning::
 
         Rarely used K2x only feature, will be deprecated starting with OpenCL version 1.1.13.0.
 
 
-.. envvar::  TI_OCL_CPU_DEVICE_ENABLE   
+.. envvar::  TI_OCL_CPU_DEVICE_ENABLE
 
     Currently, OpenCL ARM CPU devices only support native kernels (see the
     OpenCL 1.1 spec for a description of native kernels). As a result, the ARM
@@ -122,12 +122,15 @@ These environment variables can be used to control OpenCL behavior and provide v
     platform query. If your application only uses the ARM CPU for native
     kernels, then this environment variable can be used to enable it as a
     COMPUTE DEVICE for OpenCL. Enqueueing NDRangeKernels or Tasks to the CPU is
-    not supported, even when this environment variable is set. 
-    
-.. envvar::  TI_OCL_WORKER_SLEEP        
+    not supported, even when this environment variable is set.
+
+.. envvar::  TI_OCL_WORKER_SLEEP
+
+    .. Warning::
+        Removed in OpenCL 1.1.17, no longer required.
 
     The OpenCL runtime starts a new CPU thread for every OpenCL command
-    queue defined in your application. These threads 
+    queue defined in your application. These threads
     manage the OpenCL command queues and the communication
     between the CPU and the device to which the command queue is associated. If
     there are any OpenCL kernels actively running on the device, the thread
@@ -150,7 +153,7 @@ These environment variables can be used to control OpenCL behavior and provide v
     microseconds value in the range from 80 to 150 is a reasonable starting
     point.
 
-.. envvar::  TI_OCL_ENABLE_FP64         
+.. envvar::  TI_OCL_ENABLE_FP64
 
     The C66x DSP is double precision floating point capable and all the optional
     features in the OpenCL specification for double precision floating point
@@ -174,7 +177,7 @@ These environment variables can be used to control OpenCL behavior and provide v
     all built-in functions using doubles are supported and available without
     regard to the setting of this environment variable.
 
-.. envvar::  TI_OCL_VERBOSE_ERROR       
+.. envvar::  TI_OCL_VERBOSE_ERROR
 
     The OpenCL specification provides a well-defined mechanism for returning
     error codes from API functions. However, It is often the case that a
@@ -182,22 +185,14 @@ These environment variables can be used to control OpenCL behavior and provide v
     environment variable is set, the OpenCL runtime may print more description
     error messages in addition to the defined return code error mechanism.
 
-.. envvar::  TI_OCL_WG_SIZE_LIMIT       
+.. envvar::  TI_OCL_WG_SIZE_LIMIT
 
     OpenCL provides a query to a device for the maximum number of work-items
-    allowed in a work-group. The DSP device in TI's implementation allows a 
+    allowed in a work-group. The DSP device in TI's implementation allows a
     large number of work-items per work-group. Other OpenCL implementations have
     much smaller max work-group size limit. When running code designed and
     optimized for other OpenCL implementations, this environment variable can
-    be used to limit the max work-group size reported. 
-
-.. envvar::  TI_OCL_DSP_1_25GHZ         
-
-    Initialize the C66x DSPs to run at 1.25 GHz rather than the default 1.00 GHz.
-
-    The TI_OCL_DSP_1_25GHZ environment variable is only applicable to the 
-    DSPC8681 OpenCL Implementation.  The DSP frequency on the other platforms 
-    is determined at Linux boot time.
+    be used to limit the max work-group size reported.
 
 .. envvar::  TI_OCL_PROFILING_EVENT_TYPE
 

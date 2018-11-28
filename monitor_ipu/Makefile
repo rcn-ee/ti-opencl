@@ -67,10 +67,7 @@ CONFIG = bin/$(BUILD_TYPE)/configuro
 CONFIGS  = cfg/Ipu1.cfg cfg/IpuAmmu.cfg cfg/config.bld
 CONFIGS += cfg/ipc.cfg.xs cfg/mem_segment_definition_linux.xs
 
-PKGPATH := $(BIOS_DIR)/packages
-PKGPATH := $(PKGPATH)+$(IPC_DIR)/packages
-PKGPATH := $(PKGPATH)+$(XDC_DIR)/packages
-PKGPATH := $(PKGPATH)+$(PDK_DIR)/packages
+PKGPATH := $(BIOS_DIR)/packages;$(IPC_DIR)/packages;$(XDC_DIR)/packages;$(PDK_DIR)/packages
 
 # If using pre-built EVE firmware, generate .h file from firmware binary
 # If building the firmware, directly use the .h file from the build
@@ -126,7 +123,7 @@ src/eve_firmware.h: ${OCL_TIDL_FW_DIR}/eve_firmware.bin
 $(CONFIG)/.config: $(CONFIGS)
 	@$(ECHO) "#"
 	@$(ECHO) "# Making $@ ..."
-	$(XDC_DIR)/xs --xdcpath="$(subst +,;,$(PKGPATH))" \
+	$(XDC_DIR)/xs --xdcpath "$(PKGPATH)" \
             xdc.tools.configuro -o $(CONFIG) \
             -t ti.targets.arm.elf.M4 \
             -c $(TI_OCL_M4_CGT_INSTALL) \
