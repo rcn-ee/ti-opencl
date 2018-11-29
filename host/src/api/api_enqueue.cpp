@@ -856,10 +856,12 @@ clEnqueueMarkerWithWaitList(cl_command_queue    d_command_queue,
     {
         // Get the events in command_queue
         events = command_queue->events(count, false);
-        if (!events) return CL_OUT_OF_HOST_MEMORY;
 
         if (count != 0)
         {
+            if (!events)
+                return CL_OUT_OF_HOST_MEMORY;
+
             e_wait_list = (cl_event *)std::malloc(count * sizeof(cl_event));
 
             if (!e_wait_list)
