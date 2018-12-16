@@ -130,11 +130,11 @@ int main(int argc, char *argv[])
     cout << "Offloading FFT (SP,Complex) of " << FFTCHS << " channels, each";
     cout << " with " << (FFTSZ / 1024) << "K elements..." << endl << endl;
 
-    Buffer bufX(context, CL_MEM_READ_ONLY|CL_MEM_USE_HOST_PTR,
+    Buffer bufX(context, (cl_mem_flags) CL_MEM_READ_ONLY|CL_MEM_USE_HOST_PTR,
                 channel_size * FFTCHS, x);
-    Buffer bufY(context, CL_MEM_WRITE_ONLY|CL_MEM_USE_HOST_PTR,
+    Buffer bufY(context, (cl_mem_flags) CL_MEM_WRITE_ONLY|CL_MEM_USE_HOST_PTR,
                 channel_size * FFTCHS, y);
-    Buffer bufW(context, CL_MEM_READ_ONLY|CL_MEM_USE_HOST_PTR,
+    Buffer bufW(context, (cl_mem_flags) CL_MEM_READ_ONLY|CL_MEM_USE_HOST_PTR,
                 channel_size, w);
 
     Program::Binaries   binary(1, make_pair(kernel_dsp_bin,

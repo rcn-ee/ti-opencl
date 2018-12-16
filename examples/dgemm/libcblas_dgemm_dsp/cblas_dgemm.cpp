@@ -51,7 +51,7 @@ using namespace cl;
 #define USE_HOST_RW    (CL_MEM_USE_HOST_PTR|CL_MEM_READ_WRITE)
 
 extern "C" DLL_PUBLIC
-void dsp_cblas_dgemm(CBLAS_ORDER order, CBLAS_TRANSPOSE transA, 
+void dsp_cblas_dgemm(CBLAS_ORDER order, CBLAS_TRANSPOSE transA,
                  CBLAS_TRANSPOSE transB, int M, int N, int K,
                  double alpha, const double *A, int lda,
                                const double *B, int ldb,
@@ -91,24 +91,24 @@ void dsp_cblas_dgemm(CBLAS_ORDER order, CBLAS_TRANSPOSE transA,
     Context &ctx = *(ocl.context);
     Kernel *kernel = ocl.K_cblas_dgemm;
 
-    try 
+    try
     {
         /*---------------------------------------------------------------------
-        * Allocate Buffers: Must alloate beyond MNK for the lda,ldb, and ldc 
-        * offsets.  Can probably be smarter here if we copyrectangle, we could 
+        * Allocate Buffers: Must alloate beyond MNK for the lda,ldb, and ldc
+        * offsets.  Can probably be smarter here if we copyrectangle, we could
         * cut a larger lda down to M say for example.
         *--------------------------------------------------------------------*/
-        int sizeA = sizeof(double) * 
+        int sizeA = sizeof(double) *
                    (transA == CblasNoTrans ?  max(lda,M) * K : M * max(lda, K));
 
-        int sizeB = sizeof(double) * 
+        int sizeB = sizeof(double) *
                    (transB == CblasNoTrans ?  max(ldb,K) * N : K * max(ldb, N));
 
         int sizeC = sizeof(double) * max(ldc,M) * N;
 
-        Buffer bufA   (ctx, USE_HOST_READ, sizeA, (void*)A);
-        Buffer bufB   (ctx, USE_HOST_READ, sizeB, (void*)B);
-        Buffer bufC   (ctx, USE_HOST_RW,   sizeC, (void*)C);
+        Buffer bufA   (ctx, (cl_mem_flags) USE_HOST_READ, sizeA, (void*)A);
+        Buffer bufB   (ctx, (cl_mem_flags) USE_HOST_READ, sizeB, (void*)B);
+        Buffer bufC   (ctx, (cl_mem_flags) USE_HOST_RW,   sizeC, (void*)C);
         Buffer *bufMsmc = NULL;
         if (dparams.MSMC_BUF_SIZE != 0)
             bufMsmc = new Buffer(ctx, CL_MEM_USE_MSMC_TI|CL_MEM_READ_WRITE,
@@ -155,5 +155,5 @@ void dsp_cblas_dgemm(CBLAS_ORDER order, CBLAS_TRANSPOSE transA,
     {
         cerr << "ERROR: " << err.what() << "(" << err.err() << ")" << endl;
         exit(-1);
-    }  
+    }
 }

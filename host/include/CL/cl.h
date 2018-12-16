@@ -29,6 +29,8 @@
 #ifndef __OPENCL_CL_H
 #define __OPENCL_CL_H
 
+#define CL_USE_DEPRECATED_OPENCL_1_1_APIS
+
 #ifdef __APPLE__
 #include <OpenCL/cl_platform.h>
 #else
