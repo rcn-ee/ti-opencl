@@ -26,7 +26,7 @@ Standards-Version: 3.9.5
 Package: ti-opencl
 Depends: ${shlibs:Depends},
          ${misc:Depends},
-         libopencl1 (= ${binary:Version}),
+         libtiopencl1 (= ${binary:Version}),
          mesa-common-dev (>= 8.0.4),
          mpm,
          cmem-mod-dkms,
@@ -36,7 +36,7 @@ Architecture: armhf
 Description: OpenCL for TI Keystone
  OpenCL implementation for TI Keystone.
 
-Package: libopencl1
+Package: libtiopencl1
 Section: partner/libs
 Depends: ${shlibs:Depends},
          ${misc:Depends}

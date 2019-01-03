@@ -55,7 +55,7 @@ function getLibs(prog)
     if (String(Program.cpu.deviceName).search("DRA7XX") != -1 &&
         String(xdc.global.oclProcName).search("HOST") != -1)
     {
-        var ocl_lib = "usr/lib/libOpenCL.a";
+        var ocl_lib = "usr/lib/libTIOpenCL.a";
 
         /* If library exists, return it. If not, throw exception */
         if (java.io.File(this.packageBase + ocl_lib).exists())
