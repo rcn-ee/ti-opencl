@@ -28,7 +28,7 @@
 #include "buffer.h"
 #include "device.h"
 
-#include "CL/cl_ext.h"
+#include "CL/TI/cl_ext.h"
 #include "../memobject.h"
 
 #include <cstdlib>

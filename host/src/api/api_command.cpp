@@ -34,7 +34,7 @@
 #include <core/deviceinterface.h>
 #include <core/context.h>
 
-#include <CL/cl.h>
+#include <CL/TI/cl.h>
 
 // Command Queue APIs
 cl_command_queue

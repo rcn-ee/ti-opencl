@@ -31,7 +31,7 @@
 #include <iostream>
 #include <cassert>
 
-#include "CL/cl.h"
+#include "CL/TI/cl.h"
 
 typedef void *(KHRicdVendorDispatch)[];
 extern KHRicdVendorDispatch dispatch_table;

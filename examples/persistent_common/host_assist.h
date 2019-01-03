@@ -1,7 +1,7 @@
 #ifndef _HOST_ASSIST_H_
 #define _HOST_ASSIST_H_
 
-#include <CL/cl.hpp>
+#include <CL/TI/cl.hpp>
 #include <stdint.h>
 
 /*-----------------------------------------------------------------------------

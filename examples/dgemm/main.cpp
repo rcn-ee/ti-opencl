@@ -35,7 +35,7 @@
 #include <string.h>
 #include <signal.h>
 #include <math.h>
-#include <CL/cl_ext.h>
+#include <CL/TI/cl_ext.h>
 
 extern "C"
 {

@@ -144,13 +144,13 @@
 #include <windows.h>
 #include <malloc.h>
 #if defined(USE_DX_INTEROP)
-#include <CL/cl_d3d10.h>
+#include <CL/TI/cl_d3d10.h>
 #endif
 #endif // _WIN32
 
 // 
 #if defined(USE_CL_DEVICE_FISSION)
-#include <CL/cl_ext.h>
+#include <CL/TI/cl_ext.h>
 #endif
 
 #if defined(__APPLE__) || defined(__MACOSX)
@@ -160,7 +160,7 @@
 #if !defined(_TI_RTOS)
 #include <GL/gl.h>
 #endif
-#include <CL/opencl.h>
+#include <CL/TI/opencl.h>
 #endif // !__APPLE__
 
 #if !defined(CL_CALLBACK)

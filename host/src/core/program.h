@@ -38,7 +38,7 @@
 #include "icd.h"
 #include "kernelentry.h"
 
-#include <CL/cl.h>
+#include <CL/TI/cl.h>
 #include <string>
 #include <vector>
 

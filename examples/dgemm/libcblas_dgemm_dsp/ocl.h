@@ -1,6 +1,6 @@
 #ifndef _OCL_H_ 
 #define _OCL_H_ 
-#include <CL/cl.hpp>
+#include <CL/TI/cl.hpp>
 
 #define DLL_PUBLIC __attribute__ ((visibility ("default")))
 

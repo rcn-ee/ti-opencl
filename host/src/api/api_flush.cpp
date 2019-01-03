@@ -30,7 +30,7 @@
  * \brief clFlush and clFinish
  */
 
-#include "CL/cl.h"
+#include "CL/TI/cl.h"
 #include "core/commandqueue.h"
 
 // Flush and Finish APIs
