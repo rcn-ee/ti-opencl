@@ -39,23 +39,26 @@
 class HeapsMultiThreadedPolicy
 {
 public:
-    typedef utility::HeapManager<DSPDevicePtr, uint32_t, 
+    typedef utility::HeapManager<DSPDevicePtr, uint32_t,
             utility::MultiThread<DSPDevicePtr, uint32_t> > Heap32Bit;
 
-    typedef utility::HeapManager<DSPDevicePtr64, uint64_t, 
+    typedef utility::HeapManager<DSPDevicePtr64, uint64_t,
             utility::MultiThread<DSPDevicePtr64, uint64_t> > Heap64Bit;
 
-    HeapsMultiThreadedPolicy() : ddr_heap1_(new Heap64Bit), 
-                                 ddr_heap2_(new Heap64Bit), 
+    HeapsMultiThreadedPolicy() : ddr_heap1_(new Heap64Bit),
+                                 ddr_heap2_(new Heap64Bit),
                                  msmc_heap_(new Heap64Bit)
     {}
-        
+
     ~HeapsMultiThreadedPolicy()
     {
-	delete msmc_heap_;
-	delete ddr_heap1_;
-	delete ddr_heap2_;
+	    delete msmc_heap_;
+	    delete ddr_heap1_;
+	    delete ddr_heap2_;
     }
+
+    HeapsMultiThreadedPolicy(const HeapsMultiThreadedPolicy&)           =delete;
+    HeapsMultiThreadedPolicy& operator=(const HeapsMultiThreadedPolicy&)=delete;
 
 protected:
     Heap64Bit* ddr_heap1_;  // persistently mapped off-chip memory
