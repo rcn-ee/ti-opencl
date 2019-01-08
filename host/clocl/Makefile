@@ -25,7 +25,7 @@ ifneq (,$(findstring 86, $(UNAME_M)))
         LLVM_CONFIG_NAME = llvm-config-host
         HOST_USR_INCLUDE = -idirafter/usr/include
    else ifeq ($(findstring x86, $(MAKECMDGOALS)), x86) 
-        CXX = g++-5
+        CXX ?= $(NATIVE_GXX)
         TARGET := x86
         LLVM_DIR = $(X86_LLVM_DIR)
         LLVM_CONFIG_NAME = llvm-config

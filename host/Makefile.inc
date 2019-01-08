@@ -35,16 +35,25 @@ TI_OCL_M4_CGT_INSTALL ?= $(SDOMC_SHARED)/ti-cgt-arm_16.9.2.LTS
 ifeq ($(BUILD_OS), SYS_BIOS)
     ARM_LLVM_DIR?=$(SDOMC_SHARED)/llvm-3.6.0-20180423-sysbios-gcc6.3.1
 else
-    ARM_LLVM_DIR?=$(SDOMC_SHARED)/llvm-3.6.0-20170608-arm
+    ARM_LLVM_DIR?=$(SDOMC_SHARED)/llvm-3.6.0-20190108-arm-g++7.2.1
 endif
+
+NATIVE_GXX_VER := $(shell g++ -dumpversion | cut -f1 -d.)
+NATIVE_GXX_PRE7 := $(shell test $(NATIVE_GXX_VER) -lt 7 && echo true || echo false)
 
 ifeq (,$(findstring x86_64, $(UNAME_M)))
     X86_LLVM_DIR?=$(SDOMC_SHARED)/llvm-3.6.0-20170608-x86
 else
-    X86_LLVM_DIR?=$(SDOMC_SHARED)/llvm-3.6.0-20170608-x86_64
+    ifeq ($(NATIVE_GXX_PRE7), true)
+        X86_LLVM_DIR?=$(SDOMC_SHARED)/llvm-3.6.0-20170608-x86_64
+        NATIVE_GXX?=g++-5
+    else
+        X86_LLVM_DIR?=$(SDOMC_SHARED)/llvm-3.6.0-20190108-x86_64-g++7.3.0
+        NATIVE_GXX?=g++
+    endif
 endif
 
-CORESDK_VERSION ?= 05.02.00.04-20181125
+CORESDK_VERSION ?= 05.02.00.10-release
 TIDL_VERSION    ?= 05_02_00_04-203-2018-11-25_21-23-39
 
 ifeq ($(BUILD_K2H),1)
