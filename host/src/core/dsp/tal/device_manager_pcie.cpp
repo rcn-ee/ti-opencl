@@ -160,6 +160,8 @@ bool DeviceManagerPCIe::Load() const
     ERR(ret, "Download image failed");
 
     dnldmgr_free_image(image_handle);
+
+    return true;
 }
 
 bool DeviceManagerPCIe::Run() const

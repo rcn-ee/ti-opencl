@@ -237,10 +237,6 @@ add_dependencies(OpenCL generate_builtins)
 endif()
 
 add_dependencies(OpenCL oclload)
-if (NOT (${BUILD_OS} MATCHES "SYS_BIOS"))
-add_dependencies(OpenCL generate_dsp_builtins)
-endif()
-
 add_subdirectory(core/dsp/tal/ocl_load)
 
 SET(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
