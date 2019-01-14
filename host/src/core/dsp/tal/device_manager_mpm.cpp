@@ -76,7 +76,7 @@ bool DeviceManagerMPM::Load() const
                         dspbin.c_str(), core, error_code);
     }
 
-
+    return true;
 }
 
 bool DeviceManagerMPM::Run() const
@@ -93,7 +93,7 @@ bool DeviceManagerMPM::Run() const
                         core, error_code);
     }
 
-
+    return true;
 }
 
 const DeviceManager*

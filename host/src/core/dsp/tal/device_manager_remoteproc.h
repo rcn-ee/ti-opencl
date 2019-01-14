@@ -42,9 +42,9 @@ public:
     DeviceManagerRemoteProc() {}
     ~DeviceManagerRemoteProc() {};
 
-    bool Reset() const override {};
-    bool Load()  const override {};
-    bool Run()   const override {};
+    bool Reset() const override { return true; };
+    bool Load()  const override { return true; };
+    bool Run()   const override { return true; };
 };
 
 }
