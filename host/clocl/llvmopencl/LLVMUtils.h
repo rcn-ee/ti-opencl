@@ -23,15 +23,16 @@
 #ifndef _POCL_LLVM_UTILS_H
 #define _POCL_LLVM_UTILS_H
 
-#include "pocl.h"
 #include <map>
 #include <string>
 
-#include "config.h"
+#include "pocl.h"
 
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Metadata.h>
 #include <llvm/IR/DerivedTypes.h>
+
+#include "TargetAddressSpaces.h"
 
 namespace llvm {
     class Module;
@@ -46,6 +47,9 @@ typedef std::map<llvm::Function*, llvm::Function*> FunctionMapping;
 void
 regenerate_kernel_metadata(llvm::Module &M, FunctionMapping &kernels);
 
+// Remove a function from a module, along with all callsites.
+void eraseFunctionAndCallers(llvm::Function *Function);
+
 inline bool
 is_automatic_local(const std::string& funcName, llvm::GlobalVariable &var) 
 {
@@ -58,21 +62,21 @@ inline bool
 is_image_type(const llvm::Type& t) 
 {
   if (t.isPointerTy() && t.getPointerElementType()->isStructTy()) {
-    llvm::StringRef name = t.getPointerElementType()->getStructName().str();
-    if (name.startswith("opencl.image2d_t") || name.startswith("opencl.image3d_t") ||
-        name.startswith("opencl.image1d_t") || name.startswith("struct.dev_image_t")) 
+    llvm::StringRef name = t.getPointerElementType()->getStructName();
+    if (name.startswith("opencl.image2d_") || name.startswith("opencl.image3d_") ||
+        name.startswith("opencl.image1d_") || name.startswith("struct.dev_image_t")) 
       return true;
   }
   return false;
 }
 
 inline bool
-is_sampler_type(const llvm::Type& t) 
+is_sampler_type(const llvm::Type& t)
 {
-  if (t.isPointerTy() && t.getPointerElementType()->isStructTy()) 
+  if (t.isPointerTy() && t.getPointerElementType()->isStructTy())
     {
-      llvm::StringRef name = t.getPointerElementType()->getStructName().str();
-      if (name.startswith("opencl.sampler_t_")) return true;     
+      llvm::StringRef name = t.getPointerElementType()->getStructName();
+      if (name.startswith("opencl.sampler_t")) return true;
     }
   return false;
 }

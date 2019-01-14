@@ -20,16 +20,23 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#include <iostream>
+
+#include "CompilerWarnings.h"
+IGNORE_COMPILER_WARNING("-Wunused-parameter")
+
+#include "config.h"
+#include "pocl.h"
+
+#include "llvm/Analysis/RegionInfo.h"
+#include "llvm/Transforms/Utils/BasicBlockUtils.h"
+
 #include "IsolateRegions.h"
 #include "Barrier.h"
 #include "Workgroup.h"
-#include "llvm/Analysis/RegionInfo.h"
-#include "llvm/Transforms/Utils/BasicBlockUtils.h"
-#include "config.h"
-
-#include <iostream>
 #include "VariableUniformityAnalysis.h"
 
+POP_COMPILER_DIAGS
 
 //#define DEBUG_ISOLATE_REGIONS
 using namespace llvm;
@@ -135,8 +142,13 @@ void IsolateRegions::addDummyAfter(llvm::Region *R, llvm::BasicBlock *bb) {
     if (R->contains(succ))
       regionSuccs.push_back(succ);
   }
+#ifdef LLVM_OLDER_THAN_3_7
   llvm::BasicBlock* newEntry = 
     SplitBlock(bb, bb->getTerminator(), this);
+#else
+  llvm::BasicBlock* newEntry = 
+    SplitBlock(bb, bb->getTerminator());
+#endif
   newEntry->setName(bb->getName() + ".r_entry");
   R->replaceEntry(newEntry);
 
@@ -159,7 +171,12 @@ IsolateRegions::addDummyBefore(llvm::Region *R, llvm::BasicBlock *bb) {
     if (R->contains(pred))
       regionPreds.push_back(pred);
   }
+#ifdef LLVM_OLDER_THAN_3_7
   llvm::BasicBlock* newExit = 
     SplitBlockPredecessors(bb, regionPreds, ".r_exit", this);
+#else
+  llvm::BasicBlock* newExit = 
+    SplitBlockPredecessors(bb, regionPreds, ".r_exit");
+#endif
   R->replaceExit(newExit);
 }

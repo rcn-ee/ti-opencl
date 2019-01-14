@@ -25,6 +25,7 @@
 #define _POCL_ALLOCAS_TO_ENTRY_H
 
 #include "config.h"
+
 #include "llvm/IR/Function.h"
 #include "llvm/Pass.h"
 #include "llvm/Support/CommandLine.h"

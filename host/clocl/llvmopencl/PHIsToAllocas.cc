@@ -20,25 +20,27 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "PHIsToAllocas.h"
-#include "Workgroup.h"
-#include "WorkitemHandlerChooser.h"
-#include "WorkitemLoops.h"
-#include "VariableUniformityAnalysis.h"
-#include "../llvm_util.h"
+#include <iostream>
 
 #include "config.h"
 
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/TypeBuilder.h"
 
+#include "PHIsToAllocas.h"
+#include "Workgroup.h"
+#include "WorkitemHandlerChooser.h"
+#include "WorkitemLoops.h"
+#include "VariableUniformityAnalysis.h"
+#ifdef TI_POCL
+#include "../llvm_util.h"
+#endif
+
 namespace {
   static
   llvm::RegisterPass<pocl::PHIsToAllocas> X(
       "phistoallocas", "Convert all PHI nodes to allocas");
 }
-
-#include <iostream>
 
 namespace pocl {
 
@@ -60,7 +62,9 @@ PHIsToAllocas::runOnFunction(Function &F) {
   if (!Workgroup::isKernelToProcess(F))
     return false;
 
+#ifdef TI_POCL
   if (isReqdWGSize111(F))  return false;
+#endif
 
   /* Skip PHIsToAllocas when we are not creating the work item loops,
      as it leads to worse code without benefits for the full replication method.
@@ -76,7 +80,7 @@ PHIsToAllocas::runOnFunction(Function &F) {
   for (Function::iterator bb = F.begin(); bb != F.end(); ++bb) {
     for (BasicBlock::iterator p = bb->begin(); 
          p != bb->end(); ++p) {
-        Instruction* instr = p;
+        Instruction* instr = &*p;
         if (isa<PHINode>(instr)) {
             PHIs.push_back(instr);
         }
@@ -87,7 +91,7 @@ PHIsToAllocas::runOnFunction(Function &F) {
   for (InstructionVec::iterator i = PHIs.begin(); i != PHIs.end();
        ++i) {
       Instruction *instr = *i;
-      BreakPHIToAllocas(cast<PHINode>(instr));
+      BreakPHIToAllocas(dyn_cast<PHINode>(instr));
       changed = true;
   }  
   return changed;
@@ -123,7 +127,7 @@ PHIsToAllocas::BreakPHIToAllocas(PHINode* phi) {
 
   const bool OriginalPHIWasUniform = VUA.isUniform(function, phi);
 
-  IRBuilder<> builder(function->getEntryBlock().getFirstInsertionPt());
+  IRBuilder<> builder(&*(function->getEntryBlock().getFirstInsertionPt()));
 
   llvm::Instruction *alloca = 
     builder.CreateAlloca(phi->getType(), 0, allocaName);

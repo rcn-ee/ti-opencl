@@ -22,20 +22,28 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "config.h"
-#include "CanonicalizeBarriers.h"
-#include "BarrierBlock.h"
-#include "Barrier.h"
-#include "Workgroup.h"
-#include "../llvm_util.h"
-#include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include <iostream>
 
-#include "VariableUniformityAnalysis.h"
+#include "CompilerWarnings.h"
+IGNORE_COMPILER_WARNING("-Wunused-parameter")
 
+#include "pocl.h"
+
+#include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Dominators.h"
+
+#ifdef TI_POCL
+#include "../llvm_util.h"
+#endif
+
+#include "CanonicalizeBarriers.h"
+#include "Barrier.h"
+#include "Workgroup.h"
+#include "VariableUniformityAnalysis.h"
+
+POP_COMPILER_DIAGS
 
 using namespace llvm;
 using namespace pocl;
@@ -61,24 +69,32 @@ CanonicalizeBarriers::runOnFunction(Function &F)
   if (!Workgroup::isKernelToProcess(F))
     return false;
 
+#ifdef TI_POCL
   if (isReqdWGSize111(F))  return false;
+#endif
 
   BasicBlock *entry = &F.getEntryBlock();
-  if (!isa<BarrierBlock>(entry)) {
+  if (!Barrier::hasOnlyBarrier(entry)) {
+#ifdef LLVM_OLDER_THAN_3_7
     BasicBlock *effective_entry = SplitBlock(entry, 
                                              &(entry->front()),
                                              this);
+#else
+    BasicBlock *effective_entry = SplitBlock(entry, 
+                                             &(entry->front()));
+#endif
+
     effective_entry->takeName(entry);
     entry->setName("entry.barrier");
     Barrier::Create(entry->getTerminator());
   }
 
   for (Function::iterator i = F.begin(), e = F.end(); i != e; ++i) {
-    BasicBlock *b = i;
+    BasicBlock *b = &*i;
     TerminatorInst *t = b->getTerminator();
 
     const bool isExitNode = 
-      (t->getNumSuccessors() == 0) && (!isa<BarrierBlock>(b));
+      (t->getNumSuccessors() == 0) && (!Barrier::hasOnlyBarrier(b));
 
     // The function exits should have barriers.
     if (isExitNode && !Barrier::hasOnlyBarrier(b)) {
@@ -93,16 +109,23 @@ CanonicalizeBarriers::runOnFunction(Function &F)
          between the explicit barrier and the added one). */
       BasicBlock *exit; 
       if (Barrier::endsWithBarrier(b))
+#ifdef LLVM_OLDER_THAN_3_7
         exit = SplitBlock(b, t->getPrevNode(), this);
+#else
+        exit = SplitBlock(b, t->getPrevNode());
+#endif
       else
+#ifdef LLVM_OLDER_THAN_3_7
         exit = SplitBlock(b, t, this);
+#else
+        exit = SplitBlock(b, t);
+#endif
       exit->setName("exit.barrier");
       Barrier::Create(t);
     }
   }
 
   DT = &getAnalysis<DominatorTreeWrapperPass>().getDomTree();
-
   return ProcessFunction(F);
 }
 
@@ -120,11 +143,11 @@ CanonicalizeBarriers::ProcessFunction(Function &F) {
 
   for (Function::iterator i = F.begin(), e = F.end();
        i != e; ++i) {
-    BasicBlock *b = i;
+    BasicBlock *b = &*i;
     for (BasicBlock::iterator i = b->begin(), e = b->end();
          i != e; ++i) {
       if (isa<Barrier>(i)) {
-        Barriers.insert(i);
+        Barriers.insert(&*i);
       }
     }
   }
@@ -148,7 +171,11 @@ CanonicalizeBarriers::ProcessFunction(Function &F) {
       t->getPrevNode() != *i;
 
     if (HAS_NON_BRANCH_INSTRUCTIONS_AFTER_BARRIER) {
+#ifdef LLVM_OLDER_THAN_3_7
       BasicBlock *new_b = SplitBlock(b, (*i)->getNextNode(), this);
+#else
+      BasicBlock *new_b = SplitBlock(b, (*i)->getNextNode());
+#endif
       new_b->setName(b->getName() + ".postbarrier");
       changed = true;
     }
@@ -173,7 +200,11 @@ CanonicalizeBarriers::ProcessFunction(Function &F) {
     // (allow multiple predecessors, eases loop handling).
     // if (&b->front() == (*i))
     //   continue;
+#ifdef LLVM_OLDER_THAN_3_7
     BasicBlock *new_b = SplitBlock(b, *i, this);
+#else
+    BasicBlock *new_b = SplitBlock(b, *i);
+#endif
     new_b->takeName(b);
     b->setName(new_b->getName() + ".prebarrier");
     changed = true;
@@ -190,13 +221,23 @@ CanonicalizeBarriers::ProcessFunction(Function &F) {
     emptyRegionDeleted = false;
     for (Function::iterator i = F.begin(), e = F.end();
          i != e; ++i) {
-        BasicBlock *b = i;
+        BasicBlock *b = &*i;
         llvm::TerminatorInst *t = b->getTerminator();
         if (!Barrier::endsWithBarrier(b) || t->getNumSuccessors() != 1) 
           continue;
 
         BasicBlock *successor = t->getSuccessor(0);
 
+#ifndef TI_POCL
+        if (Barrier::hasOnlyBarrier(successor) && 
+            successor->getSinglePredecessor() == b) {
+            b->replaceAllUsesWith(successor);
+            b->eraseFromParent();
+            emptyRegionDeleted = true;
+            changed = true;
+            break;
+          }
+#else
         if (Barrier::hasOnlyBarrier(successor) && 
             Barrier::hasOriginalBarrier(successor) &&   /* TI */
             successor->getSinglePredecessor() == b &&
@@ -221,6 +262,7 @@ CanonicalizeBarriers::ProcessFunction(Function &F) {
             changed = true;
             break;
           }
+#endif
       }
   } while (emptyRegionDeleted);
   

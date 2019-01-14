@@ -1,6 +1,7 @@
-// Header for LoopBarriers.cc function pass.
+// Header for WorkitemReplication function pass.
 // 
-// Copyright (c) 2011 Universidad Rey Juan Carlos
+// Copyright (c) 2011 Universidad Rey Juan Carlos and
+//               2012-2015 Pekka Jääskeläinen / TUT
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,33 +21,51 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include <set>
+#ifndef _POCL_WORKITEM_REPLICATION_H
+#define _POCL_WORKITEM_REPLICATION_H
 
-#ifndef POCL_LOOP_BARRIERS_H
-#define POCL_LOOP_BARRIERS_H
+#include <map>
+#include <vector>
 
-#include "CompilerWarnings.h"
-IGNORE_COMPILER_WARNING("-Wunused-parameter")
+#include "pocl.h"
 
-#include "llvm/Analysis/LoopPass.h"
+#include "llvm/IR/Dominators.h"
+#include "llvm/ADT/Twine.h"
+#include "llvm/Analysis/LoopInfo.h"
+#include "llvm/Transforms/Utils/ValueMapper.h"
 
-POP_COMPILER_DIAGS
+#include "WorkitemHandler.h"
 
 namespace pocl {
-  class LoopBarriers : public llvm::LoopPass {
-    
+  class Workgroup;
+
+  class WorkitemReplication : public pocl::WorkitemHandler {
+
   public:
     static char ID;
-    
-  LoopBarriers() : LoopPass(ID) {}
-    
+
+  WorkitemReplication() : pocl::WorkitemHandler(ID) {}
+
     virtual void getAnalysisUsage(llvm::AnalysisUsage &AU) const;
-    virtual bool runOnLoop(llvm::Loop *L, llvm::LPPassManager &LPM);
+    virtual bool runOnFunction(llvm::Function &F);
+
 
   private:
-    llvm::DominatorTree *DT;
 
-    bool ProcessLoop(llvm::Loop *L, llvm::LPPassManager &LPM);
+    llvm::DominatorTree *DT;
+    llvm::DominatorTreeWrapperPass *DTP;
+
+#ifdef LLVM_OLDER_THAN_3_7
+    llvm::LoopInfo *LI;
+#else
+    llvm::LoopInfoWrapperPass *LI;
+#endif
+
+    typedef std::set<llvm::BasicBlock *> BasicBlockSet;
+    typedef std::vector<llvm::BasicBlock *> BasicBlockVector;
+    typedef std::map<llvm::Value *, llvm::Value *> ValueValueMap;
+
+    virtual bool ProcessFunction(llvm::Function &F);
   };
 }
 

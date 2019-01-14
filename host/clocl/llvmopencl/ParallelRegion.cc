@@ -23,20 +23,21 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "ParallelRegion.h"
-#include "Barrier.h"
-#include "Kernel.h"
-#include "config.h"
-#include "llvm/IR/IRBuilder.h"
-#include "llvm/IR/ValueSymbolTable.h"
-#include "llvm/Transforms/Utils/BasicBlockUtils.h"
-#include "llvm/Transforms/Utils/Cloning.h"
-
 #include <set>
 #include <sstream>
 #include <map>
 #include <algorithm>
 
+#include "pocl.h"
+
+#include "llvm/IR/IRBuilder.h"
+#include "llvm/IR/ValueSymbolTable.h"
+#include "llvm/Transforms/Utils/BasicBlockUtils.h"
+#include "llvm/Transforms/Utils/Cloning.h"
+
+#include "ParallelRegion.h"
+#include "Barrier.h"
+#include "Kernel.h"
 #include "DebugHelpers.h"
 
 using namespace std;
@@ -70,7 +71,7 @@ ParallelRegion::GenerateTempNames(llvm::BasicBlock *bb)
 {
   for (llvm::BasicBlock::iterator i = bb->begin(), e = bb->end(); i != e; ++i)
     {
-      llvm::Instruction *instr = i;
+      llvm::Instruction *instr = &*i;
       if (instr->hasName() || !instr->isUsedOutsideOfBlock(bb)) continue;
       int tempCounter = 0;
       std::string tempName = "";
@@ -79,7 +80,11 @@ ParallelRegion::GenerateTempNames(llvm::BasicBlock *bb)
           name << ".pocl_temp." << tempCounter;
           ++tempCounter;
           tempName = name.str();
+#ifdef LLVM_OLDER_THAN_4_0
       } while (bb->getParent()->getValueSymbolTable().lookup(tempName) != NULL);
+#else
+      } while (bb->getParent()->getValueSymbolTable()->lookup(tempName) != NULL);
+#endif
       instr->setName(tempName);
     }
 }
@@ -108,8 +113,6 @@ ParallelRegion::replicate(ValueToValueMapTy &map,
      before cloning so each path gets their own value
      names. Split points can be such paths.*/
   static std::map<std::string, int> cloneCounts;
-
-  LocalizeIDLoads();
 
   for (iterator i = begin(), e = end(); i != e; ++i) {
     BasicBlock *block = *i;
@@ -145,10 +148,7 @@ ParallelRegion::replicate(ValueToValueMapTy &map,
 #ifdef DEBUG_REPLICATE
   Verify();
 #endif
-  // LocalizeIDLoads();
-  // new_region->LocalIDXLoadInstr = dyn_cast<Instruction>(map[LocalIDXLoadInstr]);
-  // new_region->LocalIDYLoadInstr = dyn_cast<Instruction>(map[LocalIDYLoadInstr]);
-  // new_region->LocalIDZLoadInstr = dyn_cast<Instruction>(map[LocalIDZLoadInstr]);
+  LocalizeIDLoads();
 
   return new_region;
 }
@@ -165,8 +165,13 @@ ParallelRegion::remap(ValueToValueMapTy &map)
 
     for (BasicBlock::iterator ii = (*i)->begin(), ee = (*i)->end();
          ii != ee; ++ii)
-      RemapInstruction(ii, map,
+#ifdef LLVM_OLDER_THAN_3_9
+      RemapInstruction(&*ii, map,
                        RF_IgnoreMissingEntries | RF_NoModuleLevelChanges);
+#else
+      RemapInstruction(&*ii, map,
+                       RF_IgnoreMissingLocals | RF_NoModuleLevelChanges);
+#endif
 
 #ifdef DEBUG_REMAP
     std::cerr << endl << "### block after remap: " << std::endl;
@@ -193,24 +198,29 @@ ParallelRegion::chainAfter(ParallelRegion *region)
       tail = region->at(region->size() - 2);
       t = tail->getTerminator();
     }
-  if (t->getNumSuccessors() != 1)
-    {
+#ifdef LLVM_BUILD_MODE_DEBUG
+    if (t->getNumSuccessors() != 1) {
       std::cout << "!!! trying to chain region" << std::endl;
       this->dumpNames();
       std::cout << "!!! after region" << std::endl;
       region->dumpNames();
       t->getParent()->dump();
-      
+
       assert (t->getNumSuccessors() == 1);
     }
-  
+#endif
+
   BasicBlock *successor = t->getSuccessor(0);
   Function::BasicBlockListType &bb_list = 
     successor->getParent()->getBasicBlockList();
   
   for (iterator i = begin(), e = end(); i != e; ++i)
+
+#ifdef LLVM_OLDER_THAN_3_8
     bb_list.insertAfter(tail, *i);
-  
+#else
+    bb_list.insertAfter(tail->getIterator(), *i);
+#endif
   t->setSuccessor(0, entryBB());
 
   t = exitBB()->getTerminator();
@@ -293,7 +303,14 @@ ParallelRegion::insertLocalIdInit(llvm::BasicBlock* entry,
   Module *M = entry->getParent()->getParent();
 
   int size_t_width = 32;
+#ifdef LLVM_OLDER_THAN_3_7
+  // This breaks (?) if _local_size_x is not stored in AS0,
+  // but it always will be as it's just a pseudo variable that
+  // will be scalarized.
   if (M->getDataLayout()->getPointerSize(0) == 8)
+#else
+  if (M->getDataLayout().getPointerSize(0) == 8)
+#endif
     size_t_width = 64;
 
   GlobalVariable *gvx = M->getGlobalVariable(POCL_LOCAL_ID_X_GLOBAL);
@@ -327,8 +344,10 @@ ParallelRegion::insertPrologue(unsigned x,
 void
 ParallelRegion::dump()
 {
+#ifdef LLVM_BUILD_MODE_DEBUG
   for (iterator i = begin(), e = end(); i != e; ++i)
     (*i)->dump();
+#endif
 }
 
 void
@@ -358,10 +377,10 @@ ParallelRegion::Create(const SmallPtrSet<BasicBlock *, 8>& bbs, BasicBlock *entr
   // is the same as original function order.
   Function *F = entry->getParent();
   for (Function::iterator i = F->begin(), e = F->end(); i != e; ++i) {
-    BasicBlock *b = i;
+    BasicBlock *b = &*i;
     for (SmallPtrSetIterator<BasicBlock *> j = bbs.begin(); j != bbs.end(); ++j) {
       if (*j == b) {
-        new_region->push_back(i);
+        new_region->push_back(&*i);
         if (entry == *j)
             new_region->setEntryBBIndex(new_region->size() - 1);
         else if (exit == *j)
@@ -424,12 +443,14 @@ ParallelRegion::Verify()
       ParallelRegion::ParallelRegionVector regions;
       regions.push_back(this);
 
+#ifdef LLVM_BUILD_MODE_DEBUG
       std::set<llvm::BasicBlock*> highlights;
       highlights.insert((*i));
       highlights.insert(exitBB());
       exitBB()->dump();
       dumpNames();
       dumpCFG(*(*i)->getParent(), "broken.dot", &regions, &highlights);
+#endif
 
       assert(0 && "Multiple outgoing edges from exit block!");
       return false;
@@ -469,6 +490,7 @@ ParallelRegion::Verify()
  */
 void
 ParallelRegion::AddParallelLoopMetadata(llvm::MDNode *identifier) {
+
   for (iterator i = begin(), e = end(); i != e; ++i) {
     BasicBlock* bb = *i;      
     for (BasicBlock::iterator ii = bb->begin(), ee = bb->end();
@@ -588,8 +610,8 @@ llvm::Instruction*
 ParallelRegion::LocalIDZLoad()
 {
   if (LocalIDZLoadInstr != NULL) return LocalIDZLoadInstr;
-  IRBuilder<> builder(entryBB()->getFirstInsertionPt());
-  return LocalIDZLoadInstr = 
+  IRBuilder<> builder(&*(entryBB()->getFirstInsertionPt()));
+  return LocalIDZLoadInstr =
     builder.CreateLoad
     (entryBB()->getParent()->getParent()->getGlobalVariable(POCL_LOCAL_ID_Z_GLOBAL));
 }
@@ -602,7 +624,7 @@ llvm::Instruction*
 ParallelRegion::LocalIDYLoad()
 {
   if (LocalIDYLoadInstr != NULL) return LocalIDYLoadInstr;
-  IRBuilder<> builder(entryBB()->getFirstInsertionPt());
+  IRBuilder<> builder(&*(entryBB()->getFirstInsertionPt()));
   return LocalIDYLoadInstr = 
     builder.CreateLoad
     (entryBB()->getParent()->getParent()->getGlobalVariable(POCL_LOCAL_ID_Y_GLOBAL));
@@ -616,7 +638,7 @@ llvm::Instruction*
 ParallelRegion::LocalIDXLoad()
 {
   if (LocalIDXLoadInstr != NULL) return LocalIDXLoadInstr;
-  IRBuilder<> builder(entryBB()->getFirstInsertionPt());
+  IRBuilder<> builder(&*(entryBB()->getFirstInsertionPt()));
   return LocalIDXLoadInstr = 
     builder.CreateLoad
     (entryBB()->getParent()->getParent()->getGlobalVariable(POCL_LOCAL_ID_X_GLOBAL));
@@ -654,7 +676,11 @@ ParallelRegion::InjectPrintF
        /*Name=*/"printf", M); 
     printfFunc->setCallingConv(CallingConv::C);
 
+#if LLVM_OLDER_THAN_5_0
     AttributeSet func_printf_PAL;
+#else
+    AttributeList func_printf_PAL;
+#endif
     {
       func_printf_PAL.addAttribute( M->getContext(), 1U, Attribute::NoCapture);
       func_printf_PAL.addAttribute( M->getContext(), 4294967295U, Attribute::NoUnwind);
@@ -668,9 +694,15 @@ ParallelRegion::InjectPrintF
   const_ptr_8_indices.push_back(const_int64_9);
   const_ptr_8_indices.push_back(const_int64_9);
   assert (isa<Constant>(stringArg));
+  #ifdef LLVM_OLDER_THAN_3_7
   Constant* const_ptr_8 =
     ConstantExpr::getGetElementPtr
     (cast<Constant>(stringArg), const_ptr_8_indices);
+  #else
+  Constant* const_ptr_8 =
+    ConstantExpr::getGetElementPtr
+    (PointerType::getUnqual(Type::getInt8Ty(M->getContext())), cast<Constant>(stringArg), const_ptr_8_indices);
+  #endif
 
   std::vector<Value*> args;
   args.push_back(const_ptr_8);
@@ -742,7 +774,7 @@ ParallelRegion::InjectVariablePrintouts()
       for (llvm::BasicBlock::iterator instr = bb->begin();
            instr != bb->end(); ++instr) 
         {
-          llvm::Instruction *instruction = instr;
+          llvm::Instruction *instruction = &*instr;
           if (isa<PointerType>(instruction->getType()) ||
               !instruction->hasName()) continue;
           std::string name = instruction->getName().str();
@@ -772,7 +804,9 @@ ParallelRegion::InjectVariablePrintouts()
 void
 ParallelRegion::LocalizeIDLoads() 
 {
+#ifdef TI_POCL
   return;  // TI
+#endif
 
   /* The local id loads inside the parallel region. */
   llvm::Instruction* LocalIDXLoadInstr = LocalIDXLoad();
@@ -793,7 +827,7 @@ ParallelRegion::LocalizeIDLoads()
       for (llvm::BasicBlock::iterator instrI = bb->begin();
            instrI != bb->end(); ++instrI) 
         {
-	  llvm::Instruction *instr = instrI;
+          llvm::Instruction *instr = &*instrI;
 	  if (instr == LocalIDXLoadInstr ||
 	      instr == LocalIDYLoadInstr ||
 	      instr == LocalIDZLoadInstr) continue;

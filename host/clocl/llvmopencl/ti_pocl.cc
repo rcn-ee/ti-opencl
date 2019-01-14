@@ -26,14 +26,16 @@
  *  THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
 
-#pragma once
+#include <unistd.h>
+#include <fcntl.h>
+#include "ti_pocl.h"
 
-namespace pocl
+_cl_device_id PoclDevice {0, 64, false, 0, 0, 0, "aarch64-unknown-linux-gnu" };
+
+_cl_device_id* currentPoclDevice = &PoclDevice;
+
+// Duplicate here to avoid pulling in LLVMFileUtils.cc and its dependencies
+int pocl_exists(const char* path)
 {
-
-#include "llvm/IR/Module.h"
-#include "llvm/Analysis/Passes.h"
-
-ModulePass* createFlattenPass();
-
+    return !access(path, R_OK);
 }

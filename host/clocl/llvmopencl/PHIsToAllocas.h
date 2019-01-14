@@ -24,6 +24,7 @@
 #define _POCL_PHIS_TO_ALLOCAS_H
 
 #include "config.h"
+
 #include "llvm/IR/Function.h"
 #include "llvm/Pass.h"
 

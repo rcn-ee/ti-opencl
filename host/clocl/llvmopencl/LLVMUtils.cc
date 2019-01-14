@@ -23,8 +23,8 @@
 #include "LLVMUtils.h"
 
 #include "pocl.h"
-#include "config.h"
 
+#include <llvm/IR/Instructions.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Metadata.h>
 
@@ -49,7 +49,7 @@ regenerate_kernel_metadata(llvm::Module &M, FunctionMapping &kernels)
     {
       for (std::size_t mni = 0; mni < wg_sizes->getNumOperands(); ++mni)
         {
-          MDNode *wgsizeMD = cast<MDNode>(wg_sizes->getOperand(mni));
+          MDNode *wgsizeMD = dyn_cast<MDNode>(wg_sizes->getOperand(mni));
           for (FunctionMapping::const_iterator i = kernels.begin(),
                  e = kernels.end(); i != e; ++i)
             {
@@ -57,7 +57,7 @@ regenerate_kernel_metadata(llvm::Module &M, FunctionMapping &kernels)
               Function *new_kernel = (*i).second;
               Function *func_from_md;
               func_from_md = dyn_cast<Function>(
-                cast<ValueAsMetadata>(wgsizeMD->getOperand(0))->getValue());
+                dyn_cast<ValueAsMetadata>(wgsizeMD->getOperand(0))->getValue());
               if (old_kernel == new_kernel || wgsizeMD->getNumOperands() == 0 ||
                   func_from_md != old_kernel)
                 continue;

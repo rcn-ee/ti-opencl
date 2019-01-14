@@ -1,5 +1,4 @@
-// Header for AllocasToEntry, an LLVM pass to move allocas to the function 
-// entry node.
+// AllocasToEntry, an LLVM pass to move allocas to the function entry node.
 // 
 // Copyright (c) 2013 Pekka Jääskeläinen / TUT
 // 
@@ -21,9 +20,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "config.h"
 #include <sstream>
 #include <iostream>
+
+#include "config.h"
 
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/Instructions.h>
@@ -50,13 +50,15 @@ AllocasToEntry::AllocasToEntry() : FunctionPass(ID)
 bool
 AllocasToEntry::runOnFunction(Function &F)
 {
+#ifdef TI_POCL
   if (F.empty())
     return false;
+#endif
 
   // This solves problem with dynamic stack objects that are 
   // not supported by some targets (TCE).
   Function::iterator I = F.begin();
-  Instruction *firstInsertionPt = (I++)->getFirstInsertionPt();
+  Instruction *firstInsertionPt = &*(I++)->getFirstInsertionPt();
     
   bool changed = false;
   for (Function::iterator E = F.end(); I != E; ++I) {

@@ -28,12 +28,24 @@
 
 #pragma once
 
-namespace pocl
-{
+#include <string>
 
-#include "llvm/IR/Module.h"
-#include "llvm/Analysis/Passes.h"
+#include "pocl.h"
 
-ModulePass* createFlattenPass();
+struct _cl_device_id {
+  int device_side_printf;
+  unsigned address_bits;
 
-}
+  /* Is the target a Single Program Multiple Data machine? If not,
+     we need to generate work-item loops to execute all the work-items
+     in the WG, otherwise the hardware spawns the WIs. */
+  bool spmd;
+
+  /* The target specific IDs for the different OpenCL address spaces. */
+  unsigned global_as_id;
+  unsigned local_as_id;
+  unsigned constant_as_id;
+  std::string llvm_target_triplet;
+};
+
+int pocl_exists(const char* path);

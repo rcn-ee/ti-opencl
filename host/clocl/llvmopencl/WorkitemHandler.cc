@@ -23,9 +23,13 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "config.h"
 #include <sstream>
 #include <iostream>
+
+#include "CompilerWarnings.h"
+IGNORE_COMPILER_WARNING("-Wunused-parameter")
+
+#include "pocl.h"
 
 #include "llvm/IR/Metadata.h"
 #include "llvm/IR/Constants.h"
@@ -33,15 +37,27 @@
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/ValueSymbolTable.h"
 #include "llvm/Support/CommandLine.h"
+
 #include "WorkitemHandler.h"
 #include "Kernel.h"
 #include "DebugHelpers.h"
+
+POP_COMPILER_DIAGS
 
 //#define DEBUG_REFERENCE_FIXING
 
 namespace pocl {
 
 using namespace llvm;
+
+/* This is used to communicate the work-group dimensions of the currently
+   compiled kernel command to the workitem loop. 
+
+   TODO: Something cleaner than a global value. */
+size_t WGLocalSizeX = 1;
+size_t WGLocalSizeY = 1;
+size_t WGLocalSizeZ = 1;
+bool WGDynamicLocalSize = false;
 
 cl::opt<bool>
 AddWIMetadata("add-wi-metadata", cl::init(false), cl::Hidden,
@@ -88,14 +104,23 @@ WorkitemHandler::Initialize(Kernel *K) {
     }
   }
 
-  llvm::Type *localIdType; 
+  llvm::Type *localIdType;
   size_t_width = 0;
+#ifdef LLVM_OLDER_THAN_3_7
   if (M->getDataLayout()->getPointerSize(0) == 8)
     size_t_width = 64;
   else if (M->getDataLayout()->getPointerSize(0) == 4)
     size_t_width = 32;
   else
     assert (false && "Only 32 and 64 bit size_t widths supported.");
+#else
+  if (M->getDataLayout().getPointerSize(0) == 8)
+    size_t_width = 64;
+  else if (M->getDataLayout().getPointerSize(0) == 4)
+    size_t_width = 32;
+  else
+    assert (false && "Only 32 and 64 bit size_t widths supported.");
+#endif
 
   localIdType = IntegerType::get(K->getContext(), size_t_width);
 
@@ -120,6 +145,7 @@ WorkitemHandler::Initialize(Kernel *K) {
   //gsy->setSection(StringRef("far"));
   //gsz->setSection(StringRef("far"));
 }
+
 
 bool
 WorkitemHandler::dominatesUse
@@ -183,14 +209,14 @@ WorkitemHandler::dominatesUse
 */
 bool
 WorkitemHandler::fixUndominatedVariableUses(llvm::DominatorTreeWrapperPass *DT,
-                                            llvm::Function &F) 
+                                            llvm::Function &F)
 {
   bool changed = false;
   DT->runOnFunction(F);
 
   for (Function::iterator i = F.begin(), e = F.end(); i != e; ++i) 
     {
-      llvm::BasicBlock *bb = i;
+      llvm::BasicBlock *bb = &*i;
       for (llvm::BasicBlock::iterator ins = bb->begin(), inse = bb->end();
            ins != inse; ++ins)
         {
@@ -223,8 +249,13 @@ WorkitemHandler::fixUndominatedVariableUses(llvm::DominatorTreeWrapperPass *DT,
                 if (copy_i > 0)
                   alternativeName << ".pocl_" << copy_i;
 
+#ifdef LLVM_OLDER_THAN_4_0
                 alternative = 
                   F.getValueSymbolTable().lookup(alternativeName.str());
+#else
+                alternative = 
+                  F.getValueSymbolTable()->lookup(alternativeName.str());
+#endif
 
                 if (alternative != NULL)
                   {

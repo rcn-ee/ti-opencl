@@ -52,9 +52,9 @@ LLVM_LIBS = `$(LLVM_CONFIG_EXE) --libs`
 endif
 
 POCLDIR         = ./llvmopencl
-OBJS        = AllocasToEntry.o BarrierBlock.o BarrierTailReplication.o \
+OBJS        = AllocasToEntry.o BarrierTailReplication.o \
               BreakConstantGEPs.o CanonicalizeBarriers.o DebugHelpers.o \
-              Flatten.o GenerateHeader.o IsolateRegions.o \
+              Flatten.o IsolateRegions.o \
               Kernel.o LLVMUtils.o LoopBarriers.o ParallelRegion.o \
               PHIsToAllocas.o TargetAddressSpaces.o \
               VariableUniformityAnalysis.o Workgroup.o \
@@ -62,12 +62,14 @@ OBJS        = AllocasToEntry.o BarrierBlock.o BarrierTailReplication.o \
               WorkitemHandlerChooser.o WorkitemLoops.o \
               SimplifyShuffleBIFCall.o PrivatizationAliasAnalysis.o \
               main.o compiler.o wga.o program.o file_manip.o options.o \
-              llvm_util.o
+              llvm_util.o ti_pocl.o
 
 OBJS := $(patsubst %.o, $(TARGET)/%.o, $(OBJS))
 
+
 CXXFLAGS := $(LLVM_CXXFLAGS) -I$(POCLDIR) \
-            $(HOST_USR_INCLUDE) -O3 -fexceptions -std=c++0x \
+            $(HOST_USR_INCLUDE) -O3 -fexceptions -std=c++11 \
+            -DTI_POCL \
 	    -DBOOST_SYSTEM_NO_DEPRECATED=1 \
 	    -DBOOST_SYSTEM_NO_LIB=1 \
             -D_PRODUCT_VERSION=$(_PRODUCT_VERSION) $(CXXFLAGS) 
