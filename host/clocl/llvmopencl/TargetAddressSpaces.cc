@@ -21,15 +21,15 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "config.h"
 #include <iostream>
 #include <string>
 #include <set>
 
-#include <llvm/IR/Instructions.h>
-#include <llvm/IR/Module.h>
-#include <llvm/IR/IntrinsicInst.h>
+#include "pocl.h"
 
+# include <llvm/IR/Instructions.h>
+# include <llvm/IR/Module.h>
+# include <llvm/IR/IntrinsicInst.h>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/Transforms/Utils/ValueMapper.h>
 #include <llvm/Transforms/Utils/Cloning.h>
@@ -38,9 +38,16 @@
 #include "TargetAddressSpaces.h"
 #include "Workgroup.h"
 #include "LLVMUtils.h"
-#include "pocl.h"
+
+#ifndef TI_POCL
+#include "pocl_cl.h"
+#else
+#include "ti_pocl.h"
+#endif
 
 #define DEBUG_TARGET_ADDRESS_SPACES
+
+extern _cl_device_id* currentPoclDevice;
 
 namespace pocl {
 
@@ -99,10 +106,10 @@ FixMemIntrinsics(llvm::Function& F) {
   std::vector<llvm::MemIntrinsic*> intrinsics;
   for (llvm::Function::iterator bbi = F.begin(), bbe = F.end(); bbi != bbe;
        ++bbi) {
-    llvm::BasicBlock* bb = bbi;
+    llvm::BasicBlock* bb = &*bbi;
     for (llvm::BasicBlock::iterator ii = bb->begin(), ie = bb->end();
          ii != ie; ++ii) {
-      llvm::Instruction *instr = ii;
+      llvm::Instruction *instr = &*ii;
       if (!isa<llvm::MemIntrinsic>(instr)) continue;
       intrinsics.push_back(dyn_cast<llvm::MemIntrinsic>(instr));
     }
@@ -205,7 +212,7 @@ TargetAddressSpaces::runOnModule(llvm::Module &M) {
        functionI != functionE; ++functionI) {
     if (functionI->empty() || functionI->getName().startswith("_GLOBAL"))
       continue;
-    unhandledFuncs.push_back(functionI);
+    unhandledFuncs.push_back(&*functionI);
   }
 
   for (std::vector<llvm::Function*>::iterator i = unhandledFuncs.begin(),
@@ -233,7 +240,7 @@ TargetAddressSpaces::runOnModule(llvm::Module &M) {
            e = F.arg_end();
          i != e; ++i) {
       j->setName(i->getName());
-      vv[i] = j;
+      vv[&*i] = &*j;
       ++j;
     }
 
@@ -282,20 +289,20 @@ TargetAddressSpaces::runOnModule(llvm::Module &M) {
          ++bbi)
       for (llvm::BasicBlock::iterator ii = bbi->begin(), ie = bbi->end(); ii != ie;
            ++ii) {
-        llvm::Instruction *instr = ii;
+        llvm::Instruction *instr = &*ii;
 
         if (isa<AddrSpaceCastInst>(instr)) {
           // Convert (now illegal) addresspacecasts to bitcasts.
 
           // The old unconverted functions are still there, skip them.
           if (instr->getOperand(0)->getType()->getPointerAddressSpace() !=
-              cast<CastInst>(instr)->getDestTy()->getPointerAddressSpace())
+              dyn_cast<CastInst>(instr)->getDestTy()->getPointerAddressSpace())
             continue;
 
           llvm::ReplaceInstWithInst
           (instr,
            CastInst::CreatePointerCast
-           (instr->getOperand(0), cast<CastInst>(instr)->getDestTy()));
+           (instr->getOperand(0), dyn_cast<CastInst>(instr)->getDestTy()));
 
           // Start from the beginning just in case the iterators have
           // been invalidated.
@@ -305,7 +312,7 @@ TargetAddressSpaces::runOnModule(llvm::Module &M) {
 
         if (!isa<CallInst>(instr)) continue;
 
-        llvm::CallInst *call = cast<CallInst>(instr);
+        llvm::CallInst *call = dyn_cast<CallInst>(instr);
         llvm::Function *calledF = call->getCalledFunction();
         if (funcReplacements.find(calledF) == funcReplacements.end()) continue;
 

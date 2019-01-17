@@ -24,17 +24,19 @@
 
 #define DEBUG_TYPE "workitem-loops"
 
-#include "WorkitemHandlerChooser.h"
-#include "WorkitemLoops.h"
-//#include "WorkitemReplication.h"
-#include "Workgroup.h"
-#include "CanonicalizeBarriers.h"
-#include "Kernel.h"
+#include <iostream>
 
 #include "llvm/Analysis/PostDominators.h"
 #include "llvm/Analysis/LoopInfo.h"
 
-#include <iostream>
+#include "WorkitemHandlerChooser.h"
+#include "WorkitemLoops.h"
+#ifndef TI_POCL
+#include "WorkitemReplication.h"
+#endif
+#include "Workgroup.h"
+#include "CanonicalizeBarriers.h"
+#include "Kernel.h"
 
 using namespace llvm;
 using namespace pocl;
@@ -45,7 +47,6 @@ namespace {
       "workitem-handler-chooser", 
       "Finds the best way to handle work-items to produce a multi-WG function.",
       false, false);
-  
 }
 
 namespace pocl {
@@ -65,6 +66,11 @@ WorkitemHandlerChooser::runOnFunction(Function &F)
   if (!Workgroup::isKernelToProcess(F))
     return false;
 
+  if (WGDynamicLocalSize) {
+      chosenHandler_ = POCL_WIH_LOOPS;
+      return false;
+  }
+  
   Kernel *K = cast<Kernel> (&F);
 
   /* FIXME: this is not thread safe. We cannot compile multiple kernels at
@@ -75,7 +81,7 @@ WorkitemHandlerChooser::runOnFunction(Function &F)
      FunctionPass that delegates to other passes. */    
   Initialize(K);
 
-#if 0
+#ifndef TI_POCL
   std::string method = "auto";
   if (getenv("POCL_WORK_GROUP_METHOD") != NULL)
     {
@@ -93,13 +99,13 @@ WorkitemHandlerChooser::runOnFunction(Function &F)
 
   if (method == "auto") 
     {
-      int ReplThreshold = 2;
+      unsigned ReplThreshold = 2;
       if (getenv("POCL_FULL_REPLICATION_THRESHOLD") != NULL) 
       {
         ReplThreshold = atoi(getenv("POCL_FULL_REPLICATION_THRESHOLD"));
       }
       
-      if (LocalSizeX*LocalSizeY*LocalSizeZ <= ReplThreshold)
+      if (WGLocalSizeX*WGLocalSizeY*WGLocalSizeZ <= ReplThreshold)
         {
           chosenHandler_ = POCL_WIH_FULL_REPLICATION;
         }

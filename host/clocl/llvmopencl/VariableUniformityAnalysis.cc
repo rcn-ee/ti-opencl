@@ -21,9 +21,13 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "config.h"
 #include <sstream>
 #include <iostream>
+
+#include "CompilerWarnings.h"
+IGNORE_COMPILER_WARNING("-Wunused-parameter")
+
+#include "pocl.h"
 
 #include "llvm/IR/Metadata.h"
 #include "llvm/IR/Constants.h"
@@ -38,9 +42,18 @@
 #include "Kernel.h"
 #include "VariableUniformityAnalysis.h"
 #include "Barrier.h"
+#include "Workgroup.h"
+#ifdef TI_POCL
 #include "../llvm_util.h"
+#endif
 
-//#define DEBUG_UNIFORMITY_ANALYSIS
+POP_COMPILER_DIAGS
+
+// #define DEBUG_UNIFORMITY_ANALYSIS
+
+#ifdef DEBUG_UNIFORMITY_ANALYSIS
+#include "DebugHelpers.h"
+#endif
 
 namespace pocl {
 
@@ -60,48 +73,83 @@ VariableUniformityAnalysis::VariableUniformityAnalysis() : FunctionPass(ID) {
 
 void
 VariableUniformityAnalysis::getAnalysisUsage(llvm::AnalysisUsage &AU) const {
+#ifdef LLVM_OLDER_THAN_3_9
   AU.addRequired<PostDominatorTree>();
   AU.addPreserved<PostDominatorTree>();
+#else
+  AU.addRequired<PostDominatorTreeWrapperPass>();
+  AU.addPreserved<PostDominatorTreeWrapperPass>();
+#endif
+
+#ifdef LLVM_OLDER_THAN_3_7
   AU.addRequired<LoopInfo>();
   AU.addPreserved<LoopInfo>();
+#else
+  AU.addRequired<LoopInfoWrapperPass>();
+  AU.addPreserved<LoopInfoWrapperPass>();
+#endif
   // required by LoopInfo:
   AU.addRequired<DominatorTreeWrapperPass>();
   AU.addPreserved<DominatorTreeWrapperPass>();
+
+#ifdef LLVM_OLDER_THAN_3_7
   AU.addRequired<DataLayoutPass>();
   AU.addPreserved<DataLayoutPass>();
+#endif
+}
+
+// Recursively mark the canonical induction variable PHI as uniform.
+// If there's a canonical induction variable in loops, the variable
+// update for each iteration should be uniform. Note: this does not yet
+// imply all the work-items execute the loop same number of times!
+void
+VariableUniformityAnalysis::markInductionVariables(Function &F, llvm::Loop &L) {
+
+  if (llvm::PHINode *inductionVar = L.getCanonicalInductionVariable()) {
+#ifdef DEBUG_UNIFORMITY_ANALYSIS
+    std::cerr << "### canonical induction variable, assuming uniform:";
+    inductionVar->dump();
+#endif
+    setUniform(&F, inductionVar);
+  }
+  for (llvm::Loop *Subloop : L.getSubLoops()) {
+    markInductionVariables(F, *Subloop);
+  }
 }
 
 bool
 VariableUniformityAnalysis::runOnFunction(Function &F) {
+
+  if (!Workgroup::isKernelToProcess(F))
+    return false;
+
+#ifdef TI_POCL
   if (isReqdWGSize111(F))  return false;
+#endif
 
 #ifdef DEBUG_UNIFORMITY_ANALYSIS
   std::cerr << "### refreshing VUA" << std::endl;
-#endif  
+  dumpCFG(F, F.getName().str() + ".vua.dot");
+  F.dump();
+#endif
 
-  /* Do the actual analysis on-demand except for the basic block 
+  /* Do the actual analysis on-demand except for the basic block
      divergence analysis. */
-  uniformityCache_[&F].clear();  
+  uniformityCache_[&F].clear();
 
-  /* Mark the canonical induction variable PHI as uniform. 
-     If there's a canonical induction variable in loops, the variable
-     update for each iteration should be uniform. Note: this does not yet imply
-     all the work-items execute the loop same number of times! */
+#ifdef LLVM_OLDER_THAN_3_7
   llvm::LoopInfo &LI = getAnalysis<LoopInfo>();
+#else
+  llvm::LoopInfo &LI = getAnalysis<LoopInfoWrapperPass>().getLoopInfo();
+#endif
+
   for (llvm::LoopInfo::iterator i = LI.begin(), e = LI.end(); i != e; ++i) {
     llvm::Loop *L = *i;
-    if (llvm::PHINode *inductionVar = L->getCanonicalInductionVariable()) {
-#ifdef DEBUG_UNIFORMITY_ANALYSIS
-      std::cerr << "### canonical induction variable, assuming uniform:";
-      inductionVar->dump();
-#endif
-      setUniform(&F, inductionVar);
-    }    
+    markInductionVariables(F, *L);
   }
 
   setUniform(&F, &F.getEntryBlock());
   analyzeBBDivergence(&F, &F.getEntryBlock(), &F.getEntryBlock());
-  //  F.viewCFG();
   return false;
 }
 
@@ -154,20 +202,21 @@ VariableUniformityAnalysis::shouldBePrivatized
  * b) BBs that post-dominate at least one uniform BB (try the previously 
  *    found one), or
  * c) BBs that are branched to directly from a uniform BB using a uniform branch.
+ *    Note: This assumes the CFG is well-formed in a way that there cannot be a divergent
+ *    branch to the same BB in that case.
  *
  * Otherwise, assume divergent (might not be *proven* to be one!).
- * 
+ *
  */
 void
 VariableUniformityAnalysis::analyzeBBDivergence
 (llvm::Function *f, llvm::BasicBlock *bb, llvm::BasicBlock *previousUniformBB) {
 
 #ifdef DEBUG_UNIFORMITY_ANALYSIS
-  std::cerr << "### Analyzing BB divergence (bb=" << bb->getName().str() 
-            << ", prevUniform=" << previousUniformBB->getName().str() << ")" 
+  std::cerr << "### Analyzing BB divergence (bb=" << bb->getName().str()
+            << ", prevUniform=" << previousUniformBB->getName().str() << ")"
             << std::endl;
 #endif
- 
 
   llvm::BasicBlock *newPreviousUniformBB = previousUniformBB;
 
@@ -299,10 +348,15 @@ VariableUniformityAnalysis::isUniform(llvm::Function *f, llvm::Value* v) {
       
       llvm::StoreInst *store = dyn_cast<llvm::StoreInst>(user);
       if (store) {
+#ifndef TI_POCL
+        if (!isUniform(f, store->getValueOperand()) || 
+            !isUniform(f, store->getParent())) {
+#else
         // TI DISABLE: all allocas are moved to Entry block later, there is
         //             no need to check if current block is uniform or not
         if (!isUniform(f, store->getValueOperand()) /* TI DISABLE || 
             !isUniform(f, store->getParent()) */ ) {
+#endif
           if (!isUniform(f, store->getParent())) {
 #ifdef DEBUG_UNIFORMITY_ANALYSIS
             std::cerr << "### alloca was written in a non-uniform BB" << std::endl;
@@ -399,9 +453,7 @@ VariableUniformityAnalysis::isUniform(llvm::Function *f, llvm::Value* v) {
   // Atomic operations might look like uniform if only considering the operands
   // (access a global memory location of which ordering by default is not
   // constrained), but their semantics have ordering: Each work-item should get
-  // their own value from that memory location. isAtomic() check was introduced
-  // only in LLVM 3.6 so we have to use a more general mayWriteToMemory check
-  // with earlier versions. 
+  // their own value from that memory location.
   if (instr->isAtomic()) {
       setUniform(f, v, false);
       return false;
