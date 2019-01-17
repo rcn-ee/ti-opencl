@@ -76,12 +76,14 @@ void
 WorkitemHandler::Initialize(Kernel *K) {
 
   llvm::Module *M = K->getParent();
+
+#ifdef TI_POCL
+  WGLocalSizeX = 3;
+  WGLocalSizeY = 1;
+  WGLocalSizeZ = 1;
+  WGDynamicLocalSize = true;
   
-  LocalSizeX = 3;
-  LocalSizeY = 1;
-  LocalSizeZ = 1;
-  
-// TODO: are we searching reqd_workgroup_size here? If so, we need to enforce it.
+  // TODO: are we searching reqd_workgroup_size here? If so, we need to enforce it.
   llvm::NamedMDNode *size_info = 
     M->getNamedMetadata("opencl.kernel_wg_size_info");
   if (size_info) {
@@ -91,18 +93,20 @@ WorkitemHandler::Initialize(Kernel *K) {
         KernelSizeInfo->getOperand(0).get())->getValue() != K) 
         continue;
 
-      LocalSizeX = (llvm::cast<ConstantInt>(
+      WGLocalSizeX = (llvm::cast<ConstantInt>(
                      llvm::cast<ConstantAsMetadata>(
                        KernelSizeInfo->getOperand(1))->getValue()))->getLimitedValue();
-      LocalSizeY = (llvm::cast<ConstantInt>(
+      WGLocalSizeY = (llvm::cast<ConstantInt>(
                      llvm::cast<ConstantAsMetadata>(
                        KernelSizeInfo->getOperand(2))->getValue()))->getLimitedValue();
-      LocalSizeZ = (llvm::cast<ConstantInt>(
+      WGLocalSizeZ = (llvm::cast<ConstantInt>(
                      llvm::cast<ConstantAsMetadata>(
                        KernelSizeInfo->getOperand(3))->getValue()))->getLimitedValue();
+      WGDynamicLocalSize = false;
       break;
     }
   }
+#endif
 
   llvm::Type *localIdType;
   size_t_width = 0;
@@ -122,28 +126,17 @@ WorkitemHandler::Initialize(Kernel *K) {
     assert (false && "Only 32 and 64 bit size_t widths supported.");
 #endif
 
+#ifndef TI_POCL
   localIdType = IntegerType::get(K->getContext(), size_t_width);
 
   localIdZ = M->getOrInsertGlobal(POCL_LOCAL_ID_Z_GLOBAL, localIdType);
   localIdY = M->getOrInsertGlobal(POCL_LOCAL_ID_Y_GLOBAL, localIdType);
   localIdX = M->getOrInsertGlobal(POCL_LOCAL_ID_X_GLOBAL, localIdType);
-
-  GlobalVariable *gvx = M->getNamedGlobal(POCL_LOCAL_ID_X_GLOBAL);
-  GlobalVariable *gvy = M->getNamedGlobal(POCL_LOCAL_ID_Y_GLOBAL);
-  GlobalVariable *gvz = M->getNamedGlobal(POCL_LOCAL_ID_Z_GLOBAL);
-  gvx->setSection(StringRef("far"));
-  gvy->setSection(StringRef("far"));
-  gvz->setSection(StringRef("far"));
-
-  //Value *lsx = M->getOrInsertGlobal("_local_size_x", localIdType);
-  //Value *lsy = M->getOrInsertGlobal("_local_size_y", localIdType);
-  //Value *lsz = M->getOrInsertGlobal("_local_size_z", localIdType);
-  //GlobalVariable *gsx = M->getNamedGlobal("_local_size_x");
-  //GlobalVariable *gsy = M->getNamedGlobal("_local_size_y");
-  //GlobalVariable *gsz = M->getNamedGlobal("_local_size_z");
-  //gsx->setSection(StringRef("far"));
-  //gsy->setSection(StringRef("far"));
-  //gsz->setSection(StringRef("far"));
+#else
+  localIdZ = nullptr;
+  localIdY = nullptr;
+  localIdX = nullptr;
+#endif
 }
 
 

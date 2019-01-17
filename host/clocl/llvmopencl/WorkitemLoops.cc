@@ -24,11 +24,13 @@
 
 #define DEBUG_TYPE "workitem-loops"
 
-#include "WorkitemLoops.h"
-#include "Workgroup.h"
-#include "Barrier.h"
-#include "Kernel.h"
-#include "config.h"
+#include <iostream>
+#include <map>
+#include <sstream>
+#include <vector>
+
+#include "pocl.h"
+
 #include "llvm/ADT/Statistic.h"
 #include "llvm/Analysis/LoopInfo.h"
 #include "llvm/Support/CommandLine.h"
@@ -40,14 +42,12 @@
 #include "llvm/IR/ValueSymbolTable.h"
 #include "llvm/Analysis/PostDominators.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
-#include <llvm/IR/InstIterator.h>
-#include "WorkitemHandlerChooser.h"
 
-#include <iostream>
-#include <map>
-#include <sstream>
-#include <vector>
-#include <list>
+#include "WorkitemLoops.h"
+#include "Workgroup.h"
+#include "Barrier.h"
+#include "Kernel.h"
+#include "WorkitemHandlerChooser.h"
 
 //#define DUMP_CFGS
 
@@ -56,7 +56,11 @@
 //#define DEBUG_WORK_ITEM_LOOPS
 
 #include "VariableUniformityAnalysis.h"
+#ifdef TI_POCL
+#include <list>
+#include <llvm/IR/InstIterator.h>
 #include "../llvm_util.h"
+#endif
 
 #define CONTEXT_ARRAY_ALIGN 64
 
@@ -74,13 +78,21 @@ char WorkitemLoops::ID = 0;
 void
 WorkitemLoops::getAnalysisUsage(AnalysisUsage &AU) const
 {
-  AU.addRequired<DominatorTreeWrapperPass>();
+#ifdef LLVM_OLDER_THAN_3_9
   AU.addRequired<PostDominatorTree>();
+#else
+  AU.addRequired<PostDominatorTreeWrapperPass>();
+#endif
+
+#ifdef LLVM_OLDER_THAN_3_7
   AU.addRequired<LoopInfo>();
+#else
+  AU.addRequired<LoopInfoWrapperPass>();
+#endif
   AU.addRequired<DominatorTreeWrapperPass>();
 
   AU.addRequired<VariableUniformityAnalysis>();
-  AU.addPreserved<VariableUniformityAnalysis>();
+  AU.addPreserved<pocl::VariableUniformityAnalysis>();
 
   AU.addRequired<pocl::WorkitemHandlerChooser>();
   AU.addPreserved<pocl::WorkitemHandlerChooser>();
@@ -97,21 +109,29 @@ WorkitemLoops::runOnFunction(Function &F)
       pocl::WorkitemHandlerChooser::POCL_WIH_LOOPS)
     return false;
 
+#ifdef TI_POCL
   if (isReqdWGSize111(F))  return false;
+#endif
 
   DTP = &getAnalysis<DominatorTreeWrapperPass>();
   DT = &DTP->getDomTree();
+#ifdef LLVM_OLDER_THAN_3_7
   LI = &getAnalysis<LoopInfo>();
+#else
+  LI = &getAnalysis<LoopInfoWrapperPass>();
+#endif
+
+#ifdef LLVM_OLDER_THAN_3_9
   PDT = &getAnalysis<PostDominatorTree>();
-  VUA = &getAnalysis<VariableUniformityAnalysis>();
+#else
+  PDT = &getAnalysis<PostDominatorTreeWrapperPass>();
+#endif
+#ifdef TI_POCL
+  pVUA = &getAnalysis<VariableUniformityAnalysis>();
+#endif
 
   tempInstructionIndex = 0;
 
-#if 0
-  std::cerr << "### original:" << std::endl;
-  chopBBs(F, *this);
-  F.viewCFG();
-#endif
 //  F.viewCFGOnly();
 
   bool changed = ProcessFunction(F);
@@ -138,8 +158,12 @@ WorkitemLoops::runOnFunction(Function &F)
 #endif
   contextArrays.clear();
   tempInstructionIds.clear();
+#ifdef TI_POCL
   intraRegionAllocas.clear();
   WGInvariantMap.clear();
+#endif
+
+  releaseParallelRegions();
 
   return changed;
 }
@@ -147,12 +171,13 @@ WorkitemLoops::runOnFunction(Function &F)
 std::pair<llvm::BasicBlock *, llvm::BasicBlock *>
 WorkitemLoops::CreateLoopAround
 (ParallelRegion &region,
- llvm::BasicBlock *entryBB, llvm::BasicBlock *exitBB, 
+ llvm::BasicBlock *entryBB, llvm::BasicBlock *exitBB,
  bool peeledFirst, llvm::Value *localIdVar, size_t LocalSizeForDim,
- int dim, bool regLocals,
- bool addIncBlock, llvm::Value *lsizeDim) 
+ bool addIncBlock, llvm::Value *DynamicLocalSize)
 {
+#ifndef TI_POCL
   assert (localIdVar != NULL);
+#endif
 
   /*
 
@@ -213,7 +238,7 @@ WorkitemLoops::CreateLoopAround
   llvm::BasicBlock *forInitBB = 
     BasicBlock::Create(C, "pregion_for_init", F, loopBodyEntryBB);
 
-#if 0 // pocl original
+#ifndef TI_POCL // pocl original
   llvm::BasicBlock *loopEndBB = 
     BasicBlock::Create(C, "pregion_for_end", F, exitBB);
 
@@ -225,6 +250,7 @@ WorkitemLoops::CreateLoopAround
   llvm::BasicBlock *loopEndBB =
     BasicBlock::Create(C, "pregion_for_end", F, oldExit);
 #endif
+
 
   DTP->runOnFunction(*F);
 
@@ -259,27 +285,34 @@ WorkitemLoops::CreateLoopAround
 
   IRBuilder<> builder(forInitBB);
 
+#ifdef TI_POCL
   #define MAXGENINSTRS 32
   llvm::Instruction *lcinit[MAXGENINSTRS], *lccond[MAXGENINSTRS];
   int lcinit_count = 0, lccond_count = 0;
-
-#if 0 // pocl original
-  if (peeledFirst)
-    {
-      lcinit[lcinit_count++] =
-      builder.CreateStore(builder.CreateLoad(localIdXFirstVar), localIdVar);
-      lcinit[lcinit_count++] =
-      builder.CreateStore
-        (ConstantInt::get(IntegerType::get(C, size_t_width), 0), localIdXFirstVar);
-    }
-  else
-    {
-      lcinit[lcinit_count++] =
-      builder.CreateStore
-        (ConstantInt::get(IntegerType::get(C, size_t_width), 0), localIdVar);
-    }
 #endif
 
+#ifndef TI_POCL // pocl original
+  if (peeledFirst) {
+    builder.CreateStore(builder.CreateLoad(localIdXFirstVar), localIdVar);
+    builder.CreateStore
+      (ConstantInt::get(IntegerType::get(C, size_t_width), 0), localIdXFirstVar);
+
+    if (WGDynamicLocalSize) {
+      llvm::Value *cmpResult;
+      cmpResult = builder.CreateICmpULT(builder.CreateLoad(localIdVar),
+                                        builder.CreateLoad(DynamicLocalSize));
+
+      builder.CreateCondBr(cmpResult, loopBodyEntryBB, loopEndBB);
+    } else {
+      builder.CreateBr(loopBodyEntryBB);
+    }
+  } else {
+    builder.CreateStore
+      (ConstantInt::get(IntegerType::get(C, size_t_width), 0), localIdVar);
+
+    builder.CreateBr(loopBodyEntryBB);
+  }
+#else
   lcinit[lcinit_count++] =
   builder.CreateBr(loopBodyEntryBB);
 
@@ -292,19 +325,20 @@ WorkitemLoops::CreateLoopAround
   llvm::Value *one   = ConstantInt::get(Int32, 1);
 
   PHINode *phi = builder.CreatePHI(Int32, 2);
-  phiDim[dim]  = phi;
-  if (dim == 0 && peeledFirst)
+  phiDim[currDim]  = phi;
+  if (currDim == 0 && peeledFirst)
     phi->addIncoming(phiXFirst[1] ? phiXFirst[1] :
                      (phiXFirst[2] ? phiXFirst[2] : one), forInitBB);
   else
     phi->addIncoming(zero, forInitBB);
-  if (phiXFirst[dim] != NULL)
+  if (phiXFirst[currDim] != NULL)
   {
-    phiXFirst[dim]->insertAfter(phi);
-    phiXFirst[dim]->addIncoming(dim == 2 ? one :
-                       (phiXFirst[dim+1] ? phiXFirst[dim+1] : one), forInitBB);
-    phiXFirst[dim]->addIncoming(zero, forCondBB);
+    phiXFirst[currDim]->insertAfter(phi);
+    phiXFirst[currDim]->addIncoming(currDim == 2 ? one :
+               (phiXFirst[currDim+1] ? phiXFirst[currDim+1] : one), forInitBB);
+    phiXFirst[currDim]->addIncoming(zero, forCondBB);
   }
+#endif
 
   /*---------------------------------------------------------------------------
    * loopBodyExit Block
@@ -314,7 +348,7 @@ WorkitemLoops::CreateLoopAround
   /*---------------------------------------------------------------------------
    * forCond Block
    *-------------------------------------------------------------------------*/
-#if 0 // pocl original
+#ifndef TI_POCL // pocl original
   if (addIncBlock)
     {
       AppendIncBlock(exitBB, localIdVar);
@@ -322,81 +356,79 @@ WorkitemLoops::CreateLoopAround
 
   builder.SetInsertPoint(forCondBB);
 
-  if (! addIncBlock)
-  {
-    builder.CreateStore
-      (builder.CreateAdd
-       (builder.CreateLoad(localIdVar),
-        ConstantInt::get(IntegerType::get(C, size_t_width), 1)),
-       localIdVar);
-  }
   llvm::Value *cmpResult;
-  if (lsizeDim == NULL)
-  {
-    cmpResult = 
-      // builder.CreateICmpULT
-      builder.CreateICmpSLT
-        (builder.CreateLoad(localIdVar),
-         (ConstantInt::get
-          (IntegerType::get(C, size_t_width), 
-           LocalSizeForDim))
-        );
-  }
+  if (!WGDynamicLocalSize)
+    cmpResult = builder.CreateICmpULT(
+                  builder.CreateLoad(localIdVar),
+                    ConstantInt::get(
+                      IntegerType::get(C, size_t_width),
+                      LocalSizeForDim));
   else
-  {
-    cmpResult = 
-      // builder.CreateICmpULT
-      builder.CreateICmpSLT
-        (builder.CreateLoad(localIdVar),
-         lsizeDim
-        );
-  }
+    cmpResult = builder.CreateICmpULT(
+                  builder.CreateLoad(localIdVar),
+                    builder.CreateLoad(DynamicLocalSize));
 #else  // TI
   builder.SetInsertPoint(forCondBB);
   llvm::Value *inc = builder.CreateAdd(phi, one);
   phi->addIncoming(inc, forCondBB);
 
   llvm::Value *cmpResult;
-  if (lsizeDim == NULL)
+  if (DynamicLocalSize == NULL)
      cmpResult = builder.CreateICmpSLT(inc,
             ConstantInt::get(Int32, LocalSizeForDim));
   else
-     cmpResult = builder.CreateICmpSLT(inc, lsizeDim);
-#endif
+     cmpResult = builder.CreateICmpSLT(inc, DynamicLocalSize);
+
   lccond[lccond_count++] = dyn_cast<llvm::Instruction>(inc);
   lccond[lccond_count++] = dyn_cast<llvm::Instruction>(cmpResult);
-      
+#endif
+  
   Instruction *loopBranch =
       builder.CreateCondBr(cmpResult, loopBodyEntryBB, loopEndBB);
+#ifdef TI_POCL
   lccond[lccond_count++] = loopBranch;
+#endif
 
+#ifdef TI_POCL
   if (regLocals)
   {
-    /* Add the metadata to mark a parallel loop. The metadata 
-       refer to a loop-unique dummy metadata that is not merged
-       automatically. */
+#endif
+  /* Add the metadata to mark a parallel loop. The metadata 
+     refer to a loop-unique dummy metadata that is not merged
+     automatically. */
 
-    /* This creation of the identifier metadata is copied from
-       LLVM's MDBuilder::createAnonymousTBAARoot(). */
-    MDNode *Dummy = MDNode::getTemporary(C, ArrayRef<Metadata*>());
-    MDNode *Root = MDNode::get(C, Dummy);
-    // At this point we have
-    //   !0 = metadata !{}            <- dummy
-    //   !1 = metadata !{metadata !0} <- root
-    // Replace the dummy operand with the root node itself and delete the dummy
-    Root->replaceOperandWith(0, Root);
-    MDNode::deleteTemporary(Dummy);
-    // We now have
-    //   !1 = metadata !{metadata !1} <- self-referential root
+  /* This creation of the identifier metadata is copied from
+     LLVM's MDBuilder::createAnonymousTBAARoot(). */
+#ifdef LLVM_OLDER_THAN_3_7
+  MDNode *Dummy = MDNode::getTemporary(C, ArrayRef<Metadata*>());
+#else
+  MDNode *Dummy = MDNode::getTemporary(C, ArrayRef<Metadata*>()).release();
+#endif
 
-    loopBranch->setMetadata("llvm.loop", Root);
-    region.AddParallelLoopMetadata(Root);
+  MDNode *Root = MDNode::get(C, Dummy);
+  // At this point we have
+  //   !0 = metadata !{}            <- dummy
+  //   !1 = metadata !{metadata !0} <- root
+  // Replace the dummy operand with the root node itself and delete the dummy.
+  Root->replaceOperandWith(0, Root);
+  MDNode::deleteTemporary(Dummy);
+  // We now have
+  //   !1 = metadata !{metadata !1} <- self-referential root
+
+  loopBranch->setMetadata("llvm.loop", Root);
+  region.AddParallelLoopMetadata(Root);
+#ifdef TI_POCL
   }
+#endif
+
 
   builder.SetInsertPoint(loopEndBB);
+#ifdef TI_POCL
   lccond[lccond_count++] =
+#endif
   builder.CreateBr(oldExit);
 
+#ifdef TI_POCL
   if (di_function != NULL)
   {
     if (region_begin_line != 0)
@@ -412,6 +444,7 @@ WorkitemLoops::CreateLoopAround
         lccond[i]->setDebugLoc(dloc);
     }
   }
+#endif
 
   return std::make_pair(forInitBB, loopEndBB);
 }
@@ -430,69 +463,17 @@ WorkitemLoops::RegionOfBlock(llvm::BasicBlock *bb)
   return NULL;
 }
 
-// PreAnalyze kernel function, find out dimension (borrowed from wga)
-// PreCreate local sizes which are workgroup invariant
-void WorkitemLoops::FindKernelDim(Function &F)
-{
-  maxDim = 1;
-  for (inst_iterator I = inst_begin(&F), E = inst_end(&F); I != E; ++I)
-    if (CallInst * callInst = dyn_cast<CallInst>(&*I))
-    {
-      if (!callInst->getCalledFunction()) continue;
-      std::string functionName(callInst->getCalledFunction()->getName());
-
-      if (functionName == "get_local_id" || 
-          functionName == "get_global_id")
-      {
-        Value *arg = callInst->getArgOperand(0);
-        if (ConstantInt * constInt = dyn_cast<ConstantInt>(arg))
-        {
-          unsigned int dimIdx = constInt->getSExtValue();
-          dimIdx = (MAX_DIMENSIONS-1 < dimIdx) ? MAX_DIMENSIONS-1 : dimIdx; 
-          maxDim = (maxDim < dimIdx + 1) ? dimIdx+1 : maxDim;
-        }
-
-        /*-------------------------------------------------------------
-        * if the work group function has a variable argument, then 
-        * assume worst case and return 3 loop levels are needed.
-        *------------------------------------------------------------*/
-        else 
-        {
-          maxDim = 3;
-          break;
-        }
-      }
+void WorkitemLoops::releaseParallelRegions() {
+  if (original_parallel_regions) {
+    for (auto i = original_parallel_regions->begin(),
+              e = original_parallel_regions->end();
+              i != e; ++i) {
+      ParallelRegion *p = *i;
+      delete p;
     }
 
-  llvm::Module *M = F.getParent();
-  llvm::Type *Int32 = IntegerType::get(M->getContext(), 32);
-  if (getReqdWGSize(F, wgsizes))
-  {
-    lsizeX = ConstantInt::get(Int32, wgsizes[0]);
-    lsizeY = ConstantInt::get(Int32, wgsizes[1]);
-    lsizeZ = ConstantInt::get(Int32, wgsizes[2]);
-  }
-  else
-  {
-    FunctionType *ft = FunctionType::get
-          (/*Result=*/   Int32,
-           /*Params=*/   Int32,
-           /*isVarArg=*/ false);
-    Function *f_localsize =
-          cast<Function>(M->getOrInsertFunction("get_local_size", ft));
-    SmallVector<Value *, 4> argsx, argsy, argsz;
-    argsx.push_back(ConstantInt::get(Int32, 0));
-    lsizeX = CallInst::Create(f_localsize, ArrayRef<Value *>(argsx));
-    if (maxDim > 1)
-    {
-      argsy.push_back(ConstantInt::get(Int32, 1));
-      lsizeY = CallInst::Create(f_localsize, ArrayRef<Value *>(argsy));
-    }
-    if (maxDim > 2)
-    {
-      argsz.push_back(ConstantInt::get(Int32, 2));
-      lsizeZ = CallInst::Create(f_localsize, ArrayRef<Value *>(argsz));
-    }
+    delete original_parallel_regions;
+    original_parallel_regions = nullptr;
   }
 }
 
@@ -500,23 +481,34 @@ bool
 WorkitemLoops::ProcessFunction(Function &F)
 {
   Kernel *K = cast<Kernel> (&F);
+  
+  llvm::Module *M = K->getParent();
+
   Initialize(K);
 
-#if 0  // TODO: do something for reqd_work_group_size
-  unsigned workItemCount = LocalSizeX*LocalSizeY*LocalSizeZ;
+#ifndef TI_POCL // TODO: do something for reqd_work_group_size
+  unsigned workItemCount = WGLocalSizeX*WGLocalSizeY*WGLocalSizeZ;
 
   if (workItemCount == 1)
     {
-      K->addLocalSizeInitCode(LocalSizeX, LocalSizeY, LocalSizeZ);
+      K->addLocalSizeInitCode(WGLocalSizeX, WGLocalSizeY, WGLocalSizeZ);
       ParallelRegion::insertLocalIdInit(&F.getEntryBlock(), 0, 0, 0);
       return true;
     }
 #endif
 
+  releaseParallelRegions();
+
+#ifdef TI_POCL
   di_function = getDebugInfo(F, function_scope_line);
   FindKernelDim(F);
+#endif
 
+#ifdef LLVM_OLDER_THAN_3_7
   original_parallel_regions = K->getParallelRegions(LI);
+#else
+  original_parallel_regions = K->getParallelRegions(&LI->getLoopInfo());
+#endif
 
 #ifdef DUMP_CFGS
   F.dump();
@@ -524,9 +516,9 @@ WorkitemLoops::ProcessFunction(Function &F)
           original_parallel_regions);
 #endif
 
-  IRBuilder<> builder(F.getEntryBlock().getFirstInsertionPt());
+  IRBuilder<> builder(&*(F.getEntryBlock().getFirstInsertionPt()));
 
-#if 0 // pocl original
+#ifndef TI_POCL // pocl original
   localIdXFirstVar = 
     builder.CreateAlloca
     (IntegerType::get(F.getContext(), size_t_width), 0, ".pocl.local_id_x_init");
@@ -551,18 +543,22 @@ WorkitemLoops::ProcessFunction(Function &F)
   }
 #endif
 
+#ifdef TI_POCL
   /* TI: Hoist uniform instrs to the entry block */
   hoistWGInvariantInstrToEntry(&F);
 
   /* TI: Find intra-region and cross-region allocas. Do not
      privatize intra-region allocas. */
   findIntraRegionAllocas(&F);
+#endif
 
   /* Count how many parallel regions share each entry node to
      detect diverging regions that need to be peeled. */
   std::map<llvm::BasicBlock*, int> entryCounts;
 
+#ifdef TI_POCL
   localizeGetLocalId(&F);
+#endif
 
   for (ParallelRegion::ParallelRegionVector::iterator
            i = original_parallel_regions->begin(), 
@@ -630,8 +626,11 @@ WorkitemLoops::ProcessFunction(Function &F)
     // the original predecessor nodes of which successor
     // should be fixed if not peeling
     BasicBlockVector preds;
+#ifdef TI_POCL
     ParallelRegion *loopRegion = original;
+#endif
 
+    bool unrolled = false;
     if (peelFirst) 
       {
 #ifdef DEBUG_WORK_ITEM_LOOPS
@@ -641,10 +640,14 @@ WorkitemLoops::ProcessFunction(Function &F)
           original->replicate(reference_map, ".peeled_wi");
         replica->chainAfter(original);    
         replica->purge();
+#ifdef TI_POCL
         replica->LocalizeIDLoads();
+#endif
         
         l = std::make_pair(replica->entryBB(), replica->exitBB());
+#ifdef TI_POCL
         loopRegion = replica;
+#endif
       }
     else
       {
@@ -662,8 +665,8 @@ WorkitemLoops::ProcessFunction(Function &F)
             preds.push_back(bb);
           }
 
-#if 0
-        int unrollCount;
+#ifndef TI_POCL
+        unsigned unrollCount;
         if (getenv("POCL_WILOOPS_MAX_UNROLL_COUNT") != NULL)
             unrollCount = atoi(getenv("POCL_WILOOPS_MAX_UNROLL_COUNT"));
         else
@@ -671,8 +674,8 @@ WorkitemLoops::ProcessFunction(Function &F)
         /* Find a two's exponent unroll count, if available. */
         while (unrollCount >= 1)
           {
-            if (LocalSizeX % unrollCount == 0 &&
-                unrollCount <= LocalSizeX)
+            if (WGLocalSizeX % unrollCount == 0 &&
+                unrollCount <= WGLocalSizeX)
               {
                 break;
               }
@@ -689,7 +692,7 @@ WorkitemLoops::ProcessFunction(Function &F)
             if (AddWIMetadata)
                 original->AddIDMetadata(F.getContext(), 0);
 
-            for (int c = 1; c < unrollCount; ++c) 
+            for (unsigned c = 1; c < unrollCount; ++c) 
             {
                 ParallelRegion *unrolled = 
                     original->replicate(reference_map, ".unrolled_wi");
@@ -709,6 +712,7 @@ WorkitemLoops::ProcessFunction(Function &F)
 #endif 
       }
 
+#ifdef TI_POCL
     if (di_function != NULL)
     {
       region_begin_line = findFirstDebugLine(l.first);
@@ -716,16 +720,56 @@ WorkitemLoops::ProcessFunction(Function &F)
         region_begin_line = function_scope_line;
       region_end_line = findLastDebugLine(l.second);
     }
+#endif
 
-#if 0 // pocl original
-    l = CreateLoopAround(*original, l.first, l.second, peelFirst, localIdX,
-                         LocalSizeX, true, lsizeX);
-    if (maxDim > 1)
-      l = CreateLoopAround(*original, l.first, l.second, false, localIdY,
-                           LocalSizeY, true, lsizeY);
-    if (maxDim > 2)
-      l = CreateLoopAround(*original, l.first, l.second, false, localIdZ,
-                           LocalSizeZ, true, lsizeZ);
+#ifndef TI_POCL // pocl original
+    if (WGDynamicLocalSize) {
+      GlobalVariable *gv;
+      gv = M->getGlobalVariable("_local_size_x");
+      auto *SizeT_Ty = Type::getIntNTy(M->getContext(), size_t_width);
+      if (gv == NULL) 
+        gv = new GlobalVariable(*M, SizeT_Ty, true, GlobalValue::CommonLinkage,
+                                NULL, "_local_size_x", NULL,
+                                GlobalValue::ThreadLocalMode::NotThreadLocal,
+                                0, true);
+
+      l = CreateLoopAround(*original, l.first, l.second, peelFirst,
+                           localIdX, WGLocalSizeX, !unrolled, gv);
+
+      gv = M->getGlobalVariable("_local_size_y");
+      if (gv == NULL) 
+        gv = new GlobalVariable(*M, SizeT_Ty, false, GlobalValue::CommonLinkage,
+                                NULL, "_local_size_y");
+
+      l = CreateLoopAround(*original, l.first, l.second,
+                           false, localIdY, WGLocalSizeY, !unrolled, gv);
+
+      gv = M->getGlobalVariable("_local_size_z");
+      if (gv == NULL) 
+        gv = new GlobalVariable(*M, SizeT_Ty, true, GlobalValue::CommonLinkage,
+                                NULL, "_local_size_z", NULL,
+                                GlobalValue::ThreadLocalMode::NotThreadLocal,
+                                0, true);
+
+      l = CreateLoopAround(*original, l.first, l.second,
+                           false, localIdZ, WGLocalSizeZ, !unrolled, gv);
+
+    } else {
+      if (WGLocalSizeX > 1) {
+          l = CreateLoopAround(*original, l.first, l.second, peelFirst,
+                               localIdX, WGLocalSizeX, !unrolled);
+        }
+
+      if (WGLocalSizeY > 1) {
+          l = CreateLoopAround(*original, l.first, l.second, false,
+                               localIdY, WGLocalSizeY);
+        }
+
+      if (WGLocalSizeZ > 1) {
+          l = CreateLoopAround(*original, l.first, l.second, false,
+                               localIdZ, WGLocalSizeZ);
+        }
+    }
 #else // TI
     llvm::Type *Int32 = IntegerType::get(F.getContext(), 32);
     Value *zero = ConstantInt::get(Int32, 0);
@@ -737,7 +781,7 @@ WorkitemLoops::ProcessFunction(Function &F)
       if (maxDim > 2 && wgsizes[2] != 1) phiXFirst[2] = PHINode::Create(Int32, 2);
     }
 
-    bool regLocals = true;
+    regLocals = true;
     for (ParallelRegion::iterator BI = original->begin(),
                                   BE = original->end(); BI != BE; ++BI)
     {
@@ -746,14 +790,17 @@ WorkitemLoops::ProcessFunction(Function &F)
       break;
     }
 
+    currDim = 0;
     l = CreateLoopAround(*loopRegion, l.first, l.second, peelFirst, localIdX,
-                         LocalSizeX, 0, regLocals, false, lsizeX);
+                         WGLocalSizeX, false, lsizeX);
+    currDim = 1;
     if (maxDim > 1 && wgsizes[1] != 1)
       l = CreateLoopAround(*loopRegion, l.first, l.second, false, localIdY,
-                           LocalSizeY, 1, regLocals, false, lsizeY);
+                           WGLocalSizeY, false, lsizeY);
+    currDim = 2;
     if (maxDim > 2 && wgsizes[2] != 1)
       l = CreateLoopAround(*loopRegion, l.first, l.second, false, localIdZ,
-                           LocalSizeZ, 2, regLocals, false, lsizeZ);
+                           WGLocalSizeZ, false, lsizeZ);
 
     replaceGetLocalIdWithPhi(loopRegion, phiDim);
 
@@ -779,7 +826,7 @@ WorkitemLoops::ProcessFunction(Function &F)
       }
   }
 
-#if 0 // pocl original
+#ifndef TI_POCL // pocl original
   // for the peeled regions we need to add a prologue
   // that initializes the local ids and the first iteration
   // counter
@@ -792,15 +839,18 @@ WorkitemLoops::ProcessFunction(Function &F)
 
     if (!peeledRegion[pr]) continue;
     pr->insertPrologue(0, 0, 0);
-    builder.SetInsertPoint(pr->entryBB()->getFirstInsertionPt());
+    builder.SetInsertPoint(&*(pr->entryBB()->getFirstInsertionPt()));
     builder.CreateStore
       (ConstantInt::get(IntegerType::get(F.getContext(), size_t_width), 1), 
        localIdXFirstVar);       
   }
 #endif
 
-  // Creating lsize* values have been hoisted up
-  // K->addLocalSizeInitCode(LocalSizeX, LocalSizeY, LocalSizeZ);
+#ifndef TI_POCL
+  if (!WGDynamicLocalSize)
+    K->addLocalSizeInitCode(WGLocalSizeX, WGLocalSizeY, WGLocalSizeZ);
+#else
+  // Creating lsize* values that have been hoisted up
   llvm::Instruction *inspt = F.getEntryBlock().getFirstNonPHI();
   if (Instruction *getsizeX = llvm::dyn_cast<Instruction>(lsizeX))
     inspt->getParent()->getInstList().insert(inspt, getsizeX);
@@ -810,8 +860,11 @@ WorkitemLoops::ProcessFunction(Function &F)
   if (maxDim > 2)
     if (Instruction *getsizeZ = llvm::dyn_cast<Instruction>(lsizeZ))
       inspt->getParent()->getInstList().insert(inspt, getsizeZ);
+#endif
 
-  // pocl original ParallelRegion::insertLocalIdInit(&F.getEntryBlock(), 0, 0, 0);
+#ifndef TI_POCL  // pocl original
+  ParallelRegion::insertLocalIdInit(&F.getEntryBlock(), 0, 0, 0);
+#endif
 
 #if 0
   F.viewCFG();
@@ -833,7 +886,9 @@ WorkitemLoops::FixMultiRegionVariables(ParallelRegion *region)
 {
   InstructionIndex instructionsInRegion;
   InstructionVec instructionsToFix;
+#ifdef TI_POCL
   InstructionVec rematerialize_list;
+#endif
 
   /* Construct an index of the region's instructions so it's
      fast to figure out if the variable uses are all
@@ -845,7 +900,7 @@ WorkitemLoops::FixMultiRegionVariables(ParallelRegion *region)
       for (llvm::BasicBlock::iterator instr = bb->begin();
            instr != bb->end(); ++instr) 
         {
-          llvm::Instruction *instruction = instr;
+          llvm::Instruction *instruction = &*instr;
           instructionsInRegion.insert(instruction);
         }
     }
@@ -859,20 +914,22 @@ WorkitemLoops::FixMultiRegionVariables(ParallelRegion *region)
       for (llvm::BasicBlock::iterator instr = bb->begin();
            instr != bb->end(); ++instr) 
         {
-          llvm::Instruction *instruction = instr;
+          llvm::Instruction *instruction = &*instr;
 
-          if (ShouldNotBeContextSaved(instr)) continue;
-
+          if (ShouldNotBeContextSaved(&*instr)) continue;
+#ifdef TI_POCL
           /* TI: do not privatize intra-region allocas */
           if (AllocaInst *alloca = dyn_cast<AllocaInst>(instruction))
             if (intraRegionAllocas.find(alloca) != intraRegionAllocas.end())
               continue;
+#endif
 
           for (Instruction::use_iterator ui = instruction->use_begin(),
                  ue = instruction->use_end();
                ui != ue; ++ui) 
             {
               llvm::Instruction *user = dyn_cast<Instruction>(ui->getUser());
+
               if (user == NULL) continue;
               // If the instruction is used outside this region inside another
               // region (not in a regionless BB like the B-loop construct BBs),
@@ -883,6 +940,7 @@ WorkitemLoops::FixMultiRegionVariables(ParallelRegion *region)
                   (instructionsInRegion.find(user) == instructionsInRegion.end() &&
                    RegionOfBlock(user->getParent()) != NULL))
                 {
+#ifdef TI_POCL
                   /* TI: rematerialize values vary only with get_local_id() */
                   if (   !isa<AllocaInst>(instruction)
                       && varyOnlyWithLocalId(instruction, 0))
@@ -890,7 +948,7 @@ WorkitemLoops::FixMultiRegionVariables(ParallelRegion *region)
                     rematerialize_list.push_back(instruction);
                     break;
                   }
-
+#endif
                   instructionsToFix.push_back(instruction);
                   break;
                 }
@@ -898,6 +956,7 @@ WorkitemLoops::FixMultiRegionVariables(ParallelRegion *region)
         }
     }  
 
+#ifdef TI_POCL
   for (InstructionVec::iterator I = rematerialize_list.begin(),
                                 E = rematerialize_list.end(); I != E; ++I)
   {
@@ -916,6 +975,7 @@ WorkitemLoops::FixMultiRegionVariables(ParallelRegion *region)
                                   UE = user_list.end(); UI != UE; ++UI)
       rematerializeUse(*I, *UI);
   }
+#endif
 
   /* Finally, fix the instructions. */
   for (InstructionVec::iterator i = instructionsToFix.begin();
@@ -928,6 +988,46 @@ WorkitemLoops::FixMultiRegionVariables(ParallelRegion *region)
       llvm::Instruction *instructionToFix = *i;
       AddContextSaveRestore(instructionToFix);
     }
+}
+
+llvm::Value *
+WorkitemLoops::GetLinearWiIndex(llvm::IRBuilder<> &builder, llvm::Module *M,
+                               ParallelRegion *region)
+{
+  auto *SizeTType = Type::getIntNTy(M->getContext(), size_t_width);
+  GlobalVariable *LocalSizeXPtr =
+    cast<GlobalVariable>(M->getOrInsertGlobal("_local_size_x", SizeTType));
+  GlobalVariable *LocalSizeYPtr =
+    cast<GlobalVariable>(M->getOrInsertGlobal("_local_size_y", SizeTType));
+
+  assert(LocalSizeXPtr != NULL && LocalSizeYPtr != NULL);
+
+  LoadInst* LoadX = builder.CreateLoad(LocalSizeXPtr, "ls_x");
+  LoadInst* LoadY = builder.CreateLoad(LocalSizeYPtr, "ls_y");
+
+  /* Form linear index from xyz coordinates:
+       local_size_x * local_size_y * local_id_z  (z dimension)
+     + local_size_x * local_id_y                 (y dimension)
+     + local_id_x                                (x dimension)
+  */
+  Value* LocalSizeXTimesY =
+    builder.CreateBinOp(Instruction::Mul, LoadX, LoadY, "ls_xy");
+
+  Value* ZPart =
+    builder.CreateBinOp(Instruction::Mul, LocalSizeXTimesY,
+                        region->LocalIDZLoad(),
+                        "tmp");
+
+  Value* YPart =
+    builder.CreateBinOp(Instruction::Mul, LoadX, region->LocalIDYLoad(),
+                        "ls_x_y");
+
+  Value* ZYSum =
+    builder.CreateBinOp(Instruction::Add, ZPart, YPart,
+                        "zy_sum");
+
+  return builder.CreateBinOp(Instruction::Add, ZYSum, region->LocalIDXLoad(),
+                             "linear_xyz_idx");
 }
 
 llvm::Instruction *
@@ -945,27 +1045,46 @@ WorkitemLoops::AddContextSave
     }
 
   /* Save the produced variable to the array. */
-  BasicBlock::iterator definition = dyn_cast<Instruction>(instruction);
-
+#ifdef LLVM_OLDER_THAN_3_8
+  BasicBlock::iterator definition = (dyn_cast<Instruction>(instruction));
+#else
+  BasicBlock::iterator definition = (dyn_cast<Instruction>(instruction))->getIterator();
+#endif
   ++definition;
   while (isa<PHINode>(definition)) ++definition;
 
-  IRBuilder<> builder(definition); 
+  IRBuilder<> builder(&*definition);
   std::vector<llvm::Value *> gepArgs;
-
+  
   /* Reuse the id loads earlier in the region, if possible, to
      avoid messy output with lots of redundant loads. */
   ParallelRegion *region = RegionOfBlock(instruction->getParent());
   assert ("Adding context save outside any region produces illegal code." && 
           region != NULL);
 
-// linearize index computation for store into alloca
-// alloca[idz * sizey*sizex + idy * sizex + idx]
+  // linearize index computation for store into alloca
+  // alloca[idz * sizey*sizex + idy * sizex + idx]
+#ifndef TI_POCL
+  if (WGDynamicLocalSize)
+    {
+      Module *M = alloca->getParent()->getParent()->getParent();
+      gepArgs.push_back(GetLinearWiIndex(builder, M, region));
+    }
+  else
+    {
+      gepArgs.push_back(ConstantInt::get(IntegerType::get(instruction->getContext(), size_t_width), 0));
+      gepArgs.push_back(region->LocalIDZLoad());
+      gepArgs.push_back(region->LocalIDYLoad());
+      gepArgs.push_back(region->LocalIDXLoad());
+    }
+#else
   Function *F = instruction->getParent()->getParent();
   Value *linear_index = genLinearIndex(builder, F);
   gepArgs.push_back(linear_index);
+#endif
 
-  return builder.CreateStore(instruction, builder.CreateGEP(alloca, gepArgs));
+  return builder.CreateStore(instruction, builder.CreateGEP(alloca,
+                                                            gepArgs));
 }
 
 llvm::Instruction *
@@ -982,15 +1101,14 @@ WorkitemLoops::AddContextRestore
     }
   else if (isa<Instruction>(val))
     {
-      builder.SetInsertPoint(cast<Instruction>(val));
-      before = cast<Instruction>(val);
+      builder.SetInsertPoint(dyn_cast<Instruction>(val));
+      before = dyn_cast<Instruction>(val);
     }
   else 
     {
       assert (false && "Unknown context restore location!");
     }
 
-  
   std::vector<llvm::Value *> gepArgs;
 
   /* Reuse the id loads earlier in the region, if possible, to
@@ -999,20 +1117,36 @@ WorkitemLoops::AddContextRestore
   assert ("Adding context save outside any region produces illegal code." && 
           region != NULL);
 
-// linearize alloca loads
-//       idz * _local_size_x * _local_size_y + idy * _local_size_x + idx
+  // linearize alloca loads
+  //       idz * _local_size_x * _local_size_y + idy * _local_size_x + idx
+#ifndef TI_POCL
+  if (WGDynamicLocalSize)
+    {
+      Module *M = alloca->getParent()->getParent()->getParent();
+      gepArgs.push_back(GetLinearWiIndex(builder, M, region));
+    }
+  else
+    {
+      gepArgs.push_back(ConstantInt::get(IntegerType::get(val->getContext(),
+                                                          size_t_width), 0));
+      gepArgs.push_back(region->LocalIDZLoad());
+      gepArgs.push_back(region->LocalIDYLoad());
+      gepArgs.push_back(region->LocalIDXLoad());
+    }
+#else
   Function *F = before->getParent()->getParent();
   Value *linear_index = genLinearIndex(builder, F);
   gepArgs.push_back(linear_index);
+#endif
 
-  llvm::Instruction *gep = 
+  llvm::Instruction *gep =
     dyn_cast<Instruction>(builder.CreateGEP(alloca, gepArgs));
   if (isAlloca) {
     /* In case the context saved instruction was an alloca, we created a
        context array with pointed-to elements, and now want to return a pointer 
        to the elements to emulate the original alloca. */
     return gep;
-  }           
+  }
   return builder.CreateLoad(gep);
 }
 
@@ -1051,7 +1185,8 @@ WorkitemLoops::GetContextArray(llvm::Instruction *instruction)
   if (contextArrays.find(varName) != contextArrays.end())
     return contextArrays[varName];
 
-  IRBuilder<> builder(instruction->getParent()->getParent()->getEntryBlock().getFirstInsertionPt());
+  BasicBlock &bb = instruction->getParent()->getParent()->getEntryBlock();
+  IRBuilder<> builder(&*(bb.getFirstInsertionPt()));
 
   llvm::Type *elementType;
   if (isa<AllocaInst>(instruction))
@@ -1065,30 +1200,103 @@ WorkitemLoops::GetContextArray(llvm::Instruction *instruction)
          unique stack space to all the work-items when its wiloop
          iteration is executed. */
       elementType = 
-        cast<AllocaInst>(instruction)->getType()->getElementType();
+        dyn_cast<AllocaInst>(instruction)->getType()->getElementType();
     } 
   else 
     {
       elementType = instruction->getType();
     }
 
-// parameterize alloca to be based on _local_size_{x,y,z}
+  llvm::AllocaInst *Alloca;
+  Module* M = instruction->getParent()->getParent()->getParent();
+#ifndef TI_POCL
+  if (WGDynamicLocalSize)
+    {
+      char GlobalName[32];
+      GlobalVariable* LocalSize;
+      LoadInst* LocalSizeLoad[3];
+      auto *SizeT_Ty = Type::getIntNTy(M->getContext(), size_t_width);
+      for (int i = 0; i < 3; ++i) {
+        snprintf(GlobalName, 32, "_local_size_%c", 'x' + i);
+        LocalSize =
+          cast<GlobalVariable>(M->getOrInsertGlobal(GlobalName, SizeT_Ty));
+        LocalSizeLoad[i] = builder.CreateLoad(LocalSize);
+      }
+
+      Value* LocalXTimesY =
+        builder.CreateBinOp(Instruction::Mul, LocalSizeLoad[0],
+                            LocalSizeLoad[1], "tmp");
+      Value* NumberOfWorkItems =
+        builder.CreateBinOp(Instruction::Mul, LocalXTimesY,
+                            LocalSizeLoad[2], "num_wi");
+
+      Alloca = builder.CreateAlloca(elementType, NumberOfWorkItems, varName);
+    }
+  else
+    {
+      /* 3D context array. In case the elementType itself is an array or struct,
+       * we must take into account it could be alloca-ed with alignment and loads
+       * or stores might use vectorized instructions expecting proper alignment.
+       * Because of that, we cannot simply allocate x*y*z*(size), we must
+       * enlarge the array type to fit the alignment. */
+      Type *allocType = elementType;
+      AllocaInst *allocaInst = dyn_cast<AllocaInst>(instruction);
+      if (allocaInst) {
+        unsigned alignment = allocaInst->getAlignment();
+
+        const DataLayout &dataLayout = M->getDataLayout();
+        uint64_t storeSize =
+          dataLayout.getTypeStoreSize(allocaInst->getAllocatedType());
+
+        if ((alignment > 1) && (storeSize & (alignment - 1))) {
+          uint64_t alignedSize = (storeSize & (~(alignment - 1))) + alignment;
+#ifdef DEBUG_WORK_ITEM_LOOPS
+        std::cerr << "### unaligned type found: aligning " << storeSize
+                  << " to " << alignedSize << "\n";
+#endif
+          if (isa<ArrayType>(elementType)) {
+            allocType =
+              ArrayType::get(elementType->getArrayElementType(), alignedSize);
+          } else if (isa<StructType>(elementType)) {
+            StructType *old_struct = dyn_cast<StructType>(elementType);
+
+            unsigned required_bytes = alignedSize - storeSize;
+            ArrayType *structPadding = ArrayType::get(
+                Type::getInt8Ty(M->getContext()), required_bytes);
+            std::vector<Type *> ary;
+            for (unsigned j = 0; j < old_struct->getNumElements(); j++)
+              ary.push_back(old_struct->getElementType(j));
+            ary.push_back(structPadding);
+            const ArrayRef<Type *> new_el(ary);
+            allocType = StructType::get(old_struct->getContext(), new_el,
+                                        old_struct->isPacked());
+            unsigned newStoreSize = dataLayout.getTypeStoreSize(allocType);
+            assert(newStoreSize == alignedSize);
+          }
+        }
+      }
+      llvm::Type *contextArrayType = ArrayType::get(
+          ArrayType::get(ArrayType::get(allocType, WGLocalSizeX), WGLocalSizeY),
+          WGLocalSizeZ);
+
+      /* Allocate the context data array for the variable. */
+      Alloca = builder.CreateAlloca(contextArrayType, 0, varName);
+    }
+#else  // TI
+  // parameterize alloca to be based on _local_size_{x,y,z}
   llvm::Value *wgsize = lsizeX;
   if (maxDim > 1) wgsize = builder.CreateMul(wgsize, lsizeY);
   if (maxDim > 2) wgsize = builder.CreateMul(wgsize, lsizeZ);
 
-// Change boolean i1 type to i32 type, TI used 4-byte int for boolean!!!
-// TODO: what if boolean is in a struct???
+  // Change boolean i1 type to i32 type, TI used 4-byte int for boolean!!!
+  // TODO: what if boolean is in a struct???
   llvm::Type *Int1  = llvm::Type::getInt1Ty (instruction->getContext());
   llvm::Type *Int32 = llvm::Type::getInt32Ty(instruction->getContext());
   if (elementType == Int1 || (elementType->isArrayTy() &&
                               elementType->getArrayElementType() == Int1))
     wgsize = builder.CreateMul(wgsize, ConstantInt::get(Int32, 4));
+  Alloca = builder.CreateAlloca(elementType, wgsize, varName);
 
-  llvm::Instruction *alloca =
-    builder.CreateAlloca(elementType, wgsize, varName);
-
-  llvm::Module *M = instruction->getParent()->getParent()->getParent();
   llvm::NamedMDNode *named = M->getOrInsertNamedMetadata("ocl.restrict");
   if (named->getNumOperands() == 0)
   {
@@ -1108,10 +1316,17 @@ WorkitemLoops::GetContextArray(llvm::Instruction *instruction)
     named->addOperand(Root);
   }
   llvm::MDNode *mdnode = named->getOperand(0);
-  alloca->setMetadata("ocl.restrict", mdnode);
+  Alloca->setMetadata("ocl.restrict", mdnode);
+#endif
 
-  contextArrays[varName] = alloca;
-  return alloca;
+  /* Align the context arrays to stack to enable wide vectors
+     accesses to them. Also, LLVM 3.3 seems to produce illegal
+     code at least with Core i5 when aligned only at the element
+     size. */
+  Alloca->setAlignment(CONTEXT_ARRAY_ALIGN);
+
+  contextArrays[varName] = Alloca;
+  return Alloca;
 }
 
 
@@ -1154,6 +1369,17 @@ WorkitemLoops::AddContextSaveRestore
 
   /* Find out the uses to fix first as fixing them invalidates
      the iterator. */
+#ifndef TI_POCL
+  for (Instruction::use_iterator ui = instruction->use_begin(),
+         ue = instruction->use_end();
+       ui != ue; ++ui) 
+    {
+      llvm::Instruction *user = cast<Instruction>(ui->getUser());
+      if (user == NULL) continue;
+      if (user == theStore) continue;
+      uses.push_back(user);
+    }
+#else  // TI fix (don't rememeber if this is LLVM version related)
   for (User *U : instruction->users() )
     {
       Instruction *user;
@@ -1161,6 +1387,7 @@ WorkitemLoops::AddContextSaveRestore
       if (user == theStore) continue;
       uses.push_back(user);
     }
+#endif
 
   for (InstructionVec::iterator i = uses.begin(); i != uses.end(); ++i)
     {
@@ -1239,7 +1466,7 @@ WorkitemLoops::ShouldNotBeContextSaved(llvm::Instruction *instr)
          load->getPointerOperand() == localIdX))
       return true;
 
-#if 0 // TI
+#ifndef TI_POCL // POCL original
     VariableUniformityAnalysis &VUA = 
       getAnalysis<VariableUniformityAnalysis>();
 #endif
@@ -1258,7 +1485,11 @@ WorkitemLoops::ShouldNotBeContextSaved(llvm::Instruction *instr)
        reduce them back to a single induction variable outside the
        parallel loop.   
     */
-    if (!VUA->shouldBePrivatized(instr->getParent()->getParent(), instr)) {
+#ifndef TI_POCL
+    if (!VUA.shouldBePrivatized(instr->getParent()->getParent(), instr)) {
+#else
+    if (!pVUA->shouldBePrivatized(instr->getParent()->getParent(), instr)) {
+#endif
 #ifdef DEBUG_WORK_ITEM_LOOPS
       std::cerr << "### based on VUA, not context saving:";
       instr->dump();
@@ -1298,6 +1529,74 @@ WorkitemLoops::AppendIncBlock
   return forIncBB;
 }
 
+// TI added functions goes from here to the end of the file
+#ifdef TI_POCL
+
+// PreAnalyze kernel function, find out dimension (borrowed from wga)
+// PreCreate local sizes which are workgroup invariant
+void WorkitemLoops::FindKernelDim(Function &F)
+{
+  maxDim = 1;
+  for (inst_iterator I = inst_begin(&F), E = inst_end(&F); I != E; ++I)
+    if (CallInst * callInst = dyn_cast<CallInst>(&*I))
+    {
+      if (!callInst->getCalledFunction()) continue;
+      std::string functionName(callInst->getCalledFunction()->getName());
+
+      if (functionName == "get_local_id" || 
+          functionName == "get_global_id")
+      {
+        Value *arg = callInst->getArgOperand(0);
+        if (ConstantInt * constInt = dyn_cast<ConstantInt>(arg))
+        {
+          unsigned int dimIdx = constInt->getSExtValue();
+          dimIdx = (MAX_DIMENSIONS-1 < dimIdx) ? MAX_DIMENSIONS-1 : dimIdx; 
+          maxDim = (maxDim < dimIdx + 1) ? dimIdx+1 : maxDim;
+        }
+
+        /*-------------------------------------------------------------
+        * if the work group function has a variable argument, then 
+        * assume worst case and return 3 loop levels are needed.
+        *------------------------------------------------------------*/
+        else 
+        {
+          maxDim = 3;
+          break;
+        }
+      }
+    }
+
+  llvm::Module *M = F.getParent();
+  llvm::Type *Int32 = IntegerType::get(M->getContext(), 32);
+  if (getReqdWGSize(F, wgsizes))
+  {
+    lsizeX = ConstantInt::get(Int32, wgsizes[0]);
+    lsizeY = ConstantInt::get(Int32, wgsizes[1]);
+    lsizeZ = ConstantInt::get(Int32, wgsizes[2]);
+  }
+  else
+  {
+    FunctionType *ft = FunctionType::get
+          (/*Result=*/   Int32,
+           /*Params=*/   Int32,
+           /*isVarArg=*/ false);
+    Function *f_localsize =
+          cast<Function>(M->getOrInsertFunction("get_local_size", ft));
+    SmallVector<Value *, 4> argsx, argsy, argsz;
+    argsx.push_back(ConstantInt::get(Int32, 0));
+    lsizeX = CallInst::Create(f_localsize, ArrayRef<Value *>(argsx));
+    if (maxDim > 1)
+    {
+      argsy.push_back(ConstantInt::get(Int32, 1));
+      lsizeY = CallInst::Create(f_localsize, ArrayRef<Value *>(argsy));
+    }
+    if (maxDim > 2)
+    {
+      argsz.push_back(ConstantInt::get(Int32, 2));
+      lsizeZ = CallInst::Create(f_localsize, ArrayRef<Value *>(argsz));
+    }
+  }
+}
 void
 WorkitemLoops::replaceGetLocalIdWithPhi(ParallelRegion *region, Value* phis[3])
 {
@@ -1599,7 +1898,7 @@ WorkitemLoops::findIntraRegionAllocas(llvm::Function *F)
     if (is_intra)
     {
       intraRegionAllocas.insert(alloca);
-      VUA->setUniform(F, alloca, false);
+      pVUA->setUniform(F, alloca, false);
     }
   }
 }
@@ -1702,3 +2001,4 @@ WorkitemLoops::isWGInvariant(Value *v)
   return false;
 }
 
+#endif  // #ifdef TI_POCL, TI added functions

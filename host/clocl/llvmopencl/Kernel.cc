@@ -311,25 +311,6 @@ Kernel::addLocalSizeInitCode(size_t LocalSizeX, size_t LocalSizeY, size_t LocalS
       (ConstantInt::get
        (IntegerType::get(M->getContext(), size_t_width),
         LocalSizeZ), gv);
-#else
-  FunctionType *ft = FunctionType::get
-        (/*Result=*/   IntegerType::get(M->getContext(), 32),
-         /*Params=*/   IntegerType::get(M->getContext(), 32),
-         /*isVarArg=*/ false);
-  Function *localsize =
-        cast<Function>(M->getOrInsertFunction("get_local_size", ft));
-  gv = M->getGlobalVariable("_local_size_x");
-  builder.CreateStore(builder.CreateCall(localsize, 
-        ConstantInt::get(IntegerType::get(M->getContext(), size_t_width), 0)),
-                      gv);
-  gv = M->getGlobalVariable("_local_size_y");
-  builder.CreateStore(builder.CreateCall(localsize, 
-        ConstantInt::get(IntegerType::get(M->getContext(), size_t_width), 1)),
-                      gv);
-  gv = M->getGlobalVariable("_local_size_z");
-  builder.CreateStore(builder.CreateCall(localsize, 
-        ConstantInt::get(IntegerType::get(M->getContext(), size_t_width), 2)),
-                      gv);
 #endif
 }
 
