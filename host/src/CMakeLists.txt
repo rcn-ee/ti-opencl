@@ -16,6 +16,10 @@ elseif (CROSS_COMPILE)
     ${HOST_USR_INCLUDE_PATH}  )
 endif()
 
+execute_process(COMMAND git rev-parse --short HEAD
+                WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+                OUTPUT_VARIABLE GIT_SHA
+                OUTPUT_STRIP_TRAILING_WHITESPACE)
 
 include_directories (
     ${PROJECT_SOURCE_DIR}/include
@@ -42,6 +46,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_FILE_OFFSET_BITS=64")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_PRODUCT_VERSION=${${PROJECT_NAME}_PKG_VERSION}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DBOOST_SYSTEM_NO_DEPRECATED=1")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DBOOST_SYSTEM_NO_LIB=1")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_BUILD_ID=${GIT_SHA}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 
 # bfd.h has a check to ensure that config.h is included

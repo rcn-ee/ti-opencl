@@ -19,6 +19,11 @@ OCL_VERSIONED_NAME=$(OCL_DPKG_NAME)_$(OCL_VER)
 
 OCL_FULL_VER=$(OCL_MAJOR_VER).$(OCL_MINOR_VER).$(OCL_RELEASE_VER).$(OCL_PATCH_VER)
 
+ifeq ($(shell git rev-parse --short HEAD 2>&1 1>/dev/null; echo $$?),0)
+GIT_SHA?=$(shell git rev-parse --short HEAD)
+endif
+
+
 SDOMC_SHARED?=/cgnas
 
 # XDC (not included in CoreSDK)

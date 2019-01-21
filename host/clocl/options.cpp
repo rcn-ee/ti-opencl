@@ -51,7 +51,7 @@ void print_version()
 {
     printf("OpenCL 1.1 TI product version "
            STRINGIZE2(_PRODUCT_VERSION)
-           " (" __DATE__ " " __TIME__ ")\n\n");
+           " (" STRINGIZE2(_BUILD_ID) ")\n\n");
 }
 
 /******************************************************************************
@@ -141,7 +141,7 @@ void process_options(int argc, char **argv)
 {
     int c;
 
-    while (1) 
+    while (1)
     {
         static struct option long_options[] = {
 
@@ -185,7 +185,7 @@ void process_options(int argc, char **argv)
                             &option_index);
        if (c == -1) break;
 
-       switch (c) 
+       switch (c)
        {
            case 0:
                {
@@ -212,8 +212,8 @@ void process_options(int argc, char **argv)
                 cl_options += argv[this_option_optind];
                 break;
                }
-                
-           case 1: 
+
+           case 1:
                {
                  string fname(argv[this_option_optind]);
                  string ext(fs_ext(fname));
@@ -233,8 +233,8 @@ void process_options(int argc, char **argv)
            case 's': opt_symbols = 1; break;
            case 'w': opt_w = 1; cl_options += " -w"; break;
 
-           case 'D': 
-           case 'I': 
+           case 'D':
+           case 'I':
                      cl_incdef += " -";
                      cl_incdef += c;
                      cl_incdef += optarg;
