@@ -30,7 +30,7 @@
 #include <fcntl.h>
 #include "ti_pocl.h"
 
-_cl_device_id PoclDevice {0, 64, false, 0, 0, 0, "aarch64-unknown-linux-gnu" };
+_cl_device_id PoclDevice {0, 32, false, 0, 0, 0, "c6000-unknown-linux-gnu" };
 
 _cl_device_id* currentPoclDevice = &PoclDevice;
 

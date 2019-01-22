@@ -3,7 +3,7 @@
 // 
 // Copyright (c) 2011 Universidad Rey Juan Carlos and
 //               2012-2015 Pekka Jääskeläinen / TUT
-// Copyright (c) 2013-2016, Texas Instruments Incorporated - http://www.ti.com/
+// Copyright (c) 2013-2019, Texas Instruments Incorporated - http://www.ti.com/
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -497,11 +497,19 @@ ParallelRegion::AddParallelLoopMetadata(llvm::MDNode *identifier) {
          ii != ee; ii++) {
       if (ii->mayReadOrWriteMemory()) {
         MDNode *newMD = MDNode::get(bb->getContext(), identifier);
+#ifndef TI_POCL
+        MDNode *oldMD = ii->getMetadata("llvm.mem.parallel_loop_access");
+        if (oldMD != NULL) {
+          newMD = llvm::MDNode::concatenate(oldMD, newMD);
+        }
+        ii->setMetadata("llvm.mem.parallel_loop_access", newMD);
+#else
         MDNode *oldMD = ii->getMetadata(LLVMContext::MD_mem_parallel_loop_access);
         if (oldMD != NULL) {
           newMD = llvm::MDNode::concatenate(oldMD, newMD);
         }
         ii->setMetadata(LLVMContext::MD_mem_parallel_loop_access, newMD);
+#endif
       }
     }
   }

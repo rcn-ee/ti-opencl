@@ -2,7 +2,7 @@
 // 
 // Copyright (c) 2011 Universidad Rey Juan Carlos
 //               2012-2014 Pekka Jääskeläinen / Tampere University of Technology
-// Copyright (c) 2013-2016, Texas Instruments Incorporated - http://www.ti.com/
+// Copyright (c) 2013-2019, Texas Instruments Incorporated - http://www.ti.com/
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -238,7 +238,7 @@ CanonicalizeBarriers::ProcessFunction(Function &F) {
             break;
           }
 #else
-        if (Barrier::hasOnlyBarrier(successor) && 
+        if (Barrier::hasOnlyBarrier(successor) &&
             Barrier::hasOriginalBarrier(successor) &&   /* TI */
             successor->getSinglePredecessor() == b &&
             successor->getTerminator()->getNumSuccessors() == 1)

@@ -3,7 +3,7 @@
 // 
 // Copyright (c) 2011-2012 Carlos Sánchez de La Lama / URJC and
 //               2012-2015 Pekka Jääskeläinen / TUT
-// Copyright (c) 2013-2016, Texas Instruments Incorporated - http://www.ti.com/
+// Copyright (c) 2013-2019, Texas Instruments Incorporated - http://www.ti.com/
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -78,19 +78,21 @@ WorkitemHandler::Initialize(Kernel *K) {
   llvm::Module *M = K->getParent();
 
 #ifdef TI_POCL
+  // TI: 3 is arbitrarily chosen number that is larger than 2, the
+  //     WI kernel replication threshold.  This number is not used.
+  //     TI always insert loops instead of replicating WI kernel.
   WGLocalSizeX = 3;
   WGLocalSizeY = 1;
   WGLocalSizeZ = 1;
   WGDynamicLocalSize = true;
-  
-  // TODO: are we searching reqd_workgroup_size here? If so, we need to enforce it.
-  llvm::NamedMDNode *size_info = 
+
+  llvm::NamedMDNode *size_info =
     M->getNamedMetadata("opencl.kernel_wg_size_info");
   if (size_info) {
     for (unsigned i = 0, e = size_info->getNumOperands(); i != e; ++i) {
       llvm::MDNode *KernelSizeInfo = size_info->getOperand(i);
       if (cast<ValueAsMetadata>(
-        KernelSizeInfo->getOperand(0).get())->getValue() != K) 
+        KernelSizeInfo->getOperand(0).get())->getValue() != K)
         continue;
 
       WGLocalSizeX = (llvm::cast<ConstantInt>(

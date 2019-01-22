@@ -1,8 +1,9 @@
 // LLVM loop pass that adds required barriers to loops.
-// 
+//
 // Copyright (c) 2011 Universidad Rey Juan Carlos
 //               2012-2013 Pekka Jääskeläinen / Tampere University of Technology
-// 
+// Copyright (c) 2019, Texas Instruments Incorporated - http://www.ti.com/
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights

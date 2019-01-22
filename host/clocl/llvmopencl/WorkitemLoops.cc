@@ -2,7 +2,7 @@
 // in a work group while respecting barrier synchronization points.
 // 
 // Copyright (c) 2012-2013 Pekka Jääskeläinen / Tampere University of Technology
-// Copyright (c) 2013-2016, Texas Instruments Incorporated - http://www.ti.com/
+// Copyright (c) 2013-2019, Texas Instruments Incorporated - http://www.ti.com/
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -148,9 +148,6 @@ WorkitemLoops::runOnFunction(Function &F)
 
   changed |= fixUndominatedVariableUses(DTP, F);
 
-  // YUAN TODO: Causing significant opt6x time increase, need to investigate
-  // changed |= removeBarrierCalls(&F);
-
 #if 0
   /* Split large BBs so we can print the Dot without it crashing. */
   changed |= chopBBs(F, *this);
@@ -226,6 +223,28 @@ WorkitemLoops::CreateLoopAround
     enable easy vectorization of loading the context data when there are parallel iterations.
   */     
 
+  /* TI generates slightly different loop structure in that
+     - TI does not use a global index variable
+     - TI uses a local PHI node as loop index variable
+
+      ... ...
+    pregion_for_init:        ; preds = loopBodyEntryBB
+      br label %pregion_for_entry.
+
+    pregion_for_entry.:      ; preds = %pregion_for_cond, %pregion_for_init
+      %9 = phi i32 [ 0, %pregion_for_init ], [ %13, %pregion_for_cond ]
+      ... ...
+      br label %pregion_for_cond
+
+    pregion_for_cond:        ; preds = %pregion_for_entry.
+      %13 = add i32 %9, 1
+      %14 = icmp slt i32 %13, %5
+      br i1 %14, label %pregion_for_entry., label %pregion_for_end, !llvm.loop !17
+
+    pregion_for_end:         ; preds = %pregion_for_cond
+      ... ...
+  */
+
   llvm::BasicBlock *loopBodyEntryBB = entryBB;
   llvm::LLVMContext &C = loopBodyEntryBB->getContext();
   llvm::Function *F = loopBodyEntryBB->getParent();
@@ -245,10 +264,10 @@ WorkitemLoops::CreateLoopAround
   llvm::BasicBlock *forCondBB = 
     BasicBlock::Create(C, "pregion_for_cond", F, exitBB);
 #else // TI
-  llvm::BasicBlock *forCondBB =
-    BasicBlock::Create(C, "pregion_for_cond", F, oldExit);
   llvm::BasicBlock *loopEndBB =
     BasicBlock::Create(C, "pregion_for_end", F, oldExit);
+  llvm::BasicBlock *forCondBB =
+    BasicBlock::Create(C, "pregion_for_cond", F, oldExit);
 #endif
 
 
@@ -486,7 +505,7 @@ WorkitemLoops::ProcessFunction(Function &F)
 
   Initialize(K);
 
-#ifndef TI_POCL // TODO: do something for reqd_work_group_size
+#ifndef TI_POCL
   unsigned workItemCount = WGLocalSizeX*WGLocalSizeY*WGLocalSizeZ;
 
   if (workItemCount == 1)
@@ -606,6 +625,7 @@ WorkitemLoops::ProcessFunction(Function &F)
     */
     bool peelFirst =  entryCounts[original->entryBB()] > 1;
 
+#ifdef TI_POCL
     // if not peelFirst, skip adding loops for empty region
     if (! peelFirst)
     {
@@ -619,6 +639,7 @@ WorkitemLoops::ProcessFunction(Function &F)
       }
       if (emptyRegion)  continue;
     }
+#endif
     
     peeledRegion[original] = peelFirst;
 
@@ -709,7 +730,7 @@ WorkitemLoops::ProcessFunction(Function &F)
         }
 #else
         l = std::make_pair(original->entryBB(), original->exitBB());
-#endif 
+#endif
       }
 
 #ifdef TI_POCL
@@ -1369,7 +1390,6 @@ WorkitemLoops::AddContextSaveRestore
 
   /* Find out the uses to fix first as fixing them invalidates
      the iterator. */
-#ifndef TI_POCL
   for (Instruction::use_iterator ui = instruction->use_begin(),
          ue = instruction->use_end();
        ui != ue; ++ui) 
@@ -1379,15 +1399,6 @@ WorkitemLoops::AddContextSaveRestore
       if (user == theStore) continue;
       uses.push_back(user);
     }
-#else  // TI fix (don't rememeber if this is LLVM version related)
-  for (User *U : instruction->users() )
-    {
-      Instruction *user;
-      if ((user = dyn_cast<Instruction> (U)) == NULL) continue;
-      if (user == theStore) continue;
-      uses.push_back(user);
-    }
-#endif
 
   for (InstructionVec::iterator i = uses.begin(); i != uses.end(); ++i)
     {
@@ -1529,7 +1540,7 @@ WorkitemLoops::AppendIncBlock
   return forIncBB;
 }
 
-// TI added functions goes from here to the end of the file
+// TI added functions go from here to the end of the file
 #ifdef TI_POCL
 
 // PreAnalyze kernel function, find out dimension (borrowed from wga)
@@ -1543,22 +1554,22 @@ void WorkitemLoops::FindKernelDim(Function &F)
       if (!callInst->getCalledFunction()) continue;
       std::string functionName(callInst->getCalledFunction()->getName());
 
-      if (functionName == "get_local_id" || 
+      if (functionName == "get_local_id" ||
           functionName == "get_global_id")
       {
         Value *arg = callInst->getArgOperand(0);
         if (ConstantInt * constInt = dyn_cast<ConstantInt>(arg))
         {
           unsigned int dimIdx = constInt->getSExtValue();
-          dimIdx = (MAX_DIMENSIONS-1 < dimIdx) ? MAX_DIMENSIONS-1 : dimIdx; 
+          dimIdx = (MAX_DIMENSIONS-1 < dimIdx) ? MAX_DIMENSIONS-1 : dimIdx;
           maxDim = (maxDim < dimIdx + 1) ? dimIdx+1 : maxDim;
         }
 
         /*-------------------------------------------------------------
-        * if the work group function has a variable argument, then 
+        * if the work group function has a variable argument, then
         * assume worst case and return 3 loop levels are needed.
         *------------------------------------------------------------*/
-        else 
+        else
         {
           maxDim = 3;
           break;

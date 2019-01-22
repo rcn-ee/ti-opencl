@@ -1,7 +1,7 @@
 // Implementation for VariableUniformityAnalysis function pass.
 // 
 // Copyright (c) 2013-2014 Pekka Jääskeläinen / Tampere University of Technology
-// Copyright (c) 2013-2016, Texas Instruments Incorporated - http://www.ti.com/
+// Copyright (c) 2013-2019, Texas Instruments Incorporated - http://www.ti.com/
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -218,50 +218,67 @@ VariableUniformityAnalysis::analyzeBBDivergence
             << std::endl;
 #endif
 
-  llvm::BasicBlock *newPreviousUniformBB = previousUniformBB;
-
-  llvm::BranchInst *br = 
-    dyn_cast<llvm::BranchInst>(previousUniformBB->getTerminator());  
-
-  if (br == NULL) {
+  llvm::TerminatorInst *Term = previousUniformBB->getTerminator();
+  if (Term == NULL) {
     // this is most likely a function with a single basic block, the entry node, which
     // ends with a ret
     return;
   }
 
+  llvm::BranchInst *BrInst = dyn_cast<llvm::BranchInst>(Term);
+  llvm::SwitchInst *SwInst = dyn_cast<llvm::SwitchInst>(Term);
+
+  if (BrInst == nullptr && SwInst == nullptr) {
+    // Can only handle branches and switches for now.
+    return;
+  }
+
+  // The BBs that were found uniform.
+  std::vector<llvm::BasicBlock *> FoundUniforms;
+
   // Condition c)
-  if ((!br->isConditional() || isUniform(f, br->getCondition()))) {
-    for (unsigned suc = 0, end = br->getNumSuccessors(); suc < end; ++suc) {
-      if (br->getSuccessor(suc) == bb) {
-        setUniform(f, bb, true);
-        newPreviousUniformBB = bb;
-        break;
-      }
+  if ((BrInst && (!BrInst->isConditional() ||
+                  isUniform(f, BrInst->getCondition()))) ||
+      (SwInst && isUniform(f, SwInst->getCondition()))) {
+    // This is a branch with a uniform condition, propagate the uniformity
+    // to the BB of interest.
+    for (unsigned suc = 0, end = Term->getNumSuccessors(); suc < end; ++suc) {
+      llvm::BasicBlock *Successor = Term->getSuccessor(suc);
+      // TODO: should we check that there are no divergent entries to this
+      // BB even though if the currently checked condition is uniform?
+      setUniform(f, Successor, true);
+      FoundUniforms.push_back(Successor);
     }
-  } 
+  }
 
   // Condition b)
-  if (newPreviousUniformBB != bb) {
+  if (FoundUniforms.size() == 0) {
+#ifdef LLVM_OLDER_THAN_3_9
     llvm::PostDominatorTree *PDT = &getAnalysis<PostDominatorTree>();
     if (PDT->dominates(bb, previousUniformBB)) {
+#else
+    llvm::PostDominatorTreeWrapperPass *PDT = &getAnalysis<PostDominatorTreeWrapperPass>();
+    if (PDT->getPostDomTree().dominates(bb, previousUniformBB)) {
+#endif
       setUniform(f, bb, true);
-      newPreviousUniformBB = bb;
+      FoundUniforms.push_back(bb);
     }
-  } 
+  }
 
   /* Assume diverging. */
   if (!isUniformityAnalyzed(f, bb))
     setUniform(f, bb, false);
 
-  llvm::BranchInst *nextbr = dyn_cast<llvm::BranchInst>(bb->getTerminator());  
+  for (auto UniformBB : FoundUniforms) {
 
-  if (nextbr == NULL) return; /* ret */
+    // Propagate the Uniform BB data downwards.
+    llvm::TerminatorInst *NextTerm = UniformBB->getTerminator();
 
-  /* Propagate the data downward. */
-  for (unsigned suc = 0, end = nextbr->getNumSuccessors(); suc < end; ++suc) {
-    llvm::BasicBlock *nextbb = nextbr->getSuccessor(suc);
-    if (!isUniformityAnalyzed(f, nextbb)) {
-      analyzeBBDivergence(f, nextbb, newPreviousUniformBB);
+    for (unsigned suc = 0, end = NextTerm->getNumSuccessors(); suc < end; ++suc) {
+      llvm::BasicBlock *NextBB = NextTerm->getSuccessor(suc);
+      if (!isUniformityAnalyzed(f, NextBB)) {
+        analyzeBBDivergence(f, NextBB, UniformBB);
+      }
     }
   }
 }
@@ -354,7 +371,7 @@ VariableUniformityAnalysis::isUniform(llvm::Function *f, llvm::Value* v) {
 #else
         // TI DISABLE: all allocas are moved to Entry block later, there is
         //             no need to check if current block is uniform or not
-        if (!isUniform(f, store->getValueOperand()) /* TI DISABLE || 
+        if (!isUniform(f, store->getValueOperand()) /* TI DISABLE ||
             !isUniform(f, store->getParent()) */ ) {
 #endif
           if (!isUniform(f, store->getParent())) {
@@ -416,11 +433,14 @@ VariableUniformityAnalysis::isUniform(llvm::Function *f, llvm::Value* v) {
       return true;
     } 
 
+#ifdef TI_POCL
     /* TI: In case the first form didn't get converted to the second form */
     if (getKernelConfigLoadInstIndex(load) >= 0)
     { setUniform(f, v, true); return true; }
+#endif
   }
 
+#ifdef TI_POCL
   /* TI: Values loaded from __kernel_config_l2 are invariant in each work group
      Two forms: GetElementPtrConstantExpr, GetElementPtrInst
      First form already turned into second form by BreakConstantGep
@@ -428,6 +448,7 @@ VariableUniformityAnalysis::isUniform(llvm::Function *f, llvm::Value* v) {
   if (Instruction *instr = dyn_cast<Instruction>(v))
     if (getKernelConfigGEPInstIndex(instr) >= 0)
       { setUniform(f, v, true); return true; }
+#endif
 
   if (isa<llvm::PHINode>(v)) {
     /* TODO: PHINodes need control flow analysis:

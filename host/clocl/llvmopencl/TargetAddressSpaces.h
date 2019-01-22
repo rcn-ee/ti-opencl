@@ -1,6 +1,6 @@
 // Header for TargetAddressSpaces, an LLVM pass that converts the
-// generic address space ids to the target specific ones.
-// 
+// fake address space ids to the target specific ones.
+//
 // Copyright (c) 2013 Pekka Jääskeläinen / TUT
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -46,5 +46,11 @@ namespace pocl {
     virtual bool runOnModule(llvm::Module &M);    
   };
 }
+
+#define POCL_FAKE_AS_PRIVATE 0
+#define POCL_FAKE_AS_GLOBAL 1
+#define POCL_FAKE_AS_LOCAL 2
+#define POCL_FAKE_AS_CONSTANT 3
+#define POCL_FAKE_AS_GENERIC 4
 
 #endif

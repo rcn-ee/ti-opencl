@@ -1,6 +1,7 @@
 // LLVM function pass to convert all PHIs to allocas.
 // 
 // Copyright (c) 2012 Pekka Jääskeläinen / TUT
+// Copyright (c) 2019, Texas Instruments Incorporated - http://www.ti.com/
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal

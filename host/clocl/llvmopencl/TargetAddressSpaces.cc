@@ -2,6 +2,7 @@
 //                          the target-specific ones, if needed
 //
 // Copyright (c) 2013-2015 Pekka Jääskeläinen / TUT
+// Copyright (c) 2019, Texas Instruments Incorporated - http://www.ti.com/
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -47,7 +48,11 @@
 
 #define DEBUG_TARGET_ADDRESS_SPACES
 
+#ifndef TI_POCL
+extern cl_device_id currentPoclDevice;
+#else
 extern _cl_device_id* currentPoclDevice;
+#endif
 
 namespace pocl {
 
@@ -66,31 +71,132 @@ TargetAddressSpaces::TargetAddressSpaces() : ModulePass(ID) {
 }
 
 static Type *
-ConvertedType(llvm::Type *type, std::map<unsigned, unsigned> &addrSpaceMap) {
+ConvertedType(llvm::Type *type, std::map<unsigned, unsigned> &addrSpaceMap,
+              std::map<llvm::Type*, llvm::StructType*> &convertedStructsCache) {
 
   if (type->isPointerTy()) {
     unsigned AS = type->getPointerAddressSpace();
     unsigned newAS = addrSpaceMap[AS];
-    return PointerType::get(ConvertedType(type->getPointerElementType(), addrSpaceMap), newAS);
+    return PointerType::get(
+          ConvertedType(type->getPointerElementType(),
+                        addrSpaceMap, convertedStructsCache),
+          newAS);
   } else if (type->isArrayTy()) {
-    return ArrayType::get
-      (ConvertedType(type->getArrayElementType(), addrSpaceMap), type->getArrayNumElements());
-  } else { /* TODO: pointers inside structs */
+    return ArrayType::get(
+          ConvertedType(type->getArrayElementType(),
+                        addrSpaceMap, convertedStructsCache),
+          type->getArrayNumElements());
+    // TO CLEAN: Check what is the issue with TCE. If it's a TCE-specific problem,
+    // add a runtime check here for the target device, not compile time!
+#ifndef TI_POCL
+#ifndef TCE_AVAILABLE
+  } else if (type->isStructTy()) {
+
+    // We need to handle the fields of the structs recursively,
+    // converting their address spaces to the target's and
+    // creating a new struct type in the process.
+    if (convertedStructsCache[type])
+      return convertedStructsCache[type];
+
+    llvm::StructType* OrigType = dyn_cast<llvm::StructType>(type);
+    std::vector<llvm::Type*> newtypes;
+    for (llvm::StructType::element_iterator i = OrigType->element_begin(),
+         e = OrigType->element_end(); i < e; ++i) {
+      newtypes.push_back(ConvertedType(*i, addrSpaceMap, convertedStructsCache));
+    }
+    ArrayRef<Type*> a(newtypes);
+    llvm::StructType* NewType;
+    if (OrigType->isLiteral()) {
+      NewType = StructType::get(OrigType->getContext(), a, OrigType->isPacked());
+    } else {
+      std::string s = OrigType->getName().str();
+      s += "_tas_struct";
+      NewType = StructType::create(OrigType->getContext(), s);
+      NewType->setBody(a, OrigType->isPacked());
+    }
+    convertedStructsCache[type] = NewType;
+    return NewType;
+#endif
+#endif
+  } else {
     return type;
   }
 }
 
 static bool
-UpdateAddressSpace(llvm::Value& val, std::map<unsigned, unsigned> &addrSpaceMap) {
+UpdateAddressSpace(llvm::Value& val, std::map<unsigned, unsigned> &addrSpaceMap,
+                   std::map<llvm::Type*, llvm::StructType*> &convertedStructsCache) {
   Type *type = val.getType();
   if (!type->isPointerTy()) return false;
 
-  Type *newType = ConvertedType(type, addrSpaceMap);
+  Type *newType = ConvertedType(type, addrSpaceMap, convertedStructsCache);
   if (newType == type) return false;
 
   val.mutateType(newType);
   return true;
 }
+
+/* Removes AddrSpaceCastInst either as Inst or ConstantExpr, if they cast
+   to generic addrspace, or if they point to the same AS
+   ConstExpr removing is 2 step: CE -> convert to ASCI -> remove ASCI.
+
+   \param [in] v the ASCI to remove
+   \param [in] beforeinst in case of a ConstantExpr, after converting it to Instr
+               we need to insert it into BB; this is an Instr before
+               which we insert it (it's the CE itself)
+   \returns true if replacement took place (-> BB iterator needs to restart)
+*/
+static bool removeASCI(llvm::Value *v, llvm::Instruction *beforeinst,
+                       std::map<unsigned, unsigned> &addrSpaceMap,
+                       std::map<llvm::Type*,
+                       llvm::StructType*> &convertedStructsCache) {
+  if (isa<ConstantExpr>(v)) {
+      ConstantExpr *ce = dyn_cast<ConstantExpr>(v);
+      Value *in = ce->getAsInstruction();
+      AddrSpaceCastInst *asci = dyn_cast<AddrSpaceCastInst>(in);
+      assert(asci);
+      if (asci->getDestTy()->getPointerAddressSpace() == POCL_FAKE_AS_GENERIC) {
+        asci->insertBefore(beforeinst);
+        v->replaceAllUsesWith(in);
+        in->takeName(v);
+        return true;
+      } else
+        return false;
+  }
+  if (isa<AddrSpaceCastInst>(v)) {
+      AddrSpaceCastInst *as = dyn_cast<AddrSpaceCastInst>(v);
+      Type* SrcTy = as->getSrcTy();
+      Type* DstTy = as->getDestTy();
+      if (isa<PointerType>(SrcTy) && isa<PointerType>(DstTy)) {
+        if ((DstTy->getPointerAddressSpace() == SrcTy->getPointerAddressSpace())
+            || (DstTy->getPointerAddressSpace() == POCL_FAKE_AS_GENERIC))
+          {
+            if (DstTy->getPointerAddressSpace() == POCL_FAKE_AS_GENERIC)
+              UpdateAddressSpace(*as, addrSpaceMap, convertedStructsCache);
+            Value* srcVal = as->getOperand(0);
+            // We cannot just replaceAllUsesWith directly as UpdateAddressSpace
+            // might have changed the struct type to a new *_tas_struct type.
+            // In that case we need to replace also the referred types at least
+            // in case of array accesses. See issue #342 which is using events
+            // and events are context saved for each work-item and the GEPs
+            // that refer to the context array still have the old opencl.event_t
+            // type reference and we have converted the opencl.event_t to
+            // a new opencl.event_t_tas_struct and thus the replaceAllUsesWith
+            // fails with an assertion (if LLVM has assertions enabled) due to
+            // the mismatching type.
+            as->replaceAllUsesWith(srcVal);
+            as->eraseFromParent();
+            return true;
+          }
+      }
+  }
+
+  return false;
+
+}
+
+
+
 
 /**
  * After converting the pointer address spaces, there
@@ -143,64 +249,36 @@ FixMemIntrinsics(llvm::Function& F) {
   }
 }
 
-bool
-TargetAddressSpaces::runOnModule(llvm::Module &M) {
 
-  llvm::StringRef arch(M.getTargetTriple());
 
-  std::map<unsigned, unsigned> addrSpaceMap;
 
-  if (arch.startswith("x86_64")) {
-    /* x86_64 supports flattening the address spaces at the backend, but
-       we still flatten them in pocl due to a couple of reasons.
+static void
+run(llvm::Module &M,
+    std::map<unsigned, unsigned> &addrSpaceMap,
+    bool handle_generic_AS) {
 
-       At least LLVM 3.5 exposes an issue with pocl's printf or another LLVM pass:
-       After the code emission optimizations there appears a
-       PHI node where the two alternative pointer assignments have different
-       address spaces:
-       %format.addr.2347 =
-          phi i8 addrspace(3)* [ %incdec.ptr58, %if.end56 ],
-                               [ %format.addr.1, %while.body45.preheader ]
+  std::map<llvm::Type*, llvm::StructType*> convertedStructsCache;
 
-       This leads to an LLVM crash when it tries to generate a no-op bitcast
-       while it won't be such due to the address space difference (I assume).
-       Workaround this by flattening the address spaces to 0 here also for
-       x86_64 until the real culprit is found.
+#ifndef TI_POCL
+  /* Handle global variables. These should be fixed *after*
+     fixing the instruction referring to them.  If we fix
+     the address spaces before, there might be possible
+     illegal bitcasts casting the LLVM's global pointer to
+     another one, causing the CloneFunctionInto to crash when
+     it encounters such.
 
-       Another reason is that LoopVectorizer of LLVM 3.7 crashes when it
-       tries to create a masked store intrinsics with the fake address space
-       ids, so we need to flatten them out before vectorizing.
-    */
-    addrSpaceMap[POCL_ADDRESS_SPACE_GLOBAL] =
-        addrSpaceMap[POCL_ADDRESS_SPACE_LOCAL] =
-        addrSpaceMap[POCL_ADDRESS_SPACE_CONSTANT] = 0;
-
-  } else if (arch.startswith("arm")) {
-    addrSpaceMap[POCL_ADDRESS_SPACE_GLOBAL] =
-        addrSpaceMap[POCL_ADDRESS_SPACE_LOCAL] =
-        addrSpaceMap[POCL_ADDRESS_SPACE_CONSTANT] = 0;
-  } else if (arch.startswith("tce")) {
-    /* TCE requires the remapping. */
-    addrSpaceMap[POCL_ADDRESS_SPACE_GLOBAL] = 3;
-    addrSpaceMap[POCL_ADDRESS_SPACE_LOCAL] = 4;
-    /* LLVM 3.2 detects 'constant' as cuda_constant (5) in the fake
-       address space map. Add it for compatibility. */
-    addrSpaceMap[5] = addrSpaceMap[POCL_ADDRESS_SPACE_CONSTANT] = 5;
-  } else if (arch.startswith("mips")) {
-    addrSpaceMap[POCL_ADDRESS_SPACE_GLOBAL] =
-        addrSpaceMap[POCL_ADDRESS_SPACE_LOCAL] =
-        addrSpaceMap[POCL_ADDRESS_SPACE_CONSTANT] = 0;
-  } else if (arch.startswith("amdgcn") || arch.startswith("hsail")) {
-    addrSpaceMap[POCL_ADDRESS_SPACE_GLOBAL] = 1;
-    addrSpaceMap[POCL_ADDRESS_SPACE_LOCAL] = 3;
-    addrSpaceMap[POCL_ADDRESS_SPACE_CONSTANT] = 2;
-  } else {
-    /* Assume the fake address space map works directly in case not
-       overridden here.  */
-    return false;
+     Update: ^this seems not to be an issue anymore and this commit
+     seems to cause the problems it is trying to fix on hsa and
+     amd scanlargearrays....  Original commit:
+     dcbcd39811638bcb953afbbfdd2620fb8ab45af4
+  */
+  llvm::Module::global_iterator globalI = M.global_begin();
+  llvm::Module::global_iterator globalE = M.global_end();
+  for (; globalI != globalE; ++globalI) {
+    llvm::Value &global = *globalI;
+    UpdateAddressSpace(global, addrSpaceMap, convertedStructsCache);
   }
-
-  bool changed = false;
+#endif
 
   FunctionMapping funcReplacements;
   std::vector<llvm::Function*> unhandledFuncs;
@@ -225,10 +303,11 @@ TargetAddressSpaces::runOnModule(llvm::Module &M) {
     for (Function::const_arg_iterator i = F.arg_begin(),
            e = F.arg_end();
          i != e; ++i)
-      parameters.push_back(ConvertedType(i->getType(), addrSpaceMap));
+      parameters.push_back(
+            ConvertedType(i->getType(), addrSpaceMap, convertedStructsCache));
 
     llvm::FunctionType *ft = FunctionType::get
-      (ConvertedType(F.getReturnType(), addrSpaceMap),
+      (ConvertedType(F.getReturnType(), addrSpaceMap, convertedStructsCache),
        parameters, F.isVarArg());
 
     llvm::Function *newFunc = Function::Create(ft, F.getLinkage(), "", &M);
@@ -246,37 +325,101 @@ TargetAddressSpaces::runOnModule(llvm::Module &M) {
 
     SmallVector<ReturnInst *, 1> ri;
 
+    if (handle_generic_AS) {
+
+      /* Remove generic address space casts. Converts types with generic AS to
+       * private AS and then removes redundant AS casting instructions */
+      for (llvm::Function::iterator bbi = F.begin(), bbe = F.end(); bbi != bbe;
+           ++bbi)
+        for (llvm::BasicBlock::iterator ii = bbi->begin(), ie = bbi->end(); ii != ie;
+             ++ii) {
+
+          llvm::Instruction *instr = &*ii;
+
+          if (isa<AddrSpaceCastInst>(instr)) {
+            if (removeASCI(instr, nullptr, addrSpaceMap,
+                           convertedStructsCache)) {
+              ii = bbi->begin();
+              continue;
+            }
+          }
+          if (isa<StoreInst>(instr)) {
+            StoreInst *st = dyn_cast<StoreInst>(instr);
+            Value *pt = st->getPointerOperand();
+            if (Operator::getOpcode(pt) == Instruction::AddrSpaceCast) {
+              if (removeASCI(pt, instr, addrSpaceMap,
+                             convertedStructsCache)) {
+                ii = bbi->begin();
+                continue;
+              }
+            } else
+              if (st->getPointerAddressSpace() == POCL_FAKE_AS_GENERIC)
+                UpdateAddressSpace(*pt, addrSpaceMap, convertedStructsCache);
+        }
+          if (isa<LoadInst>(instr)) {
+            LoadInst *ld = dyn_cast<LoadInst>(instr);
+            Value *pt = ld->getPointerOperand();
+            if (Operator::getOpcode(pt) == Instruction::AddrSpaceCast) {
+              if (removeASCI(pt, instr, addrSpaceMap, convertedStructsCache)) {
+                ii = bbi->begin();
+                continue;
+              }
+            } else
+              if (ld->getPointerAddressSpace() == POCL_FAKE_AS_GENERIC)
+                UpdateAddressSpace(*pt, addrSpaceMap, convertedStructsCache);
+        }
+          if (isa<GetElementPtrInst>(instr)) {
+            GetElementPtrInst *gep = dyn_cast<GetElementPtrInst>(instr);
+            Value *pt = gep->getPointerOperand();
+            if (Operator::getOpcode(pt) == Instruction::AddrSpaceCast) {
+              if (removeASCI(pt, instr, addrSpaceMap, convertedStructsCache))
+              { ii = bbi->begin(); continue; }
+            } else {
+              if (gep->getPointerAddressSpace() == POCL_FAKE_AS_GENERIC)
+                UpdateAddressSpace(*pt, addrSpaceMap, convertedStructsCache);
+            }
+          }
+        }
+    }
+
     class AddressSpaceReMapper : public ValueMapTypeRemapper {
     public:
-      AddressSpaceReMapper(std::map<unsigned, unsigned> &addrSpaceMap) :
-        addrSpaceMap_(addrSpaceMap) {}
+      AddressSpaceReMapper(std::map<unsigned, unsigned> &addrSpaceMap,
+                           std::map<llvm::Type*, llvm::StructType*> *c) :
+        cStructCache_(c), addrSpaceMap_(addrSpaceMap) {}
+
       Type* remapType(Type *type) {
-        Type *newType = ConvertedType(type, addrSpaceMap_);
+        Type *newType = ConvertedType(type, addrSpaceMap_, *cStructCache_);
         if (newType == type) return type;
         return newType;
       }
     private:
+      std::map<llvm::Type*, llvm::StructType*> *cStructCache_;
       std::map<unsigned, unsigned>& addrSpaceMap_;
-    } asvtm(addrSpaceMap);
+    } asvtm(addrSpaceMap, &convertedStructsCache);
 
     CloneFunctionInto(newFunc, &F, vv, true, ri, "", NULL, &asvtm);
     FixMemIntrinsics(*newFunc);
     funcReplacements[&F] = newFunc;
   }
 
+#ifdef TI_POCL
   /* Handle global variables. These should be fixed *after*
      fixing the instruction referring to them.  If we fix
      the address spaces before, there might be possible
      illegal bitcasts casting the LLVM's global pointer to
      another one, causing the CloneFunctionInto to crash when
      it encounters such.
-   */
+
+     TI: This is still the case for Test_half in conformance test
+  */
   llvm::Module::global_iterator globalI = M.global_begin();
   llvm::Module::global_iterator globalE = M.global_end();
   for (; globalI != globalE; ++globalI) {
     llvm::Value &global = *globalI;
-    changed |= UpdateAddressSpace(global, addrSpaceMap);
+    UpdateAddressSpace(global, addrSpaceMap, convertedStructsCache);
   }
+#endif
 
   /* Replace all references to the old function to the new one.
      Also, for LLVM 3.4, replace the pointercasts to bitcasts in
@@ -320,22 +463,45 @@ TargetAddressSpaces::runOnModule(llvm::Module &M) {
       }
   }
 
+#ifdef TI_POCL
+  // Bug in POCL: regenerate_kernel_metadata erase all old opencl.kernels
+  // and create new one, this will cause subsequent isKernelToProcess()
+  // call to return false if the module contains multiple kernels
+  // Plus: regenerate_kernel_metadata needs to be called once for all kernels
+  FunctionMapping kernelsToProcess;
+  for (auto &func : funcReplacements)
+  {
+    if (Workgroup::isKernelToProcess(*func.first))
+      kernelsToProcess[func.first] = func.second;
+  }
+  if (kernelsToProcess.size() > 0)
+      regenerate_kernel_metadata(M, kernelsToProcess);
+#endif
+
   FunctionMapping::iterator i = funcReplacements.begin();
   /* Delete the old functions. */
   while (funcReplacements.size() > 0) {
 
-    if (Workgroup::isKernelToProcess(*i->first)) {
-      FunctionMapping repl;
-      repl[i->first] = i->second;
-      regenerate_kernel_metadata(M, repl);
+    if (currentPoclDevice->spmd) {
+      // The opencl.kernel metadata needs to be maintained only for
+      // SPMD devices (read: HSA at the time of this writing) because
+      // for non-SPMD machines the original kernel function is not
+      // there anymore, but is replaced with a work-group function.
+      if (Workgroup::isKernelToProcess(*i->first)) {
+        FunctionMapping repl;
+        repl[i->first] = i->second;
+        regenerate_kernel_metadata(M, repl);
+      }
     }
 
     if (i->first->getNumUses() > 0) {
+#ifndef TI_POCL // dump() is not available in LLVM release build
       for (Value::use_iterator ui = i->first->use_begin(),
              ue = i->first->use_end(); ui != ue; ++ui) {
         User* user = (*ui).getUser();
         user->dump();
       }
+#endif
       assert ("All users of the function were not fixed?" &&
               i->first->getNumUses() == 0);
       break;
@@ -345,7 +511,126 @@ TargetAddressSpaces::runOnModule(llvm::Module &M) {
     i = funcReplacements.begin();
   }
 
+#ifndef TI_POCL
+  if (!currentPoclDevice->spmd) {
+    // The opencl.kernels metadata is stale for non-SPMD machines
+    // which now have the kernel WI function converted to a WG
+    // function.  Remove it.
+    NamedMDNode *KernelsMD = M.getNamedMetadata("opencl.kernels");
+    if (KernelsMD)
+      M.eraseNamedMetadata(KernelsMD);
+    // Ditto for the old opencl.kernel_wg_size_info.
+    NamedMDNode *SizeInfoMD = M.getNamedMetadata("opencl.kernel_wg_size_info");
+    if (SizeInfoMD)
+      M.eraseNamedMetadata(SizeInfoMD);
+  }
+#endif
+}
+
+#define POCL_AS_FAKE_GENERIC 0
+#define POCL_AS_FAKE_GLOBAL 201
+#define POCL_AS_FAKE_LOCAL 202
+#define POCL_AS_FAKE_CONSTANT 203
+
+bool
+TargetAddressSpaces::runOnModule(llvm::Module &M) {
+
+  /* Annoying but we need to do two AS conversions.
+   * This is neccessary because the Pocl fake AS numbers
+   * conflict with real AS numbers (for some devices).
+   * First we map the Pocl fake AS numbers higher (above 200),
+   * then we map that down to real device AS */
+
+  // I will celebrate on the day when we get rid of TAS ;) --Pekka
+
+  llvm::StringRef arch = currentPoclDevice->llvm_target_triplet;
+
+  /* x86_64 supports flattening the address spaces at the backend, but
+     we still flatten them in pocl due to a couple of reasons.
+
+     At least LLVM 3.5 exposes an issue with pocl's printf or another LLVM pass:
+     After the code emission optimizations there appears a
+     PHI node where the two alternative pointer assignments have different
+     address spaces:
+     %format.addr.2347 =
+     phi i8 addrspace(3)* [ %incdec.ptr58, %if.end56 ],
+     [ %format.addr.1, %while.body45.preheader ]
+
+     This leads to an LLVM crash when it tries to generate a no-op bitcast
+     while it won't be such due to the address space difference (I assume).
+     Workaround this by flattening the address spaces to 0 here also for
+     x86_64 until the real culprit is found.
+
+     Another reason is that LoopVectorizer of LLVM 3.7 crashes when it
+     tries to create a masked store intrinsics with the fake address space
+     ids, so we need to flatten them out before vectorizing.
+
+     Seems starting from LLVM 3.8 this situation has improved. Thus, skipping
+     TAS for now until we have the time to get rid off it completely.
+  */
+
+#ifndef LLVM_OLDER_THAN_3_8
+  if (arch.startswith("x86_64"))
+    return false;
+#endif
+
+  assert(!arch.startswith("nvptx"));
+
+  std::map<unsigned, unsigned> addrSpaceMapUp;
+
+  addrSpaceMapUp[POCL_FAKE_AS_GLOBAL] = POCL_AS_FAKE_GLOBAL;
+  addrSpaceMapUp[POCL_FAKE_AS_LOCAL] = POCL_AS_FAKE_LOCAL;
+  addrSpaceMapUp[POCL_FAKE_AS_GENERIC] = POCL_AS_FAKE_GENERIC;
+  addrSpaceMapUp[POCL_FAKE_AS_CONSTANT] = POCL_AS_FAKE_CONSTANT;
+
+  run(M, addrSpaceMapUp, true);
+
+  std::map<unsigned, unsigned> addrSpaceMapDown;
+
+#ifndef TI_POCL
+  if (arch.startswith("x86_64")) {
+    addrSpaceMapDown[POCL_AS_FAKE_GLOBAL] =
+        addrSpaceMapDown[POCL_AS_FAKE_LOCAL] =
+        addrSpaceMapDown[POCL_AS_FAKE_GENERIC] =
+        addrSpaceMapDown[POCL_AS_FAKE_CONSTANT] = 0;
+  } else if (arch.startswith("arm")) {
+    /* Same thing happens here as with x86_64 above.
+     */
+    addrSpaceMapDown[POCL_AS_FAKE_GLOBAL] =
+        addrSpaceMapDown[POCL_AS_FAKE_LOCAL] =
+        addrSpaceMapDown[POCL_AS_FAKE_GENERIC] =
+        addrSpaceMapDown[POCL_AS_FAKE_CONSTANT] = 0;
+  } else if (arch.startswith("tce")) {
+    /* TCE requires the remapping. */
+    addrSpaceMapDown[POCL_AS_FAKE_GENERIC] = 0;
+    addrSpaceMapDown[POCL_AS_FAKE_GLOBAL] = 3;
+    addrSpaceMapDown[POCL_AS_FAKE_LOCAL] = 4;
+    addrSpaceMapDown[POCL_AS_FAKE_CONSTANT] = 5;
+  } else if (arch.startswith("mips")) {
+    addrSpaceMapDown[POCL_AS_FAKE_GLOBAL] =
+    addrSpaceMapDown[POCL_AS_FAKE_LOCAL] =
+    addrSpaceMapDown[POCL_AS_FAKE_GENERIC] =
+    addrSpaceMapDown[POCL_AS_FAKE_CONSTANT] = 0;
+  } else if (arch.startswith("amdgcn") || arch.startswith("hsail")) {
+    addrSpaceMapDown[POCL_AS_FAKE_GENERIC] = 0;
+    addrSpaceMapDown[POCL_AS_FAKE_GLOBAL] = 1;
+    addrSpaceMapDown[POCL_AS_FAKE_LOCAL] = 3;
+    addrSpaceMapDown[POCL_AS_FAKE_CONSTANT] = 2;
+  } else {
+    /* Assume the fake address space map works directly in case not
+       overridden here.  */
+    return false;
+  }
+#else // TI
+  addrSpaceMapDown[POCL_AS_FAKE_GENERIC]  = POCL_ADDRESS_SPACE_PRIVATE;
+  addrSpaceMapDown[POCL_AS_FAKE_GLOBAL]   = POCL_ADDRESS_SPACE_GLOBAL;
+  addrSpaceMapDown[POCL_AS_FAKE_LOCAL]    = POCL_ADDRESS_SPACE_LOCAL;
+  addrSpaceMapDown[POCL_AS_FAKE_CONSTANT] = POCL_ADDRESS_SPACE_CONSTANT;
+#endif
+
+  run(M, addrSpaceMapDown, false);
+
   return true;
 }
 
-}
+} // namespace pocl
