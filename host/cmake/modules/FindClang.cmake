@@ -37,7 +37,7 @@ MESSAGE(STATUS "Clang libs: " ${CLANG_LIBS})
 
 # We build using a specific version of llvm/clang so point to it instead
 # of using any installed version (see FindLLVM.cmake)
-if (CROSS_COMPILE OR C6678_BUILD)
+if (CROSS_COMPILE)
   set (CLANG_INSTALL_DIR ${X86_LLVM_DIR})
 else()
   set (CLANG_INSTALL_DIR ${ARM_LLVM_DIR})

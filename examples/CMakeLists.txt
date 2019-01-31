@@ -67,12 +67,6 @@ IF (K2X_BUILD)
   LIST (APPEND OCL_OMP_EXAMPLES_INSTALL_LIST vecadd_mpax_openmp)
 ENDIF()
 
-# Install C6678 (dspc) specific examples
-IF (C6678_BUILD)
-  # Add any C6678-specific examples, none currently
-  # LIST (APPEND OCL_EXAMPLE_INSTALL_LIST xxx xxx)
-ENDIF()
-
 # Loop through the directory list and install
 FOREACH(subdir ${OCL_EXAMPLES_INSTALL_LIST})
    install(DIRECTORY ${subdir} DESTINATION ${OCL_EXAMPLES_PATH} ${OCL_DPERMS})

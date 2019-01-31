@@ -5,25 +5,13 @@
 
 
 #if defined (DEVICE_K2X) || defined (DEVICE_K2G)
-    #define DEVICE_USES_DEVMEM_MPM      (1)
-    #define DEVICE_USES_DEVMEM_MMAP     (!(DEVICE_USES_DEVMEM_MPM))
-
-    #include "memory_provider_devmem_mpm.h"
     #include "memory_provider_cmem.h"
 #elif defined (DEVICE_AM57)
   #if !defined(_SYS_BIOS)
-    #define DEVICE_USES_DEVMEM_MPM      (0)
-    #define DEVICE_USES_DEVMEM_MMAP     (!(DEVICE_USES_DEVMEM_MPM))
-
-    #include "memory_provider_devmem_mmap.h"
     #include "memory_provider_cmem.h"
   #else
     #include "memory_provider_rtos.h"
   #endif
-#elif defined (DSPC868X)
-    #define DEVICE_USES_DEVMEM_MPM      (0)
-    #define DEVICE_USES_DEVMEM_MMAP     (0)
-    #include "memory_provider_pcie.h"
 #else
     #error "Device not supported"
 #endif
@@ -35,7 +23,6 @@ MemoryProviderFactory::CreateMemoryProvider(const MemoryRange &r)
 {
     MemoryProvider *mp = nullptr;
 
-    #if !defined(DSPC868X)
     switch (r.GetKind())
     {
         #if !defined(_SYS_BIOS)
@@ -47,15 +34,6 @@ MemoryProviderFactory::CreateMemoryProvider(const MemoryRange &r)
         case MemoryRange::Kind::CMEM_PERSISTENT:
         {
             mp = new CMEMPersistent(r);
-            break;
-        }
-        case MemoryRange::Kind::DEVMEM:
-        {
-            #if DEVICE_USES_DEVMEM_MPM
-            mp = new DevMemMPM(r);
-            #else
-            mp = new DevMemMmap(r);
-            #endif
             break;
         }
         #else
@@ -70,10 +48,6 @@ MemoryProviderFactory::CreateMemoryProvider(const MemoryRange &r)
             assert(0);
             break;
     }
-    #else
-    assert (r.GetKind() == MemoryRange::Kind::CMEM_PERSISTENT);
-    mp = new MemoryProviderPCIe(r);
-    #endif
 
     assert (mp != nullptr);
 

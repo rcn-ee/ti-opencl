@@ -1,16 +1,6 @@
-if (C6678_BUILD)
-  SET (TARGET_INCLUDES
-    ${PROJECT_SOURCE_DIR}/init
-    ${SDK}/sdk
-    ${SDK}/sdk/config
-    ${SDK}/sdk/pciedrv
-    ${SDK}/sdk/cmem
-    ${SDK}/sdk/bufmgr
-    ${SDK}/sdk/mailBox
-    ${SDK}/sdk/dnldmgr )
 # Cross-compiling needs additional paths to find target OS headers 
 # and non-system headers found on the host (BOOST,GL)
-elseif (CROSS_COMPILE)
+if (CROSS_COMPILE)
   SET (TARGET_INCLUDES 
     ${CMAKE_FIND_ROOT_PATH} 
     ${HOST_USR_INCLUDE_PATH}  )
@@ -57,11 +47,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DPACKAGE=${PROJECT_NAME} -DPACKAGE_VERS
 # Toggle below if wanting to build with debug
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -fno-inline -g")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
-
-if (C6678_BUILD)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDSPC868X")
-    set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -DDSPC868X")
-endif()
 
 if (K2X_BUILD)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDEVICE_K2X")
@@ -177,41 +162,23 @@ set(COAL_SRC_FILES ${COAL_SRC_FILES}
     endif()
 endif()
 
-if (K2X_BUILD OR K2G_BUILD)
-    set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/devmem_map_policy_mpm.cpp)
-endif()
-
-if (NOT C6678_BUILD)
-    set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/mbox_impl_msgq.cpp)
-    set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/device_manager_remoteproc.cpp)
-endif()
+set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/mbox_impl_msgq.cpp)
+set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/device_manager_remoteproc.cpp)
 
 if (AM57_BUILD)
     set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/device_manager_remoteproc.cpp)
 endif()
 
-if (AM57_BUILD AND (NOT (${BUILD_OS} MATCHES "SYS_BIOS")))
-    set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/devmem_map_policy_mmap.cpp)
-endif()
-
-if (C6678_BUILD)
-    set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/shmem_init_policy_pcie.cpp)
-    set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/shmem_rw_policy_pcie.cpp)
-    set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/memory_provider_pcie.cpp)
-    set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/shmem_pcie.cpp)
-    set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/pcie_cmem.cpp)
-else()
-  if (NOT (${BUILD_OS} MATCHES "SYS_BIOS"))
+if (NOT (${BUILD_OS} MATCHES "SYS_BIOS"))
     set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/shmem_init_policy_cmem.cpp)
     set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/shmem_rw_policy_cmem.cpp)
     set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/memory_provider_cmem.cpp)
     set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/shmem_cmem.cpp)
-  else()
+else()
     set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/shmem_init_policy_rtos.cpp)
     set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/shmem_rw_policy_rtos.cpp)
     set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/memory_provider_rtos.cpp)
     set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/shmem_rtos.cpp)
-  endif()
 endif()
 
 add_subdirectory(runtime)
@@ -302,15 +269,6 @@ if(K2X_BUILD OR K2G_BUILD)
    LIST (APPEND LIBS ${CMEM_LIB} ${IPC_LIB} ${IPC_UTIL_LIB} ${IPC_TRANS_RPMSG}
                      ${MPMTRANSPORT_LIB} 
                      ${MPMCLIENT_LIB} ${RM_LIB} )
-elseif(C6678_BUILD)
-  LIST (APPEND LIBS
-	${SDK}/sdk/pciedrv/lib/pciedrv.a
-	${SDK}/sdk/dnldmgr/lib/dnldmgr.a
-	${SDK}/sdk/cmem/lib/cmem_drv.a
-	${SDK}/sdk/bufmgr/lib/bufmgr.a
-	${SDK}/sdk/mailBox/host/lib/mailBox.a
-        pciaccess
-	)
 elseif (AM57_BUILD)
   find_library(CMEM_LIB          ticmem)
   find_library(IPC_LIB           tiipc)

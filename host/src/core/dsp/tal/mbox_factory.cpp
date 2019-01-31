@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2015, Texas Instruments Incorporated - http://www.ti.com/
+ * Copyright (c) 2019, Texas Instruments Incorporated - http://www.ti.com/
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -25,31 +25,11 @@
  *   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  *   THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
-
-#if defined(DSPC868X)
-#define MAILBOX_MPM     (1)
-#define MAILBOX_MQ      (0)
-#elif defined (DEVICE_K2G) || defined (DEVICE_AM57) || defined(DEVICE_K2H) || \
-      defined(DEVICE_K2L) || defined (DEVICE_K2E)
-#define MAILBOX_MQ      (1)
-#define MAILBOX_MPM     (0)
-#else
-    #error "Device not supported"
-#endif
-
-#if MAILBOX_MPM
-#include "mbox_impl_mpm.h"
-#elif MAILBOX_MQ
 #include "mbox_impl_msgq.h"
-#endif
 
 MBox* MBoxFactory::CreateMailbox(Coal::DSPDevice* device)
 {
-    #if MAILBOX_MQ
     return new MBoxMsgQ(device);
-    #elif MAILBOX_MPM
-    return new MBoxMPM(device);
-    #endif
 }
 
 MBox* MBoxFactory::CreateMailbox(Coal::EVEDevice* device)
