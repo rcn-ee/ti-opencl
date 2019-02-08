@@ -1062,6 +1062,9 @@ cl_int DSPKernelEvent::flush_special_use_host_ptr_buffers(void)
     /*-------------------------------------------------------------------------
     * PSDK3.1/CMEM4.12: reverts back to pre-PSDK3.0/pre-CMEM4.11 implementation
     *------------------------------------------------------------------------*/
+    bool wb_inv_all = false;
+
+    #if !defined(USE_ION)
     int total_buf_size = 0;
     for (int i = 0; i < p_hostptr_clMalloced_bufs.size(); ++i)
     {
@@ -1071,8 +1074,9 @@ cl_int DSPKernelEvent::flush_special_use_host_ptr_buffers(void)
     }
 
     int  threshold  = CMEM_THRESHOLD;
-    bool wb_inv_all = false;
+
     if (total_buf_size >= threshold)  wb_inv_all = shm->CacheWbInvAll();
+    #endif
 
     if (! wb_inv_all)
     {

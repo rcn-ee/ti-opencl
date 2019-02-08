@@ -25,8 +25,15 @@ else()
     MESSAGE(FATAL_ERROR "No build target selected. Set cmake variable BUILD_TARGET")
 endif()
 
+if (${SHMEM_MANAGER} MATCHES "ION")
+    MESSAGE(STATUS "Using ION")
+endif()
+
 # Suppress the "Up-to-date" messages from install
 set(CMAKE_INSTALL_MESSAGE LAZY)
+
+# Uncomment to generate compile_commands.json file
+#set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/modules)
 

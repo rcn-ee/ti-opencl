@@ -37,7 +37,10 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_PRODUCT_VERSION=${${PROJECT_NAME}_PKG
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DBOOST_SYSTEM_NO_DEPRECATED=1")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DBOOST_SYSTEM_NO_LIB=1")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_BUILD_ID=${GIT_SHA}")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+
+if (${SHMEM_MANAGER} MATCHES "ION")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_ION")
+endif()
 
 # bfd.h has a check to ensure that config.h is included
 # We don't require config.h (autotools) so we bypass this check by defining
@@ -117,10 +120,15 @@ set(COAL_SRC_FILES
     core/dsp/device_info.cpp
 
     core/dsp/tal/dload.cpp
-    core/dsp/tal/memory_provider_factory.cpp
-    core/dsp/tal/shared_memory_provider.cpp
     core/dsp/tal/mbox_factory.cpp
 )
+
+if (${SHMEM_MANAGER} MATCHES "CMEM")
+set(COAL_SRC_FILES ${COAL_SRC_FILES}
+    core/dsp/tal/memory_provider_factory.cpp
+    core/dsp/tal/shared_memory_provider.cpp)
+endif()
+
 
 if (${BUILD_OS} MATCHES "SYS_BIOS")
 set(COAL_SRC_FILES ${COAL_SRC_FILES}
@@ -169,11 +177,17 @@ if (AM57_BUILD)
     set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/device_manager_remoteproc.cpp)
 endif()
 
+
 if (NOT (${BUILD_OS} MATCHES "SYS_BIOS"))
+    if (${SHMEM_MANAGER} MATCHES "CMEM")
     set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/shmem_init_policy_cmem.cpp)
     set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/shmem_rw_policy_cmem.cpp)
     set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/memory_provider_cmem.cpp)
     set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/shmem_cmem.cpp)
+elseif (${SHMEM_MANAGER} MATCHES "ION")
+    set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/ion_allocator.cpp)
+    set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/ion_memory_provider.cpp)
+    endif()
 else()
     set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/shmem_init_policy_rtos.cpp)
     set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/shmem_rw_policy_rtos.cpp)
@@ -257,7 +271,6 @@ LIST (APPEND LIBS ${FFI_LIB} ${SQLITE3_LIB} ${ELF_LIB} ${JSON_LIB})
 
 # Add target dependent libraries
 if(K2X_BUILD OR K2G_BUILD)
-   find_library(CMEM_LIB          ticmem)
    find_library(MPMTRANSPORT_LIB  mpmtransport)
    find_library(MPMCLIENT_LIB     mpmclient)
    find_library(RM_LIB            rm)
@@ -266,15 +279,19 @@ if(K2X_BUILD OR K2G_BUILD)
    find_library(IPC_UTIL_LIB      tiipcutils)
    find_library(IPC_TRANS_RPMSG   titransportrpmsg)
 
-   LIST (APPEND LIBS ${CMEM_LIB} ${IPC_LIB} ${IPC_UTIL_LIB} ${IPC_TRANS_RPMSG}
+   LIST (APPEND LIBS ${IPC_LIB} ${IPC_UTIL_LIB} ${IPC_TRANS_RPMSG}
                      ${MPMTRANSPORT_LIB} 
                      ${MPMCLIENT_LIB} ${RM_LIB} )
 elseif (AM57_BUILD)
-  find_library(CMEM_LIB          ticmem)
   find_library(IPC_LIB           tiipc)
   find_library(IPC_UTIL_LIB      tiipcutils)
   find_library(IPC_TRANS_RPMSG   titransportrpmsg)
-  LIST (APPEND LIBS ${CMEM_LIB} ${IPC_LIB} ${IPC_UTIL_LIB} ${IPC_TRANS_RPMSG})
+  LIST (APPEND LIBS ${IPC_LIB} ${IPC_UTIL_LIB} ${IPC_TRANS_RPMSG})
+endif()
+
+if (${SHMEM_MANAGER} MATCHES "CMEM")
+    find_library(CMEM_LIB ticmem)
+    LIST (APPEND LIBS ${CMEM_LIB} )
 endif()
 
 if(ENABLE_ULM)

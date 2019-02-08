@@ -82,6 +82,21 @@ static const std::map<const ErrorKind, const std::string> ErrorStrings =
     {ErrorKind::CMEMAllocFromBlockFailed,
      "Failed to allocate 0x%llx from CMEM block %d, allocated 0x%llx"},
 
+    {ErrorKind::IonOpenFailed,
+     "ION open failed for heap %d: %s. "
+     "The ion kernel module is not installed. Consult the OpenCL User"
+     "Guide at http://software-dl.ti.com/mctools/esd/docs/opencl/index.html"},
+
+    {ErrorKind::IonCloseFailed, "ION close failed for heap %d: %s"},
+
+    {ErrorKind::IonAllocFailed, "ION alloc failed for heap %d: %s"},
+
+    {ErrorKind::IonFreeFailed, "ION free (%s) failed for heap %d: %s"},
+
+    {ErrorKind::IonCacheOpFailed, "ION cache %s failed for fd %d, heap %d: %s"},
+
+    {ErrorKind::IonPtrNotAlloced, "pointer %p not allocated from ION heap"},
+
     {ErrorKind::InvalidPointerToClFree,
      "Invalid pointer %p to clFree"},
 

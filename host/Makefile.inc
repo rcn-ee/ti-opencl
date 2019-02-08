@@ -35,6 +35,9 @@ TI_OCL_CGT_INSTALL?=$(SDOMC_SHARED)/ti-cgt-c6000-8.2.2-release-linux
 # TI M4 CGT
 TI_OCL_M4_CGT_INSTALL ?= $(SDOMC_SHARED)/ti-cgt-arm_16.9.2.LTS
 
+# Set to 1 to switch from CMEM to ION
+USE_ION ?= 0
+
 # LLVM
 
 ifeq ($(BUILD_OS), SYS_BIOS)
@@ -58,7 +61,12 @@ else
     endif
 endif
 
+ifeq ($(USE_ION), 1)
+CORESDK_VERSION ?= 05.02.00.10-ion
+else
 CORESDK_VERSION ?= 05.02.00.10-release
+endif
+
 TIDL_VERSION    ?= 05_02_00_04-203-2018-11-25_21-23-39
 
 ifeq ($(BUILD_K2H),1)

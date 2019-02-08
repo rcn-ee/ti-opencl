@@ -2,7 +2,7 @@ include host/Makefile.inc
 
 # Determine if cross-compiling and set appropriate CMAKE options
 CMAKE_DEFINES = -DARM_LLVM_DIR=$(ARM_LLVM_DIR) -DX86_LLVM_DIR=$(X86_LLVM_DIR)
-ifneq ($(BUILD_DSPC),1)
+
 ifneq (,$(findstring 86, $(shell uname -m)))
     ifeq ($(BUILD_OS), SYS_BIOS)
         export GCC_ARM_NONE_TOOLCHAIN:=$(GCC_ARM_NONE_TOOLCHAIN)
@@ -13,7 +13,7 @@ ifneq (,$(findstring 86, $(shell uname -m)))
     endif
     CMAKE_DEFINES += -DCMAKE_TOOLCHAIN_FILE=$(TOOLCHAIN_FILE)
 endif
-endif
+
 
 CLEAN_DIRS = builtins examples libm host/clocl monitor monitor_ipu
 
@@ -53,10 +53,6 @@ else ifeq ($(BUILD_K2G),1)
     BUILD_TARGET=ARM_K2G
     CMAKE_DEFINES += -DLINUX_DEVKIT_ROOT=$(LINUX_DEVKIT_ROOT)
     export PATH:=$(ARM_GCC_DIR)/bin:$(PATH)
-else ifeq ($(BUILD_DSPC),1)
-    TARGET=dspc
-    BUILD_TARGET=DSPC868x
-    CMAKE_DEFINES += -DSDK=$(DEFAULT_DLSDK)
 else
     ifeq ($(MAKECMDGOALS),clean)
     else ifeq ($(MAKECMDGOALS),realclean)
@@ -66,8 +62,7 @@ else
             BUILD_AM57=1 \
             BUILD_K2H=1 \
             BUILD_K2L=1 \
-            BUILD_K2E=1 \
-            BUILD_DSPC=1)
+            BUILD_K2E=1)
     endif
 endif
 
@@ -89,6 +84,14 @@ else
 	export OCL_TIDL_FW_DIR=../opencl-firmware
 endif
 export DESTDIR?=$(CURDIR)/$(OCL_INSTALL_DIR)
+
+
+ifeq ($(USE_ION), 1)
+	CMAKE_DEFINES += -DSHMEM_MANAGER=ION
+	export OMP_ENABLED=0
+else
+	CMAKE_DEFINES += -DSHMEM_MANAGER=CMEM
+endif
 
 
 install: $(OCL_BUILD_DIR) $(DESTDIR) $(EVE_SUBMODULE)
