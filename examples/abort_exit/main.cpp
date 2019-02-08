@@ -15,7 +15,7 @@
  *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  *   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+ *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  *   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
  *   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
  *   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
@@ -31,6 +31,7 @@
 #include <fstream>
 #include <cstdlib>
 #include <cassert>
+#include <functional>
 #include <signal.h>
 #include <time.h>
 #include "ocl_util.h"
@@ -46,8 +47,14 @@ using namespace std;
 const int size   = 1 << 23;
 const int wgsize = 1 << 20;
 
-void run_kernel_wait(KernelFunctor&, Buffer&, int, const char*);
-void run_task_nowait(KernelFunctor&, Buffer&, int, int, const char*);
+typedef make_kernel<Buffer&, int> 	   KernelWait;
+typedef make_kernel<Buffer&, int, int> KernelTimeout;
+
+typedef function<KernelWait::type_>    KernelWaitFn;
+typedef function<KernelTimeout::type_> KernelTimeoutFn;
+
+void run_kernel_wait(KernelWaitFn&,    EnqueueArgs&, Buffer&, int, const char*);
+void run_task_nowait(KernelTimeoutFn&, EnqueueArgs&, Buffer&, int, int, const char*);
 
 #ifdef _TI_RTOS
 void ocl_main(UArg arg0, UArg arg1)
@@ -82,37 +89,40 @@ int main(int argc, char *argv[])
 
     CommandQueue  IOQ (context, devices[0]);
     CommandQueue  OOQ (context, devices[0],
-                                      CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE);
+                       CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE);
 
     Kernel        K (program, "devset");
+    function<KernelWait::type_> devset = KernelWait(K);
     Kernel        T (program, "devset_t");
-    KernelFunctor k_io = K.bind(IOQ, NDRange(size), NDRange(wgsize));
-    KernelFunctor k_oo = K.bind(OOQ, NDRange(size), NDRange(wgsize));
-    KernelFunctor t_io = T.bind(IOQ, NDRange(1), NDRange(1));
-    KernelFunctor t_oo = T.bind(OOQ, NDRange(1), NDRange(1));
+    function<KernelTimeout::type_> devset_t = KernelTimeout(T);
+
+    EnqueueArgs k_io_args(IOQ, NDRange(size), NDRange(wgsize));
+    EnqueueArgs k_oo_args(OOQ, NDRange(size), NDRange(wgsize));
+    EnqueueArgs t_io_args(IOQ, NDRange(1), NDRange(1));
+    EnqueueArgs t_oo_args(OOQ, NDRange(1), NDRange(1));
 
     srand(time(NULL));
     printf ("# k_io w   error:\n");
-    run_kernel_wait(k_io, buf, rand() % size, "  # k_io w   error:");
+    run_kernel_wait(devset, k_io_args, buf, rand() % size, "  # k_io w   error:");
     printf ("# k_io w/o error:\n");
-    run_kernel_wait(k_io, buf, -1, "  # k_io w/o error:");
+    run_kernel_wait(devset, k_io_args, buf, -1, "  # k_io w/o error:");
     printf ("# k_oo w   error:\n");
-    run_kernel_wait(k_oo, buf, rand() % size, "  # k_oo w   error:");
+    run_kernel_wait(devset, k_oo_args, buf, rand() % size, "  # k_oo w   error:");
     printf ("# k_oo w/o error:\n");
-    run_kernel_wait(k_oo, buf, -1, "  # k_oo w/o error:");
+    run_kernel_wait(devset, k_oo_args, buf, -1, "  # k_oo w/o error:");
 
     printf ("# t_io w/o error:\n");
-    run_task_nowait(t_io, buf, size, -1, "  # t_io w/o error:");
+    run_task_nowait(devset_t, t_io_args, buf, size, -1, "  # t_io w/o error:");
     printf ("# t_io w   error:\n");
-    run_task_nowait(t_io, buf, size, 0, "  # t_io w   error:");
+    run_task_nowait(devset_t, t_io_args, buf, size, 0, "  # t_io w   error:");
     printf ("# t_oo w/o error:\n");
-    run_task_nowait(t_oo, buf, size, -1, "  # t_oo w/o error:");
+    run_task_nowait(devset_t, t_oo_args, buf, size, -1, "  # t_oo w/o error:");
     printf ("# t_oo w   error:\n");
-    run_task_nowait(t_oo, buf, size, 0, "  # t_oo w   error:");
+    run_task_nowait(devset_t, t_oo_args, buf, size, 0, "  # t_oo w   error:");
 
     IOQ.finish();
     OOQ.finish();
-    run_kernel_wait(k_io, buf, -1, "# final k_io w/o error:");
+    run_kernel_wait(devset, k_io_args, buf, -1, "# final k_io w/o error:");
     IOQ.enqueueReadBuffer(buf, CL_TRUE, 0, size, ary);
   }
   catch (Error err)
@@ -160,14 +170,17 @@ void ev_complete_func(cl_event e, cl_int status, void *data)
   }
 }
 
-void run_kernel_wait(KernelFunctor& k, Buffer& buf, int abort_gid,
+void run_kernel_wait(KernelWaitFn &k,
+                     EnqueueArgs &eargs,
+                     Buffer &buf,
+                     int abort_gid,
                      const char *name)
 {
   Event ev;
   int expect_error = (abort_gid < 0) ? 0 : 1;
   try
   {
-    ev = k(buf, abort_gid);
+    ev = k(eargs, buf, abort_gid);
     ev.wait();
     cout << name << " finished" << endl;
     if (expect_error)
@@ -196,7 +209,11 @@ void run_kernel_wait(KernelFunctor& k, Buffer& buf, int abort_gid,
   }
 }
 
-void run_task_nowait(KernelFunctor& k, Buffer& buf, int size, int exit_gid,
+void run_task_nowait(KernelTimeoutFn &k,
+                     EnqueueArgs &eargs,
+                     Buffer &buf,
+                     int size,
+                     int exit_gid,
                      const char *name)
 {
   Event ev;
@@ -209,7 +226,7 @@ void run_task_nowait(KernelFunctor& k, Buffer& buf, int size, int exit_gid,
       data->expect_error = (exit_gid < 0) ? 0 : 1;
       snprintf(data->kernel_name, KERNELNAMELEN, "%s", name);
     }
-    ev = k(buf, size, exit_gid);
+    ev = k(eargs, buf, size, exit_gid);
     ev.setCallback(CL_COMPLETE, ev_complete_func, data);
   }
   catch (Error err)

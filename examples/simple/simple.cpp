@@ -15,7 +15,7 @@
  *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  *   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+ *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  *   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
  *   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
  *   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
@@ -42,7 +42,7 @@
 using namespace cl;
 using namespace std;
 
-const int size   = 1 << 23; 
+const int size   = 1 << 23;
 const int wgsize = 1 << 14;
 
 #ifdef _TI_RTOS
@@ -65,9 +65,9 @@ int main(int argc, char *argv[])
    signal(SIGTERM, exit);
    memset(ary, 0, size);
 
-   try 
+   try
    {
-     Context             context(CL_DEVICE_TYPE_ACCELERATOR); 
+     Context             context(CL_DEVICE_TYPE_ACCELERATOR);
      std::vector<Device> devices = context.getInfo<CL_CONTEXT_DEVICES>();
      Buffer              buf (context, CL_MEM_WRITE_ONLY, size);
 
@@ -82,17 +82,17 @@ int main(int argc, char *argv[])
                                              sizeof(kernel_dsp_bin)));
      Program             program = Program(context, devices, binary);
 #endif
-     program.build(devices); 
+     program.build(devices);
 
      CommandQueue  Q (context, devices[0]);
-     Kernel        K (program, "devset");
-     KernelFunctor devset = K.bind(Q, NDRange(size), NDRange(wgsize));
+     auto devset = cl::make_kernel<Buffer&>(program, "devset");
+     EnqueueArgs eargs(Q, NDRange(size), NDRange(wgsize));
 
-     devset(buf).wait(); // call the kernel and wait for completion
+     devset(eargs, buf).wait(); // call the kernel and wait for completion
 
      Q.enqueueReadBuffer(buf, CL_TRUE, 0, size, ary);
    }
-   catch (Error err) 
+   catch (Error err)
    {
      cerr << "ERROR: " << err.what() << "(" << err.err() << ", "
           << ocl_decode_error(err.err()) << ")" << endl;
