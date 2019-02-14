@@ -50,6 +50,12 @@ SharedRegion.translate = false;  // if no translation needed, faster access
 
 /* configure SharedRegion #0 (IPC) */
 var SR0Mem = Program.cpu.memoryMap["SR0"];
+var core = environment["CORE"];
+var sr0_cached = false;  /* EVE has no cache, will access SR0 as non-cached */
+if (core == "IPU1")
+{
+    sr0_cached = true;
+}
 
 SharedRegion.setEntryMeta(0,
     new SharedRegion.Entry({
@@ -57,7 +63,8 @@ SharedRegion.setEntryMeta(0,
         len:            SR0Mem.len,
         ownerProcId:    MultiProc.getIdMeta(ownerSr0),
         isValid:        true,
-        cacheEnable:    false,
+        cacheEnable:    sr0_cached,
+        cacheLineSize:  64,
         createHeap:     true,
         name:           "SR0"
     })
@@ -100,7 +107,6 @@ Ipc.setEntryMeta({
 
 var Notify      = xdc.useModule('ti.sdo.ipc.Notify');
 var NotifySetup = xdc.useModule('ti.sdo.ipc.family.vayu.NotifySetup');
-var core = environment["CORE"];
 if (core == "IPU1")
 {
     NotifySetup.connections.$add(

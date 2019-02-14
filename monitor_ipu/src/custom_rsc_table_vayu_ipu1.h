@@ -48,6 +48,8 @@
 
 /* IPU Memory Map */
 
+/* Entries from PSDK_VISION links_common/system/system_rsc_table_ipu.h */
+
 #define L4_PERIPHERAL_L4EMU     0x54000000
 #define IPU_PERIPHERAL_L4EMU    0x74000000
 
@@ -74,30 +76,29 @@
 #define L3_TILER_MODE_3         0x78000000
 #define IPU_TILER_MODE_3        0xB8000000
 
-#define IPU_MEM_TEXT            0x0
+/* Entries for OpenCL runtime customization */
 
+#define IPU_MEM_TEXT            0x0
+#define IPU_MEM_IPC_DATA        XDC_CFG_IPC_DATA
 #define IPU_MEM_CODE            XDC_CFG_IPU1_CODE
 #define IPU_MEM_DATA            XDC_CFG_IPU1_DATA
-#define IPU_SR0_VIRT            XDC_CFG_SR0_VIRT
-#define IPU_SR0                 XDC_CFG_SR0_VIRT
-#define IPU_MEM_IPC_DATA        XDC_CFG_IPC_DATA
 #define EVE_MEM_VIRT            XDC_CFG_EVE_MEM
-#define EVE_MEM                 XDC_CFG_EVE_MEM
+#define IPU_SR0_VIRT            XDC_CFG_SR0_VIRT
 
-#define IPU_MEM_IPC_VRING_SIZE  (SZ_1M)
 #define IPU_MEM_TEXT_SIZE       (SZ_1M)
-
+#define IPU_MEM_IPC_DATA_SIZE   (SZ_1M)
 #define IPU_MEM_CODE_SIZE       XDC_CFG_IPU1_CODE_SIZE
 #define IPU_MEM_DATA_SIZE       XDC_CFG_IPU1_DATA_SIZE
-//#define IPU_MEM_IPC_DATA_SIZE   XDC_CFG_IPC_DATA_SIZE
-#define IPU_MEM_IPC_DATA_SIZE   (SZ_1M)
 #define IPU_SR0_SIZE            XDC_CFG_SR0_SIZE
 #define EVE_MEM_SIZE            XDC_CFG_EVE_MEM_SIZE
+
+/* Entry for IPC VRING */
 
 #define IPU_MEM_IPC_VRING       0x60000000
 #define IPU_PHYS_MEM_IPC_VRING  0x9D000000
 #define IPU_MEM_RPMSG_VRING0    0x60000000
 #define IPU_MEM_RPMSG_VRING1    0x60004000
+#define IPU_MEM_IPC_VRING_SIZE  (SZ_1M)
 
 /*
  * Sizes of the virtqueues (expressed in number of buffers supported,
@@ -131,6 +132,12 @@ struct my_resource_table {
     /* ipcdata carveout entry */
     struct fw_rsc_carveout ipudata_cout;
 
+    /* EVE carveout entry */
+    struct fw_rsc_carveout eve_cout;
+
+    /* SR0 carveout entry */
+    struct fw_rsc_carveout sr0_cout;
+
     /* trace entry */
     struct fw_rsc_trace trace;
 
@@ -160,12 +167,6 @@ struct my_resource_table {
 
     /* devmem entry */
     struct fw_rsc_devmem devmem8;
-
-    /* devmem entry */
-    struct fw_rsc_devmem devmem9;
-
-    /* devmem entry */
-    struct fw_rsc_devmem devmem10;
 };
 
 extern char ti_trace_SysMin_Module_State_0_outbuf__A;
@@ -185,6 +186,8 @@ struct my_resource_table ti_ipc_remoteproc_ResourceTable = {
         offsetof(struct my_resource_table, ipcdata_cout),
         offsetof(struct my_resource_table, ipucode_cout),
         offsetof(struct my_resource_table, ipudata_cout),
+        offsetof(struct my_resource_table, eve_cout),
+        offsetof(struct my_resource_table, sr0_cout),
         offsetof(struct my_resource_table, trace),
         offsetof(struct my_resource_table, devmem0),
         offsetof(struct my_resource_table, devmem1),
@@ -195,8 +198,6 @@ struct my_resource_table ti_ipc_remoteproc_ResourceTable = {
         offsetof(struct my_resource_table, devmem6),
         offsetof(struct my_resource_table, devmem7),
         offsetof(struct my_resource_table, devmem8),
-        offsetof(struct my_resource_table, devmem9),
-        offsetof(struct my_resource_table, devmem10),
     },
 
     /* rpmsg vdev entry */
@@ -231,6 +232,18 @@ struct my_resource_table ti_ipc_remoteproc_ResourceTable = {
         TYPE_CARVEOUT,
         IPU_MEM_DATA, 0,
         IPU_MEM_DATA_SIZE, 0, 0, "IPU_MEM_DATA",
+    },
+
+    {
+        TYPE_CARVEOUT,
+        EVE_MEM_VIRT, 0,
+        EVE_MEM_SIZE, 0, 0, "EVE_MEM",
+    },
+
+    {
+        TYPE_CARVEOUT,
+        IPU_SR0_VIRT, 0,
+        IPU_SR0_SIZE, 0, 0, "IPU_SR0",
     },
 
     {
@@ -289,18 +302,6 @@ struct my_resource_table ti_ipc_remoteproc_ResourceTable = {
         TYPE_DEVMEM,
         IPU_IVAHD_SL2, L3_IVAHD_SL2,
         SZ_16M, 0, 0, "IPU_IVAHD_SL2",
-    },
-
-    {
-        TYPE_DEVMEM,
-        IPU_SR0_VIRT, IPU_SR0,
-        IPU_SR0_SIZE, 0, 0, "IPU_SR0",
-    },
-
-    {
-        TYPE_DEVMEM,
-        EVE_MEM_VIRT, EVE_MEM,
-        EVE_MEM_SIZE, 0, 0, "EVE_MEM",
     },
 };
 

@@ -57,11 +57,7 @@ config ti.platforms.generic.Platform.Instance CPU =
       /* Memory map for first 32MB of CMEM:
          0xA000_0000 to 0xA002_0000: DSP, OpenMP .tomp_svNcMem
          0xA002_0000 to 0xA010_0000: (hole)
-         0xA010_0000 to 0xA060_0000: EVE1, .intvecs (4K), code + data (rest)
-         0xA060_0000 to 0xA0B0_0000: EVE2, .intvecs (4K), code + data (rest)
-         0xA0B0_0000 to 0xA100_0000: EVE3, .intvecs (4K), code + data (rest)
-         0xA100_0000 to 0xA150_0000: EVE4, .intvecs (4K), code + data (rest)
-         0xA150_0000 to 0xA170_0000: EVE/IPU, SR0
+         0xA010_0000 to 0xA170_0000: (Previously EVEs and SR0 for EVE/IPU)
          0xA170_0000 to 0xA178_0000: (hole)
          0xA178_0000 to 0xA180_0000: DSP, OpenMP ocl_service_omp task stask
          0xA180_0000 to 0xA200_0000: DSP, OpenMP heap */

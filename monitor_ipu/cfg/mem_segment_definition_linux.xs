@@ -37,109 +37,59 @@
 var KB=1024;
 var MB=KB*KB;
 
-var DDR3_ADDR;
-var DDR3_SIZE;
-
-var DDR3_BASE_ADDR_0;
-var DDR3_BASE_SIZE_0;
-var DDR3_BASE_ADDR_1;
-var DDR3_BASE_SIZE_1;
-
-var IPU1_CODE_ADDR;
-var IPU1_CODE_SIZE;
-
-var IPU1_DATA_ADDR;
-var IPU1_DATA_SIZE;
-
-var IPU1_HEAP_ADDR;
-var IPU1_HEAP_SIZE;
-
-var EVE1_SRAM_ADDR;
-var EVE1_SRAM_SIZE;
-
-var EVE2_SRAM_ADDR;
-var EVE2_SRAM_SIZE;
-
-var EVE3_SRAM_ADDR;
-var EVE3_SRAM_SIZE;
-
-var EVE4_SRAM_ADDR;
-var EVE4_SRAM_SIZE;
-
-var SR0_ADDR;
-var SR0_SIZE;
-
-var EVE1_CODE_ADDR;
-var EVE1_DATA_ADDR;
-var EVE1_VECS_ADDR;
-
-var EVE2_CODE_ADDR;
-var EVE2_DATA_ADDR;
-var EVE2_VECS_ADDR;
-
-var EVE3_CODE_ADDR;
-var EVE3_DATA_ADDR;
-var EVE3_VECS_ADDR;
-
-var EVE4_CODE_ADDR;
-var EVE4_DATA_ADDR;
-var EVE4_VECS_ADDR;
-
-var EVE_CODE_SIZE;
-var EVE_DATA_SIZE;
-var EVE_VECS_SIZE;
-
-var TRACE_BUF_BASE;
-var TRACE_BUF_LEN;
-var EXC_DATA_BASE;
-var EXC_DATA_LEN;
-var PM_DATA_BASE;
-var PM_DATA_LEN;
-
-/* EVE configuration spaces */
-EVE1_SRAM_ADDR              = 0x42000000;
-EVE1_SRAM_SIZE              = 1*MB;
-
-EVE2_SRAM_ADDR              = 0x42100000;
-EVE2_SRAM_SIZE              = 1*MB;
-
-EVE3_SRAM_ADDR              = 0x42200000;
-EVE3_SRAM_SIZE              = 1*MB;
-
-EVE4_SRAM_ADDR              = 0x42300000;
-EVE4_SRAM_SIZE              = 1*MB;
-
-
-/* Allocating virtual addresses for carveouts */
-/* IPU1 code, data, heap,  IPC data: trace buf, exc data, pm data */
-IPU1_CODE_SIZE              = 5*MB;
-IPU1_DATA_SIZE              = 4*MB;
-IPU1_HEAP_SIZE              = 11*MB;
-
-IPU1_CODE_ADDR              = 0x9D100000;
-IPU1_DATA_ADDR              = IPU1_CODE_ADDR + IPU1_CODE_SIZE;
-IPU1_HEAP_ADDR              = IPU1_DATA_ADDR + IPU1_DATA_SIZE;
-
-TRACE_BUF_LEN               = 384*KB;
-EXC_DATA_LEN                = 64*KB;
-PM_DATA_LEN                 = 128*KB;
-
-/* IPC Data is a carveout on M4/IPU, not used on EVE */
-TRACE_BUF_BASE              = IPU1_HEAP_ADDR + IPU1_HEAP_SIZE;
-EXC_DATA_BASE               = TRACE_BUF_BASE + TRACE_BUF_LEN;
-PM_DATA_BASE                = EXC_DATA_BASE + EXC_DATA_LEN;
-
-
-/* Allocating device memory */
-/* NOTE: EVE memory + SR0,REMOTE_LOG,... memory must be memreserved in linux
- * dts file
+/* AM57xx IPU1 Memory Map: 0x9D00_0000 - 0x9F00_0000 (reserved-memory in DTS)
+ *   (Memory are allocated by remoteproc using carveout entries in the resource
+ *    table.  Unused memory will be reused by Linux kernel, because of
+ *    the "reusable" property on IPU1's reserved memory block in DTS.)
+ *
+ *   System convention:
+ *     0x9D00_0000 - 0x9D10_0000: VRING (carveout/devmem, always at the front)
+ *   Carveout entries:
+ *     0x9D10_0000 - 0x9D20_0000: TEXT, virtual addr 0x0
+ *     0x9D20_0000 - 0x9D30_0000: IPC data (trace_buf, exc_data, pm_data)
+ *     0x9D30_0000 - 0x9D40_0000: CODE
+ *     0x9D40_0000 - 0x9D80_0000: DATA
+ *     0x9D80_0000 - 0x9E00_0000: EVE (4 x 2MB)
+ *     0x9E00_0000 - 0x9E10_0000: SR0
+ *   Unused:
+ *     0x9E10_0000 - 0x9F00_0000: unused, reusable by Linux
+ *
+ *   Detailed EVE memory map:
+ *     0x9D80_0000 - 0x9D80_1000: EVE1 VECS
+ *     0x9D80_1000 - 0x9D90_0000: EVE1 CODE
+ *     0x9D90_0000 - 0x9DA0_0000: EVE1 DATA
+ *     0x9DA0_0000 - 0x9DA0_1000: EVE2 VECS
+ *     0x9DA0_1000 - 0x9DB0_0000: EVE2 CODE
+ *     0x9DB0_0000 - 0x9DC0_0000: EVE2 DATA
+ *     0x9DC0_0000 - 0x9DC0_1000: EVE3 VECS
+ *     0x9DC0_1000 - 0x9DD0_0000: EVE3 CODE
+ *     0x9DD0_0000 - 0x9DE0_0000: EVE3 DATA
+ *     0x9DE0_0000 - 0x9DE0_1000: EVE4 VECS
+ *     0x9DE0_1000 - 0x9DF0_0000: EVE4 CODE
+ *     0x9DF0_0000 - 0x9E00_0000: EVE4 DATA
  */
 
-//SR0_SIZE                    = 0xE0000;
-SR0_SIZE                    = 2*MB;
-//SR0_ADDR                    = 0xA0020000;
-SR0_ADDR                    = 0xA1500000;
+/* Allocating virtual addresses for carveouts/devmems in the resource table */
+/* We use the identical virtual addresses as the physical addresses */
+/* Carveout's physical addresses are allocated by remoteproc */
 
+/* IPC Data: carveout, not used on EVE */
+var TRACE_BUF_LEN               = 384*KB;
+var EXC_DATA_LEN                = 64*KB;
+var PM_DATA_LEN                 = 128*KB;
+
+var TRACE_BUF_BASE              = 0x9D200000;
+var EXC_DATA_BASE               = TRACE_BUF_BASE + TRACE_BUF_LEN;
+var PM_DATA_BASE                = EXC_DATA_BASE + EXC_DATA_LEN;
+
+/* IPU1 code, data: carveout, (EVE firmware is placed in IPU1 data) */
+var IPU1_CODE_SIZE              = 1*MB;
+var IPU1_DATA_SIZE              = 4*MB;
+
+var IPU1_CODE_ADDR              = 0x9D300000;
+var IPU1_DATA_ADDR              = IPU1_CODE_ADDR + IPU1_CODE_SIZE;
+
+/* EVE vecs, code, data: carveout, (using the IPU1 memory reserved in DTS) */
 
 /* Old SBL: The start address of EVE memory must be 16MB aligned. */
 /* With updated SBL, EVE vecs space could be align with 1MB boundary,
@@ -148,29 +98,55 @@ SR0_ADDR                    = 0xA1500000;
  * vecs+code+data of an EVE.
  * tlb_config_eve.c needs to map these EVE memory sections accordingly.
  */
-EVE_START_ADDR              = 0xA0100000;
+var EVE_START_ADDR              = 0x9D800000;
 
-EVE_VECS_SIZE              = 0x001000;
-EVE_CODE_SIZE              = 0x1FF000;
-EVE_DATA_SIZE              = 0x300000;
+var EVE_VECS_SIZE               = 0x001000;
+var EVE_CODE_SIZE               = 0x0FF000;
+var EVE_DATA_SIZE               = 0x100000;
 
-EVE1_VECS_ADDR              = EVE_START_ADDR
-EVE1_CODE_ADDR              = EVE1_VECS_ADDR        + EVE_VECS_SIZE;
-EVE1_DATA_ADDR              = EVE1_CODE_ADDR        + EVE_CODE_SIZE;
-EVE2_VECS_ADDR              = EVE1_DATA_ADDR        + EVE_DATA_SIZE;
-EVE2_CODE_ADDR              = EVE2_VECS_ADDR        + EVE_VECS_SIZE;
-EVE2_DATA_ADDR              = EVE2_CODE_ADDR        + EVE_CODE_SIZE;
-EVE3_VECS_ADDR              = EVE2_DATA_ADDR        + EVE_DATA_SIZE;
-EVE3_CODE_ADDR              = EVE3_VECS_ADDR        + EVE_VECS_SIZE;
-EVE3_DATA_ADDR              = EVE3_CODE_ADDR        + EVE_CODE_SIZE;
-EVE4_VECS_ADDR              = EVE3_DATA_ADDR        + EVE_DATA_SIZE;
-EVE4_CODE_ADDR              = EVE4_VECS_ADDR        + EVE_VECS_SIZE;
-EVE4_DATA_ADDR              = EVE4_CODE_ADDR        + EVE_CODE_SIZE;
+var EVE1_VECS_ADDR              = EVE_START_ADDR;
+var EVE1_CODE_ADDR              = EVE1_VECS_ADDR        + EVE_VECS_SIZE;
+var EVE1_DATA_ADDR              = EVE1_CODE_ADDR        + EVE_CODE_SIZE;
+var EVE2_VECS_ADDR              = EVE1_DATA_ADDR        + EVE_DATA_SIZE;
+var EVE2_CODE_ADDR              = EVE2_VECS_ADDR        + EVE_VECS_SIZE;
+var EVE2_DATA_ADDR              = EVE2_CODE_ADDR        + EVE_CODE_SIZE;
+var EVE3_VECS_ADDR              = EVE2_DATA_ADDR        + EVE_DATA_SIZE;
+var EVE3_CODE_ADDR              = EVE3_VECS_ADDR        + EVE_VECS_SIZE;
+var EVE3_DATA_ADDR              = EVE3_CODE_ADDR        + EVE_CODE_SIZE;
+var EVE4_VECS_ADDR              = EVE3_DATA_ADDR        + EVE_DATA_SIZE;
+var EVE4_CODE_ADDR              = EVE4_VECS_ADDR        + EVE_VECS_SIZE;
+var EVE4_DATA_ADDR              = EVE4_CODE_ADDR        + EVE_CODE_SIZE;
 
+/* SR0 for IPU/EVE IPC: carveout, (using the IPU1 memory reserved in DTS) */
+var SR0_SIZE                    = 1*MB;
+var SR0_ADDR                    = 0x9E000000;
+
+/* Memory segements listed here are in the order of increasing physical
+ * addresses.  They don't have to be.  But the increasing order helps
+ * visualize the memory map. */
 function getMemSegmentDefinition_external(core)
 {
     var memory = new Array();
     var index = 0;
+   memory[index++] = ["TRACE_BUF", {
+            comment: "TRACE_BUF",
+            name: "TRACE_BUF",
+            base: TRACE_BUF_BASE,
+            len:  TRACE_BUF_LEN,
+        }];
+    memory[index++] = ["EXC_DATA", {
+            comment: "EXC_DATA",
+            name: "EXC_DATA",
+            base: EXC_DATA_BASE,
+            len:  EXC_DATA_LEN,
+        }];
+    memory[index++] = ["PM_DATA", {
+            comment: "PM_DATA",
+            name: "PM_DATA",
+            base: PM_DATA_BASE,
+            len:  PM_DATA_LEN,
+        }];
+
     memory[index++] = ["IPU1_CODE_MEM", {
             comment : "IPU1_CODE_MEM",
             name    : "IPU1_CODE_MEM",
@@ -183,12 +159,7 @@ function getMemSegmentDefinition_external(core)
             base    : IPU1_DATA_ADDR,
             len     : IPU1_DATA_SIZE
         }];
-    memory[index++] = ["IPU1_HEAP_MEM", {
-            comment : "IPU1_HEAP_MEM",
-            name    : "IPU1_HEAP_MEM",
-            base    : IPU1_HEAP_ADDR,
-            len     : IPU1_HEAP_SIZE
-        }];
+
     memory[index++] = ["EVE1_VECS_MEM", {
             comment : "EVE1_VECS_MEM",
             name    : "EVE1_VECS_MEM",
@@ -261,30 +232,12 @@ function getMemSegmentDefinition_external(core)
             base    : EVE4_DATA_ADDR,
             len     : EVE_DATA_SIZE
         }];
+
     memory[index++] = ["SR0", {
             comment : "SR0",
             name    : "SR0",
             base    : SR0_ADDR,
             len     : SR0_SIZE
-        }];
-
-   memory[index++] = ["TRACE_BUF", {
-            comment: "TRACE_BUF",
-            name: "TRACE_BUF",
-            base: TRACE_BUF_BASE,
-            len:  TRACE_BUF_LEN,
-        }];
-    memory[index++] = ["EXC_DATA", {
-            comment: "EXC_DATA",
-            name: "EXC_DATA",
-            base: EXC_DATA_BASE,
-            len:  EXC_DATA_LEN,
-        }];
-    memory[index++] = ["PM_DATA", {
-            comment: "PM_DATA",
-            name: "PM_DATA",
-            base: PM_DATA_BASE,
-            len:  PM_DATA_LEN,
         }];
 
     return (memory);
