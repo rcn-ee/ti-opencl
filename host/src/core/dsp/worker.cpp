@@ -574,7 +574,7 @@ bool handle_event_dispatch(DSPDevice *device)
 
             if (e->buffer()->type() != Coal::MemObject::Buffer &&
                 e->buffer()->type() != Coal::MemObject::SubBuffer)
-                ERR(1, "UnmapMemObject: MapImage/Unmap not support yet");
+                ERR(1, "UnmapMemObject: MapImage/Unmap not supported yet");
             MapBufferEvent *mbe = (MapBufferEvent *)
                                   e->buffer()->removeMapEvent(e->mapping());
             if (mbe == NULL)
@@ -589,7 +589,25 @@ bool handle_event_dispatch(DSPDevice *device)
             if (queue) queue->releaseEvent(mbe);
             break;
         }
-
+        case Event::MigrateMemObject:
+            /* Migration is essentially a NO-OP for us.
+             * Explanation on the basis of each memory object flag:
+             * USE_HOST_PTR: host_ptr is defined. Buffer data is initialized
+             *               from host_ptr and copied back into host_ptr after
+             *               a kernel finishes execution. No cache operations
+             *               after a kernel execution finishes are required
+             *               to get the results into host_ptr. Therefore,
+             *               migration is NO-OP.
+             * ALLOC_HOST_PTR: host_ptr is not defined. No migration.
+             * COPY_HOST_PTR: host_ptr may be defined. Semantics only apply
+             *                to buffer creation during which a temporary buffer
+             *                is used to hold data from host_ptr. Updated buffer
+             *                data cannot be copied back to host_ptr as the
+             *                temporary buffer is released after device buffer
+             *                creation.
+             * No flags: NO-OP.
+             * */
+            break;
         case Event::NativeKernel:
         {
             std::cerr << "Native Kernels not supported on the DSP" << std::endl;

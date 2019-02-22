@@ -272,6 +272,7 @@ class Event : public _cl_event, public Object
             MapBuffer = CL_COMMAND_MAP_BUFFER,
             MapImage = CL_COMMAND_MAP_IMAGE,
             UnmapMemObject = CL_COMMAND_UNMAP_MEM_OBJECT,
+            MigrateMemObject = CL_COMMAND_MIGRATE_MEM_OBJECTS,
             Marker = CL_COMMAND_MARKER,
             AcquireGLObjects = CL_COMMAND_ACQUIRE_GL_OBJECTS,
             ReleaseGLObjects = CL_COMMAND_RELEASE_GL_OBJECTS,

@@ -720,6 +720,64 @@ clEnqueueUnmapMemObject(cl_command_queue d_command_queue,
 }
 
 cl_int
+clEnqueueMigrateMemObjects(cl_command_queue       d_command_queue,
+                           cl_uint                num_mem_objects,
+                           const cl_mem *         d_mem_objects,
+                           cl_mem_migration_flags flags,
+                           cl_uint                num_events_in_wait_list,
+                           const cl_event *       event_wait_list,
+                           cl_event *             event)
+{
+    cl_int rs = CL_SUCCESS;
+    auto command_queue = pobj(d_command_queue);
+
+    if (!command_queue->isA(Coal::Object::T_CommandQueue))
+    {
+        return CL_INVALID_COMMAND_QUEUE;
+    }
+
+    if (!num_mem_objects || !d_mem_objects) return CL_INVALID_VALUE;
+
+    const cl_mem_migration_flags all_flags = CL_MIGRATE_MEM_OBJECT_HOST |
+                                   CL_MIGRATE_MEM_OBJECT_CONTENT_UNDEFINED;
+
+    if ((flags & ~all_flags) != 0) return CL_INVALID_VALUE;
+
+    if (!(flags & CL_MIGRATE_MEM_OBJECT_HOST ||
+          flags & CL_MIGRATE_MEM_OBJECT_CONTENT_UNDEFINED ||
+          flags == 0))
+    {
+        return CL_INVALID_VALUE;
+    }
+
+    if((!event_wait_list && num_events_in_wait_list > 0) ||
+       (event_wait_list  && num_events_in_wait_list == 0))
+    {
+        return CL_INVALID_EVENT_WAIT_LIST;
+    }
+
+    Coal::MigrateMemObjectEvent* command = new Coal::MigrateMemObjectEvent(
+        command_queue,
+        d_mem_objects,
+        num_mem_objects,
+        flags,
+        num_events_in_wait_list,
+        event_wait_list,
+        &rs
+    );
+
+    if (rs != CL_SUCCESS)
+    {
+        delete command;
+        return rs;
+    }
+
+    return queueEvent(command_queue, command, event, false);
+}
+
+
+
+cl_int
 clEnqueueNDRangeKernel(cl_command_queue d_command_queue,
                        cl_kernel        d_kernel,
                        cl_uint          work_dim,

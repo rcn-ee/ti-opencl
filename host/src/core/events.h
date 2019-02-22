@@ -295,6 +295,27 @@ class UnmapBufferEvent : public BufferEvent
 };
 
 /**
+ * \brief Migrating a memory object
+ */
+class MigrateMemObjectEvent : public Event
+{
+    public:
+        MigrateMemObjectEvent(CommandQueue *dest_queue,
+                              const cl_mem *d_mem_objects,
+                              cl_uint      num_mem_objects,
+                              cl_mem_migration_flags flags,
+                              cl_uint num_events_in_wait_list,
+                              const cl_event *event_wait_list,
+                              cl_int *errcode_ret);
+
+        Type type() const; /*!< \brief Say the event is a \c Coal::Event::MigrateMemObject one */
+        /* Remove to avoid copying pointer to allocated memory
+         * and resulting double free. */
+        MigrateMemObjectEvent(const MigrateMemObjectEvent&)            =delete;
+        MigrateMemObjectEvent& operator=(const MigrateMemObjectEvent&) =delete;
+};
+
+/**
  * \brief Copying between two buffers
  */
 class CopyBufferEvent : public BufferEvent

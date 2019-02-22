@@ -495,6 +495,100 @@ void *UnmapBufferEvent::mapping() const
     return p_mapping;
 }
 
+MigrateMemObjectEvent::MigrateMemObjectEvent(CommandQueue *dest_queue,
+                                             const cl_mem *d_mem_objects,
+                                             cl_uint      num_mem_objects,
+                                             cl_mem_migration_flags flags,
+                                             cl_uint num_events_in_wait_list,
+                                             const cl_event *event_wait_list,
+                                             cl_int *errcode_ret)
+: Event(dest_queue, Queued, num_events_in_wait_list, event_wait_list, errcode_ret)
+{
+    if (*errcode_ret != CL_SUCCESS) return;
+
+    MemObject **mem_objects = (MemObject **)
+                            std::malloc(num_mem_objects * sizeof(MemObject *));
+
+	if (!mem_objects)
+    {
+        *errcode_ret = CL_OUT_OF_RESOURCES;
+        return;
+    }
+
+    pobj_list(mem_objects, d_mem_objects, num_mem_objects);
+
+    /* Check if each memory object is valid */
+    for(cl_uint i=0; i<num_mem_objects; i++)
+    {
+        if(!mem_objects[i]->isA(Coal::Object::T_MemObject))
+        {
+            *errcode_ret = CL_INVALID_MEM_OBJECT;
+            std::free((void *)mem_objects);
+            return;
+        }
+    }
+
+    cl_context src_context;
+    cl_context dest_context = nullptr;
+    /* Get the destination context */
+    dest_queue->info(CL_QUEUE_CONTEXT, sizeof(cl_context), &dest_context, 0);
+
+    /* Check if the destination context is the same for each memory object
+     * and event in the event_wait_list.
+     * The OpenCL 1.2 Specification describes this check on page 126:
+     * "CL_INVALID_CONTEXT if the context associated with command_queue
+     * and memory objects in mem_objects are not the same or if the context
+     * associated with command_queue and events in event_wait_list are not
+     * the same." */
+    for (cl_uint i=0; i<num_mem_objects; i++)
+    {
+        src_context = nullptr;
+        /* Get the original/src context of the memobj */
+        mem_objects[i]->info(CL_MEM_CONTEXT,
+                             sizeof(cl_context),
+                             &src_context, 0);
+        if (src_context != dest_context)
+        {
+            *errcode_ret = CL_INVALID_CONTEXT;
+            break;
+        }
+    }
+
+    std::free((void *)mem_objects);
+
+    Event **event_list = (Event **)
+                        std::malloc(num_events_in_wait_list * sizeof(Event *));
+
+    if (!event_list)
+    {
+        *errcode_ret = CL_OUT_OF_RESOURCES;
+        return;
+    }
+
+    pobj_list(event_list, event_wait_list, num_events_in_wait_list);
+
+    for (cl_uint i=0; i<num_events_in_wait_list; i++)
+    {
+        src_context = nullptr;
+        /* Get the original/src context of the event */
+        event_list[i]->info(CL_EVENT_CONTEXT,
+                            sizeof(cl_context),
+                            &src_context, 0);
+        if (src_context != dest_context)
+        {
+            *errcode_ret = CL_INVALID_CONTEXT;
+            break;
+        }
+    }
+
+    std::free((void *)event_list);
+}
+
+Event::Type MigrateMemObjectEvent::type() const
+{
+    return Event::MigrateMemObject;
+}
+
 CopyBufferEvent::CopyBufferEvent(CommandQueue *parent,
                                  MemObject *source,
                                  MemObject *destination,
@@ -820,7 +914,7 @@ KernelEvent::KernelEvent(CommandQueue *parent,
         }
 
         // if __attribute__((reqd_work_group_size(X, Y, Z))) doesn't match
-        else 
+        else
         {
             if ((                local_work_size[0] != reqd_x) ||
                 (work_dim > 1 && local_work_size[1] != reqd_y) ||
