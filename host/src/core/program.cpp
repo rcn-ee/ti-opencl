@@ -120,15 +120,35 @@ void Program::resetDeviceDependent()
     }
 }
 
-void Program::setDevices(cl_uint num_devices, DeviceInterface * const*devices)
+void Program::setDevices(cl_uint num_devices, const cl_device_id *devices)
 {
-    p_device_dependent.resize(num_devices);
+    /* device_list: Keep a record of the devices the user requested to build
+     * this program for */
+    p_device_list.clear();
 
-    for (cl_uint i=0; i<num_devices; ++i)
+    std::set<DeviceInterface*> root_devices;
+    for (cl_uint i = 0; i < num_devices; i++)
     {
-        DeviceDependent &dep = p_device_dependent[i];
+        DeviceInterface *device = pobj(devices[i]);
+        p_device_list.push_back(device);
 
-        dep.device                 = devices[i];
+        DeviceInterface *root_device = device;
+        if (DSPDevice* dsp_device = dynamic_cast<DSPDevice*>(device))
+            root_device = const_cast<DSPDevice*>(
+                                               dsp_device->GetRootDSPDevice());
+        root_devices.insert(root_device);
+    }
+
+    /* device_dependent: Only keep device dependent programs for root devices */
+    resetDeviceDependent();
+    p_device_dependent.resize(root_devices.size());
+
+    cl_uint i = 0;
+    for (DeviceInterface *root_device : root_devices)
+    {
+        DeviceDependent &dep = p_device_dependent[i++];
+
+        dep.device                 = root_device;
         dep.program                = dep.device->createDeviceProgram(this);
         dep.is_native_binary       = false;
         dep.native_binary_filename = NULL;
@@ -361,7 +381,7 @@ cl_int Program::loadSources(cl_uint count, const char **strings,
 
 cl_int Program::loadBinaries(const unsigned char **data, const size_t *lengths,
                              cl_int *binary_status, cl_uint num_devices,
-                             DeviceInterface * const*device_list)
+                             const cl_device_id *device_list)
 {
     // Set device infos
     setDevices(num_devices, device_list);
@@ -369,7 +389,13 @@ cl_int Program::loadBinaries(const unsigned char **data, const size_t *lengths,
     // Load the data
     for (cl_uint i=0; i<num_devices; ++i)
     {
-        DeviceDependent &dep = deviceDependent(device_list[i]);
+        DeviceDependent &dep = deviceDependent(pobj(device_list[i]));
+
+        // If multiple devices share the same Root Device,
+        // only load the first one for device dependent, skip the others
+        // Loaded binary is stored in dep.unlinked_binary
+        if (dep.unlinked_binary.size() != 0)  continue;
+
         dep.unlinked_binary = std::string((const char *)data[i], lengths[i]);
         dep.is_native_binary = true;
 
@@ -405,33 +431,35 @@ cl_int Program::build(const char* options,
                       void (CL_CALLBACK* pfn_notify)(cl_program program,
                               void* user_data),
                       void* user_data, cl_uint num_devices,
-                      DeviceInterface* const* device_list,
-                      cl_uint num_root_devices,
-                      DeviceInterface* const* root_device_list)
+                      const cl_device_id *device_list)
 {
-    // If we've already built this program and are re-building
+    // Source: If we've already built this program and are re-building
     // (for example, with different user options) then clear out the
     // device dependent information in preparation for building again.
-    if (p_state == Built) resetDeviceDependent();
+    if (p_type == Source && p_state == Built) resetDeviceDependent();
+
+    // Binary: if we are building program from pre-built binaries,
+    // check if device_list is valid
+    if (p_type == Binary)
+    {
+        for (cl_uint i = 0; i < num_devices; i++)
+        {
+            if (std::find(p_device_list.begin(), p_device_list.end(),
+                          pobj(device_list[i])) == p_device_list.end())
+                return CL_INVALID_DEVICE;
+        }
+    }
 
     p_state = Failed;
 
     /* Create deviceDependent structures only for the root devices */
     if (!p_device_dependent.size())
     {
-        setDevices(num_root_devices, root_device_list);
+        setDevices(num_devices, device_list);
     }
 
-    /* Keep a record of the devices the user requested to build
-     * this program for */
-    p_device_list.clear();
-    for (int i = 0; i < num_devices; i++) p_device_list.push_back(device_list[i]);
-
-    // ASW TODO - optimize to compile for each device type only once.
-    for (cl_uint i = 0; i < p_device_dependent.size(); ++i)
+    for (DeviceDependent& dep : p_device_dependent)
     {
-        DeviceDependent& dep = deviceDependent(root_device_list[i]);
-
 #ifndef _SYS_BIOS
         // Do we need to compile the source for each device ?
         if (p_type == Source)
@@ -474,7 +502,6 @@ cl_int Program::build(const char* options,
         }
     }
 
-    // TODO: Asynchronous compile
     if (pfn_notify)
         pfn_notify((cl_program)this, user_data);
 
@@ -634,7 +661,6 @@ cl_int Program::buildInfo(DeviceInterface *device,
                 case Failed:
                     SIMPLE_ASSIGN(cl_build_status, CL_BUILD_ERROR);
                     break;
-                // TODO: CL_BUILD_IN_PROGRESS
             }
             break;
 

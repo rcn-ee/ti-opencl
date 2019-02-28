@@ -164,7 +164,7 @@ int main(int argc, char *argv[])
 	cl_device_type type;
 	devices[d].getInfo(CL_DEVICE_TYPE, &type);
 
-	if (type == CL_DEVICE_TYPE_ACCELERATOR)
+	if (type & CL_DEVICE_TYPE_ACCELERATOR)
         {
 	   QdspIO  = new CommandQueue(context, devices[d], PROFILE);
 	   QdspOO  = new CommandQueue(context, devices[d], PROFILE|OOOEXEC);

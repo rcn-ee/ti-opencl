@@ -27,6 +27,7 @@
  *****************************************************************************/
 #include "../platform.h"
 #include "device.h"
+#include "rootdevice.h"
 #include "buffer.h"
 #include "kernel.h"
 #include "program.h"
@@ -167,6 +168,10 @@ DeviceProgram* DSPDevice::createDeviceProgram(Program* program)
 DeviceKernel* DSPDevice::createDeviceKernel(Kernel* kernel,
         llvm::Function* function)
 { return (DeviceKernel*)new DSPKernel(this, kernel, function); }
+
+DeviceKernel* DSPDevice::createDeviceBuiltInKernel(Kernel *kernel,
+                                                   KernelEntry *kernel_entry)
+{ return (DeviceKernel *)new DSPKernel(this, kernel, kernel_entry); }
 
 /******************************************************************************
 * cl_int DSPDevice::initEventDeviceData(Event *event)
@@ -344,6 +349,8 @@ cl_int DSPDevice::info(cl_device_info param_name,
 {
     void* value = 0;
     size_t value_length = 0;
+    std::string stmp;
+
     union
     {
         cl_device_type cl_device_type_var;
@@ -364,8 +371,14 @@ cl_int DSPDevice::info(cl_device_info param_name,
     switch (param_name)
     {
         case CL_DEVICE_TYPE:
-            SIMPLE_ASSIGN(cl_device_type, CL_DEVICE_TYPE_ACCELERATOR);
-            break;
+            {
+                cl_device_type device_type = CL_DEVICE_TYPE_ACCELERATOR;
+                if(static_cast<const DSPRootDevice*>(GetRootDSPDevice())
+                                              ->getKernelEntries()->size() > 0)
+                    device_type |= CL_DEVICE_TYPE_CUSTOM;
+                SIMPLE_ASSIGN(cl_device_type, device_type);
+                break;
+            }
         case CL_DEVICE_VENDOR_ID:
             SIMPLE_ASSIGN(cl_uint, 0); // TODO
             break;
@@ -585,6 +598,22 @@ cl_int DSPDevice::info(cl_device_info param_name,
                           CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE |
                           CL_QUEUE_PROFILING_ENABLE |
                           CL_QUEUE_KERNEL_TIMEOUT_COMPUTE_UNIT_TI);
+            break;
+        case CL_DEVICE_BUILT_IN_KERNELS:
+            {
+                const std::vector<KernelEntry*>* biks =
+                          static_cast<const DSPRootDevice*>(GetRootDSPDevice())
+                                                          ->getKernelEntries();
+                bool first = true;
+                for(KernelEntry *k : *biks)
+                {
+                    if (!first) stmp += ";";
+                    stmp += k->name;
+                    first = false;
+                }
+                value        = (void *) stmp.c_str();
+                value_length =          stmp.size() + 1;
+            }
             break;
         case CL_DEVICE_NAME:
             STRING_ASSIGN("TI Multicore C66 DSP");

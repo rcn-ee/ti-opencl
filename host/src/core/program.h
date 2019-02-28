@@ -147,7 +147,7 @@ class Program : public _cl_program, public Object
          */
         cl_int loadBinaries(const unsigned char **data, const size_t *lengths,
                             cl_int *binary_status, cl_uint num_devices,
-                            DeviceInterface * const*device_list);
+                            const cl_device_id *device_list);
 
         /**
          * \brief Build the program
@@ -163,18 +163,13 @@ class Program : public _cl_program, public Object
          * \param num_devices number of devices for which binaries should be
          *        built. If it's a source-based program, this can be 0.
          * \param device_list list of devices for which the program should be built.
-         * \param num_root_devices number of root devices for which binaries are being
-         *        built.
-         * \param root_device_list list of root devices for which the program will be built.
          * \return \c CL_SUCCESS if success, an error code otherwise
          */
         cl_int build(const char* options,
                      void (CL_CALLBACK* pfn_notify)(cl_program program,
                              void* user_data),
                      void* user_data, cl_uint num_devices,
-                     DeviceInterface* const* device_list,
-                     cl_uint num_root_devices,
-                     DeviceInterface* const* root_device_list);
+                     const cl_device_id *device_list);
 
         Type type() const;   /*!< \brief Type of the program */
         State state() const; /*!< \brief State of the program */
@@ -248,7 +243,7 @@ class Program : public _cl_program, public Object
         std::vector<DeviceDependent> p_device_dependent;
         DeviceDependent              p_null_device_dependent;
 
-        void setDevices(cl_uint num_devices, DeviceInterface* const* devices);
+        void setDevices(cl_uint num_devices, const cl_device_id *devices);
         void resetDeviceDependent();
         DeviceDependent& deviceDependent(DeviceInterface* device);
         const DeviceDependent& deviceDependent(DeviceInterface* device) const;

@@ -94,11 +94,11 @@ Kernel *BuiltInProgram::createKernel(const std::string &name,
 
 /******************************************************************************
 * cl_int BuiltInProgram::loadBuiltInKernels(cl_uint num_devices, 
-*                                           DeviceInterface * const *device_list,
-*                                           cost char *kernel_names)
+*                                           const cl_device_id *device_list,
+*                                           const char *kernel_names)
 ******************************************************************************/
 cl_int BuiltInProgram::loadBuiltInKernels(cl_uint num_devices,
-                                          DeviceInterface * const *device_list,
+                                          const cl_device_id *device_list,
                                           const char *kernel_names)
 {
     setDevices(num_devices, device_list);
@@ -111,8 +111,12 @@ cl_int BuiltInProgram::loadBuiltInKernels(cl_uint num_devices,
     
     for(cl_uint i=0; i<num_devices; i++)
     {
-        DeviceInterface *dev = device_list[i];
-        DeviceDependent &dep = deviceDependent(device_list[i]);
+        DeviceInterface *dev = pobj(device_list[i]);
+        DeviceDependent &dep = deviceDependent(dev);
+
+        // If multiple devices share the same Root Device,
+        // only load the first one for device dependent, skip the others
+        if (dep.loaded_kernel_entries.size() > 0)  continue;
 
         auto *device_builtin_kernels = dev->getKernelEntries();
 

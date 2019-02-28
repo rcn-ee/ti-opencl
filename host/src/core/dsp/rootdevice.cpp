@@ -66,7 +66,8 @@ DSPRootDevice::DSPRootDevice(unsigned char dsp_id, SharedMemory* shm)
       p_complete_pending     (nullptr),
       core_scheduler_        (nullptr),
       device_manager_        (nullptr),
-      p_mb                   (nullptr)
+      p_mb                   (nullptr),
+      p_kernel_entries       ()
 {
     p_dsp_id                      = dsp_id;
     const DeviceInfo& device_info = DeviceInfo::Instance();
@@ -108,6 +109,11 @@ DSPRootDevice::DSPRootDevice(unsigned char dsp_id, SharedMemory* shm)
     * in which case ulm_term() in DSPRootDevice destructor won't be called.
     *------------------------------------------------------------------------*/
     init_ulm();
+
+    /*-------------------------------------------------------------------------
+    * Initialize BuiltIn Kernels
+    *------------------------------------------------------------------------*/
+    init_builtin_kernels();
 
     /*-------------------------------------------------------------------------
      * Send monitor configuration
@@ -161,6 +167,54 @@ void DSPRootDevice::init_ulm()
 }
 
 /******************************************************************************
+* DSPRootDevice::init_builtin_kernels()
+******************************************************************************/
+void DSPRootDevice::init_builtin_kernels()
+{
+#if defined(DEVICE_AM57)
+    KernelEntry *k;
+
+    k = new KernelEntry("tiocl_bik_memcpy_test", 1);
+    k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
+    k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
+    k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Int32, false);
+    p_kernel_entries.push_back(k);
+
+    k = new KernelEntry("tiocl_bik_vecadd", 3);
+    k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
+    k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
+    k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
+    k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Int32, false);
+    p_kernel_entries.push_back(k);
+
+    k = new KernelEntry("ocl_tidl_setup", 10);
+    k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
+    k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
+    k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
+    k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
+    p_kernel_entries.push_back(k);
+
+    k = new KernelEntry("ocl_tidl_initialize", 11);
+    k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
+    k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
+    k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
+    k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
+    k->addArg(1, Kernel::Arg::Local,  Kernel::Arg::Buffer, false);
+    p_kernel_entries.push_back(k);
+
+    k = new KernelEntry("ocl_tidl_process", 12);
+    k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
+    k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
+    k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
+    k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Int32, false);
+    p_kernel_entries.push_back(k);
+
+    k = new KernelEntry("ocl_tidl_cleanup", 13);
+    p_kernel_entries.push_back(k);
+#endif
+}
+
+/******************************************************************************
 * DSPRootDevice::~DSPRootDevice()
 ******************************************************************************/
 DSPRootDevice::~DSPRootDevice()
@@ -207,6 +261,11 @@ DSPRootDevice::~DSPRootDevice()
 
     delete p_mb;
     delete p_complete_pending;
+
+    /*-------------------------------------------------------------------------
+    * Remove BuiltIn kernel entries
+    *------------------------------------------------------------------------*/
+    for(KernelEntry *k : p_kernel_entries) delete k;
 
     /*-------------------------------------------------------------------------
     * Free any ulm resources used.

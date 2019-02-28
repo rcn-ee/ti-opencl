@@ -133,7 +133,10 @@ public:
 
     DeviceBuffer*            createDeviceBuffer(MemObject* buffer, cl_int* rs);
     DeviceProgram*           createDeviceProgram(Program* program);
-    DeviceKernel*            createDeviceKernel(Kernel* kernel, llvm::Function* function);
+    DeviceKernel*            createDeviceKernel(Kernel* kernel,
+                                                llvm::Function* function);
+    DeviceKernel*            createDeviceBuiltInKernel(Kernel *kernel,
+                                                  KernelEntry *builtin_kernel);
     void                     recordProfilingData(command_retcode_t*, uint32_t core);
     cl_int                   initEventDeviceData(Event* event);
     void                     freeEventDeviceData(Event* event);

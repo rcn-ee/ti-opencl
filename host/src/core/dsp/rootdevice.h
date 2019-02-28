@@ -28,7 +28,8 @@
 #ifndef __DSP_ROOT_DEVICE_H__
 #define __DSP_ROOT_DEVICE_H__
 
-#include "../device.h"
+#include "device.h"
+#include "../kernelentry.h"
 
 namespace Coal
 {
@@ -70,6 +71,9 @@ public:
 
     void             init_ulm();
     void             setup_dsp_mhz();
+    void             init_builtin_kernels();
+    const std::vector<KernelEntry*>* getKernelEntries() const override
+                                                 { return &p_kernel_entries; }
 
 private:
     std::list<Event*>               p_events;
@@ -87,6 +91,7 @@ private:
     class CoreScheduler*            core_scheduler_;
     pthread_t                       p_worker_dispatch;
     pthread_t                       p_worker_completion;
+    std::vector<KernelEntry*>       p_kernel_entries;
 };
 
 }

@@ -39,6 +39,7 @@
 #include "../memobject.h"
 #include "../events.h"
 #include "../program.h"
+#include "../builtinprogram.h"
 #include "../oclenv.h"
 #include "../error_report.h"
 
@@ -84,10 +85,19 @@ using namespace tiocl;
 
 DSPKernel::DSPKernel(DSPDevice *device, Kernel *kernel, llvm::Function *function)
 : DeviceKernel(), p_device(device), p_kernel(kernel),
-    p_device_entry_pt((DSPDevicePtr)0),
+    p_device_entry_pt((DSPDevicePtr)DSP_MAX_NUM_BUILTIN_KERNELS),
     p_data_page_ptr  ((DSPDevicePtr)0xffffffff),
     p_function(function)
 {
+}
+
+DSPKernel::DSPKernel(DSPDevice *device, Kernel *kernel,
+                     KernelEntry *kernel_entry)
+: DeviceKernel(), p_device(device), p_kernel(kernel),
+    p_data_page_ptr  ((DSPDevicePtr)0x0),
+    p_function(nullptr)
+{
+    p_device_entry_pt = kernel_entry->index;
 }
 
 DSPKernel::~DSPKernel()
@@ -111,7 +121,7 @@ T k_exp(T base, unsigned int e)
 *----------------------------------------------------------------------------*/
 DSPDevicePtr  DSPKernel::device_entry_pt()
 {
-    if (!p_device_entry_pt)
+    if (p_device_entry_pt == DSP_MAX_NUM_BUILTIN_KERNELS)
     {
         size_t name_length;
         p_kernel->info(CL_KERNEL_FUNCTION_NAME, 0, 0, &name_length);
@@ -340,6 +350,12 @@ DSPDevicePtr DSPKernel::locals_in_kernel_extent(uint32_t &ret_size) const
     DSPDevicePtr addr = prog->mem_l2_section_extent(size);
 
     addr += size;
+
+    if (dynamic_cast<BuiltInProgram *>(p))
+    {
+        ret_size = ROUNDUP(size, MIN_BLOCK_SIZE);
+        return addr;
+    }
 
     /*-------------------------------------------------------------------------
     * Get kernel attr indicating size of kernel static local buffers

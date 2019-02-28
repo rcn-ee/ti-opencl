@@ -62,6 +62,8 @@ public:
     pthread_cond_t*  get_worker_cond()       override { return p_parent->get_worker_cond();      }
     pthread_mutex_t* get_worker_mutex()      override { return p_parent->get_worker_mutex();     }
     const DSPDevice* GetRootDSPDevice()      const override { return p_root;                     }
+    const std::vector<KernelEntry*>* getKernelEntries() const override
+    { return static_cast<const DSPRootDevice *>(p_root)->getKernelEntries(); }
 
     void push_complete_pending(uint32_t idx,
                                class Event* const data,

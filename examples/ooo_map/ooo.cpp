@@ -130,12 +130,12 @@ int main(int argc, char *argv[])
 	cl_device_type type;
 	devices[d].getInfo(CL_DEVICE_TYPE, &type);
 
-	if (type == CL_DEVICE_TYPE_CPU)
+	if (type & CL_DEVICE_TYPE_CPU)
 	{
 	   QcpuIO = new CommandQueue(context, devices[d], PROFILE);
 	   QcpuOO = new CommandQueue(context, devices[d], PROFILE|OOOEXEC);
 	}
-	else if (type == CL_DEVICE_TYPE_ACCELERATOR)
+	else if (type & CL_DEVICE_TYPE_ACCELERATOR)
         {
 	   QdspOO  = new CommandQueue(context, devices[d], PROFILE|OOOEXEC);
            dspDevices.push_back(devices[d]);
