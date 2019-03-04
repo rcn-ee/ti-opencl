@@ -35,14 +35,14 @@
 
 /******************************************************************************
 * This file contains a policy classes for controlling typedefs, construction
-* and destruction of HeapManager heaps for OpenCL use.  This policy class 
-* creates heap managers in linux shared memory and can be shared across 
-* processes.  The actual underlying memory managed by the HeapManager is 
+* and destruction of HeapManager heaps for OpenCL use.  This policy class
+* creates heap managers in linux shared memory and can be shared across
+* processes.  The actual underlying memory managed by the HeapManager is
 * currently being allocated by a daemon for OpenCL under Linux.
 ******************************************************************************/
 
 /*-----------------------------------------------------------------------------
-* Create the alias BIP for boost:interprocess, but make it only visible in this 
+* Create the alias BIP for boost:interprocess, but make it only visible in this
 * translation unit by placing it in an anonymous namespace.
 *----------------------------------------------------------------------------*/
 namespace { namespace BIP = boost::interprocess; }
@@ -54,16 +54,16 @@ namespace { namespace BIP = boost::interprocess; }
 class HeapsMultiProcessPolicy
 {
 public:
-    typedef utility::HeapManager<DSPDevicePtr, uint32_t, 
+    typedef utility::HeapManager<DSPDevicePtr, uint32_t,
             utility::MultiProcess<DSPDevicePtr, uint32_t> > Heap32Bit;
 
-    typedef utility::HeapManager<DSPDevicePtr64, uint64_t, 
+    typedef utility::HeapManager<DSPDevicePtr64, uint64_t,
             utility::MultiProcess<DSPDevicePtr64, uint64_t> > Heap64Bit;
 
     /*-------------------------------------------------------------------------
     * A shared memory segment named "HeapManager" will be opened and will
-    * contain the heap managers for all needed OpenCL buffer heaps. It will 
-    * reside on the file system at /dev/shm/HeapManager. It is assumed this 
+    * contain the heap managers for all needed OpenCL buffer heaps. It will
+    * reside on the file system at /dev/shm/HeapManager. It is assumed this
     * shared memory is created by a pre-existing daemon on Linux systems.
     *------------------------------------------------------------------------*/
     HeapsMultiProcessPolicy()
@@ -90,15 +90,15 @@ public:
     }
 
     /*-------------------------------------------------------------------------
-    * When this class is destructed, we guarantee that no allocations by this 
+    * When this class is destructed, we guarantee that no allocations by this
     * process will remain in the shared heap managers.
     *------------------------------------------------------------------------*/
     ~HeapsMultiProcessPolicy()
     {
-	uint32_t pid = getpid();
-	msmc_heap_->free_all_pid(pid);
-	ddr_heap1_->free_all_pid(pid);
-	ddr_heap2_->free_all_pid(pid);
+	    uint32_t pid = getpid();
+	    msmc_heap_->free_all_pid(pid);
+	    ddr_heap1_->free_all_pid(pid);
+	    ddr_heap2_->free_all_pid(pid);
         delete segment_;
     }
 

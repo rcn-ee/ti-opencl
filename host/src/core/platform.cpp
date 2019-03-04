@@ -184,7 +184,7 @@ namespace Coal
             case CL_PLATFORM_VERSION:
                 STRING_ASSIGN("OpenCL 1.1 TI product version "
                               STRINGIZE2(_PRODUCT_VERSION)
-                              " (" __DATE__ " " __TIME__ ")");
+                              " (" STRINGIZE2(_BUILD_ID) ")");
                 break;
 
             case CL_PLATFORM_NAME:

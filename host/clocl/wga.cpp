@@ -48,11 +48,9 @@
 #include <llvm/IR/Dominators.h>
 #include <llvm/Analysis/LoopInfo.h>
 #include "llvm_util.h"
-#include "boost/assign/std/set.hpp"
 #include <stdio.h>
 
 using namespace std;
-using namespace boost::assign;
 
 namespace llvm
 {

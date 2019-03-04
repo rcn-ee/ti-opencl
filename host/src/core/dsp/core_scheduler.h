@@ -38,14 +38,6 @@
 #include "u_lockable.h"
 #include "../tiocl_types.h"
 
-typedef std::pair<uint8_t, int> CountType;
-struct CompareCount
-{
-    bool operator()(const CountType& left, const CountType& right) const
-    {
-        return left.second < right.second;
-    }
-};
 
 #define CORE_SCHEDULER_DEFAULT_DEPTH    4
 
@@ -77,8 +69,9 @@ public:
     uint32_t allocate(const DSPCoreSet& compute_units)
     {
         Lock lock(this);
+        assert(compute_units.size() > 0);
         while (!any_core_available(compute_units)) cv_.wait(lock.raw());
-        uint32_t core = core_select();
+        uint32_t core = core_select(compute_units);
         core_reserve(core);
         return core;
     }
@@ -131,10 +124,19 @@ private:
     uint32_t core_available(uint32_t core)  {return count_[core] < depth_;}
     void     core_reserve(uint32_t core)    {count_[core]++;}
     void     core_release(uint32_t core)    {count_[core]--;}
-    uint32_t core_select() const
+    uint32_t core_select(const DSPCoreSet& compute_units)
     {
-        auto it  = std::min_element(count_.begin(), count_.end(), CompareCount());
-        return it->first;
+        uint32_t min_depth = depth_;
+        uint32_t min_core = *compute_units.begin();
+        for (auto & core : compute_units)
+        {
+            if (count_[(uint32_t) core] < min_depth)
+            {
+                min_depth = count_[(uint32_t) core];
+                min_core  = (uint32_t) core;
+            }
+        }
+        return min_core;
     }
 };
 
