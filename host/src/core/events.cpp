@@ -1689,19 +1689,6 @@ Event::Type CopyBufferToImageEvent::type() const
 }
 
 /*
- * Barrier
- */
-
-BarrierEvent::BarrierEvent(CommandQueue *parent, cl_int *errcode_ret)
-: Event(parent, Queued, 0, 0, errcode_ret)
-{}
-
-Event::Type BarrierEvent::type() const
-{
-    return Event::Barrier;
-}
-
-/*
  * WaitForEvents
  */
 
@@ -1731,3 +1718,21 @@ Event::Type MarkerEvent::type() const
 {
     return Event::Marker;
 }
+
+/*
+ * Barrier
+ */
+
+BarrierEvent::BarrierEvent(CommandQueue *parent,
+                           cl_uint num_events_in_wait_list,
+                           const cl_event *event_wait_list,
+                           cl_int *errcode_ret)
+: WaitForEventsEvent(parent, num_events_in_wait_list, event_wait_list, errcode_ret)
+{}
+
+Event::Type BarrierEvent::type() const
+{
+    return Event::Barrier;
+}
+
+

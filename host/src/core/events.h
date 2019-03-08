@@ -739,18 +739,6 @@ class UserEvent : public Event
 };
 
 /**
- * \brief Barrier event
- */
-class BarrierEvent : public Event
-{
-    public:
-        BarrierEvent(CommandQueue *parent,
-                     cl_int *errcode_ret);
-
-        Type type() const; /*!< \brief Say the event is a \c Coal::Event::Barrier one */
-};
-
-/**
  * \brief Event waiting for others to complete before being completed
  */
 class WaitForEventsEvent : public Event
@@ -777,6 +765,21 @@ class MarkerEvent : public WaitForEventsEvent
 
         Type type() const; /*!< \brief Say the event is a \c Coal::Event::Marker one */
 };
+
+/**
+ * \brief Barrier event
+ */
+class BarrierEvent : public WaitForEventsEvent
+{
+    public:
+        BarrierEvent(CommandQueue *parent,
+                     cl_uint num_events_in_wait_list,
+                     const cl_event *event_wait_list,
+                     cl_int *errcode_ret);
+
+        Type type() const; /*!< \brief Say the event is a \c Coal::Event::Marker one */
+};
+
 
 }
 
