@@ -388,6 +388,14 @@ clUnloadCompiler(void)
 }
 
 cl_int
+clUnloadPlatformCompiler(cl_platform_id platform)
+{
+    if (platform != (cl_platform_id) &the_platform::Instance())
+        return CL_INVALID_PLATFORM;
+    return CL_SUCCESS;
+}
+
+cl_int
 clGetProgramInfo(cl_program         d_program,
                  cl_program_info    param_name,
                  size_t             param_value_size,
