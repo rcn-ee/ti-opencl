@@ -42,14 +42,14 @@
 #include <vector>
 
 /**
- * Helper function to check whether the devices in the context match the 
- * devices provided as arguments 
+ * Helper function to check whether the devices in the context match the
+ * devices provided as arguments
  */
-cl_int 
+cl_int
 checkDeviceComplianceWithContext(const Coal::Context* context,
                                  cl_uint              num_devices,
                                  cl_uint              context_num_devices,
-                                 const cl_device_id*  device_list) 
+                                 const cl_device_id*  device_list)
 {
     cl_int errcode;
     cl_device_id* context_devices;
@@ -63,7 +63,7 @@ checkDeviceComplianceWithContext(const Coal::Context* context,
                             context_num_devices * sizeof(cl_device_id),
                             context_devices, 0);
 
-    if (errcode != CL_SUCCESS) 
+    if (errcode != CL_SUCCESS)
     {
         std::free(context_devices);
         return CL_INVALID_DEVICE;
@@ -83,7 +83,7 @@ checkDeviceComplianceWithContext(const Coal::Context* context,
         }
 
         if (!found)
-        { 
+        {
             std::free(context_devices);
             return CL_INVALID_DEVICE;
         }
@@ -159,16 +159,16 @@ clCreateProgramWithBuiltInKernels(cl_context                d_context,
         *errcode_ret = CL_INVALID_VALUE;
         return 0;
     }
-    
+
     // Get number of devices in context
     *errcode_ret = context->info(CL_CONTEXT_NUM_DEVICES, sizeof(cl_uint),
                                  &context_num_devices, 0);
 
     if (*errcode_ret != CL_SUCCESS) return 0;
-    
+
     // Check device compliance with context
-    *errcode_ret = checkDeviceComplianceWithContext(context, 
-                                                    num_devices, 
+    *errcode_ret = checkDeviceComplianceWithContext(context,
+                                                    num_devices,
                                                     context_num_devices,
                                                     device_list);
     if (*errcode_ret != CL_SUCCESS) return 0;
@@ -217,7 +217,7 @@ clCreateProgramWithBinary(cl_context            d_context,
         *errcode_ret = CL_INVALID_VALUE;
         return 0;
     }
-    
+
     // Get number of devices in context
     *errcode_ret = context->info(CL_CONTEXT_NUM_DEVICES, sizeof(cl_uint),
                                  &context_num_devices, 0);
@@ -225,12 +225,12 @@ clCreateProgramWithBinary(cl_context            d_context,
     if (*errcode_ret != CL_SUCCESS) return 0;
 
     // Check devices for compliance with context
-    *errcode_ret = checkDeviceComplianceWithContext(context, 
-                                                    num_devices, 
-                                                    context_num_devices, 
+    *errcode_ret = checkDeviceComplianceWithContext(context,
+                                                    num_devices,
+                                                    context_num_devices,
                                                     device_list);
     if (*errcode_ret != CL_SUCCESS) return 0;
-   
+
     // Check binary status
     for (cl_uint i=0; i<num_devices; ++i)
     {

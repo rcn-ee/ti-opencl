@@ -52,22 +52,6 @@ static inline cl_int queueEvent(Coal::CommandQueue *queue,
 
     if (event)
     {
-#if 0
-        /*---------------------------------------------------------------------
-        * It is up to the user to release events for reuse.  If they do not
-        * they will have a memory leak for old events.  This can impact
-        * memory performance since the old event memory is likely already warm
-        * in cache.
-        *--------------------------------------------------------------------*/
-        /*---------------------------------------------------------------------
-        * We should also reduce the reference count of the old event, because
-        * user_app_event is now interested in a different event.
-        *--------------------------------------------------------------------*/
-        old_event = pobj(*event);
-        if (old_event != NULL && old_event->isA(Coal::Object::T_Event))
-	    clReleaseEvent(desc(old_event));
-
-#endif
         /*---------------------------------------------------------------------
         * We need to increase reference count before queue->queueEvent(command)
         * because a user_app_event is interested in the status of command.

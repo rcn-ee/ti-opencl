@@ -130,6 +130,7 @@ void print_help()
     cout << "   -cl-finite-math-only" << endl;
     cout << "   -cl-fast-relaxed-math" << endl;
     cout << "   -cl-std=<val>" << endl;
+    cout << "   -cl-kernel-arg-info" << endl;
     cout << endl;
     exit(-1);
 }
@@ -173,7 +174,8 @@ void process_options(int argc, char **argv)
             {"cl-unsafe-math-optimizations", no_argument, 0, 0 },
             {"cl-finite-math-only",          no_argument, 0, 0 },
             {"cl-fast-relaxed-math",         no_argument, 0, 0 },
-            {0,                              0,           0,  0 }
+            {"cl-kernel-arg-info",           no_argument, 0, 0 },
+            {0,                              0,           0, 0 }
         };
 
         int this_option_optind = optind ? optind : 1;

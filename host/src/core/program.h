@@ -41,6 +41,7 @@
 #include <CL/cl.h>
 #include <string>
 #include <vector>
+#include <llvm/IR/Metadata.h>
 
 namespace Coal
 {
@@ -181,7 +182,7 @@ class Program : public _cl_program, public Object
          * \return a \c Coal::Kernel object corresponding to the given \p name
          */
         virtual Kernel *createKernel(const std::string &name, cl_int *errcode_ret);
-        
+
         /**
          * \brief Create all the kernels of the program
          * \param errcode_ret return code (\c CL_SUCCESS if success)
@@ -223,6 +224,8 @@ class Program : public _cl_program, public Object
         Type        p_type;
         State       p_state;
         std::string p_source;
+        std::string p_kernel_names;
+        size_t      p_num_kernels;
 
         llvm::LLVMContext   * p_llvmcontext;
 
@@ -247,7 +250,8 @@ class Program : public _cl_program, public Object
         void resetDeviceDependent();
         DeviceDependent& deviceDependent(DeviceInterface* device);
         const DeviceDependent& deviceDependent(DeviceInterface* device) const;
-        std::vector<llvm::Function*> kernelFunctions(DeviceDependent& dep);
+        std::vector<llvm::MDNode *> KernelMDNodes(const DeviceDependent& dep) const;
+        std::vector<llvm::Function*> kernelFunctions(const DeviceDependent& dep) const;
 
     private:
         std::vector<DeviceInterface*> p_device_list;

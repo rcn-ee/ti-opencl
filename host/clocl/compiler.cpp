@@ -231,6 +231,14 @@ bool Compiler::compile(const std::string &options,
         {
             Werror = true;
         }
+        else if (token == "-cl-kernel-arg-info")
+        {
+            /*-----------------------------------------------------------------
+             * This enables the generation of kernel_arg_name metadata.
+             * The other kernel arg metadata items are always generated.
+             *---------------------------------------------------------------*/
+            codegen_opts.EmitOpenCLArgMetadata = true;
+        }
     }
 
     if (!opt_builtin)

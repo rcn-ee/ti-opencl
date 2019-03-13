@@ -84,7 +84,7 @@ static bool ReadBinaryIntoString(const std::string &outfile,
 
 Program::Program(Context *ctx)
 : Object(Object::T_Program, ctx), p_type(Invalid), p_state(Empty),
-  p_device_list()
+  p_device_list(), p_kernel_names(""), p_num_kernels(0)
 {
 #ifndef _SYS_BIOS
     p_null_device_dependent.compiler = 0;
@@ -227,7 +227,26 @@ std::string Program::deviceDependentCompilerOptions(DeviceInterface *device) con
 #endif
 }
 
-std::vector<llvm::Function *> Program::kernelFunctions(DeviceDependent &dep)
+std::vector<llvm::MDNode *> Program::KernelMDNodes(const DeviceDependent &dep) const
+{
+    std::vector<llvm::MDNode *> rs;
+
+    llvm::NamedMDNode *kernels =
+               dep.linked_module->getNamedMetadata("opencl.kernels");
+
+    if (!kernels) return rs;
+
+    for (unsigned int i=0; i<kernels->getNumOperands(); ++i)
+    {
+        llvm::MDNode *node = kernels->getOperand(i);
+        assert (node->getNumOperands() > 0);
+        rs.push_back(node);
+    }
+
+    return rs;
+}
+
+std::vector<llvm::Function *> Program::kernelFunctions(const DeviceDependent &dep) const
 {
     std::vector<llvm::Function *> rs;
 
@@ -243,9 +262,12 @@ std::vector<llvm::Function *> Program::kernelFunctions(DeviceDependent &dep)
         assert (node->getNumOperands() > 0);
 
         /*---------------------------------------------------------------------
-        * Each node has only one operand : a llvm::Function
+        * Each node has multiple operands:
+        * * Operand 0 is an llvm::Function
+        * * The other operands are argument metadata nodes
         *--------------------------------------------------------------------*/
-        llvm::Value *value = llvm::dyn_cast<llvm::ValueAsMetadata>(node->getOperand(0))->getValue();
+        llvm::Value *value = llvm::dyn_cast<llvm::ValueAsMetadata>(
+                                               node->getOperand(0))->getValue();
 
         /*---------------------------------------------------------------------
         * Bug somewhere, don't crash
@@ -273,19 +295,36 @@ Kernel *Program::createKernel(const std::string &name, cl_int *errcode_ret)
     {
         bool found = false;
         DeviceDependent &dep = p_device_dependent[i];
-        const std::vector<llvm::Function *> &kernels = kernelFunctions(dep);
+        const std::vector<llvm::MDNode *> &kernel_md_nodes = KernelMDNodes(dep);
 
         /*---------------------------------------------------------------------
         * Find the one with the good name
         *--------------------------------------------------------------------*/
-        for (size_t j=0; j < kernels.size(); ++j)
+        for (size_t j=0; j < kernel_md_nodes.size(); ++j)
         {
-            llvm::Function *func = kernels[j];
+            llvm::ValueAsMetadata *md_node_value =
+                llvm::dyn_cast_or_null<llvm::ValueAsMetadata>(
+                                        kernel_md_nodes[j]->getOperand(0));
+            /*-----------------------------------------------------------------
+             * Dont fail if cast fails, continue to next MDNode
+             *----------------------------------------------------------------*/
+            if (!md_node_value) continue;
+
+            llvm::Value *value = md_node_value->getValue();
+
+            /*-----------------------------------------------------------------
+             * Dont fail if not an llvm::Function, continue to next MDNode
+            *----------------------------------------------------------------*/
+            if (!llvm::isa<llvm::Function>(value)) continue;
+
+            llvm::Function *func = llvm::cast<llvm::Function>(value);
+
+            if (!func) continue;
 
             if (func->getName().str() == name)
             {
                 found = true;
-                *errcode_ret = rs->addFunction(dep.device, func,
+                *errcode_ret = rs->addFunction(dep.device, kernel_md_nodes[j],
                                                dep.linked_module);
                 if (*errcode_ret != CL_SUCCESS) return rs;
                 break;
@@ -507,6 +546,17 @@ cl_int Program::build(const char* options,
 
     p_state = Built;
 
+    /* Populate num_kernels and kernel_names */
+    const DeviceDependent &dep = p_device_dependent[0];
+    const std::vector<llvm::Function *>& kernels = kernelFunctions(dep);
+    p_num_kernels += kernels.size();
+    for (size_t i=0; i<kernels.size(); ++i)
+    {
+        llvm::Function *func = kernels[i];
+        p_kernel_names += func->getName().str();
+        if (i != kernels.size() - 1) p_kernel_names += ";";
+    }
+
     return CL_SUCCESS;
 }
 
@@ -531,6 +581,7 @@ cl_int Program::info(cl_program_info param_name,
     llvm::SmallVector<cl_device_id, 4> devices;
 
     union {
+        size_t size_t_var;
         cl_uint cl_uint_var;
         cl_context cl_context_var;
     };
@@ -616,7 +667,16 @@ cl_int Program::info(cl_program_info param_name,
 
             return CL_SUCCESS;
         }
-
+        case CL_PROGRAM_NUM_KERNELS:
+        {
+            SIMPLE_ASSIGN(size_t, p_num_kernels);
+            break;
+        }
+        case CL_PROGRAM_KERNEL_NAMES:
+        {
+            MEM_ASSIGN(p_kernel_names.size() + 1, p_kernel_names.c_str());
+            break;
+        }
         default:
             return CL_INVALID_VALUE;
     }

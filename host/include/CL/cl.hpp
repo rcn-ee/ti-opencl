@@ -3236,13 +3236,13 @@ public:
 
         cl_mem_flags flags = 0;
         if( readOnly ) {
-            flags |= CL_MEM_READ_ONLY;
+            flags |= (cl_mem_flags) CL_MEM_READ_ONLY;
         }
         else {
-            flags |= CL_MEM_READ_WRITE;
+            flags |= (cl_mem_flags) CL_MEM_READ_WRITE;
         }
         if( useHostPtr ) {
-            flags |= CL_MEM_USE_HOST_PTR;
+            flags |= (cl_mem_flags) CL_MEM_USE_HOST_PTR;
         }
 
         ::size_t size = sizeof(DataType)*(endIterator - startIterator);
@@ -6656,13 +6656,13 @@ Buffer::Buffer(
 
     cl_mem_flags flags = 0;
     if( readOnly ) {
-        flags |= CL_MEM_READ_ONLY;
+        flags |= (cl_mem_flags) CL_MEM_READ_ONLY;
     }
     else {
-        flags |= CL_MEM_READ_WRITE;
+        flags |= (cl_mem_flags) CL_MEM_READ_WRITE;
     }
     if( useHostPtr ) {
-        flags |= CL_MEM_USE_HOST_PTR;
+        flags |= (cl_mem_flags) CL_MEM_USE_HOST_PTR;
     }
 
     ::size_t size = sizeof(DataType)*(endIterator - startIterator);
@@ -6707,13 +6707,13 @@ Buffer::Buffer(
 
     cl_mem_flags flags = 0;
     if (readOnly) {
-        flags |= CL_MEM_READ_ONLY;
+        flags |= (cl_mem_flags) CL_MEM_READ_ONLY;
     }
     else {
-        flags |= CL_MEM_READ_WRITE;
+        flags |= (cl_mem_flags) CL_MEM_READ_WRITE;
     }
     if (useHostPtr) {
-        flags |= CL_MEM_USE_HOST_PTR;
+        flags |= (cl_mem_flags) CL_MEM_USE_HOST_PTR;
     }
 
     ::size_t size = sizeof(DataType)*(endIterator - startIterator);
