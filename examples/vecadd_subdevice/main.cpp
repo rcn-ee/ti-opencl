@@ -65,10 +65,11 @@ const cl_uint  WorkGroupSize   = NumVecElements / NumWorkGroups;
 /* ======================================================================== */
 cl_uint GetNumComputeUnits(cl_device_id* device);
 cl_uint LoadKernelSource(char* src_str);
-void CreateDeviceBuffer(cl_context* context,
-                        cl_mem*     buf,
-                        cl_uint     size,
-                        cl_short*   src);
+void CreateDeviceBuffer(cl_context*  context,
+                        cl_mem*      buf,
+                        cl_uint      size,
+                        cl_short*    src,
+                        cl_mem_flags flags);
 void InitArrays(cl_short** srcA,
                 cl_short** srcB,
                 cl_short** Golden,
@@ -244,9 +245,12 @@ int main()
 
     /* Create the buffers */
     cl_mem bufA, bufB, bufDst;
-    CreateDeviceBuffer(&context, &bufA,  bufsize, srcA);
-    CreateDeviceBuffer(&context, &bufB,  bufsize, srcB);
-    CreateDeviceBuffer(&context, &bufDst, bufsize, dst);
+    CreateDeviceBuffer(&context, &bufA,  bufsize, srcA,
+                       CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR);
+    CreateDeviceBuffer(&context, &bufB,  bufsize, srcB,
+                       CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR);
+    CreateDeviceBuffer(&context, &bufDst, bufsize, dst,
+                       CL_MEM_WRITE_ONLY | CL_MEM_USE_HOST_PTR);
 
     /* Create program from source, for all devices in context */
     cl_program program = clCreateProgramWithSource(context,                  /* context */
@@ -351,17 +355,18 @@ cl_uint LoadKernelSource(char* src_str)
 /*-------------------------------------------------------------------------
  * Create device buffer from given host buffer
  *------------------------------------------------------------------------*/
-void CreateDeviceBuffer(cl_context* context,
-                        cl_mem*     buf,
-                        cl_uint     size,
-                        cl_short*   src)
+void CreateDeviceBuffer(cl_context*  context,
+                        cl_mem*      buf,
+                        cl_uint      size,
+                        cl_short*    src,
+                        cl_mem_flags flags)
 {
     int errcode;
-    *buf = clCreateBuffer(*context,                              /* context     */
-                          CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,/* flags       */
-                          size,                                  /* size        */
-                          src,                                   /* host_ptr    */
-                          &errcode);                             /* errcode_ret */
+    *buf = clCreateBuffer(*context,  /* context     */
+                          flags,      /* flags       */
+                          size,      /* size        */
+                          src,       /* host_ptr    */
+                          &errcode); /* errcode_ret */
     assert(errcode == CL_SUCCESS);
 }
 
