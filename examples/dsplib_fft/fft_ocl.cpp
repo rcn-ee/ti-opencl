@@ -38,6 +38,7 @@
  *   - double buffer to overlap data movement and processing
  */
 
+#include <cstdio>
 #include <cstdlib>
 #include <cmath>
 #include <cstring>
