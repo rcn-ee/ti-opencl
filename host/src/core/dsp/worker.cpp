@@ -583,8 +583,9 @@ bool handle_event_dispatch(DSPDevice *device)
             DSPBuffer *buf = (DSPBuffer *)e->buffer()->deviceBuffer(device);
             DSPDevicePtr64 map_dsp_addr = (DSPDevicePtr64)buf->data()
                                           + mbe->offset();
-            shm->Unmap(e->mapping(), map_dsp_addr,
-                              mbe->cb(), ((mbe->flags() & CL_MAP_WRITE) != 0));
+            shm->Unmap(e->mapping(), map_dsp_addr, mbe->cb(),
+                       ((mbe->flags() & CL_MAP_WRITE) != 0) ||
+                       ((mbe->flags() & CL_MAP_WRITE_INVALIDATE_REGION) != 0));
 
             if (queue) queue->releaseEvent(mbe);
             break;

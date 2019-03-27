@@ -300,7 +300,8 @@ MapBufferEvent::MapBufferEvent(CommandQueue *parent,
     if (*errcode_ret != CL_SUCCESS) return;
 
     // Check flags
-    if (map_flags & ~(CL_MAP_READ | CL_MAP_WRITE))
+    if (map_flags & ~(CL_MAP_READ | CL_MAP_WRITE |
+                      CL_MAP_WRITE_INVALIDATE_REGION))
     {
         *errcode_ret = CL_INVALID_VALUE;
         return;
@@ -318,6 +319,8 @@ MapBufferEvent::MapBufferEvent(CommandQueue *parent,
     if (   ((map_flags & CL_MAP_READ)
             && (buf_flags & (CL_MEM_HOST_WRITE_ONLY | CL_MEM_HOST_NO_ACCESS)))
         || ((map_flags & CL_MAP_WRITE)
+            && (buf_flags & (CL_MEM_HOST_READ_ONLY | CL_MEM_HOST_NO_ACCESS)))
+        || ((map_flags & CL_MAP_WRITE_INVALIDATE_REGION)
             && (buf_flags & (CL_MEM_HOST_READ_ONLY | CL_MEM_HOST_NO_ACCESS))) )
     {
         *errcode_ret = CL_INVALID_OPERATION;
@@ -368,7 +371,8 @@ MapImageEvent::MapImageEvent(CommandQueue *parent,
     if (*errcode_ret != CL_SUCCESS) return;
 
     // Check flags
-    if (map_flags & ~(CL_MAP_READ | CL_MAP_WRITE))
+    if (map_flags & ~(CL_MAP_READ | CL_MAP_WRITE |
+                      CL_MAP_WRITE_INVALIDATE_REGION))
     {
         *errcode_ret = CL_INVALID_VALUE;
         return;

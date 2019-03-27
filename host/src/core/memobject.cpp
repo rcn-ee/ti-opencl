@@ -451,7 +451,9 @@ bool Buffer::addMapEvent(BufferEvent *mapped_event)
         if (   mbe_offset <= e_offset + e->cb() - 1
             &&   e_offset <= mbe_offset + mbe->cb() - 1)
             if ((mbe->flags() & CL_MAP_WRITE) ||
-                  (e->flags() & CL_MAP_WRITE))
+                (mbe->flags() & CL_MAP_WRITE_INVALIDATE_REGION) ||
+                  (e->flags() & CL_MAP_WRITE) ||
+                  (e->flags() & CL_MAP_WRITE_INVALIDATE_REGION))
                 return false;
     }
 
