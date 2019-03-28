@@ -735,7 +735,7 @@ void Event::setStatus(Status status)
     * for example when the completed event is the last event in the queue,
     * we retain CQ beforehand and release CQ afterwards.
     *--------------------------------------------------------------------*/
-    if (type() == Event::User || (parent() && status == Complete))
+    if (status == Complete && (type() == Event::User || parent()))
     {
         CommandQueue *cq = (CommandQueue *) parent();
         if (cq != NULL)  clRetainCommandQueue(desc(cq));

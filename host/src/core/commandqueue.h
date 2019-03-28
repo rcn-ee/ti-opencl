@@ -241,7 +241,7 @@ class CommandQueue : public _cl_command_queue, public Object
  * \brief Base class for all events
  *
  * This class contains logic common to all the events.
- * 
+ *
  * Beside handling OpenCL-specific stuff, \c Coal::Event objects do nothing
  * implementation-wise. They do not compile kernels, copy data around, etc.
  * They only contain static and immutable data that is then used by the devices
@@ -252,8 +252,8 @@ class Event : public _cl_event, public Object
     public:
         /**
          * \brief Event type
-         * 
-         * The allows objects using \c Coal::Event to know which event it is, 
+         *
+         * The allows objects using \c Coal::Event to know which event it is,
          * and to cast it to the correct sub-class.
          */
         enum Type
@@ -294,7 +294,7 @@ class Event : public _cl_event, public Object
             Queued = CL_QUEUED,       /*!< \brief Simply queued in a command queue */
             Submitted = CL_SUBMITTED, /*!< \brief Submitted to a device */
             Running = CL_RUNNING,     /*!< \brief Running on the device */
-            Complete = CL_COMPLETE    /*!< \brief Completed */
+            Complete = CL_COMPLETE   /*!< \brief Completed */
         };
 
         /**
@@ -353,24 +353,24 @@ class Event : public _cl_event, public Object
          * \return cl command name of the event
          */
         const char* name();
-        
+
         /**
          * \brief Dummy event
-         * 
+         *
          * A dummy event is an event that doesn't have to be pushed on a device,
          * it is only a hint for \c Coal::CommandQueue
-         * 
+         *
          * \return true if the event is dummy
          */
         bool isInstantaneous() const;
 
         /**
          * \brief Set the event status
-         * 
+         *
          * This function calls the event callbacks, and
          * \c Coal::CommandQueue::pushEventsOnDevice() if \p status is
          * \c Complete .
-         * 
+         *
          * \param status new status of the event
          */
         void setStatus(Status status);
@@ -380,32 +380,32 @@ class Event : public _cl_event, public Object
          * \param data device-specific data
          */
         void setDeviceData(void *data);
-        
+
         /**
          * \brief Update timing info
-         * 
+         *
          * This function reads current system time and puts it in \c p_timing
-         * 
+         *
          * \param timing timing event having just finished
          */
         void updateTiming(Timing timing);
-        
+
         /**
          * \brief Status
          * \return status of the event
          */
         Status status() const;
-        
+
         /**
          * \brief Wait for a specified status
-         * 
+         *
          * This function blocks until the event's status is set to \p status
          * by another thread.
-         * 
+         *
          * \param status the status the event must have for the function to return
          */
         void waitForStatus(Status status);
-        
+
         /**
          * \brief Device-specific data
          * \return data set using \c setDeviceData()
@@ -442,10 +442,10 @@ class Event : public _cl_event, public Object
                              size_t *param_value_size_ret) const;
 
         /**
-         * \brief Call \c Coal::CommandQueue::pushEventsOnDevice() for each command queue 
+         * \brief Call \c Coal::CommandQueue::pushEventsOnDevice() for each command queue
          * in which this event is queued or each queue with an event waiting on this event
          */
-        void flushQueues();       
+        void flushQueues();
 
 
         /**

@@ -199,7 +199,7 @@ clSetUserEventStatus(cl_event   d_event,
         command->type() != Coal::Event::User)
         return CL_INVALID_EVENT;
 
-    if (execution_status != CL_COMPLETE)
+    if (execution_status > CL_COMPLETE)
         return CL_INVALID_VALUE;
 
     if (command->status() != CL_SUBMITTED)
