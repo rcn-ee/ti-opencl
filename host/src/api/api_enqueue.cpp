@@ -277,6 +277,24 @@ clEnqueueFillBuffer(cl_command_queue   d_command_queue,
 }
 
 cl_int
+clEnqueueFillImage(cl_command_queue    d_command_queue,
+                   cl_mem              d_image,
+                   const void *        fill_color,
+                   const size_t *      origin,
+                   const size_t *      region,
+                   cl_uint             num_events_in_wait_list,
+                   const cl_event *    event_wait_list,
+                   cl_event *          event)
+{
+    auto command_queue = pobj(d_command_queue);
+
+    if (!command_queue->isA(Coal::Object::T_CommandQueue))
+        return CL_INVALID_COMMAND_QUEUE;
+
+    return CL_IMAGE_FORMAT_NOT_SUPPORTED;
+}
+
+cl_int
 clEnqueueCopyBufferRect(cl_command_queue    d_command_queue,
                         cl_mem              d_src_buffer,
                         cl_mem              d_dst_buffer,
