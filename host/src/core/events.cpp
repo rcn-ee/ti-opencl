@@ -187,7 +187,14 @@ ReadBufferEvent::ReadBufferEvent(CommandQueue *parent,
                                  cl_int *errcode_ret)
 : ReadWriteBufferEvent(parent, buffer, offset, cb, ptr, num_events_in_wait_list,
                        event_wait_list, errcode_ret)
-{}
+{
+    cl_mem_flags buf_flags = buffer->flags();
+    if (buf_flags & CL_MEM_HOST_WRITE_ONLY || buf_flags & CL_MEM_HOST_NO_ACCESS)
+    {
+        *errcode_ret = CL_INVALID_OPERATION;
+        return;
+    }
+}
 
 Event::Type ReadBufferEvent::type() const
 {
@@ -204,7 +211,14 @@ WriteBufferEvent::WriteBufferEvent(CommandQueue *parent,
                                    cl_int *errcode_ret)
 : ReadWriteBufferEvent(parent, buffer, offset, cb, ptr, num_events_in_wait_list,
                        event_wait_list, errcode_ret)
-{}
+{
+    cl_mem_flags buf_flags = buffer->flags();
+    if (buf_flags & CL_MEM_HOST_READ_ONLY || buf_flags & CL_MEM_HOST_NO_ACCESS)
+    {
+        *errcode_ret = CL_INVALID_OPERATION;
+        return;
+    }
+}
 
 Event::Type WriteBufferEvent::type() const
 {
@@ -1456,6 +1470,12 @@ ReadBufferRectEvent::ReadBufferRectEvent (CommandQueue *parent,
                            host_slice_pitch, ptr, 1, num_events_in_wait_list,
                            event_wait_list, errcode_ret)
 {
+    cl_mem_flags buf_flags = buffer->flags();
+    if (buf_flags & CL_MEM_HOST_WRITE_ONLY || buf_flags & CL_MEM_HOST_NO_ACCESS)
+    {
+        *errcode_ret = CL_INVALID_OPERATION;
+        return;
+    }
 }
 
 Event::Type ReadBufferRectEvent::type() const
@@ -1481,6 +1501,12 @@ WriteBufferRectEvent::WriteBufferRectEvent (CommandQueue *parent,
                             host_slice_pitch, ptr, 1, num_events_in_wait_list,
                             event_wait_list, errcode_ret)
 {
+    cl_mem_flags buf_flags = buffer->flags();
+    if (buf_flags & CL_MEM_HOST_READ_ONLY || buf_flags & CL_MEM_HOST_NO_ACCESS)
+    {
+        *errcode_ret = CL_INVALID_OPERATION;
+        return;
+    }
 }
 
 Event::Type WriteBufferRectEvent::type() const

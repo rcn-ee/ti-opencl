@@ -122,9 +122,11 @@ EVEKernelEvent::EVEKernelEvent(EVEDevice *device, KernelEvent *event)
 
 EVEKernelEvent::~EVEKernelEvent() { }
 
-#define READ_ONLY_BUFFER(buffer)  (buffer->flags() & CL_MEM_READ_ONLY)
-#define WRITE_ONLY_BUFFER(buffer) (buffer->flags() & CL_MEM_WRITE_ONLY)
+#define DEVICE_READ_ONLY(buffer)  (buffer->flags() & CL_MEM_READ_ONLY)
+#define DEVICE_WRITE_ONLY(buffer) (buffer->flags() & CL_MEM_WRITE_ONLY)
 #define HOST_NO_ACCESS(buffer)    (buffer->flags() & CL_MEM_HOST_NO_ACCESS)
+#define HOST_READ_ONLY(buffer)    (buffer->flags() & CL_MEM_HOST_READ_ONLY)
+#define HOST_WRITE_ONLY(buffer)   (buffer->flags() & CL_MEM_HOST_WRITE_ONLY)
 
 #define SETMOREARG(sz, pval) do \
     { \
@@ -362,7 +364,7 @@ cl_int EVEKernelEvent::allocate_temp_global(void)
         else
             assert(0);  // TODO
 
-        if (! WRITE_ONLY_BUFFER(buffer))
+        if (! DEVICE_WRITE_ONLY(buffer))
         {
             void *mapped_tmpbuf = shm->Map(*p_addr64, buffer->size(), false);
             memcpy(mapped_tmpbuf, buffer->host_ptr(), buffer->size());
@@ -387,7 +389,8 @@ cl_int EVEKernelEvent::flush_special_use_host_ptr_buffers(void)
     for (int i = 0; i < p_hostptr_clMalloced_bufs.size(); ++i)
     {
         MemObject *buffer = p_hostptr_clMalloced_bufs[i];
-        if (HOST_NO_ACCESS(buffer)) continue; // Exclude buffers not accessed
+         // Exclude buffers not accessed
+        if (HOST_NO_ACCESS(buffer) || HOST_READ_ONLY(buffer)) continue;
         total_buf_size += buffer->size();
     }
 
@@ -406,9 +409,13 @@ cl_int EVEKernelEvent::flush_special_use_host_ptr_buffers(void)
             DSPBuffer *dspbuf = (DSPBuffer *) buffer->deviceBuffer(p_device);
             DSPDevicePtr64 data = (DSPDevicePtr64)dspbuf->data();
 
-            if (! READ_ONLY_BUFFER(buffer) && ! HOST_NO_ACCESS(buffer))
+            if (! DEVICE_READ_ONLY(buffer) &&
+                ! HOST_NO_ACCESS(buffer)   &&
+                ! HOST_READ_ONLY(buffer))
                 shm->CacheWbInv(data, buffer->host_ptr(), buffer->size());
-            else if (! WRITE_ONLY_BUFFER(buffer) && ! HOST_NO_ACCESS(buffer))
+            else if (! DEVICE_WRITE_ONLY(buffer) &&
+                     ! HOST_NO_ACCESS(buffer)    &&
+                     ! HOST_READ_ONLY(buffer))
                 shm->CacheWb(data, buffer->host_ptr(), buffer->size());
         }
     }
@@ -429,7 +436,7 @@ void EVEKernelEvent::free_tmp_bufs()
         MemObject *buffer     = p_hostptr_tmpbufs[i].first;
         DSPDevicePtr64 addr64 = p_hostptr_tmpbufs[i].second.first;
 
-        if (! READ_ONLY_BUFFER(buffer))
+        if (! DEVICE_READ_ONLY(buffer))
         {
             void *mapped_tmpbuf = shm->Map(addr64, buffer->size(), true);
             memcpy(buffer->host_ptr(), mapped_tmpbuf, buffer->size());
@@ -452,7 +459,7 @@ void EVEKernelEvent::free_tmp_bufs()
         MemObject *buffer = p_hostptr_clMalloced_bufs[i];
         DSPBuffer *dspbuf = (DSPBuffer *) buffer->deviceBuffer(p_device);
         DSPDevicePtr64 data = (DSPDevicePtr64)dspbuf->data();
-        if (! READ_ONLY_BUFFER(buffer))
+        if (! DEVICE_READ_ONLY(buffer))
             shm->CacheInv(data, buffer->host_ptr(), buffer->size());
     }
     // ***/

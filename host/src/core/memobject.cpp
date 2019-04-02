@@ -58,8 +58,10 @@ MemObject::MemObject(Context *ctx, cl_mem_flags flags, void *host_ptr,
     const cl_mem_flags all_flags = CL_MEM_READ_WRITE | CL_MEM_WRITE_ONLY |
                                    CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR |
                                    CL_MEM_ALLOC_HOST_PTR | CL_MEM_COPY_HOST_PTR
-                                   |CL_MEM_USE_MSMC_TI | CL_MEM_HOST_NO_ACCESS;
-
+                                   | CL_MEM_HOST_WRITE_ONLY
+                                   | CL_MEM_HOST_READ_ONLY
+                                   | CL_MEM_HOST_NO_ACCESS
+                                   | CL_MEM_USE_MSMC_TI;
     if ((flags & ~all_flags) != 0)
     {
         *errcode_ret = CL_INVALID_VALUE;
@@ -73,6 +75,24 @@ MemObject::MemObject(Context *ctx, cl_mem_flags flags, void *host_ptr,
     }
 
     if ((flags & CL_MEM_COPY_HOST_PTR) && (flags & CL_MEM_USE_HOST_PTR))
+    {
+        *errcode_ret = CL_INVALID_VALUE;
+        return;
+    }
+
+    if ((flags & CL_MEM_HOST_WRITE_ONLY) && (flags & CL_MEM_HOST_READ_ONLY))
+    {
+        *errcode_ret = CL_INVALID_VALUE;
+        return;
+    }
+
+    if ((flags & CL_MEM_HOST_WRITE_ONLY) && (flags & CL_MEM_HOST_NO_ACCESS))
+    {
+        *errcode_ret = CL_INVALID_VALUE;
+        return;
+    }
+
+    if ((flags & CL_MEM_HOST_READ_ONLY) && (flags & CL_MEM_HOST_NO_ACCESS))
     {
         *errcode_ret = CL_INVALID_VALUE;
         return;
