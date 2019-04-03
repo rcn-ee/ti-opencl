@@ -475,6 +475,12 @@ cl_int DSPDevice::info(cl_device_info param_name,
         case CL_DEVICE_IMAGE3D_MAX_DEPTH:
             SIMPLE_ASSIGN(size_t, 0);           //images not supported
             break;
+        case CL_DEVICE_IMAGE_MAX_ARRAY_SIZE:
+            SIMPLE_ASSIGN(size_t, 0);           //images not supported
+            break;
+        case CL_DEVICE_IMAGE_MAX_BUFFER_SIZE:
+            SIMPLE_ASSIGN(size_t, 0);           //images not supported
+            break;
         case CL_DEVICE_IMAGE_SUPPORT:
             SIMPLE_ASSIGN(cl_bool, CL_FALSE);   //images not supported
             break;
@@ -590,6 +596,9 @@ cl_int DSPDevice::info(cl_device_info param_name,
         case CL_DEVICE_COMPILER_AVAILABLE:
             SIMPLE_ASSIGN(cl_bool, CL_TRUE);
             break;
+        case CL_DEVICE_LINKER_AVAILABLE:
+            SIMPLE_ASSIGN(cl_bool, CL_TRUE);
+            break;
         case CL_DEVICE_EXECUTION_CAPABILITIES:
             SIMPLE_ASSIGN(cl_device_exec_capabilities, CL_EXEC_KERNEL);
             break;
@@ -679,8 +688,20 @@ cl_int DSPDevice::info(cl_device_info param_name,
         case CL_DEVICE_NATIVE_VECTOR_WIDTH_HALF:
             SIMPLE_ASSIGN(cl_uint, 0);
             break;
+        case CL_DEVICE_PREFERRED_INTEROP_USER_SYNC:
+            SIMPLE_ASSIGN(cl_bool, CL_TRUE);
+            break;
+        case CL_DEVICE_PRINTF_BUFFER_SIZE:
+            /* The format conversion buffer size is defined to be 510 bytes in
+             * the RTS printf implementation. For each format specifier in the
+             * printf call, this buffer is reused.
+             * 1MB (1048576 bytes) is the minimum value for FULL profile as
+             * stated in the OpenCL 1.2 specification.
+             * */
+            SIMPLE_ASSIGN(size_t, 1048576);
+            break;
         case CL_DEVICE_OPENCL_C_VERSION:
-            STRING_ASSIGN("OpenCL C 1.1 LLVM " LLVM_VERSION);
+            STRING_ASSIGN("OpenCL C 1.2");
             break;
         case CL_DEVICE_PARENT_DEVICE:
             if (p_parent) {SIMPLE_ASSIGN(cl_device_id, desc(p_parent));}

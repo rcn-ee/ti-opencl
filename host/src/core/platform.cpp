@@ -182,7 +182,7 @@ namespace Coal
             #define STRINGIZE(x) #x
             #define STRINGIZE2(x) STRINGIZE(x)
             case CL_PLATFORM_VERSION:
-                STRING_ASSIGN("OpenCL 1.1 TI product version "
+                STRING_ASSIGN("OpenCL 1.2 TI product version "
                               STRINGIZE2(_PRODUCT_VERSION)
                               " (" STRINGIZE2(_BUILD_ID) ")");
                 break;

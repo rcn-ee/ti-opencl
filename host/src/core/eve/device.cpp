@@ -657,6 +657,14 @@ cl_int EVEDevice::info(cl_device_info param_name,
             SIMPLE_ASSIGN(size_t, 0);           //images not supported
             break;
 
+        case CL_DEVICE_IMAGE_MAX_ARRAY_SIZE:
+            SIMPLE_ASSIGN(size_t, 0);           //images not supported
+            break;
+
+        case CL_DEVICE_IMAGE_MAX_BUFFER_SIZE:
+            SIMPLE_ASSIGN(size_t, 0);           //images not supported
+            break;
+
         case CL_DEVICE_IMAGE_SUPPORT:
             SIMPLE_ASSIGN(cl_bool, CL_FALSE);   //images not supported
             break;
@@ -798,6 +806,10 @@ cl_int EVEDevice::info(cl_device_info param_name,
             SIMPLE_ASSIGN(cl_bool, CL_TRUE);
             break;
 
+        case CL_DEVICE_LINKER_AVAILABLE:
+            SIMPLE_ASSIGN(cl_bool, CL_TRUE);
+            break;
+
         case CL_DEVICE_EXECUTION_CAPABILITIES:
             SIMPLE_ASSIGN(cl_device_exec_capabilities, CL_EXEC_NATIVE_KERNEL);
             break;
@@ -840,7 +852,7 @@ cl_int EVEDevice::info(cl_device_info param_name,
             break;
 
         case CL_DEVICE_VERSION:
-            STRING_ASSIGN("OpenCL 1.1 TI " COAL_VERSION);
+            STRING_ASSIGN("OpenCL 1.2 TI");
             break;
 
         case CL_DEVICE_EXTENSIONS:
@@ -900,6 +912,14 @@ cl_int EVEDevice::info(cl_device_info param_name,
 
         case CL_DEVICE_NATIVE_VECTOR_WIDTH_HALF:
             SIMPLE_ASSIGN(cl_uint, 0);
+            break;
+
+        case CL_DEVICE_PRINTF_BUFFER_SIZE:
+            SIMPLE_ASSIGN(size_t, 0); // Printf not supported on custom device
+            break;
+
+        case CL_DEVICE_PREFERRED_INTEROP_USER_SYNC:
+            SIMPLE_ASSIGN(cl_bool, CL_TRUE);
             break;
 
         case CL_DEVICE_OPENCL_C_VERSION:
