@@ -852,7 +852,7 @@ cl_int EVEDevice::info(cl_device_info param_name,
             break;
 
         case CL_DEVICE_VERSION:
-            STRING_ASSIGN("OpenCL 1.2 TI");
+            STRING_ASSIGN("OpenCL 1.2");
             break;
 
         case CL_DEVICE_EXTENSIONS:

@@ -637,7 +637,7 @@ cl_int DSPDevice::info(cl_device_info param_name,
             STRING_ASSIGN("FULL_PROFILE");
             break;
         case CL_DEVICE_VERSION:
-            STRING_ASSIGN("OpenCL 1.1 TI " COAL_VERSION);
+            STRING_ASSIGN("OpenCL 1.2");
             break;
         case CL_DEVICE_EXTENSIONS:
             if (EnvVar::Instance().GetEnv <
