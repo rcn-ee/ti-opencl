@@ -10,8 +10,8 @@ UNAME_M:=$(shell uname -m)
 # NOTE!!!!!! The packaging version numbers need to match what is specified in 
 # debian/changelog!!!
 OCL_MAJOR_VER=1
-OCL_MINOR_VER=1
-OCL_RELEASE_VER=19
+OCL_MINOR_VER=2
+OCL_RELEASE_VER=00
 OCL_PATCH_VER=00
 OCL_VER=$(OCL_MAJOR_VER).$(OCL_MINOR_VER).$(OCL_RELEASE_VER)
 OCL_DPKG_NAME=ti-opencl
