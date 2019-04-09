@@ -295,16 +295,14 @@ clCreateSubDevices(cl_device_id                         d_device,
     return ret;
 }
 
-/* Helper function to check if a given device is a DSPSubDevice object
- * */
-bool
-IsValidSubDevice(cl_device_id d_device)
+/* Helper function to check if a given device is a valid object */
+template <class D>
+bool IsValidDevice(cl_device_id d_device)
 {
     auto device = pobj(d_device);
-    if (!device->isA(Coal::Object::T_Device)) return false;
 
-    if (dynamic_cast<Coal::DSPSubDevice*>(device))
-        return true;
+    if (!device->isA(Coal::Object::T_Device)) return false;
+    if (dynamic_cast<D*>(device))             return true;
 
     return false;
 }
@@ -312,7 +310,12 @@ IsValidSubDevice(cl_device_id d_device)
 cl_int
 clRetainDevice(cl_device_id d_device)
 {
-    if (!IsValidSubDevice(d_device)) return CL_INVALID_DEVICE;
+    /* On page 53, the OpenCL 1.2 specification says: "clRetainDevice returns
+     * CL_SUCCESS if the function is executed successfully or the device is a
+     * root-level device."
+     * */
+    if (IsValidDevice<Coal::DSPRootDevice>(d_device)) return CL_SUCCESS;
+    if (!IsValidDevice<Coal::DSPSubDevice>(d_device)) return CL_INVALID_DEVICE;
 
     auto device = pobj(d_device);
     device->reference();
@@ -322,7 +325,12 @@ clRetainDevice(cl_device_id d_device)
 cl_int
 clReleaseDevice(cl_device_id d_device)
 {
-    if (!IsValidSubDevice(d_device)) return CL_INVALID_DEVICE;
+    /* On page 53, the OpenCL 1.2 specification says: "If device is a root level
+     * device i.e. a cl_device_id returned by clGetDeviceIDs, the device
+     * reference count remains unchanged.
+     * */
+    if (IsValidDevice<Coal::DSPRootDevice>(d_device)) return CL_SUCCESS;
+    if (!IsValidDevice<Coal::DSPSubDevice>(d_device)) return CL_INVALID_DEVICE;
 
     auto device = pobj(d_device);
     if (device->dereference()) delete device;
