@@ -38,7 +38,6 @@
 #include <list>
 #include "mbox_interface.h"
 #include "../shared_memory_interface.h"
-#include "device_manager_interface.h"
 #include "core_scheduler.h"
 #include "device_info.h"
 
@@ -52,7 +51,6 @@ class Kernel;
 
 using tiocl::SharedMemory;
 using tiocl::MemoryRange;
-using tiocl::DeviceManager;
 
 /* Maximum size of properties array for partition_type
  * For each partition unit -> MAX_NUM_CORES
@@ -108,7 +106,6 @@ public:
     /*-------------------------------------------------------------------------
     * Methods common to both DSPRootDevice and DSPSubDevice
     *------------------------------------------------------------------------*/
-    DSPDevicePtr             get_addr_kernel_config()    { return p_addr_kernel_config;}
     profiling_t&             getProfiling()              { return p_profiling;         }
     std::ostream*            getProfilingOut()           { return p_profiling_out;     }
     std::string              builtinsHeader(void) const  { return "dsp.h";             }
@@ -153,7 +150,6 @@ protected:
     float                           p_dsp_mhz;
     DSPDevice*                      p_parent;
     DSPCoreSet                      p_compute_units;
-    DSPDevicePtr                    p_addr_kernel_config;
     DSPDevicePtr                    p_addr_local_mem;
     uint32_t                        p_size_local_mem;
     profiling_t                     p_profiling;

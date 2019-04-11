@@ -65,7 +65,6 @@ DSPRootDevice::DSPRootDevice(unsigned char dsp_id, SharedMemory* shm)
       p_initialized          (false),
       p_complete_pending     (nullptr),
       core_scheduler_        (nullptr),
-      device_manager_        (nullptr),
       p_mb                   (nullptr),
       p_kernel_entries       ()
 {
@@ -82,16 +81,9 @@ DSPRootDevice::DSPRootDevice(unsigned char dsp_id, SharedMemory* shm)
         p_partitions_supported[1] = CL_DEVICE_PARTITION_BY_COUNTS;
     }
 
-    /*-------------------------------------------------------------------------
-    * Reset and start DSP cores
-    *------------------------------------------------------------------------*/
-#if !defined(_SYS_BIOS)
-    device_manager_ = DeviceManagerFactory::CreateDeviceManager(dsp_id, p_compute_units.size(),
-                                                 device_info.FullyQualifiedPathToDspMonitor());
-    device_manager_->Reset();
-    device_manager_->Load();
-    device_manager_->Run();
-#endif
+    // Reset and start of DSP cores done by
+    // - remoteproc at Linux boot on AM57x
+    // - ti-mctd (daemon) on K2x
 
     /*-------------------------------------------------------------------------
     * Initialize Core Scheduler
@@ -248,16 +240,6 @@ DSPRootDevice::~DSPRootDevice()
     * the race condition.
     *------------------------------------------------------------------------*/
     mail_to(exitMsg, p_compute_units);
-#if defined(DSPC868X)
-    /*-------------------------------------------------------------------------
-    * Wait for the EXIT acknowledgement from device
-    *------------------------------------------------------------------------*/
-    while (!p_exit_acked)
-    {
-        while (!mail_query()) usleep(1);
-        mail_from(p_compute_units);
-    }
-#endif
 
     delete p_mb;
     delete p_complete_pending;
@@ -274,7 +256,6 @@ DSPRootDevice::~DSPRootDevice()
     /*-------------------------------------------------------------------------
     * Only need to close the driver for one of the devices
     *------------------------------------------------------------------------*/
-    delete device_manager_;
     delete core_scheduler_;
 }
 
@@ -547,11 +528,6 @@ bool DSPRootDevice::any_complete_pending()
 ******************************************************************************/
 void DSPRootDevice::setup_dsp_mhz()
 {
-#ifdef DSPC868X
-    char* ghz1 = EnvVar::Instance().GetEnv<EnvVar::Var: TI_OCL_DSP_1_25GHZ>(
-                                                                    nullptr);
-    if (ghz1) p_dsp_mhz = 1250;  // 1.25 GHz
-#else
     mail_to(frequencyMsg, p_compute_units);
     int ret = 0;
     do
@@ -561,5 +537,4 @@ void DSPRootDevice::setup_dsp_mhz()
     }
     while (ret == -1);
     p_dsp_mhz = ret;
-#endif
 }

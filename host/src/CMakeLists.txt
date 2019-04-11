@@ -1,11 +1,3 @@
-# Cross-compiling needs additional paths to find target OS headers 
-# and non-system headers found on the host (BOOST,GL)
-if (CROSS_COMPILE)
-  SET (TARGET_INCLUDES 
-    ${CMAKE_FIND_ROOT_PATH} 
-    ${HOST_USR_INCLUDE_PATH}  )
-endif()
-
 execute_process(COMMAND git rev-parse --short HEAD
                 WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
                 OUTPUT_VARIABLE GIT_SHA
@@ -21,8 +13,12 @@ include_directories (
     ${PROJECT_SOURCE_DIR}/src/core/dsp/tal/ocl_load/DLOAD
     ${PROJECT_SOURCE_DIR}/src/core/dsp/tal
     ${PROJECT_SOURCE_DIR}/src/core/dsp
-    ${TARGET_INCLUDES}
+    ${CMAKE_FIND_ROOT_PATH}
     )
+
+if ((${BUILD_OS} MATCHES "SYS_BIOS"))
+    include_directories (${BIOS_USR_INCLUDE_PATH})
+endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-variable")
@@ -131,9 +127,7 @@ endif()
 
 
 if (${BUILD_OS} MATCHES "SYS_BIOS")
-set(COAL_SRC_FILES ${COAL_SRC_FILES}
-    core/dsp/tal/rtos_shmem_provider_factory.cpp
-)
+    list (APPEND COAL_SRC_FILES core/dsp/tal/rtos_shmem_provider_factory.cpp)
 else()
 set(COAL_SRC_FILES ${COAL_SRC_FILES}
     api/api_gl.cpp
@@ -171,11 +165,6 @@ set(COAL_SRC_FILES ${COAL_SRC_FILES}
 endif()
 
 set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/mbox_impl_msgq.cpp)
-set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/device_manager_remoteproc.cpp)
-
-if (AM57_BUILD)
-    set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/device_manager_remoteproc.cpp)
-endif()
 
 
 if (NOT (${BUILD_OS} MATCHES "SYS_BIOS"))
@@ -240,11 +229,6 @@ set_target_properties(OpenCL PROPERTIES
   LINK_FLAGS "${LLVM_LDFLAGS}"
   LINK_INTERFACE_LIBRARIES "")
 endif()
-
-# Dirty platform.cpp to cause re-compile with every build. It contains
-# a compile-time timestamp used as the library build timestamp.
-add_custom_command (TARGET OpenCL PRE_BUILD 
-                 COMMAND touch -c ${CMAKE_CURRENT_SOURCE_DIR}/core/platform.cpp)
 
 if (NOT (${BUILD_OS} MATCHES "SYS_BIOS"))
 set (LIBS

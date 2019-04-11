@@ -21,10 +21,8 @@ ifeq ($(BUILD_AM57),1)
     TARGET=am57
     BUILD_TARGET=ARM_AM57
     ifneq ($(BUILD_OS), SYS_BIOS)
-        CMAKE_DEFINES += -DLINUX_DEVKIT_ROOT=$(LINUX_DEVKIT_ROOT)
         BUILD_EVE_FIRMWARE ?= 1
         CMAKE_DEFINES += -DBUILD_EVE_FIRMWARE=$(BUILD_EVE_FIRMWARE)
-        export PATH:=$(ARM_GCC_DIR)/bin:$(PATH)
     else
         RTOS_PACKAGE_VER=$(shell echo $(OCL_FULL_VER) | sed 's/\<[0-9]\>/0&/g' | sed 's/\./_/g')
         RTOS_PACKAGE_NAME=opencl_rtos_$(TARGET)xx_$(RTOS_PACKAGE_VER)
@@ -36,23 +34,15 @@ ifeq ($(BUILD_AM57),1)
 else ifeq ($(BUILD_K2H),1)
     TARGET=k2h
     BUILD_TARGET=ARM_K2H
-    CMAKE_DEFINES += -DLINUX_DEVKIT_ROOT=$(LINUX_DEVKIT_ROOT)
-    export PATH:=$(ARM_GCC_DIR)/bin:$(PATH)
 else ifeq ($(BUILD_K2L),1)
     TARGET=k2l
     BUILD_TARGET=ARM_K2L
-    CMAKE_DEFINES += -DLINUX_DEVKIT_ROOT=$(LINUX_DEVKIT_ROOT)
-    export PATH:=$(ARM_GCC_DIR)/bin:$(PATH)
 else ifeq ($(BUILD_K2E),1)
     TARGET=k2e
     BUILD_TARGET=ARM_K2E
-    CMAKE_DEFINES += -DLINUX_DEVKIT_ROOT=$(LINUX_DEVKIT_ROOT)
-    export PATH:=$(ARM_GCC_DIR)/bin:$(PATH)
 else ifeq ($(BUILD_K2G),1)
     TARGET=k2g
     BUILD_TARGET=ARM_K2G
-    CMAKE_DEFINES += -DLINUX_DEVKIT_ROOT=$(LINUX_DEVKIT_ROOT)
-    export PATH:=$(ARM_GCC_DIR)/bin:$(PATH)
 else
     ifeq ($(MAKECMDGOALS),clean)
     else ifeq ($(MAKECMDGOALS),realclean)
@@ -64,6 +54,11 @@ else
             BUILD_K2L=1 \
             BUILD_K2E=1)
     endif
+endif
+
+ifneq ($(BUILD_OS), SYS_BIOS)
+    CMAKE_DEFINES += -DLINUX_DEVKIT_ROOT=$(LINUX_DEVKIT_ROOT)
+    export PATH:=$(ARM_GCC_DIR)/bin:$(PATH)
 endif
 
 ifeq ($(BUILD_EXAMPLES),1)
@@ -101,9 +96,13 @@ install: $(OCL_BUILD_DIR) $(DESTDIR) $(EVE_SUBMODULE)
 build: $(OCL_BUILD_DIR)
 	cd $(OCL_BUILD_DIR) && cmake $(CMAKE_DEFINES) ../../host && $(MAKE)
 
-install_nomonitors: $(OCL_BUILD_DIR) $(DESTDIR)
+install_lib: $(OCL_BUILD_DIR) $(DESTDIR)
 	cd $(OCL_BUILD_DIR) && cmake -DBUILD_OUTPUT=lib $(CMAKE_DEFINES) ../../host && $(MAKE) install
+
+install_clocl: $(OCL_BUILD_DIR) $(DESTDIR)
 	cd $(OCL_BUILD_DIR) && cmake -DBUILD_OUTPUT=clocl $(CMAKE_DEFINES) ../../host && $(MAKE) install
+
+install_nomonitors: install_lib install_clocl
 
 package: $(OCL_BUILD_DIR)
 	cd $(OCL_BUILD_DIR) && cmake $(CMAKE_DEFINES) ../../host && $(MAKE) package

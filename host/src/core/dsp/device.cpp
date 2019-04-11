@@ -15,7 +15,7 @@
  *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  *   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+ *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  *   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
  *   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
  *   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
@@ -131,7 +131,6 @@ DSPDevice::DSPDevice(SharedMemory* shm)
     *------------------------------------------------------------------------*/
     const DeviceInfo& device_info = DeviceInfo::Instance();
 #if !defined(_SYS_BIOS)
-    p_addr_kernel_config = device_info.GetSymbolAddress("kernel_config_l2");
     p_addr_local_mem     = device_info.GetSymbolAddress("ocl_local_mem_start");
     p_size_local_mem     = device_info.GetSymbolAddress("ocl_local_mem_size");
 #else

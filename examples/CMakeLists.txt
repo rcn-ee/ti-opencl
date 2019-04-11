@@ -15,19 +15,16 @@ if (${BUILD_OS} MATCHES "SYS_BIOS")
 else()
     set (EXAMPLES_PATH    ${SHARE_PATH}/examples)
     set (OCL_EXAMPLES_PATH     ${EXAMPLES_PATH}/opencl)
-    set (OCL_OMP_EXAMPLES_PATH ${EXAMPLES_PATH}/opencl+openmp)
 
     # Install the top-level directories and Makefiles
     install(DIRECTORY DESTINATION ${EXAMPLES_PATH}        ${OCL_DPERMS})
     install(DIRECTORY DESTINATION ${OCL_EXAMPLES_PATH}     ${OCL_DPERMS})
-    install(DIRECTORY DESTINATION ${OCL_OMP_EXAMPLES_PATH} ${OCL_DPERMS})
 endif()
 
 if (${BUILD_OS} MATCHES "SYS_BIOS")
 install(FILES rtos_main.c make_rtos.inc Makefile load_am57_rtos.js DESTINATION ${OCL_EXAMPLES_PATH} ${OCL_FPERMS})
 else()
 install(FILES make.inc Makefile DESTINATION ${OCL_EXAMPLES_PATH} ${OCL_FPERMS})
-install(FILES make.inc Makefile DESTINATION ${OCL_OMP_EXAMPLES_PATH} ${OCL_FPERMS})
 endif()
 
 # Explicitly list the examples to be installed. Note that this approach requires
@@ -74,7 +71,7 @@ ENDFOREACH()
 # Loop through the directory list and install
 if (NOT (${BUILD_OS} MATCHES "SYS_BIOS"))
 FOREACH(subdir ${OCL_OMP_EXAMPLES_INSTALL_LIST})
-   install(DIRECTORY ${subdir} DESTINATION ${OCL_OMP_EXAMPLES_PATH} ${OCL_DPERMS})
+   install(DIRECTORY ${subdir} DESTINATION ${OCL_EXAMPLES_PATH} ${OCL_DPERMS})
 ENDFOREACH()
 endif()
 

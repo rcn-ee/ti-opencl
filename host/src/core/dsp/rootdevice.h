@@ -87,7 +87,6 @@ private:
     MBox*                           p_mb;
     concurrent_map < uint32_t,
                    class Event* >*  p_complete_pending;
-    const DeviceManager*            device_manager_;
     class CoreScheduler*            core_scheduler_;
     pthread_t                       p_worker_dispatch;
     pthread_t                       p_worker_completion;

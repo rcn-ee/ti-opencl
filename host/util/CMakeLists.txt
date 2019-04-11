@@ -1,10 +1,17 @@
+# libocl_util.a
+
 include_directories( ${CMAKE_SOURCE_DIR}/include )
 
 if (CROSS_COMPILE)
-   include_directories( ${CMAKE_FIND_ROOT_PATH} ${HOST_USR_INCLUDE_PATH} )
+   include_directories( ${CMAKE_FIND_ROOT_PATH})
 endif()
 
-set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -O3 -fPIC -fpermissive")
+if ((${BUILD_OS} MATCHES "SYS_BIOS"))
+    include_directories (${BIOS_USR_INCLUDE_PATH})
+endif()
+
+
+set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c++11 -O3 -fPIC -fpermissive")
 
 set(util_src report_timing.cpp decode_error.cpp read_binary.cpp)
 

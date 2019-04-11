@@ -1,5 +1,5 @@
 if (CROSS_COMPILE)
-   include_directories( ${CMAKE_FIND_ROOT_PATH} ${HOST_USR_INCLUDE_PATH} )
+   include_directories( ${CMAKE_FIND_ROOT_PATH} )
 endif()
 
 include_directories( ${PROJECT_SOURCE_DIR}/src/core/dsp )

@@ -40,17 +40,8 @@ SymbolAddressLookupELF::SymbolAddressLookupELF(const std::string &binary_filenam
     binary_filename_(binary_filename)
 {
     // Initialize with ALL potential symbol lookups
-    name_to_address_ = { {"kernel_config_l2",       0},
-                         {"ocl_local_mem_start",    0},
-                         {"ocl_local_mem_size",     0},
-                         {"ocl_global_mem_start",   0},
-                         {"ocl_global_mem_size",    0},
-                         {"ocl_msmc_mem_start",     0},
-                         {"ocl_msmc_mem_size",      0},
-                         {"mbox_d2h_phys",          0},
-                         {"mbox_d2h_size",          0},
-                         {"mbox_h2d_phys",          0},
-                         {"mbox_h2d_size",          0} };
+    name_to_address_ = { {"ocl_local_mem_start",    0},
+                         {"ocl_local_mem_size",     0} };
     InitializeLookup();
 }
 
