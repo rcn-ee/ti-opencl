@@ -314,9 +314,11 @@ clRetainDevice(cl_device_id d_device)
      * CL_SUCCESS if the function is executed successfully or the device is a
      * root-level device."
      * */
-    if (IsValidDevice<Coal::DSPRootDevice>(d_device) ||
-        IsValidDevice<Coal::EVEDevice>(d_device)     ||
+#if !defined(_SYS_BIOS)
+    if (IsValidDevice<Coal::EVEDevice>(d_device) ||
         IsValidDevice<Coal::CPUDevice>(d_device))     return CL_SUCCESS;
+#endif
+    if (IsValidDevice<Coal::DSPRootDevice>(d_device)) return CL_SUCCESS;
     if (!IsValidDevice<Coal::DSPSubDevice>(d_device)) return CL_INVALID_DEVICE;
 
     auto device = pobj(d_device);
@@ -331,9 +333,11 @@ clReleaseDevice(cl_device_id d_device)
      * device i.e. a cl_device_id returned by clGetDeviceIDs, the device
      * reference count remains unchanged.
      * */
-    if (IsValidDevice<Coal::DSPRootDevice>(d_device) ||
-        IsValidDevice<Coal::EVEDevice>(d_device)     ||
+#if !defined(_SYS_BIOS)
+    if (IsValidDevice<Coal::EVEDevice>(d_device) ||
         IsValidDevice<Coal::CPUDevice>(d_device))     return CL_SUCCESS;
+#endif
+    if (IsValidDevice<Coal::DSPRootDevice>(d_device)) return CL_SUCCESS;
     if (!IsValidDevice<Coal::DSPSubDevice>(d_device)) return CL_INVALID_DEVICE;
 
     auto device = pobj(d_device);

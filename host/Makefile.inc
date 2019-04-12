@@ -27,13 +27,13 @@ endif
 SDOMC_SHARED?=/cgnas
 
 # XDC (not included in CoreSDK)
-XDC_DIR?=$(SDOMC_SHARED)/xdctools_3_50_07_20_core
+XDC_DIR?=$(SDOMC_SHARED)/xdctools_3_51_01_18_core
 
 # TI C6x CGT
-TI_OCL_CGT_INSTALL?=$(SDOMC_SHARED)/ti-cgt-c6000-8.2.2-release-linux
+TI_OCL_CGT_INSTALL?=$(SDOMC_SHARED)/ti-cgt-c6000-8.3.2/linux
 
 # TI M4 CGT
-TI_OCL_M4_CGT_INSTALL ?= $(SDOMC_SHARED)/ti-cgt-arm_16.9.2.LTS
+TI_OCL_M4_CGT_INSTALL ?= $(SDOMC_SHARED)/ti-cgt-arm_18.1.5.LTS
 
 # Set to 1 to switch from CMEM to ION
 USE_ION ?= 0
@@ -64,7 +64,7 @@ endif
 ifeq ($(USE_ION), 1)
 CORESDK_VERSION ?= 05.02.00.10-ion
 else
-CORESDK_VERSION ?= 05.03.00.03-20190228
+CORESDK_VERSION ?= 05.03.00.07-release
 endif
 
 TIDL_VERSION    ?= 05_03_00_02-295-2019-02-27_10-52-08
@@ -92,7 +92,7 @@ endif
 # ARM GCC
 ifeq (,$(findstring arm, $(UNAME_M)))
     ARM_GCC_DIR?=$(SDOMC_SHARED)/gcc-linaro-7.2.1-2017.11-x86_64_arm-linux-gnueabihf
-    GCC_ARM_NONE_TOOLCHAIN?=$(SDOMC_SHARED)/gcc-arm-none-eabi-7-2017-q4-major
+    GCC_ARM_NONE_TOOLCHAIN?=$(SDOMC_SHARED)/gcc-arm-none-eabi-7-2018-q2-update
 endif
 
 # RTOS packages (BIOS, IPC, FC, EDMA3_LLD etc.)

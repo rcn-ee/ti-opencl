@@ -496,7 +496,7 @@ static inline void reset_extended_memory(flush_msg_t* flush_msg)
 ******************************************************************************/
 static void setup_builtin_kernels(Msg_t* Msg)
 {
-#if defined (DEVICE_AM572x)
+#if defined(DEVICE_AM572x) && !defined(_SYS_BIOS)
     if (Msg->u.k.kernel.entry_point >= DSP_MAX_NUM_BUILTIN_KERNELS) return;
     Msg->u.k.kernel.entry_point = (uint32_t) tiocl_dsp_builtin_kernel_table[
                                                   Msg->u.k.kernel.entry_point];

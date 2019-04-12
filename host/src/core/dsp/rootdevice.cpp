@@ -163,7 +163,7 @@ void DSPRootDevice::init_ulm()
 ******************************************************************************/
 void DSPRootDevice::init_builtin_kernels()
 {
-#if defined(DEVICE_AM57)
+#if defined(DEVICE_AM57) && !defined(_SYS_BIOS)
     KernelEntry *k;
 
     k = new KernelEntry("tiocl_bik_memcpy_test", 1);
