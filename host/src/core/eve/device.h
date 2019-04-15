@@ -92,7 +92,8 @@ class EVEDevice : public DeviceInterface, public Lockable
         int  numHostMails(Msg_t& msg) const;
         void mail_to   (Msg_t& msg, unsigned core = 0);
         bool mail_query();
-        int  mail_from (int *retcode = nullptr);
+        int  mail_from(const DSPCoreSet& compute_units,
+                                       int* retcode = nullptr);
 
         void push_complete_pending(uint32_t idx, class Event* const data,
                                    unsigned int cnt = 1);
@@ -112,6 +113,11 @@ class EVEDevice : public DeviceInterface, public Lockable
         SharedMemory* GetSHMHandler() const { return p_shmHandler; }
 
         MemoryRange::Location ClFlagToLocation(cl_mem_flags flags) const;
+
+        bool isProfilingEnabled() const { return false; }
+        std::ostream* getProfilingOut() { return nullptr; }
+
+        const DSPCoreSet& GetComputeUnits() const  { return p_compute_units; }
 
     private:
         unsigned int       p_cores;
@@ -138,6 +144,7 @@ class EVEDevice : public DeviceInterface, public Lockable
 
         uint32_t           p_pid;
         std::vector<KernelEntry*> p_kernel_entries;
+        DSPCoreSet         p_compute_units;
 };
 
 }

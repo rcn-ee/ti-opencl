@@ -94,7 +94,8 @@ EVEDevice::EVEDevice(unsigned char eve_id, SharedMemory* shm)
       p_initialized         (false),
       p_complete_pending    (),
       p_shmHandler          (shm),
-      p_pid                 (getpid())
+      p_pid                 (getpid()),
+      p_compute_units({0})
 {
     /*-------------------------------------------------------------------------
     * TODO: MCT-795, get EVE device built in kernels information
@@ -164,7 +165,7 @@ EVEDevice::EVEDevice(unsigned char eve_id, SharedMemory* shm)
     do
     {
         while (!mail_query())  ;
-        ret = mail_from();
+        ret = mail_from(p_compute_units);
     } while (ret == -1);
 
     p_eve_mhz = ret;
@@ -474,7 +475,9 @@ bool EVEDevice::mail_query()
     return p_mb->query();
 }
 
-int EVEDevice::mail_from(int *retcode)
+// compute_units unused on EVE, here for consistency with DSPDevice
+int EVEDevice::mail_from(const DSPCoreSet& compute_units,
+                         int* retcode)
 {
     uint32_t size_rx;
     int32_t  trans_id_rx;
