@@ -48,7 +48,6 @@ public:
     void             init()                                      override;
     void             pushEvent(Event* event)                     override;
     bool             stop()                                      override;
-    bool             availableEvent()                            override;
     Event*           getEvent(bool& stop)                        override;
     bool             gotEnoughToWorkOn()                         override;
     bool             mail_query()                                override;
@@ -67,7 +66,8 @@ public:
 
     pthread_cond_t*  get_worker_cond()   override  { return &p_worker_cond;  }
     pthread_mutex_t* get_worker_mutex()  override  { return &p_worker_mutex; }
-    const DSPDevice* GetRootDSPDevice()  const override  { return this;      }
+    DeviceInterface* GetRootDevice()  override  { return this; }
+    const DeviceInterface* GetRootDevice() const override { return this; }
 
     void             init_ulm();
     void             setup_dsp_mhz();

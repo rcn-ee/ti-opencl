@@ -91,8 +91,8 @@ uint32_t osal_getpid()
 /******************************************************************************
 * DSPDevice::DSPDevice(SharedMemory* shm)
 ******************************************************************************/
-DSPDevice::DSPDevice(SharedMemory* shm)
-    : DeviceInterface        (),
+DSPDevice::DSPDevice(DeviceInterface::Type type, SharedMemory* shm)
+    : DeviceInterface        (type),
       p_dsp_mhz              (0),
       p_shmHandler           (shm),
       p_pid                  (osal_getpid()),
@@ -372,8 +372,7 @@ cl_int DSPDevice::info(cl_device_info param_name,
         case CL_DEVICE_TYPE:
             {
                 cl_device_type device_type = CL_DEVICE_TYPE_ACCELERATOR;
-                if(static_cast<const DSPRootDevice*>(GetRootDSPDevice())
-                                              ->getKernelEntries()->size() > 0)
+                if (GetRootDevice()->getKernelEntries()->size() > 0)
                     device_type |= CL_DEVICE_TYPE_CUSTOM;
                 SIMPLE_ASSIGN(cl_device_type, device_type);
                 break;
@@ -610,8 +609,7 @@ cl_int DSPDevice::info(cl_device_info param_name,
         case CL_DEVICE_BUILT_IN_KERNELS:
             {
                 const std::vector<KernelEntry*>* biks =
-                          static_cast<const DSPRootDevice*>(GetRootDSPDevice())
-                                                          ->getKernelEntries();
+                                        GetRootDevice()->getKernelEntries();
                 bool first = true;
                 for(KernelEntry *k : *biks)
                 {

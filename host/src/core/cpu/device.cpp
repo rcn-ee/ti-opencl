@@ -58,7 +58,8 @@ using namespace Coal;
 
 
 CPUDevice::CPUDevice()
-: DeviceInterface(), p_cores(0), p_num_events(0), p_workers(0), p_stop(false),
+: DeviceInterface(DeviceInterface::T_CPU), p_cores(0), p_num_events(0),
+p_workers(0), p_stop(false),
   p_initialized(false)
 {
     // Get info about the system

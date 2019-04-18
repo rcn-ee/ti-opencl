@@ -88,18 +88,11 @@ const Kernel::DeviceDependent& Kernel::deviceDependent(DeviceInterface* device) 
 
         if (!device)
         {
-            if (p_device_dependent.size() == 1) return rs;
+            if (p_device_dependent.size() == 1)
+                return rs;
         }
-        else if (Coal::DSPDevice* dsp = dynamic_cast<Coal::DSPDevice*>(device))
-        {
-            const DSPDevice* root_device = dsp->GetRootDSPDevice();
-            const DeviceInterface* iroot_device = dynamic_cast<const DeviceInterface*>(root_device);
-            if (rs.device == iroot_device) return rs;
-        }
-        else
-        {
-            if (rs.device == device) return rs;
-        }
+        else if (rs.device == device || rs.device == device->GetRootDevice())
+            return rs;
     }
 
     return null_dep;
@@ -107,27 +100,9 @@ const Kernel::DeviceDependent& Kernel::deviceDependent(DeviceInterface* device) 
 
 Kernel::DeviceDependent& Kernel::deviceDependent(DeviceInterface* device)
 {
-    for (size_t i = 0; i < p_device_dependent.size(); ++i)
-    {
-        DeviceDependent& rs = p_device_dependent[i];
-
-        if (!device)
-        {
-            if (p_device_dependent.size() == 1) return rs;
-        }
-        else if (Coal::DSPDevice* dsp = dynamic_cast<Coal::DSPDevice*>(device))
-        {
-            const DSPDevice* root_device = dsp->GetRootDSPDevice();
-            const DeviceInterface* iroot_device = dynamic_cast<const DeviceInterface*>(root_device);
-            if (rs.device == iroot_device) return rs;
-        }
-        else
-        {
-            if (rs.device == device) return rs;
-        }
-    }
-
-    return null_dep;
+    // Avoid code duplication by casting const away for the non-const method
+    const Kernel& K = *this;
+    return const_cast<Kernel::DeviceDependent&>(K.deviceDependent(device));
 }
 
 /*******************************************************************************

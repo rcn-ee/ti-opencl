@@ -81,7 +81,6 @@ class EVEDevice : public DeviceInterface, public Lockable
 
         void   pushEvent(Event *event);
         bool   stop();
-        bool   availableEvent();
         Event *getEvent(bool &stop);
 
         bool hostSchedule() const;
@@ -118,6 +117,9 @@ class EVEDevice : public DeviceInterface, public Lockable
         std::ostream* getProfilingOut() { return nullptr; }
 
         const DSPCoreSet& GetComputeUnits() const  { return p_compute_units; }
+
+        DeviceInterface* GetRootDevice() override { return this; }
+        const DeviceInterface* GetRootDevice() const override { return this; }
 
     private:
         unsigned int       p_cores;

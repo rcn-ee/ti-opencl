@@ -65,7 +65,7 @@
 
 #include "dsp/genfile_cache.h"
 #endif
- 
+
 
 /*-----------------------------------------------------------------------------
 * temporary for source file cacheing, remove from product releases
@@ -132,10 +132,7 @@ void Program::setDevices(cl_uint num_devices, const cl_device_id *devices)
         DeviceInterface *device = pobj(devices[i]);
         p_device_list.push_back(device);
 
-        DeviceInterface *root_device = device;
-        if (DSPDevice* dsp_device = dynamic_cast<DSPDevice*>(device))
-            root_device = const_cast<DSPDevice*>(
-                                               dsp_device->GetRootDSPDevice());
+        DeviceInterface *root_device = device->GetRootDevice();
         root_devices.insert(root_device);
     }
 
@@ -159,31 +156,6 @@ void Program::setDevices(cl_uint num_devices, const cl_device_id *devices)
     }
 }
 
-Program::DeviceDependent& Program::deviceDependent(DeviceInterface* device)
-{
-    for (size_t i = 0; i < p_device_dependent.size(); ++i)
-    {
-        DeviceDependent& rs = p_device_dependent[i];
-
-        if (!device)
-        {
-            if (p_device_dependent.size() == 1) return rs;
-        }
-        else if (Coal::DSPDevice* dsp = dynamic_cast<Coal::DSPDevice*>(device))
-        {
-            const DSPDevice* root_device = dsp->GetRootDSPDevice();
-            const DeviceInterface* iroot_device = dynamic_cast<const DeviceInterface*>(root_device);
-            if (rs.device == iroot_device) return rs;
-        }
-        else
-        {
-            if (rs.device == device) return rs;
-        }
-    }
-
-    return p_null_device_dependent;
-}
-
 const Program::DeviceDependent& Program::deviceDependent(DeviceInterface* device) const
 {
     for (size_t i = 0; i < p_device_dependent.size(); ++i)
@@ -192,21 +164,21 @@ const Program::DeviceDependent& Program::deviceDependent(DeviceInterface* device
 
         if (!device)
         {
-            if (p_device_dependent.size() == 1) return rs;
+            if (p_device_dependent.size() == 1)
+                return rs;
         }
-        else if (Coal::DSPDevice* dsp = dynamic_cast<Coal::DSPDevice*>(device))
-        {
-            const DSPDevice* root_device = dsp->GetRootDSPDevice();
-            const DeviceInterface* iroot_device = dynamic_cast<const DeviceInterface*>(root_device);
-            if (rs.device == iroot_device) return rs;
-        }
-        else
-        {
-            if (rs.device == device) return rs;
-        }
+        else if (rs.device == device || rs.device == device->GetRootDevice())
+            return rs;
     }
 
     return p_null_device_dependent;
+}
+
+Program::DeviceDependent& Program::deviceDependent(DeviceInterface* device)
+{
+    // Avoid code duplication by casting const away for the non-const method
+    const Program& P = *this;
+    return const_cast<Program::DeviceDependent&>(P.deviceDependent(device));
 }
 
 DeviceProgram *Program::deviceDependentProgram(DeviceInterface *device) const

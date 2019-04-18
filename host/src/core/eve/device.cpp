@@ -82,7 +82,7 @@ void *eve_worker_event_completion(void* data);
 * EVEDevice::EVEDevice(unsigned char eve_id, SharedMemory *shm)
 ******************************************************************************/
 EVEDevice::EVEDevice(unsigned char eve_id, SharedMemory* shm)
-    : DeviceInterface       (),
+    : DeviceInterface       (DeviceInterface::T_EVE),
       p_eve_id_             (eve_id),
       p_cores               (1),
       p_num_events          (0),
@@ -349,7 +349,6 @@ void EVEDevice::pushEvent(Event *event)
 }
 
 bool EVEDevice::stop()           { return p_stop; }
-bool EVEDevice::availableEvent() { return p_num_events > 0; }
 
 /******************************************************************************
 * Event *EVEDevice::getEvent(bool &stop)

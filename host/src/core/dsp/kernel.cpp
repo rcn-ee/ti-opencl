@@ -450,7 +450,7 @@ DSPKernelEvent::DSPKernelEvent(DSPDevice *device, KernelEvent *event)
     p_msg.u.k.kernel.Kernel_id     = p_kernel_id;
     p_msg.u.k.kernel.entry_point   = (unsigned)p_kernel->device_entry_pt();
     p_msg.u.k.kernel.data_page_ptr = (unsigned)p_kernel->data_page_ptr();
-    if (dynamic_cast<DSPSubDevice*>(device))
+    if (device->IsDeviceType(DeviceInterface::T_SubDevice))
         p_msg.u.k.kernel.from_sub_device = 1;
     else
         p_msg.u.k.kernel.from_sub_device = 0;

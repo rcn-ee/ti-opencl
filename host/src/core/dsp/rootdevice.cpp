@@ -56,7 +56,7 @@ void *dsp_worker_event_completion (void* data);
 * DSPRootDevice::DSPRootDevice(unsigned char dsp_id, SharedMemory* shm)
 ******************************************************************************/
 DSPRootDevice::DSPRootDevice(unsigned char dsp_id, SharedMemory* shm)
-    : DSPDevice              (shm),
+    : DSPDevice              (DeviceInterface::T_C66x, shm),
       p_worker_dispatch      (0),
       p_worker_completion    (0),
       p_events               (),
@@ -315,14 +315,6 @@ void DSPRootDevice::pushEvent(Event* event)
 bool DSPRootDevice::stop()
 {
     return p_stop;
-}
-
-/******************************************************************************
-* void DSPRootDevice::availableEvent()
-******************************************************************************/
-bool DSPRootDevice::availableEvent()
-{
-    return p_events.size() > 0;
 }
 
 /******************************************************************************

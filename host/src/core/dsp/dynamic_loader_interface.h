@@ -15,7 +15,7 @@
  *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  *   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+ *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  *   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
  *   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
  *   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
@@ -33,6 +33,11 @@
 
 namespace tiocl {
 
+extern "C" {
+    typedef void* DLOAD_HANDLE;
+}
+
+
 class DynamicLoader
 {
 public:
@@ -42,7 +47,7 @@ public:
     virtual DSPDevicePtr QuerySymbol(const std::string &symName) const = 0;
     virtual DSPDevicePtr GetDataPagePointer() const = 0;
     virtual DSPDevicePtr GetProgramLoadAddress() const = 0;
-};    
-
-
+    virtual void SetProgramLoadAddress(DSPDevicePtr address) = 0;
+    virtual DLOAD_HANDLE GetDloadHandle() const = 0;
+};
 }

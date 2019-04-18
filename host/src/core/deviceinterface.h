@@ -84,7 +84,19 @@ class Kernel;
 class DeviceInterface : public _cl_device_id, public Object
 {
     public:
-        DeviceInterface() : Object(Object::T_Device, 0) {}
+
+        enum Type
+        {
+            T_Invalid = 0,
+            T_CPU,
+            T_C66x,
+            T_C7x,
+            T_EVE,
+            T_SubDevice
+        };
+
+        DeviceInterface(Type type) :
+          Object(Object::T_Device, 0), p_type (type) {}
         virtual ~DeviceInterface() {}
 
         /**
@@ -142,7 +154,7 @@ class DeviceInterface : public _cl_device_id, public Object
          * \param function device-specific \c llvm::Function to be used
          * \return a \c Coal::DeviceKernel object
          */
-        virtual DeviceKernel *createDeviceKernel(Kernel *kernel, 
+        virtual DeviceKernel *createDeviceKernel(Kernel *kernel,
                                                  llvm::Function *function)
         { return nullptr; }
 
@@ -177,7 +189,7 @@ class DeviceInterface : public _cl_device_id, public Object
          * by using \c Coal::Event::setDeviceData(). For instance, an
          * hardware-accelerated device can associate a device command to an
          * event, and use it to manage the event when it gets pushed.
-         * 
+         *
          * @note This function has one obligation: it must call
          *       \c Coal::MapBufferEvent::setPtr() and
          *       \c Coal::MapImageEvent::setPtr() (and other function described
@@ -211,6 +223,19 @@ class DeviceInterface : public _cl_device_id, public Object
          * \brief Get shared memory used by this device
          */
         virtual tiocl::SharedMemory* GetSHMHandler() const = 0;
+
+        virtual bool IsDeviceType(Type type)
+        {
+            if (!this) return false;
+            return p_type == type;
+        }
+
+
+        virtual       DeviceInterface* GetRootDevice() = 0;
+        virtual const DeviceInterface* GetRootDevice() const = 0;
+
+    protected:
+        Type p_type;
 };
 
 /**
@@ -312,7 +337,7 @@ class DeviceProgram
 
         /**
          * \brief Extract binaries from MIXED binary
-         * 
+         *
          * This function is called to extract LLVM bitcode from the native
          * binary in the MIXED binary.
          * \param binary_str \c std::string containing mixed binary
@@ -320,7 +345,7 @@ class DeviceProgram
          * \param native \c std::string returns native binary if not NULL
          * \return true if the binary is indeed mixed
          */
-        virtual bool ExtractMixedBinary(const std::string &binary_str, 
+        virtual bool ExtractMixedBinary(const std::string &binary_str,
                                               std::string &bitcode)
         {  return false;  }
 };

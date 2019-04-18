@@ -30,10 +30,6 @@
 
 #include "dynamic_loader_interface.h"
 #include "u_lockable.h"
-extern "C" {
-    typedef void* DLOAD_HANDLE;
-//#include "dload_api.h"
-}
 
 namespace Coal
 {

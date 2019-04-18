@@ -50,7 +50,6 @@ public:
     void             init()                  override { p_parent->init();                        }
     void             pushEvent(Event* event) override { p_parent->pushEvent(event);              }
     bool             stop()                  override { return p_parent->stop();                 }
-    bool             availableEvent()        override { return p_parent->availableEvent();       }
     Event*           getEvent(bool& stop)    override { return p_parent->getEvent(stop);         }
     bool             gotEnoughToWorkOn()     override { return p_parent->gotEnoughToWorkOn();    }
     bool             mail_query()            override { return p_parent->mail_query();           }
@@ -61,7 +60,10 @@ public:
     bool             any_complete_pending()  override { return p_parent->any_complete_pending(); }
     pthread_cond_t*  get_worker_cond()       override { return p_parent->get_worker_cond();      }
     pthread_mutex_t* get_worker_mutex()      override { return p_parent->get_worker_mutex();     }
-    const DSPDevice* GetRootDSPDevice()      const override { return p_root;                     }
+
+    DeviceInterface* GetRootDevice()   override { return p_root; }
+    const DeviceInterface* GetRootDevice() const override { return p_root; }
+
     const std::vector<KernelEntry*>* getKernelEntries() const override
     { return static_cast<const DSPRootDevice *>(p_root)->getKernelEntries(); }
 
@@ -82,9 +84,16 @@ public:
                  const DSPCoreSet& compute_units)    override
     { p_parent->mail_to(msg, compute_units); }
 
+    bool IsDeviceType(Type type) override
+    {
+      if (type == DeviceInterface::T_SubDevice && p_type == type)
+        return true;
+
+      return p_parent->IsDeviceType(type);
+    }
 
 private:
-    const DSPDevice* p_root;
+    DSPDevice* p_root;
 };
 
 }
