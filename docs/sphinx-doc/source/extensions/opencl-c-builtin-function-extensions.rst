@@ -42,19 +42,23 @@ prototypes.
 
 .. c:function::  uint dot(uchar4 a, uchar4 b)
 
-    Compute the dot product of two uchar4 vectors and return the result as a uint. 
+    Compute the dot product of two uchar4 vectors and return the result as a uint.
     The C66x DSP can support this as a single instruction.
 
 .. c:function::  int  dot(char4  a, uchar4 b)
 
-    Compute the dot product of a char4 vector and a uchar4 vector and return the 
+    Compute the dot product of a char4 vector and a uchar4 vector and return the
     result as an int.  The C66x DSP can support this as a single instruction.
 
 .. c:function::  int  dot(short2 a, short2 b)
 
-    Compute the dot product of two short2 vectors and return the result as an int. 
+    Compute the dot product of two short2 vectors and return the result as an int.
     The C66x DSP can support this as a single instruction.
+
+.. c:function::  uint32_t __dsp_frequency(void)
+
+    Returns the clock frequency (Mhz) the DSP cores are running at.
 
 .. Important::
    In OpenCL C for C66 a uint32_t is an unsigned int and a uint64_t is an unsigned long.
-   In standard C for C66 a uint32_t is an unsigned int and a uint64_t is an unsigned long long. 
+   In standard C for C66 a uint32_t is an unsigned int and a uint64_t is an unsigned long long.

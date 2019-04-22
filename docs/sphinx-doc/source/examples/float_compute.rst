@@ -221,7 +221,7 @@ Sample Output
 
 ::
 
-    ./float_compute 
+    ./float_compute
 
     This example computes y[i] = M[i] * x[i] + C on single precision floating point arrays of size 2097152
     - Computation on the ARM is parallelized across the A15s using OpenMP.
@@ -229,7 +229,7 @@ Sample Output
 
       Running.....
 
-      Average across 5 runs: 
+      Average across 5 runs:
       ARM (2 OpenMP threads)         : 0.012077 secs
       DSP (OpenCL NDRange kernel)    : 0.005909 secs
       OpenCL-DSP speedup             : 2.043985

@@ -92,6 +92,7 @@ void*    __memalign_msmc  (size_t __alignment, size_t __size);
 
 void     __heap_init_l2   (__local void *__ptr, size_t __size);
 void*    __malloc_l2      (size_t __size);
+uint32_t __dsp_frequency  (void);
 
 #ifndef __OPENCL_VERSION__
 #undef __global

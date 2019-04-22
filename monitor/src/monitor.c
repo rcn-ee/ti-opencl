@@ -442,7 +442,7 @@ void ocl_monitor()
 
             case FREQUENCY:
                 Log_print1(Diags_INFO, "FREQUENCY(%u)\n", pid);
-                respond_to_host(ocl_msgq_pkt, dsp_speed());
+                respond_to_host(ocl_msgq_pkt, __dsp_frequency());
                 break;
 
             case CONFIGURE_MONITOR:
