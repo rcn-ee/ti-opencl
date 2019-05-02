@@ -112,17 +112,20 @@ clGetEventInfo(cl_event         d_event,
 cl_int
 clSetEventCallback(cl_event     d_event,
                    cl_int       command_exec_callback_type,
-                   void         (CL_CALLBACK *pfn_event_notify)(cl_event event,
-                                                                cl_int exec_status,
-                                                                void *user_data),
-                   void *user_data)
+                   void (CL_CALLBACK* pfn_event_notify)(cl_event event,
+                           cl_int exec_status,
+                           void* user_data),
+                   void* user_data)
 {
     auto event = pobj(d_event);
 
     if (!event->isA(Coal::Object::T_Event))
         return CL_INVALID_EVENT;
 
-    if (!pfn_event_notify || command_exec_callback_type != CL_COMPLETE)
+    if (!pfn_event_notify ||
+        !(command_exec_callback_type == CL_COMPLETE  ||
+          command_exec_callback_type == CL_SUBMITTED ||
+          command_exec_callback_type == CL_RUNNING))
         return CL_INVALID_VALUE;
 
     event->setCallback(command_exec_callback_type, pfn_event_notify, user_data);

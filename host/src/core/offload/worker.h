@@ -125,7 +125,6 @@ bool HandleEventCompletion(DeviceType *device)
     if (ke->device()->isProfilingEnabled())
         (* (ke->device()->getProfilingOut())) << e->kernel()->getName()
                                               << "\n---End Kernel\n";
-
     event->setStatus(retcode == CL_SUCCESS ? Event::Complete :
                                              (Event::Status)retcode);
 
@@ -211,6 +210,7 @@ bool HandleEventDispatch(DeviceType *device)
 
     if (queue_props & CL_QUEUE_PROFILING_ENABLE)
         event->updateTiming(Event::Start);
+    event->setStatus(Event::Running);
 
     SharedMemory *shm = device->GetSHMHandler();
 
