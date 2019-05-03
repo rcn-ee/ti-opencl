@@ -487,7 +487,9 @@ void CommandQueue::pushEventsOnDevice(Event *ready_event,
             p_flushed = false;
             // If we encounter a WaitForEvents event that is not "finished",
             // don't push events after it.
-            if (event->type() == Event::WaitForEvents)
+            if (event->type() == Event::WaitForEvents ||
+                event->type() == Event::Barrier       ||
+                event->type() == Event::Marker)
                 break;
 
             // The event has its dependencies not already met.
