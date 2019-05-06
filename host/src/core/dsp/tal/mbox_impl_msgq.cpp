@@ -123,6 +123,8 @@ MBoxMsgQ::MBoxMsgQ(Coal::DSPDevice *device)
 
     /* Open the DSP message queues (outbound messages to DSPs) */
     assert(p_device->dspCores() <= Ocl_MaxNumDspMsgQueues);
+    for (int i = 0; i < Ocl_MaxNumDspMsgQueues; i++)
+        dspQue[i] = (MessageQ_QueueId) MessageQ_INVALIDMESSAGEQ;
 
     int n_opened_dspQues = 0;
     for(int i : compute_units)
@@ -222,9 +224,12 @@ uint32_t MBoxMsgQ::read (uint8_t *buf, uint32_t *size, uint8_t* id)
     if (p_device && id != nullptr)
     {
         MessageQ_QueueId dspQueId = MessageQ_getReplyQueue(msg);
-        auto     it   = std::find(dspQue, dspQue + p_device->dspCores(), dspQueId);
-        uint32_t core = std::distance(dspQue, it);
-        *id = core;
+        for (int i = 0; i < Ocl_MaxNumDspMsgQueues; i++)
+        {
+            if (dspQue[i] != dspQueId)  continue;
+            *id = i;
+            break;
+        }
     }
 
     if (status == MessageQ_E_UNBLOCKED)
