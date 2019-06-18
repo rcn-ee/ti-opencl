@@ -34,6 +34,8 @@
 extern int  __core_num() EXPORT;
 extern int  __cache_l1d_16k() EXPORT;
 extern int  __cache_l1d_all() EXPORT;
+extern int  __cache_l2_64k()  EXPORT;
+extern int  __cache_l2_128k() EXPORT;
 extern void ocl_dsp_tidl_setup(void *,void *,void *,void *);
 extern void ocl_dsp_tidl_initialize(void *,void *,void *,void *,void *);
 extern void ocl_dsp_tidl_process(void *,void *,void *,uint32_t);
@@ -85,6 +87,11 @@ void ocl_tidl_initialize(void *a, void *b, void *c, void *d, void *e)
 {
     // Set L1 cache to 16KB. TIDL requires 16KB of L1 scratch
     __cache_l1d_16k();
+#if defined(DEVICE_AM572x)
+    // Set L2 cache to 64KB. TIDL requires 148KB of L2 scratch
+    // Other SoCs have enough L2 scratch, AM57x has to shrink L2 cache
+    int ret = __cache_l2_64k();
+#endif
     ocl_dsp_tidl_initialize(a, b, c, d, e);
 }
 
@@ -96,5 +103,8 @@ void ocl_tidl_process(void *a, void *b, void *c, uint32_t d)
 void ocl_tidl_cleanup()
 {
     ocl_dsp_tidl_cleanup();
+#if defined(DEVICE_AM572x)
+    __cache_l2_128k();
+#endif
     __cache_l1d_all();
 }
