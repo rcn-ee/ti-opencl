@@ -75,6 +75,9 @@ typedef struct
     uint32_t bufPlaneHeight;     // padded width
     uint32_t bufPlaneWidth;      // padded width
     uint32_t contextSize;        // aligned context size
+    int32_t  dataQ;
+    int32_t  minValue;
+    int32_t  maxValue;
 } OCL_TIDL_BufParams;
 
 typedef struct
