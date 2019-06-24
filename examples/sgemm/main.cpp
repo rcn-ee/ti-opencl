@@ -96,7 +96,7 @@ int NUMCOMPUNITS                    = 0;
 /* ======================================================================== */
 void PrintUsageAndExit();
 void HandleOptions(int argc, char* argv[]);
-bool SetSgemmParams(Device& device);
+void SetSgemmParams(Device& device);
 
 /* ======================================================================== */
 /*  MAIN                                                                    */
@@ -428,7 +428,7 @@ static cl_ulong roundDownPower2(cl_ulong value)
 /*-----------------------------------------------------------------------------
 * Check platform name, set sgemm blocking/tiling parameters accordingly
 *----------------------------------------------------------------------------*/
-bool SetSgemmParams(Device& device)
+void SetSgemmParams(Device& device)
 {
    int APanelSz        = 8  << 10;
    int BPanelSz        = 16 << 10;
