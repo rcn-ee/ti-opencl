@@ -64,7 +64,7 @@ endif
 ifeq ($(USE_ION), 1)
 CORESDK_VERSION ?= 05.02.00.10-ion
 else
-CORESDK_VERSION ?= 05.03.00.07-release
+CORESDK_VERSION ?= 06.00.00.07-release
 endif
 
 TIDL_VERSION    ?= 05_03_00_02-295-2019-02-27_10-52-08
@@ -84,14 +84,14 @@ else
 endif
 
 ifeq (,$(findstring arm, $(UNAME_M)))
-    LINUX_DEVKIT_ROOT?=$(CORE_SDK)/linux-devkit/sysroots/armv7ahf-neon-linux-gnueabi
+    LINUX_DEVKIT_ROOT?=$(CORE_SDK)/linux-devkit/sysroots/armv7at2hf-neon-linux-gnueabi
 else
     LINUX_DEVKIT_ROOT?=/
 endif
 
 # ARM GCC
 ifeq (,$(findstring arm, $(UNAME_M)))
-    ARM_GCC_DIR?=$(SDOMC_SHARED)/gcc-linaro-7.2.1-2017.11-x86_64_arm-linux-gnueabihf
+    ARM_GCC_DIR?=$(SDOMC_SHARED)/gcc-arm-8.3-2019.03-x86_64-arm-linux-gnueabihf
     GCC_ARM_NONE_TOOLCHAIN?=$(SDOMC_SHARED)/gcc-arm-none-eabi-7-2018-q2-update
 endif
 
