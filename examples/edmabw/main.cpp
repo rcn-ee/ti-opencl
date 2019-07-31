@@ -58,7 +58,6 @@ void ocl_main(UArg arg0, UArg arg1)
 int main(int argc, char* argv[])
 {
 #endif
-    cl_int err     = CL_SUCCESS;
     const cl_device_partition_property device_partition_properties[3] = {
         CL_DEVICE_PARTITION_EQUALLY, /* Divide equally           */
         1,                           /* 1 compute unit/subdevice */
@@ -145,7 +144,7 @@ int main(int argc, char* argv[])
         __free_ddr(result);
         free(all_results);
     }
-    catch (Error err)
+    catch (Error& err)
     {
         cerr << "ERROR: " << err.what() << "(" << err.err() << ", "
              << ocl_decode_error(err.err()) << ")" << endl;
@@ -167,7 +166,7 @@ cl_mem_flags CheckMSMCSizeForBuffer(const Device& ocl_device,
     {
        cl_ulong msmc_size = 0;
        ocl_device.getInfo(CL_DEVICE_MSMC_MEM_SIZE_TI, &msmc_size);
-       if (msmc_size < bufsize) return 0;
+       if (msmc_size < static_cast<cl_ulong>(bufsize)) return 0;
     }else return 0;
 
     return CL_MEM_USE_MSMC_TI;

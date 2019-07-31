@@ -63,7 +63,7 @@ int main(int argc, char *argv[])
 #endif
    struct timespec t0, t1;
 
-   try 
+   try
    {
      Context             context (CL_DEVICE_TYPE_ACCELERATOR);
      std::vector<Device> devices = context.getInfo<CL_CONTEXT_DEVICES>();
@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
                                              sizeof(kernel_dsp_bin)));
      Program             program = Program(context, devices, binary);
 #endif
-     program.build(devices); 
+     program.build(devices);
 
      Kernel kernel(program, "Null");
      KernelFunctor null = kernel.bind(Q, NDRange(1), NDRange(1));
@@ -106,13 +106,13 @@ int main(int argc, char *argv[])
          ocl_event_times(ev, "Null Kernel Exec");
      }
    }
-   catch (Error err) 
+   catch (Error& err)
    {
      cerr << "ERROR: " << err.what() << "(" << err.err() << ", "
           << ocl_decode_error(err.err()) << ")" << endl;
    }
 
-   cout << "Done!" << endl; 
+   cout << "Done!" << endl;
 
    RETURN(0);
 }

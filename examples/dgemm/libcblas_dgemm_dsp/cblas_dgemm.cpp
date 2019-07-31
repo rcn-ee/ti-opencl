@@ -151,7 +151,7 @@ void dsp_cblas_dgemm(CBLAS_ORDER order, CBLAS_TRANSPOSE transA,
 
         delete bufMsmc;
     }
-    catch (Error err)
+    catch (Error& err)
     {
         cerr << "ERROR: " << err.what() << "(" << err.err() << ")" << endl;
         exit(-1);

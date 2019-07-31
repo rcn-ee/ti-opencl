@@ -196,6 +196,7 @@ endif
 
 CXX_FLAGS += -Dfar= -D__DYNAMIC_REENT__ -D_TI_RTOS -fpermissive -std=c++11
 CXX_FLAGS += -Wno-ignored-attributes
+CXX_FLAGS += -Wall
 CFLAGS   += -c -mcpu=cortex-a15 -mabi=aapcs -mapcs -mfpu=neon -mfloat-abi=hard -ffunction-sections -fdata-sections $(CCPROFILE_$(PROFILE)) @$(CONFIG)/compiler.opt -I"$(GCC_ARM_NONE_TOOLCHAIN)/arm-none-eabi/include/newlib-nano" -I. -I$(TI_OCL_INSTALL)/usr/include
 
 LDFLAGS += $(LDPROFILE_$(PROFILE)) -mfloat-abi=hard -nostartfiles -static -Wl,--gc-sections

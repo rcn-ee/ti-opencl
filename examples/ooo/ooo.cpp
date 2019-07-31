@@ -15,7 +15,7 @@
  *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  *   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+ *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  *   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
  *   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
  *   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
@@ -52,7 +52,7 @@ typedef struct { int *ptr; unsigned elms; int val; int iter; }  arguments_t;
 
 const char *stage_names[] = {"PRODUCE","WRITE  ","COMPUTE","READ   ","CONSUME"};
 
-const char * kernStr = 
+const char * kernStr =
 "kernel void compute(global int* buf, int size) \n"
 "{\n"
 "  for (int i = 0; i< size; ++i) \n"
@@ -75,7 +75,7 @@ static double clock_diff (struct timespec *t1, struct timespec *t2)
 void cpu_produce(void *args)
 {
     arguments_t *p = (arguments_t *)args;
-    for (int i = 0; i < p->elms; ++i) 
+    for (cl_uint i = 0; i < p->elms; ++i)
         p->ptr[i] = p->val;
 }
 
@@ -85,13 +85,13 @@ void cpu_produce(void *args)
 void cpu_consume(void *args)
 {
     arguments_t *p = (arguments_t *)args;
-    int i;
+    cl_uint i;
 
-    for (i = 0; i < p->elms; ++i) 
-        if (p->ptr[i] != p->val) 
+    for (i = 0; i < p->elms; ++i)
+        if (p->ptr[i] != p->val)
         {
             std::cout << "Iteration " << p->iter << ": "
-                      << p->ptr[i] << " != " << p->val 
+                      << p->ptr[i] << " != " << p->val
                       << std::endl << std::endl;
             incorrect_results = true;
             break;
@@ -111,12 +111,12 @@ int main(int argc, char *argv[])
 
    struct timespec tp_start, tp_end;
 
-   try 
+   try
    {
      /*------------------------------------------------------------------------
      * One time OpenCL Setup
      *-----------------------------------------------------------------------*/
-     Context             context(CL_DEVICE_TYPE_ALL); 
+     Context             context(CL_DEVICE_TYPE_ALL);
      std::vector<Device> devices(context.getInfo<CL_CONTEXT_DEVICES>());
 
      CommandQueue        *QcpuIO = NULL;
@@ -124,34 +124,34 @@ int main(int argc, char *argv[])
      CommandQueue        *QdspOO = NULL;
 
      std::vector<Device> dspDevices;
-     for (int d = 0; d < devices.size(); d++)
+     for (cl_uint d = 0; d < devices.size(); d++)
      {
-	cl_device_type type;
-	devices[d].getInfo(CL_DEVICE_TYPE, &type);
+	    cl_device_type type;
+	    devices[d].getInfo(CL_DEVICE_TYPE, &type);
 
-	if (type & CL_DEVICE_TYPE_CPU)
-	{
-	   QcpuIO = new CommandQueue(context, devices[d], PROFILE);
-	   QcpuOO = new CommandQueue(context, devices[d], PROFILE|OOOEXEC);
-	}
-	else if (type & CL_DEVICE_TYPE_ACCELERATOR)
+	    if (type & CL_DEVICE_TYPE_CPU)
+	    {
+	        QcpuIO = new CommandQueue(context, devices[d], PROFILE);
+	        QcpuOO = new CommandQueue(context, devices[d], PROFILE|OOOEXEC);
+	    }
+	    else if (type & CL_DEVICE_TYPE_ACCELERATOR)
         {
-	   QdspOO  = new CommandQueue(context, devices[d], PROFILE|OOOEXEC);
-           dspDevices.push_back(devices[d]);
+	        QdspOO  = new CommandQueue(context, devices[d], PROFILE|OOOEXEC);
+            dspDevices.push_back(devices[d]);
         }
      }
 
      if (QcpuIO == NULL)
      {
-	std::cout << 
-	"CPU devices are not fully supported in the current" << std::endl <<
-	"OpenCL implementation (native kernel support only)." << std::endl << 
-	"As a result, CPU devices are not enabled by" << std::endl <<
-	"default.  This example uses OpenCL CPU native" << std::endl <<
-	"kernels and can be run with the CPU device enabled." << std::endl << 
+	    std::cout <<
+	    "CPU devices are not fully supported in the current" << std::endl <<
+	    "OpenCL implementation (native kernel support only)." << std::endl <<
+	    "As a result, CPU devices are not enabled by" << std::endl <<
+	    "default.  This example uses OpenCL CPU native" << std::endl <<
+	    "kernels and can be run with the CPU device enabled." << std::endl <<
         "To enable a CPU device define the environment variable" << std::endl <<
         "'TI_OCL_CPU_DEVICE_ENABLE' before running the example." << std::endl;
-	 exit(-1);
+	    exit(-1);
      }
 
      assert(QdspOO != NULL);
@@ -166,24 +166,24 @@ int main(int argc, char *argv[])
      * Define a Buffer for each possible in flight task
      *-----------------------------------------------------------------------*/
      std::vector<BufUP> bufs;
-     for (int i = 0; i < inflight; ++i) 
+     for (int i = 0; i < inflight; ++i)
          bufs.push_back(BufUP(new Buffer(context, CL_MEM_READ_WRITE, size)));
 
      /*------------------------------------------------------------------------
-     * Define a 3-D vector of OpenCL Events.  1st dim is for the number of 
+     * Define a 3-D vector of OpenCL Events.  1st dim is for the number of
      * in flight tasks, the second dim is for the processing stages of a single
-     * task.  The 3rd dim is an artifact of the c++ binding for event wait 
+     * task.  The 3rd dim is an artifact of the c++ binding for event wait
      * lists.  All enqueue API's take a wait list which is a vector<Event>*, and
      * they take an Event*.  All events in the wait list vector must complete,
-     * before this event will execute.  The single event argument is for the 
-     * event that will be set as a result of this enqueue. 
+     * before this event will execute.  The single event argument is for the
+     * event that will be set as a result of this enqueue.
      *-----------------------------------------------------------------------*/
      vecVecVecEv evt(inflight, vecVecEv(STAGES, vecEv(1)));
 
      /*------------------------------------------------------------------------
      * Enqueue a dummy DSP kernel call to force the OpenCL lazy execution
-     * to go ahead and compile the kernel and load it.  This will prevent the 
-     * compile and load times from skewing the reported numbers.  This is not 
+     * to go ahead and compile the kernel and load it.  This will prevent the
+     * compile and load times from skewing the reported numbers.  This is not
      * needed by the algorithm and is purely a tactic to get consistent numbers
      * from the the running of the bulk of this algorithm
      *-----------------------------------------------------------------------*/
@@ -210,7 +210,7 @@ int main(int argc, char *argv[])
 
         /*---------------------------------------------------------------------
         * Native kernels are only passed a single pointer, so define a structure
-        * that contains the actual arguments, populate that and then create 
+        * that contains the actual arguments, populate that and then create
         * a C++ binding native argument class that has the pointer and a size.
         *--------------------------------------------------------------------*/
         arguments_t proArgs = { ary, elements, i,   i };
@@ -222,7 +222,7 @@ int main(int argc, char *argv[])
 
         /*---------------------------------------------------------------------
         * Since we are reusing N sets of buffers in this loop, we need to make
-        * sure than iteration I does not start until after iteration I-N 
+        * sure than iteration I does not start until after iteration I-N
         * completes. Iterations < N can start immediately.
         *--------------------------------------------------------------------*/
         vecEv *start_waits = (i < inflight) ? 0 : &evt[circIdx][CNS];
@@ -232,18 +232,18 @@ int main(int argc, char *argv[])
         evt[circIdx][CMP][0] = nullEv;
         evt[circIdx][RD ][0] = nullEv;
 
-        QcpuOO->enqueueNativeKernel(cpu_produce, proNargs, 0, 0,  
+        QcpuOO->enqueueNativeKernel(cpu_produce, proNargs, 0, 0,
                 start_waits,        &evt[circIdx][PRD][0]);
 
         evt[circIdx][CNS][0] = nullEv;
 
-        QdspOO->enqueueWriteBuffer (buf, CL_FALSE, 0, size, ary,  
+        QdspOO->enqueueWriteBuffer (buf, CL_FALSE, 0, size, ary,
                 &evt[circIdx][PRD], &evt[circIdx][WRT][0]);
-        QdspOO->enqueueTask        (K,                            
+        QdspOO->enqueueTask        (K,
                 &evt[circIdx][WRT], &evt[circIdx][CMP][0]);
-        QdspOO->enqueueReadBuffer  (buf, CL_FALSE, 0, size, ary,  
+        QdspOO->enqueueReadBuffer  (buf, CL_FALSE, 0, size, ary,
                 &evt[circIdx][CMP], &evt[circIdx][RD ][0]);
-        QcpuIO->enqueueNativeKernel(cpu_consume, conNargs, 0, 0,  
+        QcpuIO->enqueueNativeKernel(cpu_consume, conNargs, 0, 0,
                 &evt[circIdx][RD ], &evt[circIdx][CNS][0]);
      }
 
@@ -264,7 +264,7 @@ int main(int argc, char *argv[])
      /*------------------------------------------------------------------------
      * After the running is complete, report timing for each step
      *-----------------------------------------------------------------------*/
-#if PROFILE 
+#if PROFILE
      cl_ulong ref;
      evt[0][0][0].getProfilingInfo(CL_PROFILING_COMMAND_QUEUED, &ref);
 
@@ -277,7 +277,7 @@ int main(int argc, char *argv[])
 #endif
    }
 
-   catch (Error err)
+   catch (Error& err)
    {
        cerr << "ERROR: " << err.what() << "("
             << ocl_decode_error(err.err()) << ")"

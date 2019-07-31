@@ -86,7 +86,7 @@ int main(int argc, char *argv[])
          std::vector<Platform> platforms;
          Platform::get(&platforms);
 
-         for (int p = 0; p < platforms.size(); p++)
+         for (unsigned int p = 0; p < platforms.size(); p++)
          {
              std::string str;
 
@@ -110,7 +110,7 @@ int main(int argc, char *argv[])
     /*-------------------------------------------------------------------------
     * Let exception handling deal with any OpenCL error cases
     *------------------------------------------------------------------------*/
-    catch (Error err)
+    catch (Error& err)
     {
         cerr << "ERROR: " << err.what() << "(" << err.err() << ", "
              << ocl_decode_error(err.err()) << ")" << endl;
@@ -131,7 +131,7 @@ void getDevices(Platform& platform, cl_device_type type)
 
      std::vector<Device> devices= context.getInfo<CL_CONTEXT_DEVICES>();
 
-     for (int d = 0; d < devices.size(); d++)
+     for (unsigned int d = 0; d < devices.size(); d++)
      {
          devices[d].getInfo(CL_DEVICE_NAME, &str);
          cout << "    DEVICE: " << str << endl;

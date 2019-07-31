@@ -71,14 +71,14 @@ int main(int argc, char *argv[])
    cl_short *Golden = (cl_short*) __malloc_ddr(bufsize);
 #endif
 
-   for (int i=0; i < NumElements; ++i) 
-   { 
-       srcA[i] = srcB[i] = i<<2; 
-       Golden[i] = srcB[i] + srcA[i]; 
+   for (int i=0; i < NumElements; ++i)
+   {
+       srcA[i] = srcB[i] = i<<2;
+       Golden[i] = srcB[i] + srcA[i];
        dst[i]    = 0;
    }
 
-   try 
+   try
    {
      Context context(CL_DEVICE_TYPE_ACCELERATOR);
      std::vector<Device> devices = context.getInfo<CL_CONTEXT_DEVICES>();
@@ -103,7 +103,7 @@ int main(int argc, char *argv[])
 
      Q.enqueueWriteBuffer(bufA, CL_FALSE, 0, bufsize, srcA, NULL, &ev1);
      Q.enqueueWriteBuffer(bufB, CL_FALSE, 0, bufsize, srcB, NULL, &ev2);
-     Q.enqueueNDRangeKernel(kernel, NullRange, NDRange(NumVecElements), 
+     Q.enqueueNDRangeKernel(kernel, NullRange, NDRange(NumVecElements),
                             NDRange(WorkGroupSize), NULL, &ev3);
      Q.enqueueReadBuffer (bufDst, CL_TRUE, 0, bufsize, dst, NULL, &ev4);
 
@@ -112,14 +112,14 @@ int main(int argc, char *argv[])
      ocl_event_times(ev3, "Kernel Exec");
      ocl_event_times(ev4, "Read BufDst");
    }
-   catch (Error err) 
+   catch (Error& err)
    {
      cerr << "ERROR: " << err.what() << "(" << err.err() << ", "
           << ocl_decode_error(err.err()) << ")" << endl;
    }
 
    for (int i=0; i < NumElements; ++i)
-       if (Golden[i] != dst[i]) 
+       if (Golden[i] != dst[i])
            { cout << "Failed at Element " << i << endl; RETURN(-1); }
 
 #ifdef _TI_RTOS
@@ -129,7 +129,7 @@ int main(int argc, char *argv[])
    __free_ddr(Golden);
 #endif
 
-   cout << "Success!" << endl; 
+   cout << "Success!" << endl;
 
    RETURN(0);
 }

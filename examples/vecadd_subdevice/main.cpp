@@ -282,7 +282,7 @@ int main()
      * Run Vecadd on root device and each sub device using different
      * command queues separately
      *------------------------------------------------------------------------*/
-    for(auto i=0; i<n_devices; i++)
+    for(cl_uint i=0; i<n_devices; i++)
     {
         elapsed_times[i] = RunKernelOnQ(&Qs[i], &kernel,
                                         &bufA,  srcA,
@@ -395,7 +395,7 @@ void InitArrays(cl_short** srcA,
            *Golden != nullptr);
 
     srand(time(NULL));
-    for (auto i = 0; i < n_elems; ++i)
+    for (cl_uint i = 0; i < n_elems; ++i)
     {
         (*srcA)[i] = rand() % 100 + 1;
         (*srcB)[i] = rand() % 100 + 1;
@@ -466,7 +466,7 @@ void CreateCommandQueues(cl_context*        context,
                          cl_uint            num_Qs)
 {
     int errcode;
-    for (auto i = 0; i < num_Qs; i++)
+    for (cl_uint i = 0; i < num_Qs; i++)
     {
         (*Qs)[i] = clCreateCommandQueue(*context,  /* context     */
                                         devices[i],/* device      */
@@ -483,7 +483,7 @@ bool IsCorrect(cl_short* golden,
                cl_short* dst,
                cl_uint   n_elem)
 {
-    for (auto i = 0; i < n_elem; ++i)
+    for (cl_uint i = 0; i < n_elem; ++i)
     {
         if (golden[i] != dst[i])
         {
@@ -509,7 +509,6 @@ double RunKernelOnQ(cl_command_queue* Q,
                     cl_short*         Golden,
                     cl_uint           n_elems)
 {
-    cl_uint bufsize = sizeof(cl_short) * n_elems;
     double secs = 0;
     tick();
 
@@ -529,7 +528,7 @@ double RunKernelOnQ(cl_command_queue* Q,
  *------------------------------------------------------------------------*/
 void ResetResultArray(cl_short* results, cl_uint n_elems)
 {
-    for (auto i = 0; i < n_elems; i++) results[i] = 0;
+    for (cl_uint i = 0; i < n_elems; i++) results[i] = 0;
 }
 
 /*-------------------------------------------------------------------------
@@ -553,7 +552,7 @@ void DebugPrint(const char* fmt, ...)
 void CleanUpQs(cl_command_queue* Qs, cl_uint numQs)
 {
     int errcode;
-    for(auto i=0; i<numQs; i++)
+    for(cl_uint i=0; i<numQs; i++)
     {
         errcode = clFlush(Qs[i]);
         assert(errcode == CL_SUCCESS);
@@ -587,7 +586,7 @@ void CleanUpCLObjects(cl_kernel*  kernel,
 void CleanUpSubDevices(cl_device_id* subdevices, cl_uint num)
 {
     int errcode;
-    for (auto i = 0; i < num; i++)
+    for (cl_uint i = 0; i < num; i++)
     {
         errcode = clReleaseDevice(subdevices[i]);
         assert(errcode == CL_SUCCESS);
@@ -636,7 +635,7 @@ void ShowTimingData(double*       elapsed_times,
          << "s"
          << endl;
 
-    for (auto i = SUB_DEVICE_IDX_START; i < n_devices; i++)
+    for (cl_uint i = SUB_DEVICE_IDX_START; i < n_devices; i++)
     {
         cout << "Sub Device"
              << i

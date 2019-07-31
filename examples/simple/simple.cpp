@@ -92,7 +92,7 @@ int main(int argc, char *argv[])
 
      Q.enqueueReadBuffer(buf, CL_TRUE, 0, size, ary);
    }
-   catch (Error err)
+   catch (Error& err)
    {
      cerr << "ERROR: " << err.what() << "(" << err.err() << ", "
           << ocl_decode_error(err.err()) << ")" << endl;

@@ -40,7 +40,7 @@
 
 #include "gaussRandom.h"
 #include "utilityRoutines.h"
-#include "generateRandomGaissian.h"
+#include "generateRandomGaussian.h"
 
 
 #define   MAX_ELEMENTS    (32*1024)
@@ -181,7 +181,7 @@ int main (int argc, char *argv[])
     /*----------------------------------------------------------------------
      * Let exception handling deal with any OpenCL error cases
      *--------------------------------------------------------------------*/
-    catch (Error err)
+    catch (Error& err)
     {
         cerr << "ERROR: " << err.what ()
             << "(" << ocl_decode_error (err.err ()) << ")" << endl;

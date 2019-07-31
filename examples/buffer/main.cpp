@@ -55,14 +55,13 @@ void ocl_main(UArg arg0, UArg arg1)
 int main(int argc, char *argv[])
 {
 #endif
-   cl_int err     = CL_SUCCESS;
    int    bufsize = sizeof(src);
 
    for (int i=0; i < NumElements; ++i) { src[i] = i; dst[i] = 0; }
 
-   try 
+   try
    {
-     Context             context(CL_DEVICE_TYPE_ACCELERATOR); 
+     Context             context(CL_DEVICE_TYPE_ACCELERATOR);
      std::vector<Device> devices = context.getInfo<CL_CONTEXT_DEVICES>();
 
      Buffer buf    (context, CL_MEM_READ_ONLY,  bufsize);
@@ -71,7 +70,7 @@ int main(int argc, char *argv[])
      Q.enqueueWriteBuffer(buf, CL_TRUE, 0, bufsize, src);
      Q.enqueueReadBuffer (buf, CL_TRUE, 0, bufsize, dst);
    }
-   catch (Error err) 
+   catch (Error& err)
    {
      cerr << "ERROR: " << err.what() << "(" << err.err() << ", "
           << ocl_decode_error(err.err()) << ")" << endl;
@@ -79,7 +78,7 @@ int main(int argc, char *argv[])
 
    if (memcmp(dst, src, bufsize) != 0) { cout << "Failed!" << endl;
                                          RETURN(-1); }
-   else                                cout << "Passed!" << endl; 
+   else                                cout << "Passed!" << endl;
 
    RETURN(0);
 }

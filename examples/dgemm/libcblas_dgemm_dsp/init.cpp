@@ -19,7 +19,7 @@ static void SetDgemmParams(Device& device, bool calc_check);
 extern "C" DLL_PUBLIC
 void ocl_init(bool calc_check, int *NUMCOMPUNITS)
 {
-   try 
+   try
    {
      ocl.context = new Context(CL_DEVICE_TYPE_ACCELERATOR);
 
@@ -35,7 +35,7 @@ void ocl_init(bool calc_check, int *NUMCOMPUNITS)
      * Create two queues for use. Api can determine which to use
      *-----------------------------------------------------------------------*/
      ocl.queueInOrder    = new CommandQueue(*(ocl.context), devices[0]);
-     ocl.queueOutOfOrder = new CommandQueue(*(ocl.context), devices[0], 
+     ocl.queueOutOfOrder = new CommandQueue(*(ocl.context), devices[0],
                                  CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE);
 
      ocl.K_cblas_dgemm = new Kernel(*(ocl.program), "K_cblas_dgemm_omp");
@@ -47,7 +47,7 @@ void ocl_init(bool calc_check, int *NUMCOMPUNITS)
                            .bind(*(ocl.queueInOrder), NDRange(1), NDRange(1));
      null().wait();
    }
-   catch (Error err)
+   catch (Error& err)
    {cerr<<"ERROR: "<<err.what()<<endl;}
 }
 

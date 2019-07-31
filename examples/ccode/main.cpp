@@ -15,7 +15,7 @@
  *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  *   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+ *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  *   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
  *   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
  *   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
@@ -68,7 +68,7 @@ int main(int argc, char *argv[])
     /*-------------------------------------------------------------------------
     * Begin OpenCL Setup code in try block to handle any errors
     *------------------------------------------------------------------------*/
-    try 
+    try
     {
         Context context(CL_DEVICE_TYPE_ACCELERATOR);
         std::vector<Device> devices = context.getInfo<CL_CONTEXT_DEVICES>();
@@ -90,10 +90,10 @@ int main(int argc, char *argv[])
         Program          program = Program(context, source);
 
         /*---------------------------------------------------------------------
-        * Build the opencl c code and tell it to link with the specified 
+        * Build the opencl c code and tell it to link with the specified
         * object file.
         *--------------------------------------------------------------------*/
-        program.build(devices, "ccode.obj"); 
+        program.build(devices, "ccode.obj");
 #else
         Program::Binaries binary(1, make_pair(oclwrapper_dsp_bin,
                                               sizeof(oclwrapper_dsp_bin)));
@@ -113,12 +113,12 @@ int main(int argc, char *argv[])
                                         NDRange(1));        // WG size
 
         /*---------------------------------------------------------------------
-        * Call the second kernel -> c code function. 
-        *   The result of which should be 0x7f subtracted from each element 
+        * Call the second kernel -> c code function.
+        *   The result of which should be 0x7f subtracted from each element
         *   of buffer.
         *
-        *   The modifications to the buffer from the last kernel are still 
-        *   valid for the invocation of the second kernel.  Ie. the data in the 
+        *   The modifications to the buffer from the last kernel are still
+        *   valid for the invocation of the second kernel.  Ie. the data in the
         *   buffer is persistent.
         *--------------------------------------------------------------------*/
         Kernel kernel2(program, "oclwrapper2");
@@ -137,16 +137,16 @@ int main(int argc, char *argv[])
     /*-------------------------------------------------------------------------
     * Let exception handling deal with any OpenCL error cases
     *------------------------------------------------------------------------*/
-    catch (Error err) 
+    catch (Error& err)
     {
         cerr << "ERROR: " << err.what() << "(" << err.err() << ", "
-             << ocl_decode_error(err.err()) << ")" << endl; 
+             << ocl_decode_error(err.err()) << ")" << endl;
     }
 
     /*-------------------------------------------------------------------------
     * Check the buffer for all elements == 0x80
     *------------------------------------------------------------------------*/
-    for (int i = 0; i < sizeof(data); ++i) assert (data[i] == (char)0x80);
+    for (cl_uint i = 0; i < sizeof(data); ++i) assert (data[i] == (char)0x80);
     cout << "Success!" << endl;
 
     RETURN(0);

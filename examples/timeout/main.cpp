@@ -153,7 +153,7 @@ int main(int argc, char *argv[])
     delete tIOQ;
     delete tOOQ;
   }
-  catch (Error err)
+  catch (Error& err)
   {
     cerr << "ERROR: " << err.what() << "(" << err.err() << ", "
          << ocl_decode_error(err.err()) << ")" << endl;
@@ -214,7 +214,7 @@ void run_kernel_wait(KernelWaitFn &k,
       exit(-1);
     }
   }
-  catch (Error err)
+  catch (Error& err)
   {
     cl_int status;
     ev.getInfo(CL_EVENT_COMMAND_EXECUTION_STATUS, &status);
@@ -252,7 +252,7 @@ void run_task_nowait(KernelTimeoutFn &k,
     ev = k(eargs, buf, size, timeout_flag);
     ev.setCallback(CL_COMPLETE, ev_complete_func, data);
   }
-  catch (Error err)
+  catch (Error& err)
   {
     cl_int status;
     ev.getInfo(CL_EVENT_COMMAND_EXECUTION_STATUS, &status);

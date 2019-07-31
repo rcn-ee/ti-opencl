@@ -59,9 +59,9 @@ using std::cerr;
 using std::endl;
 
 #define DIM 256
-const int mat_N     = DIM;     
-const int mat_K     = DIM;     
-const int mat_M     = DIM;     
+const int mat_N     = DIM;
+const int mat_K     = DIM;
+const int mat_M     = DIM;
 
 #ifndef _TI_RTOS
 float A       [mat_N * mat_K];
@@ -74,7 +74,7 @@ static double clock_diff (struct timespec *t1, struct timespec *t2);
 static void   print_mat(float *mat, int rows, int cols);
 static void   print_result(float *mat, float *gold, int rows, int cols);
 static float  dotprod(const float * A, const float * B, int n);
-static void   cpu_mat_mpy(const float *A, const float *B, float *C, 
+static void   cpu_mat_mpy(const float *A, const float *B, float *C,
                           int N, int K, int M);
 
 /******************************************************************************
@@ -118,7 +118,7 @@ int main(int argc, char *argv[])
    for (int i=0; i < mat_K * mat_M; ++i) B[i] = rand() % 5 + 1;
    for (int i=0; i < mat_N * mat_M; ++i) C[i] = 0.0;
 
-   try 
+   try
    {
      Context context(CL_DEVICE_TYPE_ACCELERATOR);
      std::vector<Device> devices = context.getInfo<CL_CONTEXT_DEVICES>();
@@ -142,7 +142,7 @@ int main(int argc, char *argv[])
      Program             program = Program(context, devices, binary);
      program.build(devices);
 #endif
- 
+
      Buffer bufB   (context, CL_MEM_READ_ONLY,  mat_size);
      Buffer bufGold(context, CL_MEM_READ_ONLY,  mat_size);
      Kernel kernel (program, "ocl_matmpy");
@@ -171,7 +171,7 @@ int main(int argc, char *argv[])
          use_msmc = 0;
          break;
      }
-     std::vector<Buffer> bufA(nDev, Buffer(context, 
+     std::vector<Buffer> bufA(nDev, Buffer(context,
                                            CL_MEM_READ_ONLY|use_msmc,  AChunk));
      std::vector<Buffer> bufC(nDev, Buffer(context, CL_MEM_WRITE_ONLY, CChunk));
      std::vector<Event>  ev(nDev, Event());
@@ -181,7 +181,7 @@ int main(int argc, char *argv[])
      clock_gettime(CLOCK_MONOTONIC, &tp_start);
      for (int d = 0; d < nDev; d++)
      {
-         Q[d]->enqueueWriteBuffer(bufA[d], CL_FALSE, 0, AChunk, 
+         Q[d]->enqueueWriteBuffer(bufA[d], CL_FALSE, 0, AChunk,
                                   &A[d*AChunk/sizeof(float)]);
 
          Q[d]->enqueueWriteBuffer(bufB, CL_FALSE, 0, mat_size, B);
@@ -192,25 +192,25 @@ int main(int argc, char *argv[])
          *-------------------------------------------------------------------*/
          kernel.setArg(0, bufA[d]);
          kernel.setArg(2, bufC[d]);
-         Q[d]->enqueueNDRangeKernel(kernel, NullRange, NDRange(mat_M/nDev), 
+         Q[d]->enqueueNDRangeKernel(kernel, NullRange, NDRange(mat_M/nDev),
                                                        NDRange(1));
-         Q[d]->enqueueReadBuffer(bufC[d], CL_FALSE, 0, CChunk, 
+         Q[d]->enqueueReadBuffer(bufC[d], CL_FALSE, 0, CChunk,
                                  &C[d*CChunk/sizeof(float)], NULL, &ev[d]);
      }
 
-     for (int d = 0; d < Q.size(); d++) ev[d].wait();
+     for (cl_uint d = 0; d < Q.size(); d++) ev[d].wait();
      clock_gettime(CLOCK_MONOTONIC, &tp_end);
 
      /*---------------------------------------------------------------------
      * Cleanup OpenCL objects
      *--------------------------------------------------------------------*/
-     for (int d = 0; d < Q.size(); d++) delete Q[d];
+     for (cl_uint d = 0; d < Q.size(); d++) delete Q[d];
 
      double elapsed = clock_diff (&tp_start, &tp_end);
      printf("OpenCL dispatching to %d DSP(S): %6.4f secs\n", nDev, elapsed);
    }
 
-   catch (Error err) 
+   catch (Error& err)
    {
      cerr << "ERROR: " << err.what() << "(" << err.err() << ", "
           << ocl_decode_error(err.err()) << ")" << endl;
@@ -241,8 +241,8 @@ int main(int argc, char *argv[])
            int x = i / mat_M;
            int y = i % mat_M;
 
-           std::cout << "Error at [" << x << "][" << y << "] : " 
-                     << Golden[i] << " != " 
+           std::cout << "Error at [" << x << "][" << y << "] : "
+                     << Golden[i] << " != "
                      << C[i] << std::endl;
            RETURN(-1);
        }
@@ -262,7 +262,7 @@ int main(int argc, char *argv[])
 /******************************************************************************
 * cpu_mat_mpy
 ******************************************************************************/
-void cpu_mat_mpy(const float * A, const float * B, float * C, int mat_N, 
+void cpu_mat_mpy(const float * A, const float * B, float * C, int mat_N,
                  int mat_K, int mat_M)
 {
 #pragma omp parallel for
@@ -289,7 +289,7 @@ float dotprod(const float * A, const float * B, int n)
 }
 
 /******************************************************************************
-* clock_diff 
+* clock_diff
 ******************************************************************************/
 static double clock_diff (struct timespec *t1, struct timespec *t2)
        { return t2->tv_sec - t1->tv_sec + (t2->tv_nsec - t1->tv_nsec) / 1e9; }

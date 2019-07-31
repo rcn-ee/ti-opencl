@@ -124,7 +124,7 @@ int main(int argc, char *argv[])
     /* ---------------------------------------------------------------- */
     HandleOptions(argc,argv);
 
-    try 
+    try
     {
        Context context(CL_DEVICE_TYPE_ACCELERATOR);
        std::vector<Device> devices = context.getInfo<CL_CONTEXT_DEVICES>();
@@ -137,7 +137,7 @@ int main(int argc, char *argv[])
        if (NUMCOMPUNITS == 0)  RETURN(-1);
 
        int VALRANGE = 17;
-       if (random_in) 
+       if (random_in)
        {
            srand(time(NULL));
            alpha = (float) (rand() % VALRANGE + 1);
@@ -183,13 +183,13 @@ int main(int argc, char *argv[])
                                               K*N*sizeof(float));
        float *C = (float*) Q.enqueueMapBuffer(bufC, CL_TRUE, CL_MAP_WRITE, 0,
                                               M*N*sizeof(float));
-       float *gold;
+       float *gold = nullptr;
 
        cout << "Generating Input Data ..." << flush;
        for (int i = 0; i < M*K; ++i)
-           A[i] = random_in ? (float)(rand() % VALRANGE + 1) : 1 + (i & 7); 
+           A[i] = random_in ? (float)(rand() % VALRANGE + 1) : 1 + (i & 7);
        for (int i = 0; i < K*N; ++i)
-           B[i] = random_in ? (float)(rand() % VALRANGE + 1) : 1 + (i & 11); 
+           B[i] = random_in ? (float)(rand() % VALRANGE + 1) : 1 + (i & 11);
        for (int i = 0; i < M*N; ++i)
            C[i] = random_in ? (float)(rand() % VALRANGE + 1) : 1 + (i & 5);
        cout << "Complete" << endl;
@@ -236,9 +236,9 @@ int main(int argc, char *argv[])
        * C'[nxm] = B'[nxk] * A'[kxm],
        * where ptrC' === ptrC, ptrA' === ptrA, ptrB' === ptrB
        * So, all we need to do is to: swap(m, n), swap(a, b)
-       * ld_Transpose(a)_col = lda_row = k, 
-       * ld_Transpose(b)_col = ldb_row = n, 
-       * ld_Transpose(c)_col = ldc_row = n, 
+       * ld_Transpose(a)_col = lda_row = k,
+       * ld_Transpose(b)_col = ldb_row = n,
+       * ld_Transpose(c)_col = ldc_row = n,
        *---------------------------------------------------------------------*/
        if (order == CblasRowMajor)
            matmul(N, M, K, alpha, bufB, N, bufA, K, beta, bufC, N,
@@ -259,7 +259,7 @@ int main(int argc, char *argv[])
        if (bufMsmc != NULL)  delete bufMsmc;
 
        /*----------------------------------------------------------------------
-       * If checking results against a host matmul.  
+       * If checking results against a host matmul.
        * This can be time consuming for large sizes.
        *---------------------------------------------------------------------*/
        C = (float*) Q.enqueueMapBuffer(bufC, CL_TRUE, CL_MAP_READ, 0,
@@ -283,7 +283,7 @@ int main(int argc, char *argv[])
                   gflops, dsp_elapsed);
            Q.enqueueUnmapMemObject(bufA, A);
            Q.enqueueUnmapMemObject(bufB, B);
-	   PrintMatrix(gold,M,N,order); 
+	   PrintMatrix(gold,M,N,order);
 	   errs = CheckForErrors(C, gold, M, N, K, order);
 #ifndef _TI_RTOS
            free(gold);
@@ -292,10 +292,10 @@ int main(int argc, char *argv[])
 #endif
        }
 
-       PrintMatrix(C,M,N,order); 
+       PrintMatrix(C,M,N,order);
        Q.enqueueUnmapMemObject(bufC, C); Q.finish();
    }
-   catch (Error err)
+   catch (Error& err)
    {
        cerr << "ERROR: " << err.what() << "(" << err.err() << ", "
             << ocl_decode_error(err.err()) << ")" << endl;
@@ -311,7 +311,7 @@ int main(int argc, char *argv[])
 void PrintUsageAndExit()
 {
     cout << "Matrix C[M,N] = A[M,K] * B [K,N]" << endl
-         << "Default value of M,N,K is " << M << endl 
+         << "Default value of M,N,K is " << M << endl
          << "Usage: sgemm [options] " << endl
          << "Options: " << endl
          << "-M arg : Number of rows for array C and A" << endl
@@ -320,7 +320,7 @@ void PrintUsageAndExit()
          << "-d     : Do not check results against host computation" << endl
          << "-r     : Generate random inputs" << endl
          << "-or    : Use Row-Major storage (default is Col-Major)" << endl
-         << "-h     : Show help message" 
+         << "-h     : Show help message"
          << endl;
     exit(0);
 }
@@ -330,7 +330,7 @@ void HandleOptions(int argc, char* argv[])
     int c;
 
     if (argc == 1) return;
-    
+
     while ((c = getopt (argc, argv, "o:M:K:N:hdrx")) != -1)
         switch(c)
         {
@@ -454,9 +454,7 @@ void SetSgemmParams(Device& device)
    if (!M && !N && !K)
    {
        M = N = K = roundDownPower2(sqrt(global_mem / 3 / sizeof(float)));
-#ifdef _TI_RTOS
        if (M >= 2048) M = N = K = 2048;
-#endif
    }
 
    NUMAPANELS    = L2_BUF_SIZE / 2 / APanelSz;
@@ -468,7 +466,7 @@ void SetSgemmParams(Device& device)
 
    if (calc_check)
    {
-       cout << "M,N,K         = " << M << ", " 
+       cout << "M,N,K         = " << M << ", "
             << N << ", "
             << K << endl;
        cout << "MSMC_BUF_SIZE = " << MSMC_BUF_SIZE << endl;

@@ -15,7 +15,7 @@
  *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  *   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+ *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  *   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
  *   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
  *   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
@@ -46,7 +46,7 @@ using namespace std;
 #define DIM      500
 #define CTR_X   -0.743644177934177585953534617147
 #define CTR_Y    0.131826205602324997290253350002
-#define RANGE    3.0 
+#define RANGE    3.0
 #define ZOOM     1.25
 
 /******************************************************************************
@@ -77,22 +77,22 @@ int main(int argc, char *argv[])
     bool sdl_initialized = true;
     SDL_Surface *data_sf;
     SDL_Surface *screen;
-    if (SDL_Init(SDL_INIT_VIDEO) >= 0 && 
+    if (SDL_Init(SDL_INIT_VIDEO) >= 0 &&
         SDL_SetVideoMode(DIM, DIM, 24, SDL_HWSURFACE))
     {
-       data_sf = SDL_CreateRGBSurfaceFrom(rgb, DIM, DIM, 24, DIM * 3, 
+       data_sf = SDL_CreateRGBSurfaceFrom(rgb, DIM, DIM, 24, DIM * 3,
 					 0x000000ff, 0x0000ff00, 0x00ff0000, 0);
        screen = SDL_GetVideoSurface();
        std::string title("Mandelbrot");
        SDL_WM_SetCaption(title.c_str(), NULL );
     }
-    else 
+    else
        sdl_initialized = false;
 
     /*-------------------------------------------------------------------------
     * Begin OpenCL Setup code in try block to handle any errors
     *------------------------------------------------------------------------*/
-    try 
+    try
     {
         Context context(CL_DEVICE_TYPE_ACCELERATOR);
 
@@ -102,7 +102,7 @@ int main(int argc, char *argv[])
         std::vector<Device> devices = context.getInfo<CL_CONTEXT_DEVICES>();
         int                 numDevices = devices.size();
         std::vector<Event>  ev(numDevices);
-             
+
         CommandQueue*       Q[MAX_DEVICES];
         Buffer              buffer (context, CL_MEM_WRITE_ONLY, sizeof(rgb));
 
@@ -111,7 +111,7 @@ int main(int argc, char *argv[])
         {
             devices[d].getInfo(CL_DEVICE_NAME, &str);
             cout << "   " << str << endl;
-            
+
             Q[d]  = new CommandQueue(context, devices[d]);
         }
         cout << endl;
@@ -130,7 +130,7 @@ int main(int argc, char *argv[])
                           istreambuf_iterator<char>());
         Program::Sources source(1, make_pair(kSrc.c_str(), kSrc.length()));
         Program          program = Program(context, source);
-        program.build(devices); 
+        program.build(devices);
 
         /*---------------------------------------------------------------------
         * Setup the invariant arguments to the kernel
@@ -158,13 +158,13 @@ int main(int argc, char *argv[])
             {
                 int bufChunk = sizeof(rgb) / numDevices;
 
-                Q[c]->enqueueNDRangeKernel(kernel, 
+                Q[c]->enqueueNDRangeKernel(kernel,
                    NDRange(0,   c * DIM / numDevices), // offset
                    NDRange(DIM, DIM / numDevices),     // global size
                    NDRange(DIM, 1));                   // WG size
 
-                Q[c]->enqueueReadBuffer(buffer, CL_FALSE, 
-                        c * bufChunk, bufChunk, 
+                Q[c]->enqueueReadBuffer(buffer, CL_FALSE,
+                        c * bufChunk, bufChunk,
                         &rgb[c * bufChunk], NULL, &ev[c]);
             }
 
@@ -176,34 +176,34 @@ int main(int argc, char *argv[])
             clock_gettime(CLOCK_MONOTONIC, &tp_end);
             double elapsed = clock_diff (&tp_start, &tp_end);
             total_elapsed += elapsed;
-            printf("Frame: %d, \tFPS: %5.2f, \tZoom: %.3g\n" , frame, 
+            printf("Frame: %d, \tFPS: %5.2f, \tZoom: %.3g\n" , frame,
                     1.0/elapsed, RANGE/range);
 
            /*------------------------------------------------------------------
            * Display the image if SDL successfully initialized.
-           * NOTE: Requires X server to display         
+           * NOTE: Requires X server to display
            *-----------------------------------------------------------------*/
 	    if(sdl_initialized)
 	    {
 	       SDL_Event event;
 	       SDL_PollEvent(&event);
 	       if (event.type == SDL_QUIT) { SDL_Quit(); exit(0); }
-	       
+
 	       if (SDL_BlitSurface(data_sf, NULL, screen, NULL) == 0)
 		  SDL_UpdateRect(screen, 0, 0, 0, 0);
 	    }
-        } 
+        }
         printf("Total Time Generating frames: %8.4f secs\n", total_elapsed);
 
         /*---------------------------------------------------------------------
         * Cleanup OpenCL objects
         *--------------------------------------------------------------------*/
-        for (int d = 0; d < numDevices; d++) delete Q[d]; 
+        for (int d = 0; d < numDevices; d++) delete Q[d];
     }
 
     /*-------------------------------------------------------------------------
     * Let exception handling deal with any OpenCL error cases
     *------------------------------------------------------------------------*/
-    catch (Error err) 
+    catch (Error& err)
     { cerr << "ERROR: " << err.what() << "(" << err.err() << ")" << endl; }
 }

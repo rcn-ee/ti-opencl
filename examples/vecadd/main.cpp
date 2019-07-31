@@ -67,7 +67,6 @@ void ocl_main(UArg arg0, UArg arg1)
 int main(int argc, char *argv[])
 {
 #endif
-   cl_int err     = CL_SUCCESS;
    int    bufsize = sizeof(cl_short) * NumElements;
 
    cl_short *srcA   = (cl_short *)__malloc_ddr(bufsize);
@@ -133,7 +132,7 @@ int main(int argc, char *argv[])
      __free_ddr(srcA);
      __free_ddr(srcB);
    }
-   catch (Error err)
+   catch (Error& err)
    {
      cerr << "ERROR: " << err.what() << "(" << err.err() << ", "
           << ocl_decode_error(err.err()) << ")" << endl;

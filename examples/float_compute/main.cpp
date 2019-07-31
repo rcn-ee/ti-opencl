@@ -215,7 +215,7 @@ int main(int argc, char *argv[])
 #endif
 
     } // end try
-    catch (Error err)
+    catch (Error& err)
     {
         cerr << "ERROR: " << err.what() << "(" << err.err() << ", "
              << ocl_decode_error(err.err()) << ")" << endl;

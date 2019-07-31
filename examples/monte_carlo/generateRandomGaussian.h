@@ -41,8 +41,8 @@
 
 
 
-static void  longPseudoRandom(struct initial_t value[], 
-                              int index, 
+static void  longPseudoRandom(struct initial_t value[],
+                              int index,
                               int N,
                               float *p_out )
 {
@@ -54,7 +54,7 @@ static void  longPseudoRandom(struct initial_t value[],
       unsigned long mulV   ;
       unsigned long addV  ;
       unsigned long l_l, l_h   ;
-      unsigned long long aux1 ,aux2 ;
+      unsigned long long aux1 ;
 
       //unsigned long a1,a2,a3,a4  ;
       float w, x1, x2, y1, y2   ;
@@ -120,7 +120,7 @@ static void  longPseudoRandom(struct initial_t value[],
           x2 = x_aux + y_aux  ;
           x2 = 2.0 * x2 -1.0 ;
           w = x1 * x1 + x2 * x2  ;
-          if (w < 1) 
+          if (w < 1)
           {
                counter--   ;
                x_aux = -log(w)  ;
@@ -131,9 +131,9 @@ static void  longPseudoRandom(struct initial_t value[],
                y1 = x1 * b_aux   ;  //w   ;
                y2 = x2 * b_aux   ;  //w   ;
 //               printf (" results   %d  %f %f %f  \n", counter,x1,x2,w)  ;
-               //printf("\n %d -> w  %f -log  %f  two_oneOver  %f  \n", 
+               //printf("\n %d -> w  %f -log  %f  two_oneOver  %f  \n",
                                       //counter,w,x_aux,y_aux) ;
-               //printf(" multiply %f  sqrt  %f y1 %f  y2   %f  \n", 
+               //printf(" multiply %f  sqrt  %f y1 %f  y2   %f  \n",
                                      //a_aux, b_aux, y1, y2 ) ;
                *p_out++ = y1   ;
                *p_out++ = y2   ;

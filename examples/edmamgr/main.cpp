@@ -57,12 +57,11 @@ void ocl_main(UArg arg0, UArg arg1)
 int main(int argc, char *argv[])
 {
 #endif
-   cl_int err     = CL_SUCCESS;
    int    bufsize = sizeof(src);
 
    for (int i=0; i < bytes; ++i) { src[i] = 0xAB; dst[i] = 0; }
 
-   try 
+   try
    {
      Context context(CL_DEVICE_TYPE_ACCELERATOR);
      std::vector<Device> devices = context.getInfo<CL_CONTEXT_DEVICES>();
@@ -85,17 +84,17 @@ int main(int argc, char *argv[])
      Q.enqueueNDRangeKernel(kernel,NullRange,NDRange(num_chunks),NDRange(1));
      Q.enqueueReadBuffer (bufDst, CL_TRUE, 0, bufsize, dst);
    }
-   catch (Error err) 
+   catch (Error& err)
    {
      cerr << "ERROR: " << err.what() << "(" << err.err() << ", "
           << ocl_decode_error(err.err()) << ")" << endl;
    }
 
    for (int i=0; i < bytes; ++i)
-       if (dst[i] != 0x000000AB) 
+       if (dst[i] != 0x000000AB)
            { cout << "Failed at Element " << i << endl; RETURN(-1); }
 
-   cout << "Success!" << endl; 
+   cout << "Success!" << endl;
 
    RETURN(0);
 }

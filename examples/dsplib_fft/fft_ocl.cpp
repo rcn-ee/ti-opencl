@@ -93,7 +93,6 @@ void ocl_main(UArg arg0, UArg arg1)
 int main(int argc, char *argv[])
 {
 #endif
-    int i, j;
     struct timespec t0, t1;
     int channel_size = 2 * FFTSZ * sizeof(float);
     bool verbose = argc > 1;
@@ -202,7 +201,7 @@ int main(int argc, char *argv[])
     printf("fft_db: %d usecs\n", us_diff(t0, t1));
     failed |= validate_output(y, FFTCHS, FFTSZ, verbose);
   }
-  catch (Error err)
+  catch (Error& err)
   {
       cerr << "ERROR: " << err.what() << "(" << err.err() << ", "
            << ocl_decode_error(err.err()) << ")" << endl;
