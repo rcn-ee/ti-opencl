@@ -7,11 +7,11 @@ UNAME_M:=$(shell uname -m)
 # will report in this format.  The 'ww' represents the PATCH_VERSION of a
 # particular release.  This number will not be reflected in the library
 # .so name, only in the packaging.
-# NOTE!!!!!! The packaging version numbers need to match what is specified in 
+# NOTE!!!!!! The packaging version numbers need to match what is specified in
 # debian/changelog!!!
 OCL_MAJOR_VER=1
-OCL_MINOR_VER=2
-OCL_RELEASE_VER=00
+OCL_MINOR_VER=1
+OCL_RELEASE_VER=19
 OCL_PATCH_VER=00
 OCL_VER=$(OCL_MAJOR_VER).$(OCL_MINOR_VER).$(OCL_RELEASE_VER)
 OCL_DPKG_NAME=ti-opencl
@@ -98,7 +98,7 @@ endif
 # RTOS packages (BIOS, IPC, FC, EDMA3_LLD etc.)
 RTOS_INSTALL_DIR?=$(LINUX_DEVKIT_ROOT)/usr/share/ti
 
-# OMP 
+# OMP
 OMP_DIR?=$(RTOS_INSTALL_DIR)/ti-omp-tree
 
 # Processor SDK Vision (remove once components are integrated into Processor SDK)

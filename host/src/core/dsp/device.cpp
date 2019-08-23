@@ -634,7 +634,7 @@ cl_int DSPDevice::info(cl_device_info param_name,
             STRING_ASSIGN("FULL_PROFILE");
             break;
         case CL_DEVICE_VERSION:
-            STRING_ASSIGN("OpenCL 1.2");
+            STRING_ASSIGN("OpenCL 1.1 ");
             break;
         case CL_DEVICE_EXTENSIONS:
             if (EnvVar::Instance().GetEnv <
@@ -698,7 +698,7 @@ cl_int DSPDevice::info(cl_device_info param_name,
             SIMPLE_ASSIGN(size_t, 1048576);
             break;
         case CL_DEVICE_OPENCL_C_VERSION:
-            STRING_ASSIGN("OpenCL C 1.2");
+            STRING_ASSIGN("OpenCL C 1.1 ");
             break;
         case CL_DEVICE_PARENT_DEVICE:
             if (p_parent) {SIMPLE_ASSIGN(cl_device_id, desc(p_parent));}

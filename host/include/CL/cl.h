@@ -187,7 +187,7 @@ typedef struct _cl_buffer_region {
 /* OpenCL Version */
 #define CL_VERSION_1_0                              1
 #define CL_VERSION_1_1                              1
-#define CL_VERSION_1_2                              1
+#define CL_VERSION_1_2                              0
 
 /* Support for TI Specific Backports from OpenCL 1.1 */
 #define CL_USE_DEPRECATED_OPENCL_1_1_APIS_TI        1
