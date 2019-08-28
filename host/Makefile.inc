@@ -27,7 +27,7 @@ endif
 SDOMC_SHARED?=/cgnas
 
 # XDC (not included in CoreSDK)
-XDC_DIR?=$(SDOMC_SHARED)/xdctools_3_51_01_18_core
+XDC_DIR?=$(SDOMC_SHARED)/xdctools_3_55_02_22_core
 
 # TI C6x CGT
 TI_OCL_CGT_INSTALL?=$(SDOMC_SHARED)/ti-cgt-c6000-8.3.2/linux
@@ -64,7 +64,7 @@ endif
 ifeq ($(USE_ION), 1)
 CORESDK_VERSION ?= 05.02.00.10-ion
 else
-CORESDK_VERSION ?= 06.00.00.07-release
+CORESDK_VERSION ?= 06.01.00.04-20190826
 endif
 
 TIDL_VERSION    ?= 05_03_00_02-295-2019-02-27_10-52-08
