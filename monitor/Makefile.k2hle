@@ -15,7 +15,7 @@ ifneq ($(MAKECMDGOALS),clean)
    ifeq (,$(wildcard $(PDK_DIR)/.))
       $(error Path specified for PDK_DIR(=$(PDK_DIR)) is not valid)
    endif
-   ifeq (,$(wildcard $(BIOS_DIR)/.)) 
+   ifeq (,$(wildcard $(BIOS_DIR)/.))
       $(error Path specified for BIOS_DIR(=$(BIOS_DIR)) is not valid)
    endif
    ifeq (,$(wildcard $(OMP_DIR)/.))
@@ -131,8 +131,8 @@ syms:  $(foreach dsp,$(DSPS),$(BUILD)/dsp$(dsp).syms)
 LIBM_DIR=../libm
 LIBM=$(LIBM_DIR)/libm.lib
 
-$(LIBM): 
-	@$(MAKE) -C $(LIBM_DIR) -j4 
+$(LIBM):
+	@$(MAKE) -C $(LIBM_DIR) -j4
 
 #----------------------------------------------------------------------------
 # include builtins functions in monitor
@@ -140,8 +140,8 @@ $(LIBM):
 BUILTINS_DIR=../builtins
 BUILTINS=$(BUILTINS_DIR)/dsp.lib
 
-$(BUILTINS): 
-	@$(MAKE) -C $(BUILTINS_DIR) -j4 
+$(BUILTINS):
+	@$(MAKE) -C $(BUILTINS_DIR) -j4
 
 
 #---------------------------------------------------------------------------

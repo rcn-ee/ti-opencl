@@ -113,11 +113,11 @@ endef
 
 
 .PHONY: all dsp0 dsp1
-all: $(OBJ_DIR) dsp0 dsp1
+all: dsp0 dsp1
 #	$(call check_dsp_syms_layout, dsp0.out, dsp1.out, 0x01000000)
 
 $(OBJ_DIR):
-	mkdir $(OBJ_DIR) $(BIN_DIR)
+	mkdir -p $(OBJ_DIR) $(BIN_DIR)
 
 dsp0 : $(LINK_CMD0) $(BIN_DIR)/dsp0.out $(BIN_DIR)/dsp0.syms
 dsp1 : $(LINK_CMD1) $(BIN_DIR)/dsp1.out $(BIN_DIR)/dsp1.syms
@@ -174,11 +174,11 @@ $(LINK_CMD1): $(OCLLIB) $(MONITOR_CONFIG) platform_files
 #---------------------------------------------------------------------------
 # Default build rules
 #----------------------------------------------------------------------------
-$(OBJ_DIR)/%.obj : src/%.c $(HEADERS)
+$(OBJ_DIR)/%.obj : src/%.c $(HEADERS) $(OBJ_DIR)
 	@echo Compiling $<
 	$(CC) -Isrc $(INCLUDES) -c $< -fr=$(OBJ_DIR)
 
-$(OBJ_DIR)/%.obj : src/%.asm
+$(OBJ_DIR)/%.obj : src/%.asm $(OBJ_DIR)
 	@echo Compiling $<
 	$(CC) $(INCLUDES) -c $< -fr=$(OBJ_DIR)
 

@@ -104,11 +104,11 @@ define create_dsp_syms
 endef
 
 .PHONY: all dsp0 dsp1
-all: $(OBJ_DIR) dsp0 dsp1
+all: dsp0 dsp1
 	@diff -q $(BIN_DIR)/dsp0.syms $(BIN_DIR)/dsp1.syms
 
 $(OBJ_DIR):
-	mkdir $(OBJ_DIR) $(BIN_DIR)
+	mkdir -p $(OBJ_DIR) $(BIN_DIR)
 
 dsp0 : $(LINK_CMD0) $(BIN_DIR)/dsp0.out $(BIN_DIR)/dsp0.syms
 dsp1 : $(LINK_CMD1) $(BIN_DIR)/dsp1.out $(BIN_DIR)/dsp1.syms
@@ -130,11 +130,11 @@ $(BIN_DIR)/dsp1.out: $(OBJ_DIR)/custom_rsc_table_vayu_dsp1.obj $(OBJS) $(BUILTIN
 $(BIN_DIR)/%.syms: $(BIN_DIR)/%.out export_syms
 	$(call create_dsp_syms, $<, $@)
 
-$(LIBM): 
-	$(MAKE) -C $(LIBM_DIR) -j4 
+$(LIBM):
+	$(MAKE) -C $(LIBM_DIR) -j4
 
-$(BUILTINS): 
-	$(MAKE) -C $(BUILTINS_DIR) -j4 
+$(BUILTINS):
+	$(MAKE) -C $(BUILTINS_DIR) -j4
 
 platforms/am57x/package/package_platforms.am57x.c: platforms/am57x/Platform.xdc
 	 $(MAKE) -C platforms/am57x
@@ -153,11 +153,11 @@ $(LINK_CMD1): cfg/monitor.$(PLATFORM).cfg platforms/am57x/package/package_platfo
 #---------------------------------------------------------------------------
 # Default build rules
 #----------------------------------------------------------------------------
-$(OBJ_DIR)/%.obj : src/%.c $(HEADERS)
+$(OBJ_DIR)/%.obj : src/%.c $(HEADERS) $(OBJ_DIR)
 	@echo Compiling $<
 	$(CC) -Isrc $(INCLUDES) -c $< -fr=$(OBJ_DIR)
 
-$(OBJ_DIR)/%.obj : src/%.asm
+$(OBJ_DIR)/%.obj : src/%.asm $(OBJ_DIR)
 	@echo Compiling $<
 	$(CC) $(INCLUDES) -c $< -fr=$(OBJ_DIR)
 
