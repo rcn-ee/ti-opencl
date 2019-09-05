@@ -137,7 +137,6 @@ namespace Coal
                                  cl_uint num_entries, cl_device_id * devices)
     {
         cl_uint device_number = 0;
-
         if (device_type == CL_DEVICE_TYPE_DEFAULT)
             device_type = CL_DEVICE_TYPE_ACCELERATOR;
 
@@ -146,7 +145,6 @@ namespace Coal
             cl_device_type type;
             auto device = pobj(p_devices[d]);
             device->info(CL_DEVICE_TYPE, sizeof(cl_device_type), &type,0);
-
             // Spec v1.2, p36: if device_type requested is CL_DEVICE_TYPE_ALL,
             // return all OpenCL devices available in the system
             // except CL_DEVICE_TYPE_CUSTOM devices.
@@ -154,7 +152,8 @@ namespace Coal
                     type == CL_DEVICE_TYPE_CUSTOM)
                 continue;
 
-            if ((type & device_type) == device_type)
+            if (device_type == CL_DEVICE_TYPE_ALL ||
+                ((type & device_type) == device_type))
             {
                 if (devices && device_number < num_entries)
                      devices[device_number++] = p_devices[d];
