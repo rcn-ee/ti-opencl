@@ -154,7 +154,7 @@ namespace Coal
                     type == CL_DEVICE_TYPE_CUSTOM)
                 continue;
 
-            if (type & device_type)
+            if ((type & device_type) == device_type)
             {
                 if (devices && device_number < num_entries)
                      devices[device_number++] = p_devices[d];

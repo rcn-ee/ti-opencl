@@ -5,6 +5,7 @@ Release Notes
 .. toctree::
    :maxdepth: 1
 
+   readme_v01.01.19.x
    readme_v01.01.18.x
    readme_v01.01.17.x
    readme_v01.01.16.x
@@ -25,6 +26,9 @@ Processor SDK to OpenCL version map
 +---------------+------------+---------------------------------------+
 | Processor SDK | OpenCL     | Key features                          |
 +===============+============+=======================================+
+| 06.01.x.x     | 1.01.19.x  | Support for specific OpenCL 1.2       |
+|               |            | features                              |
++---------------+------------+---------------------------------------+
 | 05.03.x.x     | 1.01.18.x  | Changes required for TIDL API v1.3    |
 +---------------+------------+---------------------------------------+
 | 05.02.x.x     | 1.01.17.x  | Changes required for TIDL API v1.2    |
