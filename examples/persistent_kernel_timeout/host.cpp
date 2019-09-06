@@ -19,7 +19,7 @@ int main(int argc, char *argv[])
     /*-------------------------------------------------------------------------
     * Begin OpenCL Setup code in try block to handle any errors
     *------------------------------------------------------------------------*/
-    try 
+    try
     {
         /*---------------------------------------------------------------------
         * Boilerplate OpenCL setup code to create a context, vector of devices,
@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
         Context ctx(CL_DEVICE_TYPE_ACCELERATOR);
         std::vector<Device> devices = ctx.getInfo<CL_CONTEXT_DEVICES>();
 
-        Program::Binaries binary(1, 
+        Program::Binaries binary(1,
                               make_pair(kernel_dsp_bin,sizeof(kernel_dsp_bin)));
         Program           program = Program(ctx, devices, binary);
         program.build(devices);
@@ -46,7 +46,7 @@ int main(int argc, char *argv[])
         * can return an application specific status code.
         *--------------------------------------------------------------------*/
         cl_uint completion_code;
-        Buffer ccBuf(ctx, CL_MEM_WRITE_ONLY | CL_MEM_USE_HOST_PTR, 
+        Buffer ccBuf(ctx, CL_MEM_WRITE_ONLY | CL_MEM_USE_HOST_PTR,
                           sizeof(completion_code), &completion_code);
 
         /*---------------------------------------------------------------------
@@ -62,7 +62,7 @@ int main(int argc, char *argv[])
         *--------------------------------------------------------------------*/
         Kernel K(program, "wrapper");
         K.setArg(0, timeout_ms);
-        K.setArg(1, ccBuf);             
+        K.setArg(1, ccBuf);
 
         printf("This application test the capability to set a timeout for\n"
                "DSP computation enqueued through OpenCL. The DSP compute \n"
@@ -89,6 +89,6 @@ int main(int argc, char *argv[])
     /*-------------------------------------------------------------------------
     * Let exception handling deal with any OpenCL error cases
     *------------------------------------------------------------------------*/
-    catch (Error err) 
+    catch (Error& err)
     { cerr << "ERROR: " << err.what() << "(" << err.err() << ")" << endl; }
 }

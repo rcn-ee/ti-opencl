@@ -8,7 +8,7 @@
 #include "shared.h"
 
 /******************************************************************************
-* Clock tick handler - increment global variable counter every time invoked 
+* Clock tick handler - increment global variable counter every time invoked
 *
 *    arg0 is assumed to be a pointer to a uint32_t value
 ******************************************************************************/

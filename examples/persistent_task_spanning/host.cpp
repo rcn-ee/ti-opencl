@@ -11,7 +11,7 @@ using namespace std;
 
 int main(int argc, char *argv[])
 {
-    try 
+    try
     {
         /*---------------------------------------------------------------------
         * Boilerplate OpenCL setup code to create a context, vector of devices,
@@ -21,7 +21,7 @@ int main(int argc, char *argv[])
         Context ctx(CL_DEVICE_TYPE_ACCELERATOR);
         std::vector<Device> devices = ctx.getInfo<CL_CONTEXT_DEVICES>();
 
-        Program::Binaries binary(1, 
+        Program::Binaries binary(1,
                               make_pair(kernel_dsp_bin,sizeof(kernel_dsp_bin)));
         Program           program = Program(ctx, devices, binary);
         program.build(devices);
@@ -54,11 +54,11 @@ int main(int argc, char *argv[])
         Q.finish();
 
         /*---------------------------------------------------------------------
-        * if the start persistent task was successful, then 
+        * if the start persistent task was successful, then
         *    Wait for a second to allow time for the persistent task to compute.
         *    Enqueue a function to stop the persistent task.
         *--------------------------------------------------------------------*/
-        if (completion_code == APP_OK) 
+        if (completion_code == APP_OK)
         {
             sleep(1);  // Give some time for the persistent DSP task to run
             Q.enqueueTask(stop_dsp);
@@ -67,6 +67,6 @@ int main(int argc, char *argv[])
 
         print_completion_code(completion_code);
     }
-    catch (Error err) 
+    catch (Error& err)
     { cerr << "ERROR: " << err.what() << "(" << err.err() << ")" << endl; }
 }
