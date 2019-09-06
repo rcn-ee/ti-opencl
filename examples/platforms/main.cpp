@@ -57,7 +57,7 @@ const char *devtype(cl_device_type x)
     }
 }
 
-void getDevices(Platform& platform, cl_device_type type);
+void getDevices(Platform& platform, cl_device_type type, cl_device_type type2);
 
 /******************************************************************************
 * main
@@ -102,7 +102,7 @@ int main(int argc, char *argv[])
              platforms[p].getInfo(CL_PLATFORM_PROFILE, &str);
              cout << "  Profile: " <<  str << endl;
 
-             getDevices(platforms[p], CL_DEVICE_TYPE_ACCELERATOR |
+             getDevices(platforms[p], CL_DEVICE_TYPE_ACCELERATOR,
                                       CL_DEVICE_TYPE_CUSTOM);
         }
     }
@@ -120,16 +120,25 @@ int main(int argc, char *argv[])
 }
 
 
-void getDevices(Platform& platform, cl_device_type type)
+void getDevices(Platform& platform, cl_device_type type, cl_device_type type2)
 {
      std::string str;
      cl_context_properties properties[] =
       {CL_CONTEXT_PLATFORM, (cl_context_properties)(platform)(), 0};
 
      Context context(type, properties);
+     std::vector<Device> devices = context.getInfo<CL_CONTEXT_DEVICES>();
 
-
-     std::vector<Device> devices= context.getInfo<CL_CONTEXT_DEVICES>();
+     // Add exactly type2 (not a superset) to the list
+     Context context2(type2, properties);
+     std::vector<Device> devices2 = context2.getInfo<CL_CONTEXT_DEVICES>();
+     for (auto &dev : devices2)
+     {
+         cl_device_type type;
+         dev.getInfo(CL_DEVICE_TYPE, &type);
+         if (type == type2)
+             devices.emplace_back(dev);
+     }
 
      for (unsigned int d = 0; d < devices.size(); d++)
      {
