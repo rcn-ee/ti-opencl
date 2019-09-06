@@ -15,7 +15,7 @@
  *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  *   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+ *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  *   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
  *   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
  *   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
@@ -49,7 +49,6 @@
 --retain="ti_sdo_ipc_MessageQ_*"
 --retain="MessageQ_*"
 
---retain="printf"
 --retain="puts"
 --retain="_minit"
 --retain="malloc"
@@ -65,13 +64,14 @@
 --retain="__free_*"
 --retain="__memalign_*"
 --retain="__trace_print*"
+--retain="__dsp_frequency"
 
 #define L2_LINE_SIZE 128
 
 SECTIONS
 {
     /*-------------------------------------------------------------------------
-    * Needed for MPM on Hawking, which has a 10 bit alignment rqmt for the 
+    * Needed for MPM on Hawking, which has a 10 bit alignment rqmt for the
     * entry point.  Can be removed when that reqmt is lifted.
     *------------------------------------------------------------------------*/
     .text:_c_int00 > DDR3 align(0x400)
@@ -121,12 +121,12 @@ __OCL_BUILD_TIME      = OCL_BUILD_TIME;
 
 
 /*-----------------------------------------------------------------------------
-* Place the far data from the framework components into l2 rather than ddr, becuase they 
+* Place the far data from the framework components into l2 rather than ddr, becuase they
 * are core private
 *----------------------------------------------------------------------------*/
 SECTIONS
 {
-    /* 
+    /*
      *  The .far and .fardata sections of FC and EDMA3LLD need to be local to each core.
      *  These sections are therefore placed in memory local to each core.
      */
@@ -152,8 +152,8 @@ SECTIONS
                 "*edma_config.obj" (.fardata)
     } run=DDR3_VIRT, load=DDR3_PER_CORE
 
-    /* If OpenMP runtime is not included in the monitor, the following 
-       directive is required to ensure each core gets its own copy of 
+    /* If OpenMP runtime is not included in the monitor, the following
+       directive is required to ensure each core gets its own copy of
        MessageQ related data structures such as HeapBuf.
     .localfar :
     {

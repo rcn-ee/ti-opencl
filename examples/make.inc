@@ -140,7 +140,7 @@ ifneq (,$(findstring 86, $(shell uname -m)))
     # Do not use /usr/include on host machine, it might have different gcc
     # versions and could cause problems.
     CXXFLAGS += "--sysroot=$(TARGET_ROOTDIR)"
-    CXXFLAGS += -I$(TI_OCL_INSTALL)/usr/include
+    CXXFLAGS += -I$(TI_OCL_INSTALL)/usr/include -Wall
     CXXFLAGS += -I$(TARGET_ROOTDIR)/usr/include
 
     # If cross-compiling, provide path to dependent ARM libraries on the
@@ -154,7 +154,7 @@ else
     # target native compilation
 
     CXX      = g++
-    CXXFLAGS += -I$(TI_OCL_INSTALL)/usr/include
+    CXXFLAGS += -I$(TI_OCL_INSTALL)/usr/include -Wall
     LDFLAGS  += -L$(TI_OCL_INSTALL)/usr/lib
     LIBS     += -lbfd
 

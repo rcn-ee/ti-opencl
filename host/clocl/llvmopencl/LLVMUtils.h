@@ -23,15 +23,16 @@
 #ifndef _POCL_LLVM_UTILS_H
 #define _POCL_LLVM_UTILS_H
 
-#include "pocl.h"
 #include <map>
 #include <string>
 
-#include "config.h"
+#include "pocl.h"
 
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Metadata.h>
 #include <llvm/IR/DerivedTypes.h>
+
+#include "TargetAddressSpaces.h"
 
 namespace llvm {
     class Module;
@@ -46,33 +47,48 @@ typedef std::map<llvm::Function*, llvm::Function*> FunctionMapping;
 void
 regenerate_kernel_metadata(llvm::Module &M, FunctionMapping &kernels);
 
+// Remove a function from a module, along with all callsites.
+void eraseFunctionAndCallers(llvm::Function *Function);
+
 inline bool
-is_automatic_local(const std::string& funcName, llvm::GlobalVariable &var) 
-{
-  return var.getName().startswith(funcName + ".") &&
-    llvm::isa<llvm::PointerType>(var.getType()) &&
-    var.getType()->getPointerAddressSpace() == POCL_ADDRESS_SPACE_LOCAL;
+isAutomaticLocal(const std::string &FuncName, llvm::GlobalVariable &Var) {
+#ifdef POCL_USE_FAKE_ADDR_SPACE_IDS
+  return Var.getName().startswith(FuncName + ".") &&
+    llvm::isa<llvm::PointerType>(Var.getType()) &&
+    Var.getType()->getPointerAddressSpace() == POCL_FAKE_AS_LOCAL;
+#else
+  // Without the fake address space IDs, there is no reliable way to figure out
+  // if the address space is local from the bitcode. We could check its AS
+  // against the device's local address space id, but for now lets rely on the
+  // naming convention only. Only relying on the naming convention has the problem
+  // that LLVM can move private const arrays to the global space which make
+  // them look like local arrays (see Github Issue 445). This should be properly
+  // fixed in Clang side with e.g. a naming convention for the local arrays to
+  // detect them robstly without having logical address space info in the IR.
+  return Var.getName().startswith(FuncName + ".") &&
+    llvm::isa<llvm::PointerType>(Var.getType()) && !Var.isConstant();
+#endif
 }
 
 inline bool
 is_image_type(const llvm::Type& t) 
 {
   if (t.isPointerTy() && t.getPointerElementType()->isStructTy()) {
-    llvm::StringRef name = t.getPointerElementType()->getStructName().str();
-    if (name.startswith("opencl.image2d_t") || name.startswith("opencl.image3d_t") ||
-        name.startswith("opencl.image1d_t") || name.startswith("struct.dev_image_t")) 
+    llvm::StringRef name = t.getPointerElementType()->getStructName();
+    if (name.startswith("opencl.image2d_") || name.startswith("opencl.image3d_") ||
+        name.startswith("opencl.image1d_") || name.startswith("struct._pocl_image"))
       return true;
   }
   return false;
 }
 
 inline bool
-is_sampler_type(const llvm::Type& t) 
+is_sampler_type(const llvm::Type& t)
 {
-  if (t.isPointerTy() && t.getPointerElementType()->isStructTy()) 
+  if (t.isPointerTy() && t.getPointerElementType()->isStructTy())
     {
-      llvm::StringRef name = t.getPointerElementType()->getStructName().str();
-      if (name.startswith("opencl.sampler_t_")) return true;     
+      llvm::StringRef name = t.getPointerElementType()->getStructName();
+      if (name.startswith("opencl.sampler_t")) return true;
     }
   return false;
 }

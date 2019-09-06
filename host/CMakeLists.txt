@@ -1,12 +1,9 @@
 cmake_minimum_required(VERSION 2.6)
-#Project needs to be set early or CMAKE_SYSTEM_PROCESSOR doesn't get 
-#reliably set. Commit to C6678 and then change below if we build for K2X
+#Project needs to be set early or CMAKE_SYSTEM_PROCESSOR doesn't get
+#reliably set.
 project(ti-opencl)
 
-if (${BUILD_TARGET} MATCHES "DSPC868x")
-    set(C6678_BUILD on)
-    MESSAGE(STATUS "Build Target Is C6678")
-elseif (${BUILD_TARGET} MATCHES "ARM_K2H")
+if (${BUILD_TARGET} MATCHES "ARM_K2H")
     set(K2X_BUILD on)
     set(K2H_BUILD on)
     MESSAGE(STATUS "Build Target Is K2x (Hawking)")
@@ -28,8 +25,15 @@ else()
     MESSAGE(FATAL_ERROR "No build target selected. Set cmake variable BUILD_TARGET")
 endif()
 
+if (${SHMEM_MANAGER} MATCHES "ION")
+    MESSAGE(STATUS "Using ION")
+endif()
+
 # Suppress the "Up-to-date" messages from install
 set(CMAKE_INSTALL_MESSAGE LAZY)
+
+# Uncomment to generate compile_commands.json file
+#set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/modules)
 
@@ -109,22 +113,22 @@ SET (INCLUDE_INSTALL_DIR "include" CACHE PATH
 # !!! Note that these variables are used by the child cmake files so these
 # variables must be set before the add_subdirectories() commands below
 # File permissions (664)
-set(OCL_FPERMS PERMISSIONS 
-               OWNER_READ OWNER_WRITE 
-	       GROUP_READ GROUP_WRITE 
+set(OCL_FPERMS PERMISSIONS
+               OWNER_READ OWNER_WRITE
+	       GROUP_READ GROUP_WRITE
 	       WORLD_READ)
 
 # Directory permissions (775). Files within the directories are set as above.
-set(OCL_DPERMS FILE_${OCL_FPERMS} 
-               DIRECTORY_PERMISSIONS 
-	       OWNER_READ OWNER_WRITE OWNER_EXECUTE 
-	       GROUP_READ GROUP_WRITE GROUP_EXECUTE 
+set(OCL_DPERMS FILE_${OCL_FPERMS}
+               DIRECTORY_PERMISSIONS
+	       OWNER_READ OWNER_WRITE OWNER_EXECUTE
+	       GROUP_READ GROUP_WRITE GROUP_EXECUTE
 	       WORLD_READ WORLD_EXECUTE)
 
 # Binary permissions (775)
-set(OCL_BPERMS PERMISSIONS 
-               OWNER_READ OWNER_WRITE OWNER_EXECUTE 
-	       GROUP_READ GROUP_WRITE GROUP_EXECUTE 
+set(OCL_BPERMS PERMISSIONS
+               OWNER_READ OWNER_WRITE OWNER_EXECUTE
+	       GROUP_READ GROUP_WRITE GROUP_EXECUTE
 	       WORLD_READ WORLD_EXECUTE)
 
 
@@ -153,8 +157,6 @@ if(NOT DEFINED ENABLE_ULM)
   if (K2X_BUILD)
     set(ENABLE_ULM on)
   elseif(K2G_BUILD)
-    set(ENABLE_ULM off)
-  elseif(C6678_BUILD)
     set(ENABLE_ULM off)
   elseif(AM57_BUILD)
     if (NOT (${BUILD_OS} MATCHES "SYS_BIOS"))
@@ -208,10 +210,6 @@ if (${BUILD_OUTPUT} STREQUAL "all" OR ${BUILD_OUTPUT} STREQUAL "lib")
   install(DIRECTORY ../profiling DESTINATION /usr/share/ti/opencl ${OCL_DPERMS})
   install(PROGRAMS ../profiling/oclaet.sh DESTINATION /usr/share/ti/opencl/profiling ${OCL_BPERMS})
 
-  if (C6678_BUILD)
-    add_subdirectory(init)
-    install(PROGRAMS bin/oclenv DESTINATION bin             ${OCL_BPERMS})
-  endif()
 endif()
 
 if (BUILD_OUTPUT STREQUAL "all" OR BUILD_OUTPUT STREQUAL "clocl")
@@ -223,7 +221,7 @@ if (BUILD_OUTPUT STREQUAL "all" OR BUILD_OUTPUT STREQUAL "clocl")
     endif()
   endif()
 
-  if (CROSS_COMPILE OR C6678_BUILD)
+  if (CROSS_COMPILE)
     add_custom_target(x86_clocl_build ALL DEPENDS x86_clocl)
   endif()
 endif()

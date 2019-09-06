@@ -1,8 +1,9 @@
 // LLVM loop pass that adds required barriers to loops.
-// 
+//
 // Copyright (c) 2011 Universidad Rey Juan Carlos
 //               2012-2013 Pekka Jääskeläinen / Tampere University of Technology
-// 
+// Copyright (c) 2019, Texas Instruments Incorporated - http://www.ti.com/
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -21,19 +22,27 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "config.h"
+#include <iostream>
+
+#include "CompilerWarnings.h"
+IGNORE_COMPILER_WARNING("-Wunused-parameter")
+
+#include "pocl.h"
+
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Module.h"
-#include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include "llvm/IR/Dominators.h"
-
-#include <iostream>
+#include "llvm/Transforms/Utils/BasicBlockUtils.h"
 
 #include "LoopBarriers.h"
 #include "Barrier.h"
 #include "Workgroup.h"
+#ifdef TI_POCL
 #include "../llvm_util.h"
+#endif
+
+POP_COMPILER_DIAGS
 
 //#define DEBUG_LOOP_BARRIERS
 
@@ -49,38 +58,31 @@ namespace {
 char LoopBarriers::ID = 0;
 
 void
-LoopBarriers::getAnalysisUsage(AnalysisUsage &AU) const
-{
+LoopBarriers::getAnalysisUsage(AnalysisUsage &AU) const {
   AU.addRequired<DominatorTreeWrapperPass>();
-  AU.addPreserved<DominatorTreeWrapperPass>();
 }
 
 bool
-LoopBarriers::runOnLoop(Loop *L, LPPassManager &LPM)
-{
+LoopBarriers::runOnLoop(Loop *L, LPPassManager &LPM) {
   if (!Workgroup::isKernelToProcess(*L->getHeader()->getParent()))
     return false;
 
   if (!Workgroup::hasWorkgroupBarriers(*L->getHeader()->getParent()))
     return false;
 
+#ifdef TI_POCL
   if (isReqdWGSize111(*L->getHeader()->getParent()))  return false;
+#endif
 
-  DT = &getAnalysis<DominatorTreeWrapperPass>().getDomTree();
-
-  bool changed = ProcessLoop(L, LPM);
-
-  DT->verifyDomTree();
-
-  return changed;
+  return ProcessLoop(L, LPM);;
 }
 
-
 bool
-LoopBarriers::ProcessLoop(Loop *L, LPPassManager &LPM)
-{
+LoopBarriers::ProcessLoop(Loop *L, LPPassManager &) {
   bool isBLoop = false;
   bool changed = false;
+
+  DT = &getAnalysis<DominatorTreeWrapperPass>().getDomTree();
 
   for (Loop::block_iterator i = L->block_begin(), e = L->block_end();
        i != e && !isBLoop; ++i) {
@@ -102,9 +104,9 @@ LoopBarriers::ProcessLoop(Loop *L, LPPassManager &LPM)
         // Found a barrier in this loop:
         // 1) add a barrier in the loop header.
         // 2) add a barrier in the latches
-        
+
         // Add a barrier on the preheader to ensure all WIs reach
-        // the loop header with all the previous code already 
+        // the loop header with all the previous code already
         // executed.
         BasicBlock *preheader = L->getLoopPreheader();
         assert((preheader != NULL) && "Non-canonicalized loop found!\n");
@@ -152,11 +154,14 @@ LoopBarriers::ProcessLoop(Loop *L, LPPassManager &LPM)
         // go trough all the latches.
         BasicBlock *Header = L->getHeader();
         typedef GraphTraits<Inverse<BasicBlock *> > InvBlockTraits;
-        InvBlockTraits::ChildIteratorType PI = InvBlockTraits::child_begin(Header);
-        InvBlockTraits::ChildIteratorType PE = InvBlockTraits::child_end(Header);
+        InvBlockTraits::ChildIteratorType PI =
+          InvBlockTraits::child_begin(Header);
+        InvBlockTraits::ChildIteratorType PE =
+          InvBlockTraits::child_end(Header);
+
         BasicBlock *Latch = NULL;
         for (; PI != PE; ++PI) {
-          InvBlockTraits::NodeType *N = *PI;
+          BasicBlock *N = *PI;
           if (L->contains(N)) {
             Latch = N;
             // Latch found in the loop, see if the barrier dominates it
@@ -174,22 +179,26 @@ LoopBarriers::ProcessLoop(Loop *L, LPPassManager &LPM)
   }
 
   /* This is a loop without a barrier. Ensure we have a non-barrier
-     block as a preheader so we can replicate the loop as a whole. 
+     block as a preheader so we can replicate the loop as a whole.
 
      If the block has proper instructions after the barrier, it
      will be split in CanonicalizeBarriers. */
   BasicBlock *preheader = L->getLoopPreheader();
   assert((preheader != NULL) && "Non-canonicalized loop found!\n");
+
   TerminatorInst *t = preheader->getTerminator();
   Instruction *prev = NULL;
   if (&preheader->front() != t)
     prev = t->getPrevNode();
   if (prev && isa<Barrier>(prev)) {
+#ifdef LLVM_OLDER_THAN_3_7
       BasicBlock *new_b = SplitBlock(preheader, t, this);
+#else
+      BasicBlock *new_b = SplitBlock(preheader, t);
+#endif
       new_b->setName(preheader->getName() + ".postbarrier_dummy");
       return true;
   }
 
   return changed;
 }
-

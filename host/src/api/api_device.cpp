@@ -167,16 +167,17 @@ clCreateSubDevices(cl_device_id                         d_device,
     if (out_devices != nullptr && !num_devices)                 return CL_INVALID_VALUE;
 
 #if defined(DEVICE_AM57) && !defined(_SYS_BIOS)
-    /* Check if device is EVE, then return error */
-    if (dynamic_cast<Coal::EVEDevice*>(parent_device))
-    { return CL_INVALID_DEVICE; }
-    /* Check if device is CPU, then return error */
-    if (dynamic_cast<Coal::CPUDevice*>(parent_device))
-    { return CL_INVALID_DEVICE; }
+    /* If device is CPU or EVE, sub devices are not supported */
+    if (parent_device->IsDeviceType(Coal::DeviceInterface::T_CPU) ||
+        parent_device->IsDeviceType(Coal::DeviceInterface::T_EVE))
+    {
+      return CL_INVALID_DEVICE;
+    }
 #endif
 
     /* Create a local copy of the compute unit set */
-    DSPCoreSet compute_units_on_parent_device(dynamic_cast<Coal::DSPDevice*>(parent_device)->GetComputeUnits());
+    Coal::DSPDevice* dsp_parent = static_cast<Coal::DSPDevice*>(parent_device);
+    DSPCoreSet compute_units_on_parent_device(static_cast<Coal::DSPDevice*> (dsp_parent)->GetComputeUnits());
 
     /* Get the platform instance */
     cl_platform_id platform = (cl_platform_id) & (the_platform::Instance());
@@ -221,7 +222,7 @@ clCreateSubDevices(cl_device_id                         d_device,
 
                 /* Create sub devices */
                 ret = CreateSubDevicesByCounts(partition_unit_sizes,
-                                               dynamic_cast<Coal::DSPDevice*>(parent_device),
+                                               dsp_parent,
                                                properties, out_devices);
                 break;
             }
@@ -272,7 +273,7 @@ clCreateSubDevices(cl_device_id                         d_device,
 
                 /* Create sub devices */
                 ret = CreateSubDevicesByCounts(partition_unit_sizes,
-                                               dynamic_cast<Coal::DSPDevice*>(parent_device),
+                                               dsp_parent,
                                                properties, out_devices);
                 break;
             }
@@ -295,38 +296,56 @@ clCreateSubDevices(cl_device_id                         d_device,
     return ret;
 }
 
-/* Helper function to check if a given device is a DSPSubDevice object
- * */
-bool
-IsValidSubDevice(cl_device_id d_device)
-{
-    auto device = pobj(d_device);
-    if (!device->isA(Coal::Object::T_Device)) return false;
-
-    if (dynamic_cast<Coal::DSPSubDevice*>(device))
-        return true;
-
-    return false;
-}
 
 cl_int
 clRetainDevice(cl_device_id d_device)
 {
-    if (!IsValidSubDevice(d_device)) return CL_INVALID_DEVICE;
-
+    /* On page 53, the OpenCL 1.2 specification says: "clRetainDevice returns
+     * CL_SUCCESS if the function is executed successfully or the device is a
+     * root-level device."
+     * */
     auto device = pobj(d_device);
+
+    #if !defined(_SYS_BIOS)
+    if (device->IsDeviceType(Coal::DeviceInterface::T_CPU) ||
+        device->IsDeviceType(Coal::DeviceInterface::T_EVE))
+        return CL_SUCCESS;
+    #endif
+
+    if (device->IsDeviceType(Coal::DeviceInterface::T_C66x))
+        return CL_SUCCESS;
+
+    if (!device->IsDeviceType(Coal::DeviceInterface::T_SubDevice))
+        return CL_INVALID_DEVICE;
+
     device->reference();
+
     return CL_SUCCESS;
 }
 
 cl_int
 clReleaseDevice(cl_device_id d_device)
 {
-    if (!IsValidSubDevice(d_device)) return CL_INVALID_DEVICE;
-
+    /* On page 53, the OpenCL 1.2 specification says: "If device is a root level
+     * device i.e. a cl_device_id returned by clGetDeviceIDs, the device
+     * reference count remains unchanged.
+     * */
     auto device = pobj(d_device);
-    if (device->dereference()) delete device;
+
+    #if !defined(_SYS_BIOS)
+    if (device->IsDeviceType(Coal::DeviceInterface::T_CPU) ||
+        device->IsDeviceType(Coal::DeviceInterface::T_EVE))
+        return CL_SUCCESS;
+    #endif
+
+    if (device->IsDeviceType(Coal::DeviceInterface::T_C66x))
+        return CL_SUCCESS;
+
+    if (!device->IsDeviceType(Coal::DeviceInterface::T_SubDevice))
+        return CL_INVALID_DEVICE;
+
+    if (device->dereference())
+        delete device;
+
     return CL_SUCCESS;
 }
-
-

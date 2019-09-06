@@ -35,7 +35,7 @@ using namespace Coal;
 DSPSubDevice::DSPSubDevice(DSPDevice*                           parent_device,
                            const DSPCoreSet&                    compute_units,
                            const cl_device_partition_property*  partition_properties)
-    : DSPDevice(parent_device->GetSHMHandler())
+    : DSPDevice(DeviceInterface::T_SubDevice, parent_device->GetSHMHandler())
 {
     /*-------------------------------------------------------------------------
     * Set compute unit list

@@ -65,7 +65,7 @@
 
 #include "dsp/genfile_cache.h"
 #endif
- 
+
 
 /*-----------------------------------------------------------------------------
 * temporary for source file cacheing, remove from product releases
@@ -84,7 +84,7 @@ static bool ReadBinaryIntoString(const std::string &outfile,
 
 Program::Program(Context *ctx)
 : Object(Object::T_Program, ctx), p_type(Invalid), p_state(Empty),
-  p_device_list()
+  p_device_list(), p_kernel_names(""), p_num_kernels(0)
 {
 #ifndef _SYS_BIOS
     p_null_device_dependent.compiler = 0;
@@ -120,15 +120,32 @@ void Program::resetDeviceDependent()
     }
 }
 
-void Program::setDevices(cl_uint num_devices, DeviceInterface * const*devices)
+void Program::setDevices(cl_uint num_devices, const cl_device_id *devices)
 {
-    p_device_dependent.resize(num_devices);
+    /* device_list: Keep a record of the devices the user requested to build
+     * this program for */
+    p_device_list.clear();
 
-    for (cl_uint i=0; i<num_devices; ++i)
+    std::set<DeviceInterface*> root_devices;
+    for (cl_uint i = 0; i < num_devices; i++)
     {
-        DeviceDependent &dep = p_device_dependent[i];
+        DeviceInterface *device = pobj(devices[i]);
+        p_device_list.push_back(device);
 
-        dep.device                 = devices[i];
+        DeviceInterface *root_device = device->GetRootDevice();
+        root_devices.insert(root_device);
+    }
+
+    /* device_dependent: Only keep device dependent programs for root devices */
+    resetDeviceDependent();
+    p_device_dependent.resize(root_devices.size());
+
+    cl_uint i = 0;
+    for (DeviceInterface *root_device : root_devices)
+    {
+        DeviceDependent &dep = p_device_dependent[i++];
+
+        dep.device                 = root_device;
         dep.program                = dep.device->createDeviceProgram(this);
         dep.is_native_binary       = false;
         dep.native_binary_filename = NULL;
@@ -139,31 +156,6 @@ void Program::setDevices(cl_uint num_devices, DeviceInterface * const*devices)
     }
 }
 
-Program::DeviceDependent& Program::deviceDependent(DeviceInterface* device)
-{
-    for (size_t i = 0; i < p_device_dependent.size(); ++i)
-    {
-        DeviceDependent& rs = p_device_dependent[i];
-
-        if (!device)
-        {
-            if (p_device_dependent.size() == 1) return rs;
-        }
-        else if (Coal::DSPDevice* dsp = dynamic_cast<Coal::DSPDevice*>(device))
-        {
-            const DSPDevice* root_device = dsp->GetRootDSPDevice();
-            const DeviceInterface* iroot_device = dynamic_cast<const DeviceInterface*>(root_device);
-            if (rs.device == iroot_device) return rs;
-        }
-        else
-        {
-            if (rs.device == device) return rs;
-        }
-    }
-
-    return p_null_device_dependent;
-}
-
 const Program::DeviceDependent& Program::deviceDependent(DeviceInterface* device) const
 {
     for (size_t i = 0; i < p_device_dependent.size(); ++i)
@@ -172,21 +164,21 @@ const Program::DeviceDependent& Program::deviceDependent(DeviceInterface* device
 
         if (!device)
         {
-            if (p_device_dependent.size() == 1) return rs;
+            if (p_device_dependent.size() == 1)
+                return rs;
         }
-        else if (Coal::DSPDevice* dsp = dynamic_cast<Coal::DSPDevice*>(device))
-        {
-            const DSPDevice* root_device = dsp->GetRootDSPDevice();
-            const DeviceInterface* iroot_device = dynamic_cast<const DeviceInterface*>(root_device);
-            if (rs.device == iroot_device) return rs;
-        }
-        else
-        {
-            if (rs.device == device) return rs;
-        }
+        else if (rs.device == device || rs.device == device->GetRootDevice())
+            return rs;
     }
 
     return p_null_device_dependent;
+}
+
+Program::DeviceDependent& Program::deviceDependent(DeviceInterface* device)
+{
+    // Avoid code duplication by casting const away for the non-const method
+    const Program& P = *this;
+    return const_cast<Program::DeviceDependent&>(P.deviceDependent(device));
 }
 
 DeviceProgram *Program::deviceDependentProgram(DeviceInterface *device) const
@@ -207,7 +199,26 @@ std::string Program::deviceDependentCompilerOptions(DeviceInterface *device) con
 #endif
 }
 
-std::vector<llvm::Function *> Program::kernelFunctions(DeviceDependent &dep)
+std::vector<llvm::MDNode *> Program::KernelMDNodes(const DeviceDependent &dep) const
+{
+    std::vector<llvm::MDNode *> rs;
+
+    llvm::NamedMDNode *kernels =
+               dep.linked_module->getNamedMetadata("opencl.kernels");
+
+    if (!kernels) return rs;
+
+    for (unsigned int i=0; i<kernels->getNumOperands(); ++i)
+    {
+        llvm::MDNode *node = kernels->getOperand(i);
+        assert (node->getNumOperands() > 0);
+        rs.push_back(node);
+    }
+
+    return rs;
+}
+
+std::vector<llvm::Function *> Program::kernelFunctions(const DeviceDependent &dep) const
 {
     std::vector<llvm::Function *> rs;
 
@@ -223,9 +234,12 @@ std::vector<llvm::Function *> Program::kernelFunctions(DeviceDependent &dep)
         assert (node->getNumOperands() > 0);
 
         /*---------------------------------------------------------------------
-        * Each node has only one operand : a llvm::Function
+        * Each node has multiple operands:
+        * * Operand 0 is an llvm::Function
+        * * The other operands are argument metadata nodes
         *--------------------------------------------------------------------*/
-        llvm::Value *value = llvm::dyn_cast<llvm::ValueAsMetadata>(node->getOperand(0))->getValue();
+        llvm::Value *value = llvm::dyn_cast<llvm::ValueAsMetadata>(
+                                               node->getOperand(0))->getValue();
 
         /*---------------------------------------------------------------------
         * Bug somewhere, don't crash
@@ -253,19 +267,36 @@ Kernel *Program::createKernel(const std::string &name, cl_int *errcode_ret)
     {
         bool found = false;
         DeviceDependent &dep = p_device_dependent[i];
-        const std::vector<llvm::Function *> &kernels = kernelFunctions(dep);
+        const std::vector<llvm::MDNode *> &kernel_md_nodes = KernelMDNodes(dep);
 
         /*---------------------------------------------------------------------
         * Find the one with the good name
         *--------------------------------------------------------------------*/
-        for (size_t j=0; j < kernels.size(); ++j)
+        for (size_t j=0; j < kernel_md_nodes.size(); ++j)
         {
-            llvm::Function *func = kernels[j];
+            llvm::ValueAsMetadata *md_node_value =
+                llvm::dyn_cast_or_null<llvm::ValueAsMetadata>(
+                                        kernel_md_nodes[j]->getOperand(0));
+            /*-----------------------------------------------------------------
+             * Dont fail if cast fails, continue to next MDNode
+             *----------------------------------------------------------------*/
+            if (!md_node_value) continue;
+
+            llvm::Value *value = md_node_value->getValue();
+
+            /*-----------------------------------------------------------------
+             * Dont fail if not an llvm::Function, continue to next MDNode
+            *----------------------------------------------------------------*/
+            if (!llvm::isa<llvm::Function>(value)) continue;
+
+            llvm::Function *func = llvm::cast<llvm::Function>(value);
+
+            if (!func) continue;
 
             if (func->getName().str() == name)
             {
                 found = true;
-                *errcode_ret = rs->addFunction(dep.device, func,
+                *errcode_ret = rs->addFunction(dep.device, kernel_md_nodes[j],
                                                dep.linked_module);
                 if (*errcode_ret != CL_SUCCESS) return rs;
                 break;
@@ -361,7 +392,7 @@ cl_int Program::loadSources(cl_uint count, const char **strings,
 
 cl_int Program::loadBinaries(const unsigned char **data, const size_t *lengths,
                              cl_int *binary_status, cl_uint num_devices,
-                             DeviceInterface * const*device_list)
+                             const cl_device_id *device_list)
 {
     // Set device infos
     setDevices(num_devices, device_list);
@@ -369,7 +400,13 @@ cl_int Program::loadBinaries(const unsigned char **data, const size_t *lengths,
     // Load the data
     for (cl_uint i=0; i<num_devices; ++i)
     {
-        DeviceDependent &dep = deviceDependent(device_list[i]);
+        DeviceDependent &dep = deviceDependent(pobj(device_list[i]));
+
+        // If multiple devices share the same Root Device,
+        // only load the first one for device dependent, skip the others
+        // Loaded binary is stored in dep.unlinked_binary
+        if (dep.unlinked_binary.size() != 0)  continue;
+
         dep.unlinked_binary = std::string((const char *)data[i], lengths[i]);
         dep.is_native_binary = true;
 
@@ -405,33 +442,35 @@ cl_int Program::build(const char* options,
                       void (CL_CALLBACK* pfn_notify)(cl_program program,
                               void* user_data),
                       void* user_data, cl_uint num_devices,
-                      DeviceInterface* const* device_list,
-                      cl_uint num_root_devices,
-                      DeviceInterface* const* root_device_list)
+                      const cl_device_id *device_list)
 {
-    // If we've already built this program and are re-building
+    // Source: If we've already built this program and are re-building
     // (for example, with different user options) then clear out the
     // device dependent information in preparation for building again.
-    if (p_state == Built) resetDeviceDependent();
+    if (p_type == Source && p_state == Built) resetDeviceDependent();
+
+    // Binary: if we are building program from pre-built binaries,
+    // check if device_list is valid
+    if (p_type == Binary)
+    {
+        for (cl_uint i = 0; i < num_devices; i++)
+        {
+            if (std::find(p_device_list.begin(), p_device_list.end(),
+                          pobj(device_list[i])) == p_device_list.end())
+                return CL_INVALID_DEVICE;
+        }
+    }
 
     p_state = Failed;
 
     /* Create deviceDependent structures only for the root devices */
     if (!p_device_dependent.size())
     {
-        setDevices(num_root_devices, root_device_list);
+        setDevices(num_devices, device_list);
     }
 
-    /* Keep a record of the devices the user requested to build
-     * this program for */
-    p_device_list.clear();
-    for (int i = 0; i < num_devices; i++) p_device_list.push_back(device_list[i]);
-
-    // ASW TODO - optimize to compile for each device type only once.
-    for (cl_uint i = 0; i < p_device_dependent.size(); ++i)
+    for (DeviceDependent& dep : p_device_dependent)
     {
-        DeviceDependent& dep = deviceDependent(root_device_list[i]);
-
 #ifndef _SYS_BIOS
         // Do we need to compile the source for each device ?
         if (p_type == Source)
@@ -474,11 +513,21 @@ cl_int Program::build(const char* options,
         }
     }
 
-    // TODO: Asynchronous compile
     if (pfn_notify)
         pfn_notify((cl_program)this, user_data);
 
     p_state = Built;
+
+    /* Populate num_kernels and kernel_names */
+    const DeviceDependent &dep = p_device_dependent[0];
+    const std::vector<llvm::Function *>& kernels = kernelFunctions(dep);
+    p_num_kernels += kernels.size();
+    for (size_t i=0; i<kernels.size(); ++i)
+    {
+        llvm::Function *func = kernels[i];
+        p_kernel_names += func->getName().str();
+        if (i != kernels.size() - 1) p_kernel_names += ";";
+    }
 
     return CL_SUCCESS;
 }
@@ -504,6 +553,7 @@ cl_int Program::info(cl_program_info param_name,
     llvm::SmallVector<cl_device_id, 4> devices;
 
     union {
+        size_t size_t_var;
         cl_uint cl_uint_var;
         cl_context cl_context_var;
     };
@@ -589,7 +639,16 @@ cl_int Program::info(cl_program_info param_name,
 
             return CL_SUCCESS;
         }
-
+        case CL_PROGRAM_NUM_KERNELS:
+        {
+            SIMPLE_ASSIGN(size_t, p_num_kernels);
+            break;
+        }
+        case CL_PROGRAM_KERNEL_NAMES:
+        {
+            MEM_ASSIGN(p_kernel_names.size() + 1, p_kernel_names.c_str());
+            break;
+        }
         default:
             return CL_INVALID_VALUE;
     }
@@ -634,7 +693,6 @@ cl_int Program::buildInfo(DeviceInterface *device,
                 case Failed:
                     SIMPLE_ASSIGN(cl_build_status, CL_BUILD_ERROR);
                     break;
-                // TODO: CL_BUILD_IN_PROGRESS
             }
             break;
 

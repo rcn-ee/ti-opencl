@@ -162,9 +162,15 @@ int main(int argc, char *argv[])
 
         // Perform compute on OpenCL device
         const int BufSize = sizeof(float) * NumElements;
-        Buffer bufM(context,CL_MEM_READ_ONLY|CL_MEM_USE_HOST_PTR,  BufSize, M);
-        Buffer bufx(context,CL_MEM_READ_ONLY|CL_MEM_USE_HOST_PTR,  BufSize, x);
-        Buffer bufy(context,CL_MEM_WRITE_ONLY|CL_MEM_USE_HOST_PTR, BufSize, y);
+        Buffer bufM(context,
+                    (cl_mem_flags) CL_MEM_READ_ONLY|CL_MEM_USE_HOST_PTR,
+                    BufSize, M);
+        Buffer bufx(context,
+                    (cl_mem_flags) CL_MEM_READ_ONLY|CL_MEM_USE_HOST_PTR,
+                    BufSize, x);
+        Buffer bufy(context,
+                    (cl_mem_flags) CL_MEM_WRITE_ONLY|CL_MEM_USE_HOST_PTR,
+                    BufSize, y);
 
         Kernel kernel(program, "dsp_compute");
         kernel.setArg(0, bufM);
@@ -209,7 +215,7 @@ int main(int argc, char *argv[])
 #endif
 
     } // end try
-    catch (Error err)
+    catch (Error& err)
     {
         cerr << "ERROR: " << err.what() << "(" << err.err() << ", "
              << ocl_decode_error(err.err()) << ")" << endl;

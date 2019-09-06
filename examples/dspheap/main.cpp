@@ -36,26 +36,26 @@ using namespace cl;
 using namespace std;
 
 /*-----------------------------------------------------------------------------
-* This example demonstrates how a heap may be created and used on the DSP 
+* This example demonstrates how a heap may be created and used on the DSP
 * for kernels that call legacy code that needs heap capability.  There are dsp
 * builtin functions to create and manipulate a user defined heap in both msmc
-* and ddr. These heaps are persistent as long as the underlying memory for 
-* them is allocated.  In this example we create OpenCL buffers that provide 
-* for the underlying memory store.  The heaps are active and persistent from 
+* and ddr. These heaps are persistent as long as the underlying memory for
+* them is allocated.  In this example we create OpenCL buffers that provide
+* for the underlying memory store.  The heaps are active and persistent from
 * the time they are initialized until the buffers are deallocated.
 *
-* Additionally, the standard malloc, calloc, free, etc calls are already 
+* Additionally, the standard malloc, calloc, free, etc calls are already
 * supported on the dsp, but the underlying memory for that heap is limited.
-* It currently is approximately 8MB.  If your heap needs are under that size, 
+* It currently is approximately 8MB.  If your heap needs are under that size,
 * and DDR allocation is ok for you, then the below mechanism is not needed.
 *----------------------------------------------------------------------------*/
 int main(int argc, char *argv[])
 {
-   try 
+   try
    {
      Context context(CL_DEVICE_TYPE_ACCELERATOR);
      std::vector<Device> devices = context.getInfo<CL_CONTEXT_DEVICES>();
-     devices.resize(1); // Only run on one device for demonstration 
+     devices.resize(1); // Only run on one device for demonstration
 
      /*------------------------------------------------------------------------
      * OpenCL Build the precompiled kernels
@@ -76,7 +76,7 @@ int main(int argc, char *argv[])
      /*------------------------------------------------------------------------
      * Create the underlying memory store for the heaps with OpenCL Buffers
      * Call kernels to initialize a DDR based and a MSMC based heap, the init
-     * step only needs to run once and one 1 core only.  See the functor 
+     * step only needs to run once and one 1 core only.  See the functor
      * mapping above that defines the global size to be 1.
      *-----------------------------------------------------------------------*/
      int ddr_heap_size  = 16 << 20;  // 16MB
@@ -113,7 +113,7 @@ int main(int argc, char *argv[])
      cout << endl;
 
      /*------------------------------------------------------------------------
-     * On each core alloc memory from both ddr and msmc. Should see same memory 
+     * On each core alloc memory from both ddr and msmc. Should see same memory
      * from above alloc_and_free call.  This time the memory is not freed.
      *-----------------------------------------------------------------------*/
      alloc_only(ddr_alloc_size, msmc_alloc_size).wait();
@@ -126,6 +126,6 @@ int main(int argc, char *argv[])
      alloc_only(ddr_alloc_size, msmc_alloc_size).wait();
      cout << endl;
    }
-   catch (Error err) 
+   catch (Error& err)
    { cerr << "ERROR: " << err.what() << "(" << err.err() << ")" << endl; }
 }

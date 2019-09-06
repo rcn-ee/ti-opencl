@@ -24,6 +24,7 @@
 #define _POCL_WORKGROUP_H
 
 #include "config.h"
+
 #include "llvm/IR/Module.h"
 #include "llvm/Pass.h"
 

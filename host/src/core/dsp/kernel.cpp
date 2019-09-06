@@ -39,6 +39,7 @@
 #include "../memobject.h"
 #include "../events.h"
 #include "../program.h"
+#include "../builtinprogram.h"
 #include "../oclenv.h"
 #include "../error_report.h"
 
@@ -84,10 +85,19 @@ using namespace tiocl;
 
 DSPKernel::DSPKernel(DSPDevice *device, Kernel *kernel, llvm::Function *function)
 : DeviceKernel(), p_device(device), p_kernel(kernel),
-    p_device_entry_pt((DSPDevicePtr)0),
+    p_device_entry_pt((DSPDevicePtr)DSP_MAX_NUM_BUILTIN_KERNELS),
     p_data_page_ptr  ((DSPDevicePtr)0xffffffff),
     p_function(function)
 {
+}
+
+DSPKernel::DSPKernel(DSPDevice *device, Kernel *kernel,
+                     KernelEntry *kernel_entry)
+: DeviceKernel(), p_device(device), p_kernel(kernel),
+    p_data_page_ptr  ((DSPDevicePtr)0x0),
+    p_function(nullptr)
+{
+    p_device_entry_pt = kernel_entry->index;
 }
 
 DSPKernel::~DSPKernel()
@@ -111,7 +121,7 @@ T k_exp(T base, unsigned int e)
 *----------------------------------------------------------------------------*/
 DSPDevicePtr  DSPKernel::device_entry_pt()
 {
-    if (!p_device_entry_pt)
+    if (p_device_entry_pt == DSP_MAX_NUM_BUILTIN_KERNELS)
     {
         size_t name_length;
         p_kernel->info(CL_KERNEL_FUNCTION_NAME, 0, 0, &name_length);
@@ -341,6 +351,12 @@ DSPDevicePtr DSPKernel::locals_in_kernel_extent(uint32_t &ret_size) const
 
     addr += size;
 
+    if (dynamic_cast<BuiltInProgram *>(p))
+    {
+        ret_size = ROUNDUP(size, MIN_BLOCK_SIZE);
+        return addr;
+    }
+
     /*-------------------------------------------------------------------------
     * Get kernel attr indicating size of kernel static local buffers
     *------------------------------------------------------------------------*/
@@ -434,7 +450,7 @@ DSPKernelEvent::DSPKernelEvent(DSPDevice *device, KernelEvent *event)
     p_msg.u.k.kernel.Kernel_id     = p_kernel_id;
     p_msg.u.k.kernel.entry_point   = (unsigned)p_kernel->device_entry_pt();
     p_msg.u.k.kernel.data_page_ptr = (unsigned)p_kernel->data_page_ptr();
-    if (dynamic_cast<DSPSubDevice*>(device))
+    if (device->IsDeviceType(DeviceInterface::T_SubDevice))
         p_msg.u.k.kernel.from_sub_device = 1;
     else
         p_msg.u.k.kernel.from_sub_device = 0;
@@ -458,9 +474,11 @@ DSPKernelEvent::DSPKernelEvent(DSPDevice *device, KernelEvent *event)
 
 DSPKernelEvent::~DSPKernelEvent() { }
 
-#define READ_ONLY_BUFFER(buffer)  (buffer->flags() & CL_MEM_READ_ONLY)
-#define WRITE_ONLY_BUFFER(buffer) (buffer->flags() & CL_MEM_WRITE_ONLY)
+#define DEVICE_READ_ONLY(buffer)  (buffer->flags() & CL_MEM_READ_ONLY)
+#define DEVICE_WRITE_ONLY(buffer) (buffer->flags() & CL_MEM_WRITE_ONLY)
 #define HOST_NO_ACCESS(buffer)    (buffer->flags() & CL_MEM_HOST_NO_ACCESS)
+#define HOST_READ_ONLY(buffer)    (buffer->flags() & CL_MEM_HOST_READ_ONLY)
+#define HOST_WRITE_ONLY(buffer)   (buffer->flags() & CL_MEM_HOST_WRITE_ONLY)
 
 #define SETMOREARG(sz, pval) do \
     { \
@@ -632,7 +650,7 @@ cl_int DSPKernelEvent::callArgs(unsigned max_args_size)
                         if (buffer->get_host_ptr_clMalloced())
                             p_hostptr_clMalloced_bufs.push_back(buffer);
 
-                        if (! WRITE_ONLY_BUFFER(buffer))
+                        if (! DEVICE_WRITE_ONLY(buffer))
                             p_flush_bufs.push_back(DSPMemRange(DSPPtrPair(
                                      addr64, buf_dspvirtptr), buffer->size()));
                     }
@@ -1038,7 +1056,7 @@ cl_int DSPKernelEvent::allocate_temp_global(void)
             p_64bit_bufs.push_back(DSPMemRange(DSPPtrPair(
                                       *p_addr64, p_arg_word), buffer->size()));
 
-        if (! WRITE_ONLY_BUFFER(buffer))
+        if (! DEVICE_WRITE_ONLY(buffer))
         {
             void *mapped_tmpbuf = shm->Map(*p_addr64, buffer->size(), false);
             memcpy(mapped_tmpbuf, buffer->host_ptr(), buffer->size());
@@ -1058,21 +1076,25 @@ cl_int DSPKernelEvent::flush_special_use_host_ptr_buffers(void)
 {
     SharedMemory *shm = p_device->GetSHMHandler();
 
-#if 1
     /*-------------------------------------------------------------------------
     * PSDK3.1/CMEM4.12: reverts back to pre-PSDK3.0/pre-CMEM4.11 implementation
     *------------------------------------------------------------------------*/
+    bool wb_inv_all = false;
+
+    #if !defined(USE_ION)
     int total_buf_size = 0;
     for (int i = 0; i < p_hostptr_clMalloced_bufs.size(); ++i)
     {
         MemObject *buffer = p_hostptr_clMalloced_bufs[i];
-        if (HOST_NO_ACCESS(buffer)) continue; // Exclude buffers not accessed
+        // Exclude buffers not accessed
+        if (HOST_NO_ACCESS(buffer) || HOST_READ_ONLY(buffer)) continue;
         total_buf_size += buffer->size();
     }
 
     int  threshold  = CMEM_THRESHOLD;
-    bool wb_inv_all = false;
+
     if (total_buf_size >= threshold)  wb_inv_all = shm->CacheWbInvAll();
+    #endif
 
     if (! wb_inv_all)
     {
@@ -1082,38 +1104,16 @@ cl_int DSPKernelEvent::flush_special_use_host_ptr_buffers(void)
             DSPBuffer *dspbuf = (DSPBuffer *) buffer->deviceBuffer(p_device);
             DSPDevicePtr64 data = (DSPDevicePtr64)dspbuf->data();
 
-            if (! READ_ONLY_BUFFER(buffer) && ! HOST_NO_ACCESS(buffer))
+            if (! DEVICE_READ_ONLY(buffer) &&
+                ! HOST_NO_ACCESS(buffer)   &&
+                ! HOST_READ_ONLY(buffer))
                 shm->CacheWbInv(data, buffer->host_ptr(), buffer->size());
-            else if (! WRITE_ONLY_BUFFER(buffer) && ! HOST_NO_ACCESS(buffer))
+            else if (! DEVICE_WRITE_ONLY(buffer) &&
+                     ! HOST_NO_ACCESS(buffer)    &&
+                     ! HOST_READ_ONLY(buffer))
                 shm->CacheWb(data, buffer->host_ptr(), buffer->size());
         }
     }
-#else
-    /*-------------------------------------------------------------------------
-    * PSDK3.0 has new Linux kernel 4.4.12 and new CMEM 4.11 kernel module.  It
-    * impacts how we handle cache operations in OpenCL host runtime.  In the
-    * new CMEM kernel module, CMEM_cache{Wb,Inv,WbInv} that we call from
-    * OpenCL host runtime in turn call dma_sync_single_for_{device,cpu}, which
-    * in turn lets Linux kernel know the ownership of the buffer.  After
-    * dma_sync_single_for_device() call, which is called by CMEM_cacheWb,
-    * Linux kernel knows that the buffer is owned by device, while after
-    * dma_sync_single_for_cpu() by CMEM_cacheInv, Linux kernel knows that the
-    * buffer is owned by cpu.  We should refrain from calling CMEM_cacheWbInv,
-    * because after which Linux kernel still thinks that cpu owns the buffer.
-    * Hence we need to change from previous code to this sequence to
-    * be explicit about buffer ownership.
-    *------------------------------------------------------------------------*/
-    for (int i = 0; i < p_hostptr_clMalloced_bufs.size(); ++i)
-    {
-        MemObject *buffer = p_hostptr_clMalloced_bufs[i];
-        DSPBuffer *dspbuf = (DSPBuffer *) buffer->deviceBuffer(p_device);
-        DSPDevicePtr64 data = (DSPDevicePtr64)dspbuf->data();
-
-        // Linux 4.4.12 / CMEM 4.11: CacheWb -> transfer ownership to device
-        if (! HOST_NO_ACCESS(buffer))
-            shm->CacheWb(data, buffer->host_ptr(), buffer->size());
-    }
-#endif
 
     return CL_SUCCESS;
 }
@@ -1175,16 +1175,6 @@ cl_int DSPKernelEvent::setup_extended_memory_mappings()
         delete [] prots;
         delete [] virt_addrs;
     }
-    #if 0  // no longer valid because VRing and k2g mpm are in this area
-    else
-    {
-        // protect linux memory:  virt 0x8000_0000 to 0xA000_0000, size 512MB
-        // no read/write/execute: phys 0x8:0000_0000 to 0x8:2000_0000
-        p_msg.u.k.flush.num_mpaxs = 1;
-        p_msg.u.k.flush.mpax_settings[1] = 0x8000001C;
-        p_msg.u.k.flush.mpax_settings[0] = 0x80000000;
-    }
-    #endif
 #endif  // #ifndef DSPC868x
 
     return CL_SUCCESS;
@@ -1294,7 +1284,7 @@ void DSPKernelEvent::free_tmp_bufs()
         MemObject *buffer     = p_hostptr_tmpbufs[i].first;
         DSPDevicePtr64 addr64 = p_hostptr_tmpbufs[i].second.first;
 
-        if (! READ_ONLY_BUFFER(buffer))
+        if (! DEVICE_READ_ONLY(buffer))
         {
             void *mapped_tmpbuf = shm->Map(addr64, buffer->size(), true);
             memcpy(buffer->host_ptr(), mapped_tmpbuf, buffer->size());
@@ -1311,15 +1301,13 @@ void DSPKernelEvent::free_tmp_bufs()
     *               so we inv again here
     * Linux 4.4.12 / CMEM 4.11: CacheInv -> transfer ownership back to cpu
     *------------------------------------------------------------------------*/
-    // /***
     for (int i = 0; i < p_hostptr_clMalloced_bufs.size(); ++i)
     {
         MemObject *buffer = p_hostptr_clMalloced_bufs[i];
         DSPBuffer *dspbuf = (DSPBuffer *) buffer->deviceBuffer(p_device);
         DSPDevicePtr64 data = (DSPDevicePtr64)dspbuf->data();
-        if (! READ_ONLY_BUFFER(buffer))
+        if (! DEVICE_READ_ONLY(buffer))
             shm->CacheInv(data, buffer->host_ptr(), buffer->size());
     }
-    // ***/
 }
 

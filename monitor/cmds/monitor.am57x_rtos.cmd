@@ -15,7 +15,7 @@
  *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  *   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+ *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  *   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
  *   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
  *   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
@@ -46,7 +46,6 @@
 --retain="ti_sysbios_family_c66_Cache_w*"
 --retain="ti_sysbios_family_c66_Cache_inv*"
 
---retain="printf"
 --retain="puts"
 --retain="_minit"
 --retain="malloc"
@@ -62,6 +61,7 @@
 --retain="__free_*"
 --retain="__memalign_*"
 --retain="__trace_print*"
+--retain="__dsp_frequency"
 
 #define L2_LINE_SIZE 128
 
@@ -102,7 +102,7 @@ SECTIONS
 SECTIONS
 {
     /*-------------------------------------------------------------------------
-    * Needed for MPM on Hawking, which has a 10 bit alignment rqmt for the 
+    * Needed for MPM on Hawking, which has a 10 bit alignment rqmt for the
     * entry point.  Can be removed when that reqmt is lifted.
     *------------------------------------------------------------------------*/
     .text:_c_int00 > DDR3 align(0x400)
@@ -110,10 +110,10 @@ SECTIONS
     .workgroup_config: > L2SRAM  palign(L2_LINE_SIZE)
 
     .mbox_d2h:         > L2SRAM, fill=0
-		          load_start(mbox_d2h_phys) size(mbox_d2h_size) 
+		          load_start(mbox_d2h_phys) size(mbox_d2h_size)
 
     .mbox_h2d:         > L2SRAM, fill=0
-		          load_start(mbox_h2d_phys) size(mbox_h2d_size) 
+		          load_start(mbox_h2d_phys) size(mbox_h2d_size)
 }
 
 /*-----------------------------------------------------------------------------
@@ -152,7 +152,7 @@ __OCL_BUILD_TIME      = OCL_BUILD_TIME;
 
 
 /*-----------------------------------------------------------------------------
-* Place the far data from the framework components into l2 rather than ddr, 
+* Place the far data from the framework components into l2 rather than ddr,
 * becuase they are core private
 *----------------------------------------------------------------------------*/
 SECTIONS

@@ -67,7 +67,6 @@ void ocl_main(UArg arg0, UArg arg1)
 int main(int argc, char *argv[])
 {
 #endif
-   cl_int err     = CL_SUCCESS;
    int    bufsize = sizeof(cl_short) * NumElements;
 
    cl_short *srcA   = (cl_short *)__malloc_ddr(bufsize);
@@ -76,18 +75,18 @@ int main(int argc, char *argv[])
    cl_short *Golden = (cl_short *)__malloc_ddr(bufsize);
    assert(srcA != NULL && srcB != NULL && dst != NULL && Golden != NULL);
 
-   for (int i=0; i < NumElements; ++i) 
-   { 
-       srcA[i]   = srcB[i] = i<<2; 
-       Golden[i] = srcB[i] + srcA[i]; 
+   for (int i=0; i < NumElements; ++i)
+   {
+       srcA[i]   = srcB[i] = i<<2;
+       Golden[i] = srcB[i] + srcA[i];
        dst[i]    = 0;
    }
 
-   try 
+   try
    {
      Context context(CL_DEVICE_TYPE_ACCELERATOR);
      std::vector<Device> devices = context.getInfo<CL_CONTEXT_DEVICES>();
-      
+
      int d = 0;
      std::string str;
      devices[d].getInfo(CL_DEVICE_NAME, &str);
@@ -96,12 +95,15 @@ int main(int argc, char *argv[])
      cout << "Offloading vector addition of " << NumElements/1024;
      cout << "K elements..." << endl << endl;
 
-     Buffer bufA   (context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
-                             bufsize, srcA);
-     Buffer bufB   (context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,  
-                             bufsize, srcB);
-     Buffer bufDst (context, CL_MEM_WRITE_ONLY| CL_MEM_USE_HOST_PTR, 
-                             bufsize, dst);
+     Buffer bufA   (context,
+                    (cl_mem_flags) CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
+                    bufsize, srcA);
+     Buffer bufB   (context,
+                    (cl_mem_flags) CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
+                    bufsize, srcB);
+     Buffer bufDst (context,
+                    (cl_mem_flags) CL_MEM_WRITE_ONLY| CL_MEM_USE_HOST_PTR,
+                    bufsize, dst);
 #ifndef _TI_RTOS
      Program::Sources    source(1, std::make_pair(kernelStr,strlen(kernelStr)));
      Program             program = Program(context, source);
@@ -110,7 +112,7 @@ int main(int argc, char *argv[])
                                              sizeof(kernel_dsp_bin)));
      Program             program = Program(context, devices, binary);
 #endif
-     program.build(devices); 
+     program.build(devices);
 
      Kernel kernel(program, "VectorAdd");
      kernel.setArg(0, bufA);
@@ -121,7 +123,7 @@ int main(int argc, char *argv[])
 
      CommandQueue Q(context, devices[d], CL_QUEUE_PROFILING_ENABLE);
 
-     Q.enqueueNDRangeKernel(kernel, NullRange, NDRange(NumVecElements), 
+     Q.enqueueNDRangeKernel(kernel, NullRange, NDRange(NumVecElements),
                             NDRange(WorkGroupSize), NULL, &ev1);
      ev1.wait();
 
@@ -130,24 +132,24 @@ int main(int argc, char *argv[])
      __free_ddr(srcA);
      __free_ddr(srcB);
    }
-   catch (Error err) 
+   catch (Error& err)
    {
      cerr << "ERROR: " << err.what() << "(" << err.err() << ", "
           << ocl_decode_error(err.err()) << ")" << endl;
    }
 
    for (int i=0; i < NumElements; ++i)
-       if (Golden[i] != dst[i]) 
-       { 
-           cout << "Failed at Element " << i << ": " 
-                << Golden[i] << " != " << dst[i] << endl; 
+       if (Golden[i] != dst[i])
+       {
+           cout << "Failed at Element " << i << ": "
+                << Golden[i] << " != " << dst[i] << endl;
            RETURN(-1);
        }
 
    __free_ddr(dst);
    __free_ddr(Golden);
 
-   cout << "Success!" << endl; 
+   cout << "Success!" << endl;
 
    RETURN(0);
 }

@@ -20,7 +20,7 @@ int main(int argc, char *argv[])
     /*-------------------------------------------------------------------------
     * Begin OpenCL Setup code in try block to handle any errors
     *------------------------------------------------------------------------*/
-    try 
+    try
     {
 
         /*---------------------------------------------------------------------
@@ -58,7 +58,7 @@ int main(int argc, char *argv[])
         K.setArg(1, ccBuf);
 
         /*---------------------------------------------------------------------
-        * Start DSP running 
+        * Start DSP running
         *--------------------------------------------------------------------*/
         Q.enqueueTask(K);
 
@@ -81,6 +81,6 @@ int main(int argc, char *argv[])
 
         print_completion_code(completion_code);
     }
-    catch (Error err) 
+    catch (Error& err)
     { cerr << "ERROR: " << err.what() << "(" << err.err() << ")" << endl; }
 }

@@ -17,7 +17,7 @@ int main(int argc, char *argv[])
     /*-------------------------------------------------------------------------
     * Begin OpenCL Setup code in try block to handle any errors
     *------------------------------------------------------------------------*/
-    try 
+    try
     {
         /*---------------------------------------------------------------------
         * Boilerplate OpenCL setup code to create a context, vector of devices,
@@ -27,7 +27,7 @@ int main(int argc, char *argv[])
         Context ctx(CL_DEVICE_TYPE_ACCELERATOR);
         std::vector<Device> devices = ctx.getInfo<CL_CONTEXT_DEVICES>();
 
-        Program::Binaries binary(1, 
+        Program::Binaries binary(1,
                              make_pair(kernel_dsp_bin,sizeof(kernel_dsp_bin)));
         Program           program = Program(ctx, devices, binary);
         program.build(devices);
@@ -62,6 +62,6 @@ int main(int argc, char *argv[])
     /*-------------------------------------------------------------------------
     * Let exception handling deal with any OpenCL error cases
     *------------------------------------------------------------------------*/
-    catch (Error err) 
+    catch (Error& err)
     { cerr << "ERROR: " << err.what() << "(" << err.err() << ")" << endl; }
 }

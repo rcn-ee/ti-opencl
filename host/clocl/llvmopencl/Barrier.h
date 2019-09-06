@@ -1,7 +1,7 @@
 // Class for barrier instructions, modelled as a CallInstr.
 // 
 // Copyright (c) 2011 Universidad Rey Juan Carlos
-// Copyright (c) 2013-2016, Texas Instruments Incorporated - http://www.ti.com/
+// Copyright (c) 2013-2019, Texas Instruments Incorporated - http://www.ti.com/
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -21,19 +21,27 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include <cstdio>
-
 #include "config.h"
+
+#include "pocl.h"
+
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/Module.h"
+#include "llvm/IR/ValueSymbolTable.h"
+#include "llvm/IR/GlobalValue.h"
+
 #include "llvm/IR/Constants.h"
 #include "llvm/Support/Casting.h"
 
+#ifndef TI_POCL
+#define BARRIER_FUNCTION_NAME "pocl.barrier"
+#else
 #define BARRIER_FUNCTION_NAME "barrier"
 #define ASYNC_WG_COPY_FUNCTION_NAME "async_work_group_copy"
 #define ASYNC_WG_STRIDED_COPY_FUNCTION_NAME "async_work_group_strided_copy"
 #define WAIT_WG_EVENT_FUNCTION_NAME "wait_group_events"
+#endif
 
 namespace pocl {
   
@@ -61,20 +69,49 @@ namespace pocl {
           llvm::isa<Barrier>(InsertBefore->getPrevNode()))
         return llvm::cast<Barrier>(InsertBefore->getPrevNode());
 
+#ifndef TI_POCL
+#if LLVM_OLDER_THAN_5_0
+      llvm::Function *F = llvm::cast<llvm::Function>
+        (M->getOrInsertFunction(BARRIER_FUNCTION_NAME,
+                                llvm::Type::getVoidTy(M->getContext()), NULL));
+#else
+      llvm::Function *F = llvm::cast<llvm::Function>
+        (M->getOrInsertFunction(BARRIER_FUNCTION_NAME,
+                                llvm::Type::getVoidTy(M->getContext())));
+#endif
+      F->addFnAttr(llvm::Attribute::NoDuplicate);
+      F->setLinkage(llvm::GlobalValue::LinkOnceAnyLinkage);
+      return llvm::cast<pocl::Barrier>
+        (llvm::CallInst::Create(F, "", InsertBefore));
+#else
       llvm::Type *Int32Type = llvm::Type::getInt32Ty(M->getContext());
+#if LLVM_OLDER_THAN_5_0
       llvm::Function *F = llvm::cast<llvm::Function>
         (M->getOrInsertFunction(BARRIER_FUNCTION_NAME,
                                 llvm::Type::getVoidTy(M->getContext()),
                                 Int32Type,
                                 NULL));
+#else
+      llvm::Function *F = llvm::cast<llvm::Function>
+        (M->getOrInsertFunction(BARRIER_FUNCTION_NAME,
+                                llvm::Type::getVoidTy(M->getContext()),
+                                Int32Type));
+#endif
+      F->addFnAttr(llvm::Attribute::NoDuplicate);
+      F->setLinkage(llvm::GlobalValue::LinkOnceAnyLinkage);
       llvm::SmallVector<llvm::Value *, 4> argsarray;
       argsarray.push_back(llvm::ConstantInt::get(Int32Type, 0));
       llvm::ArrayRef<llvm::Value *> args(argsarray);
       return llvm::cast<pocl::Barrier>
         (llvm::CallInst::Create(F, args, "", InsertBefore));
+#endif
     }
     static bool classof(const Barrier *) { return true; };
     static bool classof(const llvm::CallInst *C) {
+#ifndef TI_POCL
+      return C->getCalledFunction() != NULL &&
+        C->getCalledFunction()->getName() == BARRIER_FUNCTION_NAME;
+#else
       if (llvm::Function *F = C->getCalledFunction())
       {
           llvm::StringRef name = F->getName();
@@ -84,6 +121,7 @@ namespace pocl {
                  name.find(WAIT_WG_EVENT_FUNCTION_NAME) != llvm::StringRef::npos;
       }
       return false;
+#endif
     }
     static bool classof(const Instruction *I) {
       return (llvm::isa<llvm::CallInst>(I) &&
@@ -133,6 +171,7 @@ namespace pocl {
           llvm::isa<Barrier>(t->getPrevNode());
     }
 
+#ifdef TI_POCL
     /* TI: IS barrier(), IS NOT wait_group_events(), async_work_group_*() */
     static bool hasOriginalBarrier(const llvm::BasicBlock *bb)
     {
@@ -146,6 +185,7 @@ namespace pocl {
         }
       return false;
     }
+#endif
   };
 
 }

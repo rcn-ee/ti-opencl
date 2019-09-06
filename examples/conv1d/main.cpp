@@ -79,7 +79,7 @@ int main(int argc, char *argv[])
   int input_numcompunits = 0;
   if (argc > 1)  input_numcompunits = atoi(argv[1]);  // valid: 1, 2, 4, 8
 
-  try 
+  try
   {
     Context             context (CL_DEVICE_TYPE_ACCELERATOR);
     std::vector<Device> devices = context.getInfo<CL_CONTEXT_DEVICES>();
@@ -118,7 +118,7 @@ int main(int argc, char *argv[])
 #else
     float *pGolden = (float *) __malloc_ddr(bufSize);
 #endif
-    if (pGolden == NULL) 
+    if (pGolden == NULL)
     {
       printf("Failed to allocate memory for golden results\n");
       exit(0);
@@ -270,7 +270,7 @@ int main(int argc, char *argv[])
     __free_ddr(pGolden);
 #endif
   }
-  catch (Error err) 
+  catch (Error& err)
   {
     cerr << "ERROR: " << err.what() << "(" << err.err() << ", "
          << ocl_decode_error(err.err()) << ")" << endl;
@@ -282,7 +282,7 @@ int main(int argc, char *argv[])
     RETURN(-1);
   } else
   {
-    cout << "Pass!" << endl; 
+    cout << "Pass!" << endl;
     RETURN(0);
   }
 }

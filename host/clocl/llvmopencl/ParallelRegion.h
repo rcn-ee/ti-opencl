@@ -24,15 +24,17 @@
 #ifndef _POCL_PARALLEL_REGION_H
 #define _POCL_PARALLEL_REGION_H
 
-#include "BarrierBlock.h"
-#include "llvm/ADT/SmallPtrSet.h"
+#include <vector>
+#include <sstream>
+
 #include "config.h"
+
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/CFG.h"
 #include "llvm/Transforms/Utils/ValueMapper.h"
+#include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/ADT/SmallVector.h"
-#include <vector>
 
 namespace pocl {
 

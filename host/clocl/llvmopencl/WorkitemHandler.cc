@@ -3,7 +3,7 @@
 // 
 // Copyright (c) 2011-2012 Carlos Sánchez de La Lama / URJC and
 //               2012-2015 Pekka Jääskeläinen / TUT
-// Copyright (c) 2013-2016, Texas Instruments Incorporated - http://www.ti.com/
+// Copyright (c) 2013-2019, Texas Instruments Incorporated - http://www.ti.com/
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -23,9 +23,13 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "config.h"
 #include <sstream>
 #include <iostream>
+
+#include "CompilerWarnings.h"
+IGNORE_COMPILER_WARNING("-Wunused-parameter")
+
+#include "pocl.h"
 
 #include "llvm/IR/Metadata.h"
 #include "llvm/IR/Constants.h"
@@ -33,15 +37,27 @@
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/ValueSymbolTable.h"
 #include "llvm/Support/CommandLine.h"
+
 #include "WorkitemHandler.h"
 #include "Kernel.h"
 #include "DebugHelpers.h"
+
+POP_COMPILER_DIAGS
 
 //#define DEBUG_REFERENCE_FIXING
 
 namespace pocl {
 
 using namespace llvm;
+
+/* This is used to communicate the work-group dimensions of the currently
+   compiled kernel command to the workitem loop. 
+
+   TODO: Something cleaner than a global value. */
+size_t WGLocalSizeX = 1;
+size_t WGLocalSizeY = 1;
+size_t WGLocalSizeZ = 1;
+bool WGDynamicLocalSize = false;
 
 cl::opt<bool>
 AddWIMetadata("add-wi-metadata", cl::init(false), cl::Hidden,
@@ -60,66 +76,71 @@ void
 WorkitemHandler::Initialize(Kernel *K) {
 
   llvm::Module *M = K->getParent();
-  
-  LocalSizeX = 3;
-  LocalSizeY = 1;
-  LocalSizeZ = 1;
-  
-// TODO: are we searching reqd_workgroup_size here? If so, we need to enforce it.
-  llvm::NamedMDNode *size_info = 
+
+#ifdef TI_POCL
+  // TI: 3 is arbitrarily chosen number that is larger than 2, the
+  //     WI kernel replication threshold.  This number is not used.
+  //     TI always insert loops instead of replicating WI kernel.
+  WGLocalSizeX = 3;
+  WGLocalSizeY = 1;
+  WGLocalSizeZ = 1;
+  WGDynamicLocalSize = true;
+
+  llvm::NamedMDNode *size_info =
     M->getNamedMetadata("opencl.kernel_wg_size_info");
   if (size_info) {
     for (unsigned i = 0, e = size_info->getNumOperands(); i != e; ++i) {
       llvm::MDNode *KernelSizeInfo = size_info->getOperand(i);
       if (cast<ValueAsMetadata>(
-        KernelSizeInfo->getOperand(0).get())->getValue() != K) 
+        KernelSizeInfo->getOperand(0).get())->getValue() != K)
         continue;
 
-      LocalSizeX = (llvm::cast<ConstantInt>(
+      WGLocalSizeX = (llvm::cast<ConstantInt>(
                      llvm::cast<ConstantAsMetadata>(
                        KernelSizeInfo->getOperand(1))->getValue()))->getLimitedValue();
-      LocalSizeY = (llvm::cast<ConstantInt>(
+      WGLocalSizeY = (llvm::cast<ConstantInt>(
                      llvm::cast<ConstantAsMetadata>(
                        KernelSizeInfo->getOperand(2))->getValue()))->getLimitedValue();
-      LocalSizeZ = (llvm::cast<ConstantInt>(
+      WGLocalSizeZ = (llvm::cast<ConstantInt>(
                      llvm::cast<ConstantAsMetadata>(
                        KernelSizeInfo->getOperand(3))->getValue()))->getLimitedValue();
+      WGDynamicLocalSize = false;
       break;
     }
   }
+#endif
 
-  llvm::Type *localIdType; 
+  llvm::Type *localIdType;
   size_t_width = 0;
+#ifdef LLVM_OLDER_THAN_3_7
   if (M->getDataLayout()->getPointerSize(0) == 8)
     size_t_width = 64;
   else if (M->getDataLayout()->getPointerSize(0) == 4)
     size_t_width = 32;
   else
     assert (false && "Only 32 and 64 bit size_t widths supported.");
+#else
+  if (M->getDataLayout().getPointerSize(0) == 8)
+    size_t_width = 64;
+  else if (M->getDataLayout().getPointerSize(0) == 4)
+    size_t_width = 32;
+  else
+    assert (false && "Only 32 and 64 bit size_t widths supported.");
+#endif
 
+#ifndef TI_POCL
   localIdType = IntegerType::get(K->getContext(), size_t_width);
 
   localIdZ = M->getOrInsertGlobal(POCL_LOCAL_ID_Z_GLOBAL, localIdType);
   localIdY = M->getOrInsertGlobal(POCL_LOCAL_ID_Y_GLOBAL, localIdType);
   localIdX = M->getOrInsertGlobal(POCL_LOCAL_ID_X_GLOBAL, localIdType);
-
-  GlobalVariable *gvx = M->getNamedGlobal(POCL_LOCAL_ID_X_GLOBAL);
-  GlobalVariable *gvy = M->getNamedGlobal(POCL_LOCAL_ID_Y_GLOBAL);
-  GlobalVariable *gvz = M->getNamedGlobal(POCL_LOCAL_ID_Z_GLOBAL);
-  gvx->setSection(StringRef("far"));
-  gvy->setSection(StringRef("far"));
-  gvz->setSection(StringRef("far"));
-
-  //Value *lsx = M->getOrInsertGlobal("_local_size_x", localIdType);
-  //Value *lsy = M->getOrInsertGlobal("_local_size_y", localIdType);
-  //Value *lsz = M->getOrInsertGlobal("_local_size_z", localIdType);
-  //GlobalVariable *gsx = M->getNamedGlobal("_local_size_x");
-  //GlobalVariable *gsy = M->getNamedGlobal("_local_size_y");
-  //GlobalVariable *gsz = M->getNamedGlobal("_local_size_z");
-  //gsx->setSection(StringRef("far"));
-  //gsy->setSection(StringRef("far"));
-  //gsz->setSection(StringRef("far"));
+#else
+  localIdZ = nullptr;
+  localIdY = nullptr;
+  localIdX = nullptr;
+#endif
 }
+
 
 bool
 WorkitemHandler::dominatesUse
@@ -183,14 +204,14 @@ WorkitemHandler::dominatesUse
 */
 bool
 WorkitemHandler::fixUndominatedVariableUses(llvm::DominatorTreeWrapperPass *DT,
-                                            llvm::Function &F) 
+                                            llvm::Function &F)
 {
   bool changed = false;
   DT->runOnFunction(F);
 
   for (Function::iterator i = F.begin(), e = F.end(); i != e; ++i) 
     {
-      llvm::BasicBlock *bb = i;
+      llvm::BasicBlock *bb = &*i;
       for (llvm::BasicBlock::iterator ins = bb->begin(), inse = bb->end();
            ins != inse; ++ins)
         {
@@ -223,8 +244,13 @@ WorkitemHandler::fixUndominatedVariableUses(llvm::DominatorTreeWrapperPass *DT,
                 if (copy_i > 0)
                   alternativeName << ".pocl_" << copy_i;
 
+#ifdef LLVM_OLDER_THAN_4_0
                 alternative = 
                   F.getValueSymbolTable().lookup(alternativeName.str());
+#else
+                alternative = 
+                  F.getValueSymbolTable()->lookup(alternativeName.str());
+#endif
 
                 if (alternative != NULL)
                   {

@@ -7,11 +7,11 @@ UNAME_M:=$(shell uname -m)
 # will report in this format.  The 'ww' represents the PATCH_VERSION of a
 # particular release.  This number will not be reflected in the library
 # .so name, only in the packaging.
-# NOTE!!!!!! The packaging version numbers need to match what is specified in 
+# NOTE!!!!!! The packaging version numbers need to match what is specified in
 # debian/changelog!!!
 OCL_MAJOR_VER=1
 OCL_MINOR_VER=1
-OCL_RELEASE_VER=18
+OCL_RELEASE_VER=19
 OCL_PATCH_VER=00
 OCL_VER=$(OCL_MAJOR_VER).$(OCL_MINOR_VER).$(OCL_RELEASE_VER)
 OCL_DPKG_NAME=ti-opencl
@@ -27,20 +27,23 @@ endif
 SDOMC_SHARED?=/cgnas
 
 # XDC (not included in CoreSDK)
-XDC_DIR?=$(SDOMC_SHARED)/xdctools_3_50_07_20_core
+XDC_DIR?=$(SDOMC_SHARED)/xdctools_3_55_02_22_core
 
 # TI C6x CGT
-TI_OCL_CGT_INSTALL?=$(SDOMC_SHARED)/ti-cgt-c6000-8.2.2-release-linux
+TI_OCL_CGT_INSTALL?=$(SDOMC_SHARED)/ti-cgt-c6000-8.3.2/linux
 
 # TI M4 CGT
-TI_OCL_M4_CGT_INSTALL ?= $(SDOMC_SHARED)/ti-cgt-arm_16.9.2.LTS
+TI_OCL_M4_CGT_INSTALL ?= $(SDOMC_SHARED)/ti-cgt-arm_18.1.5.LTS
+
+# Set to 1 to switch from CMEM to ION
+USE_ION ?= 0
 
 # LLVM
 
 ifeq ($(BUILD_OS), SYS_BIOS)
     ARM_LLVM_DIR?=$(SDOMC_SHARED)/llvm-3.6.0-20180423-sysbios-gcc6.3.1
 else
-    ARM_LLVM_DIR?=$(SDOMC_SHARED)/llvm-3.6.0-20190108-arm-g++7.2.1
+    ARM_LLVM_DIR?=$(SDOMC_SHARED)/llvm-3.6.0-20190820-arm-g++8.3.0
 endif
 
 NATIVE_GXX_VER := $(shell g++ -dumpversion | cut -f1 -d.)
@@ -58,9 +61,13 @@ else
     endif
 endif
 
-CORESDK_VERSION ?= 05.03.00.03-20190228
-TIDL_VERSION    ?= 05_03_00_02-295-2019-02-27_10-52-08
+ifeq ($(USE_ION), 1)
+CORESDK_VERSION ?= 05.02.00.10-ion
+else
+CORESDK_VERSION ?= 06.01.00.04-20190826
+endif
 
+TIDL_VERSION    ?= 06_01_00_05-502-2019-09-05_20-51-00
 
 ifeq ($(BUILD_K2H),1)
 	CORE_SDK?=$(SDOMC_SHARED)/ti-processor-sdk-linux-k2hk-evm-$(CORESDK_VERSION)
@@ -77,21 +84,21 @@ else
 endif
 
 ifeq (,$(findstring arm, $(UNAME_M)))
-    LINUX_DEVKIT_ROOT?=$(CORE_SDK)/linux-devkit/sysroots/armv7ahf-neon-linux-gnueabi
+    LINUX_DEVKIT_ROOT?=$(CORE_SDK)/linux-devkit/sysroots/armv7at2hf-neon-linux-gnueabi
 else
     LINUX_DEVKIT_ROOT?=/
 endif
 
 # ARM GCC
 ifeq (,$(findstring arm, $(UNAME_M)))
-    ARM_GCC_DIR?=$(SDOMC_SHARED)/gcc-linaro-7.2.1-2017.11-x86_64_arm-linux-gnueabihf
-    GCC_ARM_NONE_TOOLCHAIN?=$(SDOMC_SHARED)/gcc-arm-none-eabi-7-2017-q4-major
+    ARM_GCC_DIR?=$(SDOMC_SHARED)/gcc-arm-8.3-2019.03-x86_64-arm-linux-gnueabihf
+    GCC_ARM_NONE_TOOLCHAIN?=$(SDOMC_SHARED)/gcc-arm-none-eabi-7-2018-q2-update
 endif
 
 # RTOS packages (BIOS, IPC, FC, EDMA3_LLD etc.)
 RTOS_INSTALL_DIR?=$(LINUX_DEVKIT_ROOT)/usr/share/ti
 
-# OMP 
+# OMP
 OMP_DIR?=$(RTOS_INSTALL_DIR)/ti-omp-tree
 
 # Processor SDK Vision (remove once components are integrated into Processor SDK)

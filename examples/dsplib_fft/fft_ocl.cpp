@@ -38,6 +38,7 @@
  *   - double buffer to overlap data movement and processing
  */
 
+#include <cstdio>
 #include <cstdlib>
 #include <cmath>
 #include <cstring>
@@ -92,7 +93,6 @@ void ocl_main(UArg arg0, UArg arg1)
 int main(int argc, char *argv[])
 {
 #endif
-    int i, j;
     struct timespec t0, t1;
     int channel_size = 2 * FFTSZ * sizeof(float);
     bool verbose = argc > 1;
@@ -129,11 +129,11 @@ int main(int argc, char *argv[])
     cout << "Offloading FFT (SP,Complex) of " << FFTCHS << " channels, each";
     cout << " with " << (FFTSZ / 1024) << "K elements..." << endl << endl;
 
-    Buffer bufX(context, CL_MEM_READ_ONLY|CL_MEM_USE_HOST_PTR,
+    Buffer bufX(context, (cl_mem_flags) CL_MEM_READ_ONLY|CL_MEM_USE_HOST_PTR,
                 channel_size * FFTCHS, x);
-    Buffer bufY(context, CL_MEM_WRITE_ONLY|CL_MEM_USE_HOST_PTR,
+    Buffer bufY(context, (cl_mem_flags) CL_MEM_WRITE_ONLY|CL_MEM_USE_HOST_PTR,
                 channel_size * FFTCHS, y);
-    Buffer bufW(context, CL_MEM_READ_ONLY|CL_MEM_USE_HOST_PTR,
+    Buffer bufW(context, (cl_mem_flags) CL_MEM_READ_ONLY|CL_MEM_USE_HOST_PTR,
                 channel_size, w);
 
     Program::Binaries   binary(1, make_pair(kernel_dsp_bin,
@@ -201,7 +201,7 @@ int main(int argc, char *argv[])
     printf("fft_db: %d usecs\n", us_diff(t0, t1));
     failed |= validate_output(y, FFTCHS, FFTSZ, verbose);
   }
-  catch (Error err)
+  catch (Error& err)
   {
       cerr << "ERROR: " << err.what() << "(" << err.err() << ", "
            << ocl_decode_error(err.err()) << ")" << endl;

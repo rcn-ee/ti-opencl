@@ -65,10 +65,11 @@ const cl_uint  WorkGroupSize   = NumVecElements / NumWorkGroups;
 /* ======================================================================== */
 cl_uint GetNumComputeUnits(cl_device_id* device);
 cl_uint LoadKernelSource(char* src_str);
-void CreateDeviceBuffer(cl_context* context,
-                        cl_mem*     buf,
-                        cl_uint     size,
-                        cl_short*   src);
+void CreateDeviceBuffer(cl_context*  context,
+                        cl_mem*      buf,
+                        cl_uint      size,
+                        cl_short*    src,
+                        cl_mem_flags flags);
 void InitArrays(cl_short** srcA,
                 cl_short** srcB,
                 cl_short** Golden,
@@ -244,9 +245,12 @@ int main()
 
     /* Create the buffers */
     cl_mem bufA, bufB, bufDst;
-    CreateDeviceBuffer(&context, &bufA,  bufsize, srcA);
-    CreateDeviceBuffer(&context, &bufB,  bufsize, srcB);
-    CreateDeviceBuffer(&context, &bufDst, bufsize, dst);
+    CreateDeviceBuffer(&context, &bufA,  bufsize, srcA,
+                       CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR);
+    CreateDeviceBuffer(&context, &bufB,  bufsize, srcB,
+                       CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR);
+    CreateDeviceBuffer(&context, &bufDst, bufsize, dst,
+                       CL_MEM_WRITE_ONLY | CL_MEM_USE_HOST_PTR);
 
     /* Create program from source, for all devices in context */
     cl_program program = clCreateProgramWithSource(context,                  /* context */
@@ -278,7 +282,7 @@ int main()
      * Run Vecadd on root device and each sub device using different
      * command queues separately
      *------------------------------------------------------------------------*/
-    for(auto i=0; i<n_devices; i++)
+    for(cl_uint i=0; i<n_devices; i++)
     {
         elapsed_times[i] = RunKernelOnQ(&Qs[i], &kernel,
                                         &bufA,  srcA,
@@ -351,17 +355,18 @@ cl_uint LoadKernelSource(char* src_str)
 /*-------------------------------------------------------------------------
  * Create device buffer from given host buffer
  *------------------------------------------------------------------------*/
-void CreateDeviceBuffer(cl_context* context,
-                        cl_mem*     buf,
-                        cl_uint     size,
-                        cl_short*   src)
+void CreateDeviceBuffer(cl_context*  context,
+                        cl_mem*      buf,
+                        cl_uint      size,
+                        cl_short*    src,
+                        cl_mem_flags flags)
 {
     int errcode;
-    *buf = clCreateBuffer(*context,                              /* context     */
-                          CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,/* flags       */
-                          size,                                  /* size        */
-                          src,                                   /* host_ptr    */
-                          &errcode);                             /* errcode_ret */
+    *buf = clCreateBuffer(*context,  /* context     */
+                          flags,      /* flags       */
+                          size,      /* size        */
+                          src,       /* host_ptr    */
+                          &errcode); /* errcode_ret */
     assert(errcode == CL_SUCCESS);
 }
 
@@ -390,7 +395,7 @@ void InitArrays(cl_short** srcA,
            *Golden != nullptr);
 
     srand(time(NULL));
-    for (auto i = 0; i < n_elems; ++i)
+    for (cl_uint i = 0; i < n_elems; ++i)
     {
         (*srcA)[i] = rand() % 100 + 1;
         (*srcB)[i] = rand() % 100 + 1;
@@ -461,7 +466,7 @@ void CreateCommandQueues(cl_context*        context,
                          cl_uint            num_Qs)
 {
     int errcode;
-    for (auto i = 0; i < num_Qs; i++)
+    for (cl_uint i = 0; i < num_Qs; i++)
     {
         (*Qs)[i] = clCreateCommandQueue(*context,  /* context     */
                                         devices[i],/* device      */
@@ -478,7 +483,7 @@ bool IsCorrect(cl_short* golden,
                cl_short* dst,
                cl_uint   n_elem)
 {
-    for (auto i = 0; i < n_elem; ++i)
+    for (cl_uint i = 0; i < n_elem; ++i)
     {
         if (golden[i] != dst[i])
         {
@@ -504,7 +509,6 @@ double RunKernelOnQ(cl_command_queue* Q,
                     cl_short*         Golden,
                     cl_uint           n_elems)
 {
-    cl_uint bufsize = sizeof(cl_short) * n_elems;
     double secs = 0;
     tick();
 
@@ -524,7 +528,7 @@ double RunKernelOnQ(cl_command_queue* Q,
  *------------------------------------------------------------------------*/
 void ResetResultArray(cl_short* results, cl_uint n_elems)
 {
-    for (auto i = 0; i < n_elems; i++) results[i] = 0;
+    for (cl_uint i = 0; i < n_elems; i++) results[i] = 0;
 }
 
 /*-------------------------------------------------------------------------
@@ -548,7 +552,7 @@ void DebugPrint(const char* fmt, ...)
 void CleanUpQs(cl_command_queue* Qs, cl_uint numQs)
 {
     int errcode;
-    for(auto i=0; i<numQs; i++)
+    for(cl_uint i=0; i<numQs; i++)
     {
         errcode = clFlush(Qs[i]);
         assert(errcode == CL_SUCCESS);
@@ -582,7 +586,7 @@ void CleanUpCLObjects(cl_kernel*  kernel,
 void CleanUpSubDevices(cl_device_id* subdevices, cl_uint num)
 {
     int errcode;
-    for (auto i = 0; i < num; i++)
+    for (cl_uint i = 0; i < num; i++)
     {
         errcode = clReleaseDevice(subdevices[i]);
         assert(errcode == CL_SUCCESS);
@@ -631,7 +635,7 @@ void ShowTimingData(double*       elapsed_times,
          << "s"
          << endl;
 
-    for (auto i = SUB_DEVICE_IDX_START; i < n_devices; i++)
+    for (cl_uint i = SUB_DEVICE_IDX_START; i < n_devices; i++)
     {
         cout << "Sub Device"
              << i

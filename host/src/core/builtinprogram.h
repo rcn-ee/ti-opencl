@@ -47,7 +47,7 @@ class BuiltInProgram : public Program
         BuiltInProgram(Context *ctx);
 
         cl_int loadBuiltInKernels(cl_uint num_devices,
-                                  DeviceInterface * const*device_list,
+                                  const cl_device_id *device_list,
                                   const char *kernel_names);
         Kernel *createKernel(const std::string &name, cl_int *errcode_ret) override;
 

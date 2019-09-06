@@ -20,11 +20,13 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#include <set>
+
 #include "config.h"
+
 #include "llvm/IR/Function.h"
 #include "llvm/Analysis/LoopInfo.h"
 #include "llvm/Pass.h"
-#include <set>
 
 namespace pocl {
   class Workgroup;

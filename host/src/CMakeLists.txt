@@ -1,21 +1,3 @@
-if (C6678_BUILD)
-  SET (TARGET_INCLUDES
-    ${PROJECT_SOURCE_DIR}/init
-    ${SDK}/sdk
-    ${SDK}/sdk/config
-    ${SDK}/sdk/pciedrv
-    ${SDK}/sdk/cmem
-    ${SDK}/sdk/bufmgr
-    ${SDK}/sdk/mailBox
-    ${SDK}/sdk/dnldmgr )
-# Cross-compiling needs additional paths to find target OS headers 
-# and non-system headers found on the host (BOOST,GL)
-elseif (CROSS_COMPILE)
-  SET (TARGET_INCLUDES 
-    ${CMAKE_FIND_ROOT_PATH} 
-    ${HOST_USR_INCLUDE_PATH}  )
-endif()
-
 execute_process(COMMAND git rev-parse --short HEAD
                 WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
                 OUTPUT_VARIABLE GIT_SHA
@@ -31,8 +13,12 @@ include_directories (
     ${PROJECT_SOURCE_DIR}/src/core/dsp/tal/ocl_load/DLOAD
     ${PROJECT_SOURCE_DIR}/src/core/dsp/tal
     ${PROJECT_SOURCE_DIR}/src/core/dsp
-    ${TARGET_INCLUDES}
+    ${CMAKE_FIND_ROOT_PATH}
     )
+
+if ((${BUILD_OS} MATCHES "SYS_BIOS"))
+    include_directories (${BIOS_USR_INCLUDE_PATH})
+endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-variable")
@@ -47,7 +33,10 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_PRODUCT_VERSION=${${PROJECT_NAME}_PKG
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DBOOST_SYSTEM_NO_DEPRECATED=1")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DBOOST_SYSTEM_NO_LIB=1")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_BUILD_ID=${GIT_SHA}")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+
+if (${SHMEM_MANAGER} MATCHES "ION")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_ION")
+endif()
 
 # bfd.h has a check to ensure that config.h is included
 # We don't require config.h (autotools) so we bypass this check by defining
@@ -57,11 +46,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DPACKAGE=${PROJECT_NAME} -DPACKAGE_VERS
 # Toggle below if wanting to build with debug
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -fno-inline -g")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
-
-if (C6678_BUILD)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDSPC868X")
-    set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -DDSPC868X")
-endif()
 
 if (K2X_BUILD)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDEVICE_K2X")
@@ -132,15 +116,18 @@ set(COAL_SRC_FILES
     core/dsp/device_info.cpp
 
     core/dsp/tal/dload.cpp
-    core/dsp/tal/memory_provider_factory.cpp
-    core/dsp/tal/shared_memory_provider.cpp
     core/dsp/tal/mbox_factory.cpp
 )
 
-if (${BUILD_OS} MATCHES "SYS_BIOS")
+if (${SHMEM_MANAGER} MATCHES "CMEM")
 set(COAL_SRC_FILES ${COAL_SRC_FILES}
-    core/dsp/tal/rtos_shmem_provider_factory.cpp
-)
+    core/dsp/tal/memory_provider_factory.cpp
+    core/dsp/tal/shared_memory_provider.cpp)
+endif()
+
+
+if (${BUILD_OS} MATCHES "SYS_BIOS")
+    list (APPEND COAL_SRC_FILES core/dsp/tal/rtos_shmem_provider_factory.cpp)
 else()
 set(COAL_SRC_FILES ${COAL_SRC_FILES}
     api/api_gl.cpp
@@ -177,41 +164,24 @@ set(COAL_SRC_FILES ${COAL_SRC_FILES}
     endif()
 endif()
 
-if (K2X_BUILD OR K2G_BUILD)
-    set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/devmem_map_policy_mpm.cpp)
-endif()
+set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/mbox_impl_msgq.cpp)
 
-if (NOT C6678_BUILD)
-    set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/mbox_impl_msgq.cpp)
-    set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/device_manager_remoteproc.cpp)
-endif()
 
-if (AM57_BUILD)
-    set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/device_manager_remoteproc.cpp)
-endif()
-
-if (AM57_BUILD AND (NOT (${BUILD_OS} MATCHES "SYS_BIOS")))
-    set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/devmem_map_policy_mmap.cpp)
-endif()
-
-if (C6678_BUILD)
-    set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/shmem_init_policy_pcie.cpp)
-    set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/shmem_rw_policy_pcie.cpp)
-    set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/memory_provider_pcie.cpp)
-    set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/shmem_pcie.cpp)
-    set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/pcie_cmem.cpp)
-else()
-  if (NOT (${BUILD_OS} MATCHES "SYS_BIOS"))
+if (NOT (${BUILD_OS} MATCHES "SYS_BIOS"))
+    if (${SHMEM_MANAGER} MATCHES "CMEM")
     set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/shmem_init_policy_cmem.cpp)
     set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/shmem_rw_policy_cmem.cpp)
     set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/memory_provider_cmem.cpp)
     set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/shmem_cmem.cpp)
-  else()
+elseif (${SHMEM_MANAGER} MATCHES "ION")
+    set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/ion_allocator.cpp)
+    set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/ion_memory_provider.cpp)
+    endif()
+else()
     set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/shmem_init_policy_rtos.cpp)
     set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/shmem_rw_policy_rtos.cpp)
     set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/memory_provider_rtos.cpp)
     set(COAL_SRC_FILES ${COAL_SRC_FILES} core/dsp/tal/shmem_rtos.cpp)
-  endif()
 endif()
 
 add_subdirectory(runtime)
@@ -260,11 +230,6 @@ set_target_properties(OpenCL PROPERTIES
   LINK_INTERFACE_LIBRARIES "")
 endif()
 
-# Dirty platform.cpp to cause re-compile with every build. It contains
-# a compile-time timestamp used as the library build timestamp.
-add_custom_command (TARGET OpenCL PRE_BUILD 
-                 COMMAND touch -c ${CMAKE_CURRENT_SOURCE_DIR}/core/platform.cpp)
-
 if (NOT (${BUILD_OS} MATCHES "SYS_BIOS"))
 set (LIBS
         #${CLANG_LIBS}
@@ -290,7 +255,6 @@ LIST (APPEND LIBS ${FFI_LIB} ${SQLITE3_LIB} ${ELF_LIB} ${JSON_LIB})
 
 # Add target dependent libraries
 if(K2X_BUILD OR K2G_BUILD)
-   find_library(CMEM_LIB          ticmem)
    find_library(MPMTRANSPORT_LIB  mpmtransport)
    find_library(MPMCLIENT_LIB     mpmclient)
    find_library(RM_LIB            rm)
@@ -299,24 +263,19 @@ if(K2X_BUILD OR K2G_BUILD)
    find_library(IPC_UTIL_LIB      tiipcutils)
    find_library(IPC_TRANS_RPMSG   titransportrpmsg)
 
-   LIST (APPEND LIBS ${CMEM_LIB} ${IPC_LIB} ${IPC_UTIL_LIB} ${IPC_TRANS_RPMSG}
+   LIST (APPEND LIBS ${IPC_LIB} ${IPC_UTIL_LIB} ${IPC_TRANS_RPMSG}
                      ${MPMTRANSPORT_LIB} 
                      ${MPMCLIENT_LIB} ${RM_LIB} )
-elseif(C6678_BUILD)
-  LIST (APPEND LIBS
-	${SDK}/sdk/pciedrv/lib/pciedrv.a
-	${SDK}/sdk/dnldmgr/lib/dnldmgr.a
-	${SDK}/sdk/cmem/lib/cmem_drv.a
-	${SDK}/sdk/bufmgr/lib/bufmgr.a
-	${SDK}/sdk/mailBox/host/lib/mailBox.a
-        pciaccess
-	)
 elseif (AM57_BUILD)
-  find_library(CMEM_LIB          ticmem)
   find_library(IPC_LIB           tiipc)
   find_library(IPC_UTIL_LIB      tiipcutils)
   find_library(IPC_TRANS_RPMSG   titransportrpmsg)
-  LIST (APPEND LIBS ${CMEM_LIB} ${IPC_LIB} ${IPC_UTIL_LIB} ${IPC_TRANS_RPMSG})
+  LIST (APPEND LIBS ${IPC_LIB} ${IPC_UTIL_LIB} ${IPC_TRANS_RPMSG})
+endif()
+
+if (${SHMEM_MANAGER} MATCHES "CMEM")
+    find_library(CMEM_LIB ticmem)
+    LIST (APPEND LIBS ${CMEM_LIB} )
 endif()
 
 if(ENABLE_ULM)

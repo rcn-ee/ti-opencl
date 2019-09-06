@@ -23,17 +23,18 @@
 #ifndef _POCL_KERNEL_H
 #define _POCL_KERNEL_H
 
-#include "ParallelRegion.h"
 #include "llvm/ADT/SmallVector.h"
-#include "llvm/IR/Dominators.h"
 #include "llvm/Analysis/LoopInfo.h"
+#include "llvm/IR/Dominators.h"
+
+#include "ParallelRegion.h"
 
 namespace pocl {
 
   class Kernel : public llvm::Function {
   public:
-    void getExitBlocks(llvm::SmallVectorImpl<BarrierBlock *> &B);
-    ParallelRegion *createParallelRegionBefore(BarrierBlock *B);
+    void getExitBlocks(llvm::SmallVectorImpl<llvm::BasicBlock *> &B);
+    ParallelRegion *createParallelRegionBefore(llvm::BasicBlock *B);
     
     ParallelRegion::ParallelRegionVector* 
       getParallelRegions(llvm::LoopInfo *LI);

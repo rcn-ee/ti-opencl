@@ -15,7 +15,7 @@
  *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  *   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+ *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  *   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
  *   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
  *   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
@@ -27,6 +27,7 @@
  *****************************************************************************/
 #include "../platform.h"
 #include "device.h"
+#include "rootdevice.h"
 #include "buffer.h"
 #include "kernel.h"
 #include "program.h"
@@ -90,8 +91,8 @@ uint32_t osal_getpid()
 /******************************************************************************
 * DSPDevice::DSPDevice(SharedMemory* shm)
 ******************************************************************************/
-DSPDevice::DSPDevice(SharedMemory* shm)
-    : DeviceInterface        (),
+DSPDevice::DSPDevice(DeviceInterface::Type type, SharedMemory* shm)
+    : DeviceInterface        (type),
       p_dsp_mhz              (0),
       p_shmHandler           (shm),
       p_pid                  (osal_getpid()),
@@ -130,7 +131,6 @@ DSPDevice::DSPDevice(SharedMemory* shm)
     *------------------------------------------------------------------------*/
     const DeviceInfo& device_info = DeviceInfo::Instance();
 #if !defined(_SYS_BIOS)
-    p_addr_kernel_config = device_info.GetSymbolAddress("kernel_config_l2");
     p_addr_local_mem     = device_info.GetSymbolAddress("ocl_local_mem_start");
     p_size_local_mem     = device_info.GetSymbolAddress("ocl_local_mem_size");
 #else
@@ -167,6 +167,10 @@ DeviceProgram* DSPDevice::createDeviceProgram(Program* program)
 DeviceKernel* DSPDevice::createDeviceKernel(Kernel* kernel,
         llvm::Function* function)
 { return (DeviceKernel*)new DSPKernel(this, kernel, function); }
+
+DeviceKernel* DSPDevice::createDeviceBuiltInKernel(Kernel *kernel,
+                                                   KernelEntry *kernel_entry)
+{ return (DeviceKernel *)new DSPKernel(this, kernel, kernel_entry); }
 
 /******************************************************************************
 * cl_int DSPDevice::initEventDeviceData(Event *event)
@@ -344,6 +348,8 @@ cl_int DSPDevice::info(cl_device_info param_name,
 {
     void* value = 0;
     size_t value_length = 0;
+    std::string stmp;
+
     union
     {
         cl_device_type cl_device_type_var;
@@ -364,8 +370,13 @@ cl_int DSPDevice::info(cl_device_info param_name,
     switch (param_name)
     {
         case CL_DEVICE_TYPE:
-            SIMPLE_ASSIGN(cl_device_type, CL_DEVICE_TYPE_ACCELERATOR);
-            break;
+            {
+                cl_device_type device_type = CL_DEVICE_TYPE_ACCELERATOR;
+                if (GetRootDevice()->getKernelEntries()->size() > 0)
+                    device_type |= CL_DEVICE_TYPE_CUSTOM;
+                SIMPLE_ASSIGN(cl_device_type, device_type);
+                break;
+            }
         case CL_DEVICE_VENDOR_ID:
             SIMPLE_ASSIGN(cl_uint, 0); // TODO
             break;
@@ -460,6 +471,12 @@ cl_int DSPDevice::info(cl_device_info param_name,
             SIMPLE_ASSIGN(size_t, 0);           //images not supported
             break;
         case CL_DEVICE_IMAGE3D_MAX_DEPTH:
+            SIMPLE_ASSIGN(size_t, 0);           //images not supported
+            break;
+        case CL_DEVICE_IMAGE_MAX_ARRAY_SIZE:
+            SIMPLE_ASSIGN(size_t, 0);           //images not supported
+            break;
+        case CL_DEVICE_IMAGE_MAX_BUFFER_SIZE:
             SIMPLE_ASSIGN(size_t, 0);           //images not supported
             break;
         case CL_DEVICE_IMAGE_SUPPORT:
@@ -577,6 +594,9 @@ cl_int DSPDevice::info(cl_device_info param_name,
         case CL_DEVICE_COMPILER_AVAILABLE:
             SIMPLE_ASSIGN(cl_bool, CL_TRUE);
             break;
+        case CL_DEVICE_LINKER_AVAILABLE:
+            SIMPLE_ASSIGN(cl_bool, CL_TRUE);
+            break;
         case CL_DEVICE_EXECUTION_CAPABILITIES:
             SIMPLE_ASSIGN(cl_device_exec_capabilities, CL_EXEC_KERNEL);
             break;
@@ -585,6 +605,21 @@ cl_int DSPDevice::info(cl_device_info param_name,
                           CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE |
                           CL_QUEUE_PROFILING_ENABLE |
                           CL_QUEUE_KERNEL_TIMEOUT_COMPUTE_UNIT_TI);
+            break;
+        case CL_DEVICE_BUILT_IN_KERNELS:
+            {
+                const std::vector<KernelEntry*>* biks =
+                                        GetRootDevice()->getKernelEntries();
+                bool first = true;
+                for(KernelEntry *k : *biks)
+                {
+                    if (!first) stmp += ";";
+                    stmp += k->name;
+                    first = false;
+                }
+                value        = (void *) stmp.c_str();
+                value_length =          stmp.size() + 1;
+            }
             break;
         case CL_DEVICE_NAME:
             STRING_ASSIGN("TI Multicore C66 DSP");
@@ -599,7 +634,7 @@ cl_int DSPDevice::info(cl_device_info param_name,
             STRING_ASSIGN("FULL_PROFILE");
             break;
         case CL_DEVICE_VERSION:
-            STRING_ASSIGN("OpenCL 1.1 TI " COAL_VERSION);
+            STRING_ASSIGN("OpenCL 1.1 ");
             break;
         case CL_DEVICE_EXTENSIONS:
             if (EnvVar::Instance().GetEnv <
@@ -650,8 +685,20 @@ cl_int DSPDevice::info(cl_device_info param_name,
         case CL_DEVICE_NATIVE_VECTOR_WIDTH_HALF:
             SIMPLE_ASSIGN(cl_uint, 0);
             break;
+        case CL_DEVICE_PREFERRED_INTEROP_USER_SYNC:
+            SIMPLE_ASSIGN(cl_bool, CL_TRUE);
+            break;
+        case CL_DEVICE_PRINTF_BUFFER_SIZE:
+            /* The format conversion buffer size is defined to be 510 bytes in
+             * the RTS printf implementation. For each format specifier in the
+             * printf call, this buffer is reused.
+             * 1MB (1048576 bytes) is the minimum value for FULL profile as
+             * stated in the OpenCL 1.2 specification.
+             * */
+            SIMPLE_ASSIGN(size_t, 1048576);
+            break;
         case CL_DEVICE_OPENCL_C_VERSION:
-            STRING_ASSIGN("OpenCL C 1.1 LLVM " LLVM_VERSION);
+            STRING_ASSIGN("OpenCL C 1.1 ");
             break;
         case CL_DEVICE_PARENT_DEVICE:
             if (p_parent) {SIMPLE_ASSIGN(cl_device_id, desc(p_parent));}

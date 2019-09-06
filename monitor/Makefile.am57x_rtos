@@ -9,7 +9,7 @@ DEVICE    = DEVICE_AM572x
 SOC       = SOC_AM572x
 
 ## !Need -O* to inline CACHE_* functions!
-CC= $(TI_OCL_CGT_INSTALL)/bin/cl6x -o3 -mv6600 --abi=eabi --gcc --mem_model:const=data --mem_model:data=far -D_SYS_BIOS
+CC= $(TI_OCL_CGT_INSTALL)/bin/cl6x -o3 -mv6600 --abi=eabi --gcc --mem_model:const=data --mem_model:data=far -D_SYS_BIOS --vectypes=on
 AR= $(TI_OCL_CGT_INSTALL)/bin/ar6x
 
 INCLUDES  = -i. -i $(OPENCL_SRC_DIR)/src/core/dsp
@@ -28,7 +28,8 @@ INCLUDES += -DOMP_ENABLED
 endif
 
 SOURCES = monitor.c util.c dsp_rpc.asm touch.asm builtins.c edma.c \
-          edma_am57x_config.c device_am57.c
+          edma_am57x_config.c device_am57.c \
+		  printf.c _printfi.c _ltoa.c
 HEADERS = src/edma.h src/monitor.h src/util.h src/trace.h \
           $(OPENCL_SRC_DIR)/src/core/dsp/message.h \
           $(OPENCL_SRC_DIR)/src/core/dsp/tal/mbox_msgq_shared.h
@@ -112,11 +113,11 @@ endef
 
 
 .PHONY: all dsp0 dsp1
-all: $(OBJ_DIR) dsp0 dsp1
+all: dsp0 dsp1
 #	$(call check_dsp_syms_layout, dsp0.out, dsp1.out, 0x01000000)
 
 $(OBJ_DIR):
-	mkdir $(OBJ_DIR) $(BIN_DIR)
+	mkdir -p $(OBJ_DIR) $(BIN_DIR)
 
 dsp0 : $(LINK_CMD0) $(BIN_DIR)/dsp0.out $(BIN_DIR)/dsp0.syms
 dsp1 : $(LINK_CMD1) $(BIN_DIR)/dsp1.out $(BIN_DIR)/dsp1.syms
@@ -173,11 +174,11 @@ $(LINK_CMD1): $(OCLLIB) $(MONITOR_CONFIG) platform_files
 #---------------------------------------------------------------------------
 # Default build rules
 #----------------------------------------------------------------------------
-$(OBJ_DIR)/%.obj : src/%.c $(HEADERS)
+$(OBJ_DIR)/%.obj : src/%.c $(HEADERS) $(OBJ_DIR)
 	@echo Compiling $<
 	$(CC) -Isrc $(INCLUDES) -c $< -fr=$(OBJ_DIR)
 
-$(OBJ_DIR)/%.obj : src/%.asm
+$(OBJ_DIR)/%.obj : src/%.asm $(OBJ_DIR)
 	@echo Compiling $<
 	$(CC) $(INCLUDES) -c $< -fr=$(OBJ_DIR)
 

@@ -27,10 +27,14 @@
  *****************************************************************************/
 
 #include <cassert>
+#if defined(USE_ION)
+#include "ion_memory_provider.h"
+#else
 #include "shared_memory_provider.h"
 #include "shmem_rw_policy_cmem.h"
 #include "shmem_init_policy_cmem.h"
 #include "heaps_policy_process.h"
+#endif
 
 using namespace tiocl;
 
@@ -39,8 +43,12 @@ SharedMemory* SharedMemoryProviderFactory::CreateSharedMemoryProvider
 {
     // Create a CMEM based shared memory implementation
     SharedMemory* shm =
+    #if defined(USE_ION)
+        new SharedMemoryProvider(device_id);
+    #else
         new SharedMemoryProvider<InitializationPolicyCMEM, ReadWritePolicyCMEM,
-            HeapsMultiProcessPolicy> (device_id);
+                                 HeapsMultiProcessPolicy> (device_id);
+    #endif
 
     assert (shm != nullptr);
 
@@ -59,7 +67,7 @@ void SharedMemoryProviderFactory::DestroySharedMemoryProviders()
 SharedMemory* SharedMemoryProviderFactory::GetSharedMemoryProvider
       (uint8_t device_id) const
 {
-    std::map<uint8_t, SharedMemory*>::const_iterator it = 
+    std::map<uint8_t, SharedMemory*>::const_iterator it =
              shmProviderMap.find(device_id);
 
     if (it != shmProviderMap.end())

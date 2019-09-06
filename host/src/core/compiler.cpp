@@ -68,7 +68,7 @@ bool Compiler::CompileAndLink(const std::string &source,
     p_device->info(CL_DEVICE_TYPE, sizeof(devtype), &devtype, 0);
 
     // No support for CPU (ARM) kernel compile - will be added later
-    if (devtype == CL_DEVICE_TYPE_ACCELERATOR)
+    if (devtype & CL_DEVICE_TYPE_ACCELERATOR)
         return CompileAndLinkForDSP(source, options, outfile);
     else
         return false;

@@ -42,6 +42,8 @@
 
 #include <vector>
 #include <string>
+#include <map>
+#include <llvm/IR/Metadata.h>
 
 namespace Coal
 {
@@ -64,8 +66,8 @@ class DeviceKernel;
 
 /**
  * \brief Kernel
- * 
- * A kernel represents a LLVM function that can be run on a device. As 
+ *
+ * A kernel represents a LLVM function that can be run on a device. As
  * \c Coal::Kernel objects are device-independent, they in fact represent only
  * the name of a kernel and the arguments the application wants to pass to it,
  * but it also contains a list of LLVM functions for each device for which its
@@ -83,7 +85,7 @@ class Kernel : public _cl_kernel, public Object
 
         /**
          * \brief Kernel argument
-         * 
+         *
          * This class holds OpenCL-related information about the arguments of
          * a kernel. It is also used to check that a kernel takes the same
          * arguments on every device on which it has been built.
@@ -141,36 +143,36 @@ class Kernel : public _cl_kernel, public Object
 
                 /**
                  * \brief Allocate the argument
-                 * 
-                 * This function must be called before \c loadData(). It 
+                 *
+                 * This function must be called before \c loadData(). It
                  * allocates a buffer in which the argument value can be stored.
-                 * 
+                 *
                  * \sa valueSize()
                  */
                 void alloc();
-                
+
                 /**
                  * \brief Load a value into the argument
                  * \note \c alloc() must have been called before this function.
                  * \sa valueSize()
                  */
                 void loadData(const void *data);
-                
+
                 /**
                  * \brief Set the number of bytes that must be allocated at run-time
-                 * 
+                 *
                  * \c __local arguments don't take a value given by the host
                  * application, but take pointers allocated on the device
                  * for each work-group.
-                 * 
+                 *
                  * This function allows to set the size of the device-allocated
                  * memory buffer used by this argument.
-                 * 
+                 *
                  * \param size size in byte of the buffer the device has to
                  *        allocate for each work-group of this kernel
                  */
                 void setAllocAtKernelRuntime(size_t size);
-                
+
                 /**
                  * \brief Changes the \c Kind of this argument
                  * \param kind new \c Kind
@@ -179,7 +181,7 @@ class Kernel : public _cl_kernel, public Object
 
                 /**
                  * \brief Compares this argument with another
-                 * 
+                 *
                  * They are different if they \c vec_dim, \c file or \c kind are
                  * not the same.
                  *
@@ -190,12 +192,12 @@ class Kernel : public _cl_kernel, public Object
 
                 /**
                  * \brief Size of a field of this arg
-                 * 
+                 *
                  * This function returns the size of this argument based on its
                  * \c Kind
-                 * 
+                 *
                  * \note This size is not multiplied by \c vecDim(), you must do
-                 *       this by yourself to find the total space taken by this 
+                 *       this by yourself to find the total space taken by this
                  *       arg.
                  * \return the size of this argument, in bytes, without any padding
                  */
@@ -210,6 +212,24 @@ class Kernel : public _cl_kernel, public Object
                 const void *data() const;                      /*!< \brief Pointer to the data of this arg, equivalent to <tt>value(0)</tt> */
                 bool is_subword_int_uns() const ;
 
+                /* Kernel ArgInfo Setters */
+                void SetName     (const std::string& name)  { p_name      = name;  }
+                void SetTypeName (const std::string& type)  { p_type_name = type;  }
+                void SetBaseType (const std::string& btype) { p_base_type = btype; }
+                void SetAccessQualifier (const cl_kernel_arg_access_qualifier& aq)
+                                                            { p_access_qual = aq;  }
+                void SetTypeQualifier   (const cl_kernel_arg_type_qualifier&   tq)
+                                                            { p_type_qual   = tq;  }
+
+                /* Kernel ArgInfo Getters */
+                const std::string& GetName()     const { return p_name;        }
+                const std::string& GetTypeName() const { return p_type_name;   }
+                const std::string& GetBaseType() const { return p_base_type;   }
+                const cl_kernel_arg_access_qualifier& GetAccessQualifier() const
+                                                       { return p_access_qual; }
+                const cl_kernel_arg_type_qualifier&   GetTypeQualifier()   const
+                                                       { return p_type_qual;   }
+
             private:
                 unsigned short p_vec_dim;
                 File p_file;
@@ -218,17 +238,43 @@ class Kernel : public _cl_kernel, public Object
                 bool p_defined;
                 size_t p_runtime_alloc;
                 bool p_is_subword_int_uns;
+                std::string                     p_name;
+                std::string                     p_type_name;
+                std::string                     p_base_type;
+                cl_kernel_arg_access_qualifier  p_access_qual;
+                cl_kernel_arg_type_qualifier    p_type_qual;
         };
 
         /**
+         * \brief Create a map with arg metadata names pointing to their MDNodes
+         * \param fnode MDNode containing function and its arg metadata
+         * \param mdname_map A map between arg metadata names and their
+         *                   MDNode pointers
+         */
+        void CreateMDNameMap(llvm::MDNode *fnode,
+                             std::map<std::string, llvm::MDNode*>& mdname_map);
+
+        /**
+         * \brief Get the value of an arg metadata item as a string
+         * \param mdname_map Map between arg metadata names and their
+         *                   MDNode pointers
+         * \param mdname_key Arg metadata name
+         * \param index      Arg index
+         * \return A string of the arg metadata value
+         */
+        std::string GetMDValueStr(std::map<std::string,
+                                           llvm::MDNode*>& mdname_map,
+                                  const std::string& mdname_key,
+                                  unsigned int index);
+        /**
          * \brief Add a \c llvm::Function to this kernel
-         * 
+         *
          * This function adds a \c llvm::Function to this kernel for the
          * specified \p device. It also has the responsibility to find the
          * \c Arg::Kind of each of the function's arguments.
-         * 
+         *
          * LLVM provides a \c llvm::Type for each argument:
-         * 
+         *
          * - If it is a pointer, the kind of the argument is \c Arg::Buffer and
          *   its field is a simple cast from a LLVM \c addrspace to \c Arg::File.
          * - If it is a pointer to a struct whose name is either
@@ -238,17 +284,18 @@ class Kernel : public _cl_kernel, public Object
          *   rest of the computations are done on the element type
          * - Then we translate the LLVM type to an \c Arg::Kind. For instance,
          *   \c i32 becomes \c Arg::Int32
-         * 
+         *
          * Samplers aren't detected at this stage because they are plain \c i32
          * types on the LLVM side. They are detected in \c setArg() when the
          * value being set to the argument appears to be a \c Coal::Sampler.
-         * 
+         *
          * \param device device for which the function is added
-         * \param function function to add
+         * \param fnode  MDNode corresponding to LLVM function being added
          * \param module LLVM module of this function
          */
-        cl_int addFunction(DeviceInterface *device, llvm::Function *function,
-                           llvm::Module *module);
+        cl_int addFunction(DeviceInterface *device,
+                           llvm::MDNode    *fnode,
+                           llvm::Module    *module);
 
         /**
          * \brief Get the LLVM function for a specified \p device
@@ -256,13 +303,13 @@ class Kernel : public _cl_kernel, public Object
          * \return the LLVM function for the given \p device
          */
         llvm::Function *function(DeviceInterface *device) const;
-        
+
         /**
          * \brief Set the value of an argument
-         * 
+         *
          * See the constructor's documentation for a note on the
          * \c Coal::Sampler objects
-         * 
+         *
          * \param index index of the argument
          * \param size size of the value being stored in the argument, must match
          *        <tt>Arg::valueSize() * Arg::vecDim()</tt>
@@ -290,6 +337,15 @@ class Kernel : public _cl_kernel, public Object
                     void *param_value,
                     size_t *param_value_size_ret) const;
 
+        /**
+         * \brief Get information about the arguments of this kernel
+         * \copydetails Coal::DeviceInterface::info
+         */
+        cl_int ArgInfo(cl_uint arg_indx,
+                       cl_kernel_arg_info param_name,
+                       size_t param_value_size,
+                       void *param_value,
+                       size_t *param_value_size_ret) const;
 
         /**
          * \brief Get performance hints and device-specific data about this kernel
@@ -335,7 +391,6 @@ class Kernel : public _cl_kernel, public Object
 
         const DeviceDependent &deviceDependent(DeviceInterface *device) const;
         DeviceDependent &deviceDependent(DeviceInterface *device);
-
 };
 
 }

@@ -19,18 +19,18 @@ examples can be built by navigating to the desired directory and issuing
 Cross-Compiling
 ===============
 On an X86/Linux development environment the example makefiles are setup to
-cross-compile by default. 
+cross-compile by default.
 
-Required Environment Variables 
+Required Environment Variables
 ++++++++++++++++++++++++++++++
 
-.. envvar::  TARGET_ROOTDIR 
+.. envvar::  TARGET_ROOTDIR
 
-    Points to the linux devkit. 
-    E.g. ``<Processor SDK Linux install path>/linux-devkit/sysroots/armv7ahf-neon-linux-gnueabi`` 
+    Points to the linux devkit.
+    E.g. ``<Processor SDK Linux install path>/linux-devkit/sysroots/armv7ahf-neon-linux-gnueabi``
     Please check your SDK install, the name of the directory under sysroots can change with SDK versions.
 
-.. envvar::  TI_OCL_CGT_INSTALL         
+.. envvar::  TI_OCL_CGT_INSTALL
 
     The OpenCL runtime is dependent on the C66x DSP compiler product for
     the compilation of OpenCL C kernels. When OpenCL C kernels are compiled on the
@@ -38,7 +38,7 @@ Required Environment Variables
     standard Linux locations. However, off-line cross compilation of OpenCL C
     kernels is also supported from x86 Ubuntu machines and in that use case, it
     is required that this environment variable is set to the top level
-    directory path where the C66x cross compiler tools are installed. 
+    directory path where the C66x cross compiler tools are installed.
 
 
 Additions to the path

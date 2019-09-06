@@ -207,6 +207,31 @@ clCreateImage3D(cl_context              d_context,
     return desc(image);
 }
 
+cl_mem
+clCreateImage(cl_context              d_context,
+              cl_mem_flags            flags,
+              const cl_image_format * image_format,
+              const cl_image_desc *   image_desc,
+              void *                  host_ptr,
+              cl_int *                errcode_ret)
+{
+    cl_int dummy_errcode;
+    auto context = pobj(d_context);
+
+    if (!errcode_ret)
+        errcode_ret = &dummy_errcode;
+
+    if (!context->isA(Coal::Object::T_Context))
+    {
+        *errcode_ret = CL_INVALID_CONTEXT;
+        return 0;
+    }
+
+    *errcode_ret = CL_INVALID_OPERATION;
+
+    return 0;
+}
+
 cl_int
 clRetainMemObject(cl_mem d_memobj)
 {

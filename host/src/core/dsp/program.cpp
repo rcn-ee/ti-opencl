@@ -30,6 +30,7 @@
 #include "kernel.h"
 
 #include "../program.h"
+#include "../builtinprogram.h"
 
 #include <string>
 #include <iostream>
@@ -85,7 +86,10 @@ DSPProgram::DSPProgram(DSPDevice *device, Program *program)
     char *info = env.GetEnv<EnvVar::Var::TI_OCL_DEVICE_PROGRAM_INFO>(nullptr);
     if (info) { p_info = true; p_keep_files = true; }
 
-    p_dl = new DLOAD(this);
+    if (dynamic_cast<BuiltInProgram *>(program))
+        p_loaded = true;
+    else
+        p_dl = new DLOAD(this);
 }
 
 DSPProgram::~DSPProgram()
@@ -102,6 +106,8 @@ DSPProgram::~DSPProgram()
 
 bool DSPProgram::load()
 {
+    if (p_dl == nullptr)  return true;
+
 #ifndef _SYS_BIOS
     if (!p_dl->LoadProgram(p_outfile))
 #else
@@ -124,7 +130,7 @@ bool DSPProgram::load()
 
 bool DSPProgram::unload()
 {
-    return p_dl->UnloadProgram();
+    return p_dl ? p_dl->UnloadProgram() : true;
 }
 
 DSPDevicePtr DSPProgram::mem_l2_section_extent(uint32_t& size) const
@@ -145,7 +151,7 @@ DSPDevicePtr DSPProgram::mem_l2_section_extent(uint32_t& size) const
 
 DSPDevicePtr DSPProgram::LoadAddress() const
 {
-    return p_dl->GetProgramLoadAddress();
+    return p_dl ? p_dl->GetProgramLoadAddress() : (DSPDevicePtr)nullptr;
 }
 
 bool DSPProgram::is_loaded() const
@@ -165,7 +171,7 @@ const char* DSPProgram::outfile_name() const
 
 DSPDevicePtr DSPProgram::data_page_ptr()
 {
-    return p_dl->GetDataPagePointer();
+    return p_dl ? p_dl->GetDataPagePointer() : (DSPDevicePtr)nullptr;
 }
 
 /**
@@ -266,7 +272,7 @@ DSPDevicePtr DSPProgram::query_symbol(const char *symname)
 {
     const std::string str(symname);
 
-    return p_dl->QuerySymbol(str);
+    return p_dl ? p_dl->QuerySymbol(str) : (DSPDevicePtr)nullptr;
 }
 
 extern "C" {

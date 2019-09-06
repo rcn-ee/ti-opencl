@@ -51,11 +51,13 @@ const char *devtype(cl_device_type x)
         case CL_DEVICE_TYPE_ACCELERATOR: return "ACCELERATOR";
         case CL_DEVICE_TYPE_GPU:         return "GPU";
         case CL_DEVICE_TYPE_CUSTOM:      return "CUSTOM";
+        case CL_DEVICE_TYPE_ACCELERATOR|
+             CL_DEVICE_TYPE_CUSTOM:      return "ACCELERATOR | CUSTOM";
         default:                         return "UNKNOWN";
     }
 }
 
-void getDevices(Platform& platform, cl_device_type type);
+void getDevices(Platform& platform, cl_device_type type, cl_device_type type2);
 
 /******************************************************************************
 * main
@@ -84,7 +86,7 @@ int main(int argc, char *argv[])
          std::vector<Platform> platforms;
          Platform::get(&platforms);
 
-         for (int p = 0; p < platforms.size(); p++)
+         for (unsigned int p = 0; p < platforms.size(); p++)
          {
              std::string str;
 
@@ -100,7 +102,7 @@ int main(int argc, char *argv[])
              platforms[p].getInfo(CL_PLATFORM_PROFILE, &str);
              cout << "  Profile: " <<  str << endl;
 
-             getDevices(platforms[p], CL_DEVICE_TYPE_ACCELERATOR |
+             getDevices(platforms[p], CL_DEVICE_TYPE_ACCELERATOR,
                                       CL_DEVICE_TYPE_CUSTOM);
         }
     }
@@ -108,7 +110,7 @@ int main(int argc, char *argv[])
     /*-------------------------------------------------------------------------
     * Let exception handling deal with any OpenCL error cases
     *------------------------------------------------------------------------*/
-    catch (Error err)
+    catch (Error& err)
     {
         cerr << "ERROR: " << err.what() << "(" << err.err() << ", "
              << ocl_decode_error(err.err()) << ")" << endl;
@@ -118,18 +120,27 @@ int main(int argc, char *argv[])
 }
 
 
-void getDevices(Platform& platform, cl_device_type type)
+void getDevices(Platform& platform, cl_device_type type, cl_device_type type2)
 {
      std::string str;
      cl_context_properties properties[] =
       {CL_CONTEXT_PLATFORM, (cl_context_properties)(platform)(), 0};
 
      Context context(type, properties);
+     std::vector<Device> devices = context.getInfo<CL_CONTEXT_DEVICES>();
 
+     // Add exactly type2 (not a superset) to the list
+     Context context2(type2, properties);
+     std::vector<Device> devices2 = context2.getInfo<CL_CONTEXT_DEVICES>();
+     for (auto &dev : devices2)
+     {
+         cl_device_type type;
+         dev.getInfo(CL_DEVICE_TYPE, &type);
+         if (type == type2)
+             devices.emplace_back(dev);
+     }
 
-     std::vector<Device> devices= context.getInfo<CL_CONTEXT_DEVICES>();
-
-     for (int d = 0; d < devices.size(); d++)
+     for (unsigned int d = 0; d < devices.size(); d++)
      {
          devices[d].getInfo(CL_DEVICE_NAME, &str);
          cout << "    DEVICE: " << str << endl;

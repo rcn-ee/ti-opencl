@@ -15,7 +15,7 @@
  *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  *   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+ *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  *   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
  *   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
  *   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
@@ -41,7 +41,7 @@ using namespace std;
 #define DIM      500
 #define CTR_X   -0.743644177934177585953534617147
 #define CTR_Y    0.131826205602324997290253350002
-#define RANGE    3.0 
+#define RANGE    3.0
 #define ZOOM     1.25
 
 /******************************************************************************
@@ -52,7 +52,7 @@ static unsigned char rgb[DIM * DIM * 3];
 static double clock_diff (struct timespec *t1, struct timespec *t2)
    { return t2->tv_sec - t1->tv_sec + (t2->tv_nsec - t1->tv_nsec) / 1e9; }
 
-extern void mandelbrot_cpu(unsigned char *buf, int dim, 
+extern void mandelbrot_cpu(unsigned char *buf, int dim,
           double ctr_x, double ctr_y, double range, int max_iterations);
 
 /******************************************************************************
@@ -76,10 +76,10 @@ int main(int argc, char *argv[])
     SDL_Surface *screen;
 
     if ( (SDL_Init(SDL_INIT_VIDEO) >= 0) &&
-	 (SDL_SetVideoMode(DIM, DIM, 24, SDL_HWSURFACE)))
+	(SDL_SetVideoMode(DIM, DIM, 24, SDL_HWSURFACE)))
     {
        sdl_initialized = true;
-       data_sf = SDL_CreateRGBSurfaceFrom(rgb, DIM, DIM, 24, DIM * 3, 
+       data_sf = SDL_CreateRGBSurfaceFrom(rgb, DIM, DIM, 24, DIM * 3,
 				         0x000000ff, 0x0000ff00, 0x00ff0000, 0);
        screen = SDL_GetVideoSurface();
        std::string title("Mandelbrot Native");
@@ -99,7 +99,7 @@ int main(int argc, char *argv[])
 
         double elapsed = clock_diff (&tp_start, &tp_end);
         total_elapsed += elapsed;
-        printf("Frame: %d, \tFPS: %5.2f, \tZoom: %.3g\n" , frame, 
+        printf("Frame: %d, \tFPS: %5.2f, \tZoom: %.3g\n" , frame,
                 1.0/elapsed, RANGE/range);
 
        /*------------------------------------------------------------------
@@ -107,14 +107,14 @@ int main(int argc, char *argv[])
        *-----------------------------------------------------------------*/
        if (sdl_initialized)
        {
-	  SDL_Event event;
-	  SDL_PollEvent(&event);
-	  if (event.type == SDL_QUIT) { SDL_Quit(); exit(0); }
-	  
-	  if (SDL_BlitSurface(data_sf, NULL, screen, NULL) == 0)
-	     SDL_UpdateRect(screen, 0, 0, 0, 0);
+	        SDL_Event event;
+	        SDL_PollEvent(&event);
+	        if (event.type == SDL_QUIT) { SDL_Quit(); exit(0); }
+
+	        if (SDL_BlitSurface(data_sf, NULL, screen, NULL) == 0)
+	           SDL_UpdateRect(screen, 0, 0, 0, 0);
        }
-    } 
+    }
     printf("Total Time Generating frames: %8.4f secs\n", total_elapsed);
 
 }

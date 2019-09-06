@@ -4,7 +4,7 @@ Example Descriptions
 
 The examples in this section are included in the installation of the OpenCL
 product.  Not all of these examples are applicable to all supported device
-platforms.  
+platforms.
 
 These examples are are intended to illustrate a technique, an extension, or
 a mode of operation.  The following table provides
@@ -23,17 +23,18 @@ dgemm              P       iot             B/E            host         host     
 dspheap            S       1wi             B/F                                   dspheap, msmc             functor
 dsplib_fft         P       ndr,1wi         B/E            host         host      C
 edmamgr            S       1wi             B/E            read                   C, edma
+edmabw             I       iot             B/E            host                   C                         async
 float_compute      S       ndr             B/F            host         host                                local, async, vec
 mandelbrot         S       ndr             S/F            read         host                                nDev
 matmpy             S       1wi             B/F            read         host      C, msmc                   nDev, async, local
-null               I       iot             S/E                         host      
+null               I       iot             S/E                         host
 offline            S       ndr             B/F            read         event                               vec
 offline_embed      S       ndr             B/E            read         event                               vec
 ooo                S       oot             S/E            read         host                                event, native
 ooo_callback       S       oot             S/E            read         host                                event, callback
 ooo_map            S       oot             S/E            map          host                                event, native
 platforms          I                                      query
-tidl               P       custom                         host         host                                
+tidl               P       custom                         host         host
 sgemm              P       1wi             B/E            map          host      C, msmc, edma, cache      local, vec
 Simple             S       ndr             S/E            read                                             functor
 timeout            S       ndr,iot,oot     B/E            read                   timeout
@@ -109,7 +110,7 @@ event      OpenCL Events are used to set dependencies between enqueued commands
 nDev       The OpenCL application can be dynamically partitioned across multiple OpenCL devices
 native     The OpenCL application uses native kernels on the host
 callback   The callback feature is used to asynchronously call a host function on event status change
-extMem     The extended memory capability is used to access memory beyond the 32-bit address space 
+extMem     The extended memory capability is used to access memory beyond the 32-bit address space
 async      The async_work_group_copy functions are used to move data between memory spaces
 local      OpenCL Local Buffers are used for performance improvement
 query      OpenCL platforms and/or devices are queried for attributes
@@ -143,7 +144,7 @@ The 'mandelbrot' example is an OpenCL demo that uses OpenCL to generate the
 pixels of a Mandelbrot set image. This example also uses the C++ OpenCL
 binding. The OpenCL kernels are repeatedly called generating images that are
 zoomed in from the previous image. This repeats until the zoom factor reaches
-1E15. 
+1E15.
 
 This example illustrates several key OpenCL features:
 
@@ -158,7 +159,7 @@ The 'mandelbrot_native' example is non-OpenCL native implementation (no
 dispatch to the DSPs) that can be used for comparison purposes. It uses OpenMP
 for dispatch to each ARM core. Note: The display of the resulting
 Mandelbrot images is currently disabled when run on the default EVM Linux
-file system included in the Processor SDK. Instead it will output frame information. 
+file system included in the Processor SDK. Instead it will output frame information.
 
 .. _ccode-example:
 
@@ -215,7 +216,7 @@ vecadd_openmp_t example
 ========================
 
 This is another OpenCL + OpenMP example, similar to vecadd_openmp. The main
-difference with respect to vecadd_openmp is that this example uses OpenMP tasks 
+difference with respect to vecadd_openmp is that this example uses OpenMP tasks
 within the OpenMP parallel region to distribute computation across the DSP cores.
 
 .. _vecadd-example:
@@ -251,6 +252,16 @@ vecadd_mpax_openmp example
 Similar to vecadd_mpax example, but used OpenMP to perform the parallelization
 and the computation. This example also illustrates that printf() could be used
 in OpenMP C code for debugging.
+
+.. _vecadd_subdevice-example:
+
+vecadd_subdevice example
+========================
+
+The same functionality as the vecadd example, but using sub devices. This
+example illustrates the use of sub devices using the OpenCL C API. It performs
+vecadd on the root device as well as equally partitioned individual sub devices
+and measures the time taken by each of them.
 
 .. _dsplib_fft-example:
 
@@ -345,11 +356,22 @@ data around the DSP memory hierarchy from OpenCL C kernels. The edmamgr.h
 header file in this directory enumerates the APIs available from the edmamgr
 package.
 
+.. _edmabw-example:
+
+edmabw example
+=================
+
+This application measures the average data transfer times between different
+memory regions (DDR, MSMC, L2 SRAM) for a DSP core using EDMA operations via
+the async_work_group_copy API. It also demonstrates the use of sub devices via
+the C++ API and the __dsp_frequency() builtin function within the OpenCL C
+kernel.
+
 .. _dspheap-example:
 
 dspheap example
 =================
-This application illustrates how to use the user defined heaps feature to allow 
+This application illustrates how to use the user defined heaps feature to allow
 C code called from OpenCL C code to define custom and use custom heaps on the DSP
 devices.  See :doc:`../memory/dsp-malloc-extension`
 
@@ -387,7 +409,7 @@ extension can be found in :doc:`../extensions/kernel-timeout`.
   As a result, in OpenCL RTOS setup, this example won't run to full completion.
   OpenCL Linux is not affected.
 
-.. note:: 
+.. note::
 
    The following examples are available only available on 66AK2x
 

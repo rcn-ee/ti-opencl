@@ -42,7 +42,7 @@ DSS_CMD                 = $(CCS_INSTALL_DIR)\ccs_base\scripting\bin\dss.bat
 NULLFILE                = NUL
 
 else  # Linux
-DEFAULT_PSDK_RTOS      ?= /cgnas/ti-processor-sdk-rtos-am57xx-evm-05.01.00.11-release
+DEFAULT_PSDK_RTOS      ?= /cgnas/ti-processor-sdk-rtos-am57xx-evm-05.03.00.07-release
 GCC_ARM_NONE_TOOLCHAIN ?= $(wildcard $(DEFAULT_PSDK_RTOS)/gcc-arm-none-eabi-*)
 TI_OCL_CGT_INSTALL     ?= $(wildcard $(DEFAULT_PSDK_RTOS)/ti-cgt-c6000_*)
 
@@ -176,7 +176,7 @@ test: clean
 	@$(DSS_CMD) ../load_am57_rtos.js $(CCS_TARGET_CONFIG) \
                    bin/$(PROFILE)/$(EXE).xa15fg $(DSP1_OUT) $(DSP2_OUT) 0
 
-test_noclean:
+test_noclean: $(EXE).x
 	$(DSS_CMD) ../load_am57_rtos.js $(CCS_TARGET_CONFIG) \
                    bin/$(PROFILE)/$(EXE).xa15fg $(DSP1_OUT) $(DSP2_OUT) 1
 
@@ -196,6 +196,7 @@ endif
 
 CXX_FLAGS += -Dfar= -D__DYNAMIC_REENT__ -D_TI_RTOS -fpermissive -std=c++11
 CXX_FLAGS += -Wno-ignored-attributes
+CXX_FLAGS += -Wall
 CFLAGS   += -c -mcpu=cortex-a15 -mabi=aapcs -mapcs -mfpu=neon -mfloat-abi=hard -ffunction-sections -fdata-sections $(CCPROFILE_$(PROFILE)) @$(CONFIG)/compiler.opt -I"$(GCC_ARM_NONE_TOOLCHAIN)/arm-none-eabi/include/newlib-nano" -I. -I$(TI_OCL_INSTALL)/usr/include
 
 LDFLAGS += $(LDPROFILE_$(PROFILE)) -mfloat-abi=hard -nostartfiles -static -Wl,--gc-sections

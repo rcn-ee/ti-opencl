@@ -28,6 +28,7 @@
 #include "rootdevice.h"
 #include "device_info.h"
 #include "core/error_report.h"
+#include "../oclenv.h"
 
 #ifdef _SYS_BIOS
 #include <ti/sysbios/knl/Task.h>
@@ -56,7 +57,7 @@ void *dsp_worker_event_completion (void* data);
 * DSPRootDevice::DSPRootDevice(unsigned char dsp_id, SharedMemory* shm)
 ******************************************************************************/
 DSPRootDevice::DSPRootDevice(unsigned char dsp_id, SharedMemory* shm)
-    : DSPDevice              (shm),
+    : DSPDevice              (DeviceInterface::T_C66x, shm),
       p_worker_dispatch      (0),
       p_worker_completion    (0),
       p_events               (),
@@ -65,13 +66,15 @@ DSPRootDevice::DSPRootDevice(unsigned char dsp_id, SharedMemory* shm)
       p_initialized          (false),
       p_complete_pending     (nullptr),
       core_scheduler_        (nullptr),
-      device_manager_        (nullptr),
-      p_mb                   (nullptr)
+      p_mb                   (nullptr),
+      p_kernel_entries       ()
 {
     p_dsp_id                      = dsp_id;
     const DeviceInfo& device_info = DeviceInfo::Instance();
     p_compute_units               = device_info.GetComputeUnits();
-
+    EnvVar&  env                  = EnvVar::Instance();
+    p_printf_coreid_show          = env.GetEnv<
+                                    EnvVar::Var::TI_OCL_PRINTF_COREID>(1);
     /*-------------------------------------------------------------------------
     * Set possible partition types
     *------------------------------------------------------------------------*/
@@ -81,16 +84,9 @@ DSPRootDevice::DSPRootDevice(unsigned char dsp_id, SharedMemory* shm)
         p_partitions_supported[1] = CL_DEVICE_PARTITION_BY_COUNTS;
     }
 
-    /*-------------------------------------------------------------------------
-    * Reset and start DSP cores
-    *------------------------------------------------------------------------*/
-#if !defined(_SYS_BIOS)
-    device_manager_ = DeviceManagerFactory::CreateDeviceManager(dsp_id, p_compute_units.size(),
-                                                 device_info.FullyQualifiedPathToDspMonitor());
-    device_manager_->Reset();
-    device_manager_->Load();
-    device_manager_->Run();
-#endif
+    // Reset and start of DSP cores done by
+    // - remoteproc at Linux boot on AM57x
+    // - ti-mctd (daemon) on K2x
 
     /*-------------------------------------------------------------------------
     * Initialize Core Scheduler
@@ -108,6 +104,11 @@ DSPRootDevice::DSPRootDevice(unsigned char dsp_id, SharedMemory* shm)
     * in which case ulm_term() in DSPRootDevice destructor won't be called.
     *------------------------------------------------------------------------*/
     init_ulm();
+
+    /*-------------------------------------------------------------------------
+    * Initialize BuiltIn Kernels
+    *------------------------------------------------------------------------*/
+    init_builtin_kernels();
 
     /*-------------------------------------------------------------------------
      * Send monitor configuration
@@ -161,6 +162,54 @@ void DSPRootDevice::init_ulm()
 }
 
 /******************************************************************************
+* DSPRootDevice::init_builtin_kernels()
+******************************************************************************/
+void DSPRootDevice::init_builtin_kernels()
+{
+#if defined(DEVICE_AM57) && !defined(_SYS_BIOS)
+    KernelEntry *k;
+
+    k = new KernelEntry("tiocl_bik_memcpy_test", 1);
+    k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
+    k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
+    k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Int32, false);
+    p_kernel_entries.push_back(k);
+
+    k = new KernelEntry("tiocl_bik_vecadd", 3);
+    k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
+    k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
+    k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
+    k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Int32, false);
+    p_kernel_entries.push_back(k);
+
+    k = new KernelEntry("ocl_tidl_setup", 10);
+    k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
+    k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
+    k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
+    k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
+    p_kernel_entries.push_back(k);
+
+    k = new KernelEntry("ocl_tidl_initialize", 11);
+    k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
+    k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
+    k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
+    k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
+    k->addArg(1, Kernel::Arg::Local,  Kernel::Arg::Buffer, false);
+    p_kernel_entries.push_back(k);
+
+    k = new KernelEntry("ocl_tidl_process", 12);
+    k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
+    k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
+    k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Buffer, false);
+    k->addArg(1, Kernel::Arg::Global, Kernel::Arg::Int32, false);
+    p_kernel_entries.push_back(k);
+
+    k = new KernelEntry("ocl_tidl_cleanup", 13);
+    p_kernel_entries.push_back(k);
+#endif
+}
+
+/******************************************************************************
 * DSPRootDevice::~DSPRootDevice()
 ******************************************************************************/
 DSPRootDevice::~DSPRootDevice()
@@ -194,19 +243,14 @@ DSPRootDevice::~DSPRootDevice()
     * the race condition.
     *------------------------------------------------------------------------*/
     mail_to(exitMsg, p_compute_units);
-#if defined(DSPC868X)
-    /*-------------------------------------------------------------------------
-    * Wait for the EXIT acknowledgement from device
-    *------------------------------------------------------------------------*/
-    while (!p_exit_acked)
-    {
-        while (!mail_query()) usleep(1);
-        mail_from(p_compute_units);
-    }
-#endif
 
     delete p_mb;
     delete p_complete_pending;
+
+    /*-------------------------------------------------------------------------
+    * Remove BuiltIn kernel entries
+    *------------------------------------------------------------------------*/
+    for(KernelEntry *k : p_kernel_entries) delete k;
 
     /*-------------------------------------------------------------------------
     * Free any ulm resources used.
@@ -215,7 +259,6 @@ DSPRootDevice::~DSPRootDevice()
     /*-------------------------------------------------------------------------
     * Only need to close the driver for one of the devices
     *------------------------------------------------------------------------*/
-    delete device_manager_;
     delete core_scheduler_;
 }
 
@@ -275,14 +318,6 @@ void DSPRootDevice::pushEvent(Event* event)
 bool DSPRootDevice::stop()
 {
     return p_stop;
-}
-
-/******************************************************************************
-* void DSPRootDevice::availableEvent()
-******************************************************************************/
-bool DSPRootDevice::availableEvent()
-{
-    return p_events.size() > 0;
 }
 
 /******************************************************************************
@@ -347,8 +382,11 @@ int DSPRootDevice::mail_from(const DSPCoreSet& compute_units, int* retcode)
     {
         case PRINT:
         {
-            std::cout << "[core " << rxmsg.u.message[0] << "] "
-                      << rxmsg.u.message + 1;
+            if(p_printf_coreid_show == 1)
+            {
+                std::cout << "[core " << rxmsg.u.message[0] << "] ";
+            }
+            std::cout << rxmsg.u.message + 1;
             return -1;
             break;
         }
@@ -488,11 +526,6 @@ bool DSPRootDevice::any_complete_pending()
 ******************************************************************************/
 void DSPRootDevice::setup_dsp_mhz()
 {
-#ifdef DSPC868X
-    char* ghz1 = EnvVar::Instance().GetEnv<EnvVar::Var: TI_OCL_DSP_1_25GHZ>(
-                                                                    nullptr);
-    if (ghz1) p_dsp_mhz = 1250;  // 1.25 GHz
-#else
     mail_to(frequencyMsg, p_compute_units);
     int ret = 0;
     do
@@ -502,5 +535,4 @@ void DSPRootDevice::setup_dsp_mhz()
     }
     while (ret == -1);
     p_dsp_mhz = ret;
-#endif
 }

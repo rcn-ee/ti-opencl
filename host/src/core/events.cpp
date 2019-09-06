@@ -187,7 +187,14 @@ ReadBufferEvent::ReadBufferEvent(CommandQueue *parent,
                                  cl_int *errcode_ret)
 : ReadWriteBufferEvent(parent, buffer, offset, cb, ptr, num_events_in_wait_list,
                        event_wait_list, errcode_ret)
-{}
+{
+    cl_mem_flags buf_flags = buffer->flags();
+    if (buf_flags & CL_MEM_HOST_WRITE_ONLY || buf_flags & CL_MEM_HOST_NO_ACCESS)
+    {
+        *errcode_ret = CL_INVALID_OPERATION;
+        return;
+    }
+}
 
 Event::Type ReadBufferEvent::type() const
 {
@@ -204,7 +211,14 @@ WriteBufferEvent::WriteBufferEvent(CommandQueue *parent,
                                    cl_int *errcode_ret)
 : ReadWriteBufferEvent(parent, buffer, offset, cb, ptr, num_events_in_wait_list,
                        event_wait_list, errcode_ret)
-{}
+{
+    cl_mem_flags buf_flags = buffer->flags();
+    if (buf_flags & CL_MEM_HOST_READ_ONLY || buf_flags & CL_MEM_HOST_NO_ACCESS)
+    {
+        *errcode_ret = CL_INVALID_OPERATION;
+        return;
+    }
+}
 
 Event::Type WriteBufferEvent::type() const
 {
@@ -300,7 +314,8 @@ MapBufferEvent::MapBufferEvent(CommandQueue *parent,
     if (*errcode_ret != CL_SUCCESS) return;
 
     // Check flags
-    if (map_flags & ~(CL_MAP_READ | CL_MAP_WRITE))
+    if (map_flags & ~(CL_MAP_READ | CL_MAP_WRITE |
+                      CL_MAP_WRITE_INVALIDATE_REGION))
     {
         *errcode_ret = CL_INVALID_VALUE;
         return;
@@ -318,6 +333,8 @@ MapBufferEvent::MapBufferEvent(CommandQueue *parent,
     if (   ((map_flags & CL_MAP_READ)
             && (buf_flags & (CL_MEM_HOST_WRITE_ONLY | CL_MEM_HOST_NO_ACCESS)))
         || ((map_flags & CL_MAP_WRITE)
+            && (buf_flags & (CL_MEM_HOST_READ_ONLY | CL_MEM_HOST_NO_ACCESS)))
+        || ((map_flags & CL_MAP_WRITE_INVALIDATE_REGION)
             && (buf_flags & (CL_MEM_HOST_READ_ONLY | CL_MEM_HOST_NO_ACCESS))) )
     {
         *errcode_ret = CL_INVALID_OPERATION;
@@ -368,7 +385,8 @@ MapImageEvent::MapImageEvent(CommandQueue *parent,
     if (*errcode_ret != CL_SUCCESS) return;
 
     // Check flags
-    if (map_flags & ~(CL_MAP_READ | CL_MAP_WRITE))
+    if (map_flags & ~(CL_MAP_READ | CL_MAP_WRITE |
+                      CL_MAP_WRITE_INVALIDATE_REGION))
     {
         *errcode_ret = CL_INVALID_VALUE;
         return;
@@ -493,6 +511,100 @@ Event::Type UnmapBufferEvent::type() const
 void *UnmapBufferEvent::mapping() const
 {
     return p_mapping;
+}
+
+MigrateMemObjectEvent::MigrateMemObjectEvent(CommandQueue *dest_queue,
+                                             const cl_mem *d_mem_objects,
+                                             cl_uint      num_mem_objects,
+                                             cl_mem_migration_flags flags,
+                                             cl_uint num_events_in_wait_list,
+                                             const cl_event *event_wait_list,
+                                             cl_int *errcode_ret)
+: Event(dest_queue, Queued, num_events_in_wait_list, event_wait_list, errcode_ret)
+{
+    if (*errcode_ret != CL_SUCCESS) return;
+
+    MemObject **mem_objects = (MemObject **)
+                            std::malloc(num_mem_objects * sizeof(MemObject *));
+
+	if (!mem_objects)
+    {
+        *errcode_ret = CL_OUT_OF_RESOURCES;
+        return;
+    }
+
+    pobj_list(mem_objects, d_mem_objects, num_mem_objects);
+
+    /* Check if each memory object is valid */
+    for(cl_uint i=0; i<num_mem_objects; i++)
+    {
+        if(!mem_objects[i]->isA(Coal::Object::T_MemObject))
+        {
+            *errcode_ret = CL_INVALID_MEM_OBJECT;
+            std::free((void *)mem_objects);
+            return;
+        }
+    }
+
+    cl_context src_context;
+    cl_context dest_context = nullptr;
+    /* Get the destination context */
+    dest_queue->info(CL_QUEUE_CONTEXT, sizeof(cl_context), &dest_context, 0);
+
+    /* Check if the destination context is the same for each memory object
+     * and event in the event_wait_list.
+     * The OpenCL 1.2 Specification describes this check on page 126:
+     * "CL_INVALID_CONTEXT if the context associated with command_queue
+     * and memory objects in mem_objects are not the same or if the context
+     * associated with command_queue and events in event_wait_list are not
+     * the same." */
+    for (cl_uint i=0; i<num_mem_objects; i++)
+    {
+        src_context = nullptr;
+        /* Get the original/src context of the memobj */
+        mem_objects[i]->info(CL_MEM_CONTEXT,
+                             sizeof(cl_context),
+                             &src_context, 0);
+        if (src_context != dest_context)
+        {
+            *errcode_ret = CL_INVALID_CONTEXT;
+            break;
+        }
+    }
+
+    std::free((void *)mem_objects);
+
+    Event **event_list = (Event **)
+                        std::malloc(num_events_in_wait_list * sizeof(Event *));
+
+    if (!event_list)
+    {
+        *errcode_ret = CL_OUT_OF_RESOURCES;
+        return;
+    }
+
+    pobj_list(event_list, event_wait_list, num_events_in_wait_list);
+
+    for (cl_uint i=0; i<num_events_in_wait_list; i++)
+    {
+        src_context = nullptr;
+        /* Get the original/src context of the event */
+        event_list[i]->info(CL_EVENT_CONTEXT,
+                            sizeof(cl_context),
+                            &src_context, 0);
+        if (src_context != dest_context)
+        {
+            *errcode_ret = CL_INVALID_CONTEXT;
+            break;
+        }
+    }
+
+    std::free((void *)event_list);
+}
+
+Event::Type MigrateMemObjectEvent::type() const
+{
+    return Event::MigrateMemObject;
 }
 
 CopyBufferEvent::CopyBufferEvent(CommandQueue *parent,
@@ -820,7 +932,7 @@ KernelEvent::KernelEvent(CommandQueue *parent,
         }
 
         // if __attribute__((reqd_work_group_size(X, Y, Z))) doesn't match
-        else 
+        else
         {
             if ((                local_work_size[0] != reqd_x) ||
                 (work_dim > 1 && local_work_size[1] != reqd_y) ||
@@ -1358,6 +1470,12 @@ ReadBufferRectEvent::ReadBufferRectEvent (CommandQueue *parent,
                            host_slice_pitch, ptr, 1, num_events_in_wait_list,
                            event_wait_list, errcode_ret)
 {
+    cl_mem_flags buf_flags = buffer->flags();
+    if (buf_flags & CL_MEM_HOST_WRITE_ONLY || buf_flags & CL_MEM_HOST_NO_ACCESS)
+    {
+        *errcode_ret = CL_INVALID_OPERATION;
+        return;
+    }
 }
 
 Event::Type ReadBufferRectEvent::type() const
@@ -1383,6 +1501,12 @@ WriteBufferRectEvent::WriteBufferRectEvent (CommandQueue *parent,
                             host_slice_pitch, ptr, 1, num_events_in_wait_list,
                             event_wait_list, errcode_ret)
 {
+    cl_mem_flags buf_flags = buffer->flags();
+    if (buf_flags & CL_MEM_HOST_READ_ONLY || buf_flags & CL_MEM_HOST_NO_ACCESS)
+    {
+        *errcode_ret = CL_INVALID_OPERATION;
+        return;
+    }
 }
 
 Event::Type WriteBufferRectEvent::type() const
@@ -1595,19 +1719,6 @@ Event::Type CopyBufferToImageEvent::type() const
 }
 
 /*
- * Barrier
- */
-
-BarrierEvent::BarrierEvent(CommandQueue *parent, cl_int *errcode_ret)
-: Event(parent, Queued, 0, 0, errcode_ret)
-{}
-
-Event::Type BarrierEvent::type() const
-{
-    return Event::Barrier;
-}
-
-/*
  * WaitForEvents
  */
 
@@ -1637,3 +1748,21 @@ Event::Type MarkerEvent::type() const
 {
     return Event::Marker;
 }
+
+/*
+ * Barrier
+ */
+
+BarrierEvent::BarrierEvent(CommandQueue *parent,
+                           cl_uint num_events_in_wait_list,
+                           const cl_event *event_wait_list,
+                           cl_int *errcode_ret)
+: WaitForEventsEvent(parent, num_events_in_wait_list, event_wait_list, errcode_ret)
+{}
+
+Event::Type BarrierEvent::type() const
+{
+    return Event::Barrier;
+}
+
+

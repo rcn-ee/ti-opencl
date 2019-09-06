@@ -83,6 +83,7 @@
 #include "edma.h"
 #include "trace.h"
 #include "tal/mbox_msgq_shared.h"
+#include "dsp_builtins.h"
 
 #if defined(ULM_ENABLED)
 #include "tiulm.h"
@@ -160,6 +161,7 @@ static void process_configuration_message(ocl_msgq_message_t* msgq_pkt);
 static void timeout_clock_handler(UArg arg);
 static inline void setup_extended_memory(flush_msg_t* flush_msg);
 static inline void reset_extended_memory(flush_msg_t* flush_msg);
+static void setup_builtin_kernels(Msg_t* Msg);
 
 
 /* BIOS_TASKS */
@@ -440,7 +442,7 @@ void ocl_monitor()
 
             case FREQUENCY:
                 Log_print1(Diags_INFO, "FREQUENCY(%u)\n", pid);
-                respond_to_host(ocl_msgq_pkt, dsp_speed());
+                respond_to_host(ocl_msgq_pkt, __dsp_frequency());
                 break;
 
             case CONFIGURE_MONITOR:
@@ -490,6 +492,19 @@ static inline void reset_extended_memory(flush_msg_t* flush_msg)
 }
 
 /******************************************************************************
+* setup_builtin_kernels: translate BIK index into real function address
+******************************************************************************/
+static void setup_builtin_kernels(Msg_t* Msg)
+{
+#if defined(DEVICE_AM572x) && !defined(_SYS_BIOS)
+    if (Msg->u.k.kernel.entry_point >= DSP_MAX_NUM_BUILTIN_KERNELS) return;
+    Msg->u.k.kernel.entry_point = (uint32_t) tiocl_dsp_builtin_kernel_table[
+                                                  Msg->u.k.kernel.entry_point];
+    // Built-in kernels are compiled with "data=far", no need to set DP
+#endif
+}
+
+/******************************************************************************
 * process_task_command
 ******************************************************************************/
 static void process_task_command(ocl_msgq_message_t* msgq_pkt)
@@ -523,6 +538,11 @@ static void process_task_command(ocl_msgq_message_t* msgq_pkt)
     kernel_config_l2.WG_alloca_size   = kcfg->WG_alloca_size;
     kernel_config_l2.L2_scratch_start = kcfg->L2_scratch_start;
     kernel_config_l2.L2_scratch_size  = kcfg->L2_scratch_size;
+
+    /*-------------------------------------------------------
+    * Setup built-in kernels: entry_point
+    *------------------------------------------------------*/
+    setup_builtin_kernels(Msg);
 
     /*-------------------------------------------------------
     * Start AET profiling with counting in hardware counters
@@ -575,8 +595,7 @@ static void process_task_command(ocl_msgq_message_t* msgq_pkt)
                Clock_start(timeout_clock);
            }
 
-           dsp_rpc(&((kernel_msg_t * ) & Msg->u.k.kernel)->entry_point,
-                   more_args, more_args_size);
+           dsp_rpc(& Msg->u.k.kernel.entry_point, more_args, more_args_size);
 
            if (Msg->u.k.kernel.timeout_ms > 0)
                Clock_stop(timeout_clock);
@@ -652,7 +671,7 @@ void ocl_service_omp(UArg arg0, UArg arg1)
                         Clock_start(timeout_clock);
                     }
 
-                    dsp_rpc(&((kernel_msg_t *)&Msg->u.k.kernel)->entry_point,
+                    dsp_rpc(& Msg->u.k.kernel.entry_point,
                             more_args, more_args_size);
                     tomp_dispatch_finish();
 

@@ -52,22 +52,6 @@ static inline cl_int queueEvent(Coal::CommandQueue *queue,
 
     if (event)
     {
-#if 0
-        /*---------------------------------------------------------------------
-        * It is up to the user to release events for reuse.  If they do not
-        * they will have a memory leak for old events.  This can impact
-        * memory performance since the old event memory is likely already warm
-        * in cache.
-        *--------------------------------------------------------------------*/
-        /*---------------------------------------------------------------------
-        * We should also reduce the reference count of the old event, because
-        * user_app_event is now interested in a different event.
-        *--------------------------------------------------------------------*/
-        old_event = pobj(*event);
-        if (old_event != NULL && old_event->isA(Coal::Object::T_Event))
-	    clReleaseEvent(desc(old_event));
-
-#endif
         /*---------------------------------------------------------------------
         * We need to increase reference count before queue->queueEvent(command)
         * because a user_app_event is interested in the status of command.
@@ -290,6 +274,24 @@ clEnqueueFillBuffer(cl_command_queue   d_command_queue,
     }
 
     return queueEvent(command_queue, command, event, false);
+}
+
+cl_int
+clEnqueueFillImage(cl_command_queue    d_command_queue,
+                   cl_mem              d_image,
+                   const void *        fill_color,
+                   const size_t *      origin,
+                   const size_t *      region,
+                   cl_uint             num_events_in_wait_list,
+                   const cl_event *    event_wait_list,
+                   cl_event *          event)
+{
+    auto command_queue = pobj(d_command_queue);
+
+    if (!command_queue->isA(Coal::Object::T_CommandQueue))
+        return CL_INVALID_COMMAND_QUEUE;
+
+    return CL_IMAGE_FORMAT_NOT_SUPPORTED;
 }
 
 cl_int
@@ -720,6 +722,64 @@ clEnqueueUnmapMemObject(cl_command_queue d_command_queue,
 }
 
 cl_int
+clEnqueueMigrateMemObjects(cl_command_queue       d_command_queue,
+                           cl_uint                num_mem_objects,
+                           const cl_mem *         d_mem_objects,
+                           cl_mem_migration_flags flags,
+                           cl_uint                num_events_in_wait_list,
+                           const cl_event *       event_wait_list,
+                           cl_event *             event)
+{
+    cl_int rs = CL_SUCCESS;
+    auto command_queue = pobj(d_command_queue);
+
+    if (!command_queue->isA(Coal::Object::T_CommandQueue))
+    {
+        return CL_INVALID_COMMAND_QUEUE;
+    }
+
+    if (!num_mem_objects || !d_mem_objects) return CL_INVALID_VALUE;
+
+    const cl_mem_migration_flags all_flags = CL_MIGRATE_MEM_OBJECT_HOST |
+                                   CL_MIGRATE_MEM_OBJECT_CONTENT_UNDEFINED;
+
+    if ((flags & ~all_flags) != 0) return CL_INVALID_VALUE;
+
+    if (!(flags & CL_MIGRATE_MEM_OBJECT_HOST ||
+          flags & CL_MIGRATE_MEM_OBJECT_CONTENT_UNDEFINED ||
+          flags == 0))
+    {
+        return CL_INVALID_VALUE;
+    }
+
+    if((!event_wait_list && num_events_in_wait_list > 0) ||
+       (event_wait_list  && num_events_in_wait_list == 0))
+    {
+        return CL_INVALID_EVENT_WAIT_LIST;
+    }
+
+    Coal::MigrateMemObjectEvent* command = new Coal::MigrateMemObjectEvent(
+        command_queue,
+        d_mem_objects,
+        num_mem_objects,
+        flags,
+        num_events_in_wait_list,
+        event_wait_list,
+        &rs
+    );
+
+    if (rs != CL_SUCCESS)
+    {
+        delete command;
+        return rs;
+    }
+
+    return queueEvent(command_queue, command, event, false);
+}
+
+
+
+cl_int
 clEnqueueNDRangeKernel(cl_command_queue d_command_queue,
                        cl_kernel        d_kernel,
                        cl_uint          work_dim,
@@ -839,9 +899,6 @@ clEnqueueMarkerWithWaitList(cl_command_queue    d_command_queue,
     if (!command_queue->isA(Coal::Object::T_CommandQueue))
         return CL_INVALID_COMMAND_QUEUE;
 
-    if (!event)
-        return CL_INVALID_VALUE;
-
     // Check sanity of parameters
     if (!event_wait_list && num_events_in_wait_list)
         return CL_INVALID_EVENT_WAIT_LIST;
@@ -925,20 +982,76 @@ clEnqueueWaitForEvents(cl_command_queue d_command_queue,
 cl_int
 clEnqueueBarrier(cl_command_queue d_command_queue)
 {
+    cl_event ev;
+    return clEnqueueBarrierWithWaitList(d_command_queue, 0, NULL, &ev);
+}
+
+cl_int
+clEnqueueBarrierWithWaitList(cl_command_queue  d_command_queue,
+                             cl_uint           num_events_in_wait_list,
+                             const cl_event *  event_wait_list,
+                             cl_event *        event)
+{
     cl_int rs = CL_SUCCESS;
     auto command_queue = pobj(d_command_queue);
 
     if (!command_queue->isA(Coal::Object::T_CommandQueue))
         return CL_INVALID_COMMAND_QUEUE;
 
+    /* Check sanity of parameters */
+    if (!event_wait_list && num_events_in_wait_list)
+        return CL_INVALID_EVENT_WAIT_LIST;
+
+    if (event_wait_list && !num_events_in_wait_list)
+        return CL_INVALID_EVENT_WAIT_LIST;
+
+    /* If event_wait_list is not specified, then populate it
+     * with events in the command queue */
+    unsigned int count = 0;
+    Coal::Event  **events = nullptr;
+    cl_event *e_wait_list = nullptr;
+    if (num_events_in_wait_list == 0)
+    {
+        /* Get the events in command_queue */
+        events = command_queue->events(count, false);
+
+        if (count != 0)
+        {
+            if (!events)
+                return CL_OUT_OF_HOST_MEMORY;
+
+            e_wait_list = (cl_event *)std::malloc(count * sizeof(cl_event));
+
+            if (!e_wait_list)
+            {
+                free(events);
+                return CL_OUT_OF_HOST_MEMORY;
+            }
+
+            desc_list(e_wait_list, events, count);
+        }
+        num_events_in_wait_list = count;
+        event_wait_list = e_wait_list;
+    }
+
     Coal::BarrierEvent *command = new Coal::BarrierEvent(
-        command_queue, &rs);
+        command_queue, num_events_in_wait_list, event_wait_list, &rs);
 
     if (rs != CL_SUCCESS)
     {
+        std::free(events);
+        std::free(e_wait_list);
         delete command;
         return rs;
     }
 
-    return queueEvent(command_queue, command, 0, false);
+    /* Free events, they were memcpyed by Coal::Event */
+    for (unsigned int i=0; i<count; ++i)
+    {
+        events[i]->dereference();
+    }
+    std::free(events);
+    std::free(e_wait_list);
+
+    return queueEvent(command_queue, command, event, false);
 }

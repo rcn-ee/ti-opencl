@@ -44,6 +44,7 @@ typedef enum
 #define EVE_MAX_ARGS_IN_REG_SIZE 3          // number of registers
 #define EVE_MAX_ARGS_ON_STACK_SIZE 128      // bytes
 #define EVE_MSG_COMMAND_MASK (0x00008000)   // used by IPU and EVE internally
+#define DSP_MAX_NUM_BUILTIN_KERNELS 256
 
 #define MAX_ARGS_TOTAL_SIZE 1024
 

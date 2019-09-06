@@ -64,24 +64,23 @@ void ocl_main(UArg arg0, UArg arg1)
 int main(int argc, char *argv[])
 {
 #endif
-   cl_int err     = CL_SUCCESS;
    int    bufsize = sizeof(Golden);
    int    num_errors = 0;
    const int    print_nerrors = 12;
 
-   for (int i=0; i < NumElements; ++i) 
+   for (int i=0; i < NumElements; ++i)
    {
-       srcA[i] = i * 1.0; 
-       srcB[i] = ((i+7) % 253 )* 1.0; 
+       srcA[i] = i * 1.0;
+       srcB[i] = ((i+7) % 253 )* 1.0;
        Golden[i]   =   srcA[i] + srcB[i];
    }
 
-   try 
+   try
    {
      Context context(CL_DEVICE_TYPE_ACCELERATOR);
 
      std::vector<Device> devices = context.getInfo<CL_CONTEXT_DEVICES>();
-      
+
      int d = 0;
      std::string str;
      devices[d].getInfo(CL_DEVICE_NAME, &str);
@@ -103,7 +102,7 @@ int main(int argc, char *argv[])
                       istreambuf_iterator<char>());
      Program::Sources    source(1, make_pair(kSrc.c_str(), kSrc.length()));
      Program             program = Program(context, source);
-     program.build(devices, "vadd_openmp.obj"); 
+     program.build(devices, "vadd_openmp.obj");
 #else
      Program::Binaries binary(1, make_pair(vadd_wrapper_dsp_bin,
                                               sizeof(vadd_wrapper_dsp_bin)));
@@ -133,8 +132,8 @@ int main(int argc, char *argv[])
 
      for (int i=0; i < NumElements; ++i)
      {
-       if (Golden[i] - dst[i] < -EPISILON || Golden[i] - dst[i] > EPISILON) 
-       { 
+       if (Golden[i] - dst[i] < -EPISILON || Golden[i] - dst[i] > EPISILON)
+       {
            if((num_errors += 1) < print_nerrors)
                printf("Error %d: %f <==> %f\n", i, Golden[i], dst[i]);
        }
@@ -145,10 +144,10 @@ int main(int argc, char *argv[])
      ocl_event_times(vec_ev5[0], "Kernel       ");
      ocl_event_times(ev6, "Read   BufDst");
    }
-   catch (Error err) 
+   catch (Error& err)
    { cerr << "ERROR: " << err.what() << "(" << err.err() << ")" << endl; }
 
-   if (num_errors == 0) cout << "PASS!" << endl; 
+   if (num_errors == 0) cout << "PASS!" << endl;
    else { cout << "FAIL with " << num_errors << " errors!\n"; RETURN(-1); }
 
    RETURN(0);

@@ -34,7 +34,7 @@ void print_completion_code(uint32_t completion_code)
 /******************************************************************************
 * Given an OpenCL Device, Abort if the device is not part of the AM57x platform
 ******************************************************************************/
-int assert_am57x(cl::Device &device)
+void assert_am57x(cl::Device &device)
 {
     cl::Platform platform;
     std::string  platform_name;

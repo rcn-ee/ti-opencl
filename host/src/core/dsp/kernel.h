@@ -68,6 +68,7 @@ class DSPKernel : public DeviceKernel
 {
     public:
         DSPKernel(DSPDevice *device, Kernel *kernel, llvm::Function *function);
+        DSPKernel(DSPDevice *device, Kernel *kernel, KernelEntry *kernel_entry);
         ~DSPKernel();
 
         size_t       workGroupSize()   const ;
@@ -97,6 +98,8 @@ class DSPKernel : public DeviceKernel
     private:
         DSPDevice *     p_device;
         Kernel *        p_kernel;
+        // p_device_entry_pt: either BuiltIn Kernel index
+        //                    or     real kernel function address
         DSPDevicePtr    p_device_entry_pt;
         DSPDevicePtr    p_data_page_ptr;
         llvm::Function *p_function;

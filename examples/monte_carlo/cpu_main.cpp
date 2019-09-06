@@ -15,7 +15,7 @@
  *
  *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+ *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
  *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
  *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
@@ -40,7 +40,7 @@
 
 #include "gaussRandom.h"
 #include "utilityRoutines.h"
-#include "generateRandomGaissian.h"
+#include "generateRandomGaussian.h"
 
 
 #define   MAX_ELEMENTS    (32*1024)
@@ -97,7 +97,7 @@ int main (int argc, char *argv[])
         CommandQueue Q (ctx, devices[0], CL_QUEUE_PROFILING_ENABLE);
 
       /*---------------------------------------------------------------------
-       * Determine how many chunks based on how many DSP cores are available 
+       * Determine how many chunks based on how many DSP cores are available
        *--------------------------------------------------------------------*/
         int num_chunks;
         devices[0].getInfo (CL_DEVICE_MAX_COMPUTE_UNITS, &num_chunks);
@@ -133,10 +133,12 @@ int main (int argc, char *argv[])
         float *ary1 = (float *) __malloc_ddr (ary_size);
         float *ary2 = (float *) __malloc_ddr (ary_size);
 
-        Buffer buf1 (ctx, CL_MEM_WRITE_ONLY | CL_MEM_USE_HOST_PTR, ary_size,
-                     ary1);
-        Buffer buf2 (ctx, CL_MEM_WRITE_ONLY | CL_MEM_USE_HOST_PTR, ary_size,
-                     ary2);
+        Buffer buf1 (ctx,
+                     (cl_mem_flags) CL_MEM_WRITE_ONLY | CL_MEM_USE_HOST_PTR,
+                     ary_size, ary1);
+        Buffer buf2 (ctx,
+                     (cl_mem_flags) CL_MEM_WRITE_ONLY | CL_MEM_USE_HOST_PTR,
+                     ary_size, ary2);
 
 
       /*---------------------------------------------------------------------
@@ -148,7 +150,7 @@ int main (int argc, char *argv[])
 
       /*---------------------------------------------------------------------
       * Starting the loop
-      *     
+      *
       *    1. Start a new DSP acceleration execution
       *    2. Read the previous buffer of random numbers
       *    3. Call ARM code that is work in parallel with the DSP acceleration
@@ -179,7 +181,7 @@ int main (int argc, char *argv[])
     /*----------------------------------------------------------------------
      * Let exception handling deal with any OpenCL error cases
      *--------------------------------------------------------------------*/
-    catch (Error err)
+    catch (Error& err)
     {
         cerr << "ERROR: " << err.what ()
             << "(" << ocl_decode_error (err.err ()) << ")" << endl;
@@ -215,7 +217,7 @@ static void run_on_arm ()
 
 
 /******************************************************************************
-* consumeBuffer    
+* consumeBuffer
 ******************************************************************************/
 static void consumeBuffer (float *pp, int N)
 {

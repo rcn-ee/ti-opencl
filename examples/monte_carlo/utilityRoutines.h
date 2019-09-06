@@ -105,6 +105,9 @@ initializeInit (struct initial_t value[])
 
 }
 
+#if 0
+/* Debug routines*/
+
 static void
 printLong (unsigned long x)
 {
@@ -123,8 +126,6 @@ printFloat (float x)
     printf ("  %x   %e  \n", (unsigned int) x, x);
 }
 
-
-
 static void
 fprintLongLong (FILE * p, int *i, unsigned long long v)
 {
@@ -136,10 +137,6 @@ fprintLongLong (FILE * p, int *i, unsigned long long v)
     ii++;
     *i = ii;
 }
-
-
-
-
 
 static void
 write_X_Y_W_to_file (FILE * fp, float *scratch1, float *scratch2, int N)
@@ -181,3 +178,4 @@ write_float_file (FILE * fp, float *scratch1, int N)
 
     }
 }
+#endif

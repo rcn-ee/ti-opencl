@@ -21,17 +21,19 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#include <map>
+#include <set>
+
 #ifndef POCL_BARRIER_TAIL_REPLICATION
 #define POCL_BARRIER_TAIL_REPLICATION
 
-#include "config.h"
+#include "pocl.h"
+
 #include "llvm/IR/Function.h"
 #include "llvm/IR/Dominators.h"
 #include "llvm/Analysis/LoopInfo.h"
 #include "llvm/Pass.h"
 #include "llvm/Transforms/Utils/Cloning.h"
-#include <map>
-#include <set>
 
 namespace pocl {
   class Workgroup;
@@ -53,7 +55,12 @@ namespace pocl {
 
     llvm::DominatorTree *DT;
     llvm::DominatorTreeWrapperPass *DTP;
+
+#ifdef LLVM_OLDER_THAN_3_7
     llvm::LoopInfo *LI;
+#else
+    llvm::LoopInfoWrapperPass *LI;
+#endif
 
     bool ProcessFunction(llvm::Function &F);
     bool FindBarriersDFS(llvm::BasicBlock *bb,

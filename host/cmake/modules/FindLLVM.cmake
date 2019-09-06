@@ -17,9 +17,7 @@ if (LLVM_INCLUDE_DIR)
 else (LLVM_INCLUDE_DIR)
 
 # Set up variables to point to an LLVM installation for the desired target
-# (x86 or arm). For now, on C6678 builds, we build 32 vs 64 x86 based on the
-# machine we're building on. Future work is to specify a 32/64-bit x86 build
-# independent on the machine we're building on.
+# (x86 or arm).
 
 # Use uname to get build platform. The paths to the target LLVM builds have
 # arm/x86/x86_64 in the name so munge to match our convention
@@ -49,11 +47,7 @@ set(LLVM_VERSION 360)
 
 
 # Set llvm path to appropriate target llvm install
-if (K2X_BUILD OR K2G_BUILD OR AM57_BUILD)
-   set (LLVM_INSTALL_DIR ${ARM_LLVM_DIR})
-elseif(C6678_BUILD) 
-   set (LLVM_INSTALL_DIR ${X86_LLVM_DIR})
-endif()
+set (LLVM_INSTALL_DIR ${ARM_LLVM_DIR})
 
 
 # Create the full path name to the appropriate LLVM installation
@@ -121,11 +115,7 @@ MESSAGE(STATUS "LLVM LD flags: " ${LLVM_LDFLAGS})
 
 
 # Generate list of LLVM libraries to link against
-if (C6678_BUILD)
-  set (LLVM_LIB_TARGET X86)
-elseif(K2X_BUILD OR K2G_BUILD OR AM57_BUILD)
-  set (LLVM_LIB_TARGET ARM)
-endif()
+set (LLVM_LIB_TARGET ARM)
 
 exec_program(${LLVM_CONFIG_EXECUTABLE} ARGS --libs  OUTPUT_VARIABLE LLVM_LIBS_CORE )
 #exec_program(${LLVM_CONFIG_EXECUTABLE} ARGS --libs  ${LLVM_LIB_TARGET} asmparser native bitwriter tablegen mcjit debuginfo interpreter linker irreader instrumentation ipo mcdisassembler OUTPUT_VARIABLE LLVM_LIBS_CORE )

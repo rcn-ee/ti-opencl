@@ -110,6 +110,6 @@ extern cregister volatile unsigned int DNUM;
 * Device functions
 ******************************************************************************/
 void initialize_memory(void);
-unsigned dsp_speed();
+EXPORT uint32_t __dsp_frequency();
 
 #endif  //_monitor_h_

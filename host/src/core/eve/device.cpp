@@ -82,7 +82,7 @@ void *eve_worker_event_completion(void* data);
 * EVEDevice::EVEDevice(unsigned char eve_id, SharedMemory *shm)
 ******************************************************************************/
 EVEDevice::EVEDevice(unsigned char eve_id, SharedMemory* shm)
-    : DeviceInterface       (),
+    : DeviceInterface       (DeviceInterface::T_EVE),
       p_eve_id_             (eve_id),
       p_cores               (1),
       p_num_events          (0),
@@ -94,7 +94,8 @@ EVEDevice::EVEDevice(unsigned char eve_id, SharedMemory* shm)
       p_initialized         (false),
       p_complete_pending    (),
       p_shmHandler          (shm),
-      p_pid                 (getpid())
+      p_pid                 (getpid()),
+      p_compute_units({0})
 {
     /*-------------------------------------------------------------------------
     * TODO: MCT-795, get EVE device built in kernels information
@@ -164,7 +165,7 @@ EVEDevice::EVEDevice(unsigned char eve_id, SharedMemory* shm)
     do
     {
         while (!mail_query())  ;
-        ret = mail_from();
+        ret = mail_from(p_compute_units);
     } while (ret == -1);
 
     p_eve_mhz = ret;
@@ -348,7 +349,6 @@ void EVEDevice::pushEvent(Event *event)
 }
 
 bool EVEDevice::stop()           { return p_stop; }
-bool EVEDevice::availableEvent() { return p_num_events > 0; }
 
 /******************************************************************************
 * Event *EVEDevice::getEvent(bool &stop)
@@ -474,7 +474,9 @@ bool EVEDevice::mail_query()
     return p_mb->query();
 }
 
-int EVEDevice::mail_from(int *retcode)
+// compute_units unused on EVE, here for consistency with DSPDevice
+int EVEDevice::mail_from(const DSPCoreSet& compute_units,
+                         int* retcode)
 {
     uint32_t size_rx;
     int32_t  trans_id_rx;
@@ -657,6 +659,14 @@ cl_int EVEDevice::info(cl_device_info param_name,
             SIMPLE_ASSIGN(size_t, 0);           //images not supported
             break;
 
+        case CL_DEVICE_IMAGE_MAX_ARRAY_SIZE:
+            SIMPLE_ASSIGN(size_t, 0);           //images not supported
+            break;
+
+        case CL_DEVICE_IMAGE_MAX_BUFFER_SIZE:
+            SIMPLE_ASSIGN(size_t, 0);           //images not supported
+            break;
+
         case CL_DEVICE_IMAGE_SUPPORT:
             SIMPLE_ASSIGN(cl_bool, CL_FALSE);   //images not supported
             break;
@@ -798,6 +808,10 @@ cl_int EVEDevice::info(cl_device_info param_name,
             SIMPLE_ASSIGN(cl_bool, CL_TRUE);
             break;
 
+        case CL_DEVICE_LINKER_AVAILABLE:
+            SIMPLE_ASSIGN(cl_bool, CL_TRUE);
+            break;
+
         case CL_DEVICE_EXECUTION_CAPABILITIES:
             SIMPLE_ASSIGN(cl_device_exec_capabilities, CL_EXEC_NATIVE_KERNEL);
             break;
@@ -840,7 +854,7 @@ cl_int EVEDevice::info(cl_device_info param_name,
             break;
 
         case CL_DEVICE_VERSION:
-            STRING_ASSIGN("OpenCL 1.1 TI " COAL_VERSION);
+            STRING_ASSIGN("OpenCL 1.1 ");
             break;
 
         case CL_DEVICE_EXTENSIONS:
@@ -900,6 +914,14 @@ cl_int EVEDevice::info(cl_device_info param_name,
 
         case CL_DEVICE_NATIVE_VECTOR_WIDTH_HALF:
             SIMPLE_ASSIGN(cl_uint, 0);
+            break;
+
+        case CL_DEVICE_PRINTF_BUFFER_SIZE:
+            SIMPLE_ASSIGN(size_t, 0); // Printf not supported on custom device
+            break;
+
+        case CL_DEVICE_PREFERRED_INTEROP_USER_SYNC:
+            SIMPLE_ASSIGN(cl_bool, CL_TRUE);
             break;
 
         case CL_DEVICE_OPENCL_C_VERSION:

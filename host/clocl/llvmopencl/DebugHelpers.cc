@@ -1,17 +1,17 @@
 // Helpers for debugging the kernel compiler.
-// 
+//
 // Copyright (c) 2013 Pekka Jääskeläinen / Tampere University of Technology
-// 
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -25,17 +25,27 @@
 #include <sstream>
 #include <set>
 
-#include "DebugHelpers.h"
+#include "CompilerWarnings.h"
+IGNORE_COMPILER_WARNING("-Wunused-parameter")
 
-#include "config.h"
-#include "Barrier.h"
-#include "BarrierBlock.h"
-#include "Workgroup.h"
+#include "pocl.h"
 
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Module.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
+
+#include "DebugHelpers.h"
+#include "Barrier.h"
+#include "Workgroup.h"
+
+#ifndef TI_POCL
+#include "pocl_file_util.h"
+#else
+#include "ti_pocl.h"
+#endif
+
+POP_COMPILER_DIAGS
 
 using namespace llvm;
 
@@ -51,13 +61,13 @@ static void printBranches(
   llvm::BasicBlock* b, std::ostream& s, bool /*highlighted*/) {
 
   llvm::TerminatorInst *term = b->getTerminator();
-  for (unsigned i = 0; i < term->getNumSuccessors(); ++i) 
+  for (unsigned i = 0; i < term->getNumSuccessors(); ++i)
     {
       BasicBlock *succ = term->getSuccessor(i);
       s << getDotBasicBlockID(b) << " -> " << getDotBasicBlockID(succ) << ";"
         << std::endl;
     }
-  s << std::endl;   
+  s << std::endl;
 }
 
 static void printBasicBlock(
@@ -65,11 +75,11 @@ static void printBasicBlock(
   //      if (!Barrier::hasBarrier(b)) continue;
   s << getDotBasicBlockID(b);
   s << "[shape=rect,style=";
-  if (Barrier::hasBarrier(b)) 
+  if (Barrier::hasBarrier(b))
     s << "dotted";
-  else 
+  else
     s << "solid";
-  
+
   if (highlighted) {
     s << ",color=red,style=filled";
   }
@@ -89,7 +99,7 @@ static void printBasicBlock(
     int previousNonBarriers = 0;
     for (llvm::BasicBlock::iterator instr = b->begin();
          instr != b->end(); ++instr) {
-      
+
         if (isa<Barrier>(instr)) {
           s << "BARRIER\\n";
           previousNonBarriers = 0;
@@ -106,7 +116,7 @@ static void printBasicBlock(
           s << "UNREACHABLE\\n";
           previousNonBarriers = 0;
         } else {
-          if (previousNonBarriers == 0) 
+          if (previousNonBarriers == 0)
             s << "...program instructions...\\n";
           previousNonBarriers++;
         }
@@ -127,12 +137,21 @@ static void printBasicBlock(
  * @param highlights highlight these basic blocks in the graph
  */
 void dumpCFG(
-  llvm::Function &F, std::string fname, 
+  llvm::Function &F, std::string fname,
   ParallelRegion::ParallelRegionVector *regions,
   std::set<llvm::BasicBlock*> *highlights) {
 
   if (fname == "")
     fname = std::string("pocl_cfg.") + F.getName().str() + ".dot";
+
+  std::string origName = fname;
+  int counter = 0;
+  while (pocl_exists (fname.c_str())) {
+    std::ostringstream ss;
+    ss << origName << "." << counter;
+    fname = ss.str();
+    ++counter;
+  }
 
   std::ofstream s;
   s.open(fname.c_str(), std::ios::trunc);
@@ -149,11 +168,11 @@ void dumpCFG(
 
       s << "\tsubgraph cluster" << pr->GetID() << " {" << std::endl;
 
-      for (ParallelRegion::iterator i = pr->begin(), e = pr->end(); 
+      for (ParallelRegion::iterator i = pr->begin(), e = pr->end();
            i != e; ++i) {
         BasicBlock *b = *i;
         printBasicBlock(
-          b, s, highlights != NULL && 
+          b, s, highlights != NULL &&
           highlights->find(b) != highlights->end());
         regionBBs.insert(b);
       }
@@ -163,14 +182,14 @@ void dumpCFG(
   }
 
   for (Function::iterator i = F.begin(), e = F.end(); i != e; ++i) {
-    BasicBlock *b = i;
+    BasicBlock *b = &*i;
     if (regionBBs.find(b) != regionBBs.end()) continue;
     printBasicBlock
       (b, s, highlights != NULL && highlights->find(b) != highlights->end());
   }
 
   for (Function::iterator i = F.begin(), e = F.end(); i != e; ++i) {
-    BasicBlock *b = i;
+    BasicBlock *b = &*i;
     printBranches
       (b, s, highlights != NULL && highlights->find(b) != highlights->end());
   }
@@ -186,8 +205,8 @@ bool chopBBs(llvm::Function &F, llvm::Pass &P) {
   do {
     fchanged = false;
     for (Function::iterator i = F.begin(), e = F.end(); i != e; ++i) {
-      BasicBlock *b = i;
-      
+      BasicBlock *b = &*i;
+
       if (b->size() > MAX_INSTRUCTIONS_PER_BB + 1)
         {
           int count = 0;
@@ -197,14 +216,18 @@ bool chopBBs(llvm::Function &F, llvm::Pass &P) {
               ++splitPoint;
               ++count;
             }
+#ifdef LLVM_OLDER_THAN_3_7
           SplitBlock(b, splitPoint, &P);
+#else
+          SplitBlock(b, &*splitPoint);
+#endif
           fchanged = true;
           break;
         }
-    }  
+    }
 
   } while (fchanged);
   return fchanged;
 }
-    
+
 };

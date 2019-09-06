@@ -24,12 +24,16 @@
 #define _POCL_DEBUG_HELPERS_H
 
 #include <string>
-
-#include "ParallelRegion.h"
+#if _MSC_VER
+#  include <set>
+#endif
 
 #include "config.h"
+
 #include "llvm/IR/Function.h"
 #include "llvm/Pass.h"
+
+#include "ParallelRegion.h"
 
 namespace pocl {
   // View CFG with visual aids to debug kernel compiler problems.
@@ -42,7 +46,7 @@ namespace pocl {
   //
   // @return True in case the function was changed.
   bool chopBBs(llvm::Function& F, llvm::Pass &P);
-};
+}
 
 // Controls the debug output from Kernel.cc parallel region generation:
 //#define DEBUG_PR_CREATION

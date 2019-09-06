@@ -59,7 +59,7 @@ struct timespec t0,t1;
 int    M               = 1024;
 int    N               = 1024;
 int    K               = 1024;
-double alpha           = 1.0; 
+double alpha           = 1.0;
 double beta            = 0.0;
 CBLAS_ORDER     order  = CblasColMajor;
 CBLAS_TRANSPOSE transA = CblasNoTrans;
@@ -77,7 +77,7 @@ int  Check         (const double *C1, const double *C2, int M, int N);
 * Operation printing helpers
 *----------------------------------------------------------------------------*/
 const char *op(CBLAS_TRANSPOSE t) { return t == CblasTrans ? "'" : ""; }
-const char *maj(CBLAS_ORDER o)    { return (o == CblasColMajor) ? "cMaj " 
+const char *maj(CBLAS_ORDER o)    { return (o == CblasColMajor) ? "cMaj "
                                                                 : "rMaj "; }
 
 /*-----------------------------------------------------------------------------
@@ -100,7 +100,7 @@ int main(int argc, char* argv[])
     double secs;
 
     /*-------------------------------------------------------------------------
-    * Allocate space for the matrices.  The matrices that will be passed to 
+    * Allocate space for the matrices.  The matrices that will be passed to
     * the DSP are allocated using device memory.  The Ccpu array is not passed
     * to the dsp and so can use system memory.
     *------------------------------------------------------------------------*/
@@ -125,7 +125,7 @@ int main(int argc, char* argv[])
     for (int i = 0; i < M*N; ++i) Ccpu[i] = C[i] = 0;
     cout << "Done. Starting Dgemm. " << endl;
 
-    cout << maj(order) << "C["<<M<<","<<N<<"] = " 
+    cout << maj(order) << "C["<<M<<","<<N<<"] = "
                        << "A"<<op(transA)<<"["<<M<<","<<K<<"] * "
                        << "B"<<op(transB)<<"["<<K<<","<<N<<"]: "
                        << endl
@@ -140,8 +140,8 @@ int main(int argc, char* argv[])
     int ldc = (order == CblasColMajor) ? M : N;
 
     /*-------------------------------------------------------------------------
-    * Calling ocl_init is not required, but it does prime the 1 time OpenCL 
-    * context creation, so that the first dsp cblas_dgemm call timing is not 
+    * Calling ocl_init is not required, but it does prime the 1 time OpenCL
+    * context creation, so that the first dsp cblas_dgemm call timing is not
     * skewed by this setup cost.
     *------------------------------------------------------------------------*/
     int NUMCOMPUNITS;
@@ -208,7 +208,7 @@ int Check(const double *C1, const double *C2, int M, int N)
          cout << "FAIL with " << num_errors << " errors!" << endl;
          return -1;
     }
-    else 
+    else
     {
         cout << "PASS!" << endl;
         return 0;
@@ -221,7 +221,7 @@ int Check(const double *C1, const double *C2, int M, int N)
 void PrintUsageAndExit()
 {
    cout << "C[M,N] = A[M,K] * B[K,N]" << endl
-        << "Default value of M,N,K is " << M << endl 
+        << "Default value of M,N,K is " << M << endl
         << "Usage: dgemm [options] " << endl
         << "Options: " << endl
         << "-M arg : Number of rows for array C" << endl

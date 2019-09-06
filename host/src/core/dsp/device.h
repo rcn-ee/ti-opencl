@@ -38,7 +38,6 @@
 #include <list>
 #include "mbox_interface.h"
 #include "../shared_memory_interface.h"
-#include "device_manager_interface.h"
 #include "core_scheduler.h"
 #include "device_info.h"
 
@@ -52,7 +51,6 @@ class Kernel;
 
 using tiocl::SharedMemory;
 using tiocl::MemoryRange;
-using tiocl::DeviceManager;
 
 /* Maximum size of properties array for partition_type
  * For each partition unit -> MAX_NUM_CORES
@@ -68,7 +66,7 @@ using tiocl::DeviceManager;
 class DSPDevice : public DeviceInterface, public Lockable
 {
 public:
-    DSPDevice(SharedMemory* shm);
+    DSPDevice(DeviceInterface::Type type, SharedMemory* shm);
     virtual ~DSPDevice();
 
     /* Disable default constructor, copy constructor, and assignment */
@@ -83,7 +81,6 @@ public:
     virtual void             init()                  = 0;
     virtual void             pushEvent(Event* event) = 0;
     virtual bool             stop()                  = 0;
-    virtual bool             availableEvent()        = 0;
     virtual Event*           getEvent(bool& stop)    = 0;
     virtual bool             gotEnoughToWorkOn()     = 0;
     virtual bool             mail_query()            = 0;
@@ -103,12 +100,10 @@ public:
     virtual pthread_mutex_t* get_worker_mutex()         = 0;
     virtual float            dspMhz()            const  { return p_dsp_mhz; }
     virtual unsigned char    dspID()             const  { return p_dsp_id;  }
-    virtual const DSPDevice* GetRootDSPDevice()  const  = 0;
 
     /*-------------------------------------------------------------------------
     * Methods common to both DSPRootDevice and DSPSubDevice
     *------------------------------------------------------------------------*/
-    DSPDevicePtr             get_addr_kernel_config()    { return p_addr_kernel_config;}
     profiling_t&             getProfiling()              { return p_profiling;         }
     std::ostream*            getProfilingOut()           { return p_profiling_out;     }
     std::string              builtinsHeader(void) const  { return "dsp.h";             }
@@ -133,7 +128,10 @@ public:
 
     DeviceBuffer*            createDeviceBuffer(MemObject* buffer, cl_int* rs);
     DeviceProgram*           createDeviceProgram(Program* program);
-    DeviceKernel*            createDeviceKernel(Kernel* kernel, llvm::Function* function);
+    DeviceKernel*            createDeviceKernel(Kernel* kernel,
+                                                llvm::Function* function);
+    DeviceKernel*            createDeviceBuiltInKernel(Kernel *kernel,
+                                                  KernelEntry *builtin_kernel);
     void                     recordProfilingData(command_retcode_t*, uint32_t core);
     cl_int                   initEventDeviceData(Event* event);
     void                     freeEventDeviceData(Event* event);
@@ -150,7 +148,6 @@ protected:
     float                           p_dsp_mhz;
     DSPDevice*                      p_parent;
     DSPCoreSet                      p_compute_units;
-    DSPDevicePtr                    p_addr_kernel_config;
     DSPDevicePtr                    p_addr_local_mem;
     uint32_t                        p_size_local_mem;
     profiling_t                     p_profiling;

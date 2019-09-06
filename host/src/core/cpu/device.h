@@ -103,6 +103,9 @@ class CPUDevice : public DeviceInterface
         // System memory is represented as a nullptr SHMHandler
         tiocl::SharedMemory* GetSHMHandler() const { return nullptr; }
 
+        DeviceInterface* GetRootDevice() override { return this; }
+        const DeviceInterface* GetRootDevice() const override { return this; }
+
     private:
         unsigned int p_cores, p_num_events;
         float       p_cpu_mhz;

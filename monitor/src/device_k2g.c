@@ -67,10 +67,10 @@ void initialize_memory(void)
 }
 
 /******************************************************************************
-* dsp_speed
+* __dsp_frequency
 * See evmk2g.gel SetPll1() for magic numbers
 ******************************************************************************/
-unsigned dsp_speed(void)
+uint32_t __dsp_frequency(void)
 {
     const unsigned CLKIN_val  = 24;
     char *BOOTCFG_BASE_ADDR = (char*)0x02620000;

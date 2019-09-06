@@ -49,7 +49,7 @@ var VERBOSE_OUTPUT    = arguments[4];
 // Check to see if running from within CCSv4 Scripting Console
 var ds;
 var withinCCS = (ds !== undefined);
- 
+
 // Create scripting environment and get debug server if running standalone
 if (!withinCCS)
 {
@@ -57,12 +57,12 @@ if (!withinCCS)
     importPackage(Packages.com.ti.debug.engine.scripting);
     importPackage(Packages.com.ti.ccstudio.scripting.environment);
     importPackage(Packages.java.lang);
- 
+
     // Create our scripting environment object - which is the main entry point
     // into any script and the factory for creating other Scriptable servers
     // and Sessions
     var script = ScriptingEnvironment.instance();
- 
+
     // Get the Debug Server and start a Debug Session
     debugServer = script.getServer("DebugServer.1");
 }
@@ -88,10 +88,12 @@ loadPrograms();
 waitInMs(500);
 runPrograms();
 haltPrograms();
+reset();
 disconnect();
 terminateSessions();
 debugServer.stop();
 script.traceEnd();
+waitInMs(1000);
 java.lang.System.exit(0);
 
 
@@ -113,7 +115,7 @@ function openSessions()
         debugSession[1] = debugServer.openSession("Spectrum Digital XDS560V2 STM LAN Emulator_0/C66xx_DSP1");
         debugSession[2] = debugServer.openSession("Spectrum Digital XDS560V2 STM LAN Emulator_0/C66xx_DSP2");
     }
-    catch (e) 
+    catch (e)
     {
         print("ERROR: Couldn't open session on cpu: " + e);
         java.lang.System.exit(-1);
@@ -148,56 +150,67 @@ function reset()
     {
         print("Could reset target!\nAborting!" + ex);
     }
+    debugSession[0].expression.evaluate("AM572x_PRCM_Clock_Config_OPPNOM()");
 }
 
 function connect()
 {
     printTrace("TARGET: " + debugSession[0].getBoardName());
-    printTrace("Performing a System Reset...");
 
+    printTrace("Connecting to A15...");
     // Connect to Cortex15_0
     if (!debugSession[0].target.isConnected())
     {
         debugSession[0].target.connect();
     }
- 
+
+    printTrace("Performing a A15 CPU Reset...");
+    debugSession[0].target.reset();
+
+    printTrace("Performing a System Reset...");
     // Array for supported resets
     var reset = new Array();
-
     // Query the number of supported resets
     var numReset = debugSession[0].target.getNumResetTypes();
-
     // Look for system reset and issue it
     for (i=0;i<numReset;i++)
     {
-         reset[i]=debugSession[0].target.getResetType(i);  
+         reset[i]=debugSession[0].target.getResetType(i);
 
          // Issue a system reset
          if (reset[i].getName().indexOf("System Reset") != -1)
          {
             printTrace(reset[i].getName());
-            reset[i].issueReset();    
+            reset[i].issueReset();
          }
     }
+
+    printTrace("Disconnect and Reconnect...");
     debugSession[0].target.disconnect();
 
     try
     {
         if (!debugSession[0].target.isConnected())
         {
-            printTrace("Connect to A15_0...");
+            printTrace("Connect to A15_0 and Reset...");
             debugSession[0].target.connect();
+            debugSession[0].target.reset();
+            waitInMs(1000);
         }
-        
+
         if (!debugSession[1].target.isConnected())
         {
-            printTrace("Enabling DSP1...");
+            printTrace("Connect to DSP1 and Reset...");
             debugSession[1].target.connect();
+            debugSession[1].target.reset();
+            waitInMs(1000);
         }
         if (!debugSession[2].target.isConnected())
         {
-            printTrace("Enabling DSP2...");
+            printTrace("Connect to DSP2 and Reset...");
             debugSession[2].target.connect();
+            debugSession[2].target.reset();
+            waitInMs(1000);
         }
     }
     catch (e)
@@ -233,6 +246,7 @@ function loadPrograms()
     waitInMs(500);
     printTrace("Loading programs: DSP2 ...");
     debugSession[2].memory.loadProgram(DSP2_OUT);
+    waitInMs(500);
 }
 
 function runPrograms()
@@ -249,10 +263,10 @@ function runPrograms()
 
 function haltPrograms()
 {
-    printTrace("Halting DSPs...");
-    debugSession[0].target.halt();
-    debugSession[1].target.halt();
+    printTrace("Halting DSPs and A15...");
     debugSession[2].target.halt();
+    debugSession[1].target.halt();
+    debugSession[0].target.halt();
 }
 
 

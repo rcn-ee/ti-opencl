@@ -136,7 +136,7 @@ void set_mpax_before_cinit()
     set_MPAX  (3, ddr3_virt_encoding, size_encoding, ddr3_phys_encoding, DEFAULT_PERMISSION);
 }
 
-unsigned dsp_speed()
+uint32_t __dsp_frequency()
 {
     const unsigned DSP_PLL  = 122880000;
     char *BOOTCFG_BASE_ADDR = (char*)0x02620000;

@@ -65,18 +65,17 @@ int gettime_ms()
 
 int main(int argc, char *argv[])
 {
-   cl_int err     = CL_SUCCESS;
    int    bufsize = NumElements * sizeof(cl_short);
    int num_errors = 0;
    int          d = 0;
    int start_time, end_time;
 
-   try 
+   try
    {
      Context context(CL_DEVICE_TYPE_ACCELERATOR);
      std::vector<Device> devices = context.getInfo<CL_CONTEXT_DEVICES>();
      int num_devices = devices.size();
-     if (NumVecElements % num_devices != 0 || 
+     if (NumVecElements % num_devices != 0 ||
          (NumVecElements / num_devices) % WorkGroupSize != 0)
      {
         cerr << "ERROR: Cannot evenly distribute data across devices!" << endl;
@@ -88,7 +87,7 @@ int main(int argc, char *argv[])
 
      Program::Sources    source(1, std::make_pair(kernelStr,strlen(kernelStr)));
      Program             program = Program(context, source);
-     program.build(devices); 
+     program.build(devices);
      Kernel kernel(program, "VectorAdd");
 
      for (d = 0; d < num_devices; ++d)
@@ -100,7 +99,7 @@ int main(int argc, char *argv[])
 
   /* Method 1: Use ReadBuffer/WriteBuffer APIs */
   {
-     cout << "=== Method 1: Using ReadBuffer/WriteBuffer APIs ===" << endl; 
+     cout << "=== Method 1: Using ReadBuffer/WriteBuffer APIs ===" << endl;
      cl_short *srcA   = (cl_short *) malloc(bufsize);
      cl_short *srcB   = (cl_short *) malloc(bufsize);
      cl_short *dst    = (cl_short *) malloc(bufsize);
@@ -112,10 +111,10 @@ int main(int argc, char *argv[])
      }
 
      start_time = gettime_ms();
-     for (int i=0; i < NumElements; ++i) 
-     { 
-        srcA[i]   = srcB[i] = i<<2; 
-        Golden[i] = srcB[i] + srcA[i]; 
+     for (int i=0; i < NumElements; ++i)
+     {
+        srcA[i]   = srcB[i] = i<<2;
+        Golden[i] = srcB[i] + srcA[i];
         dst[i]    = 0;
      }
 
@@ -156,12 +155,12 @@ int main(int argc, char *argv[])
      for (d = 0; d < num_devices; ++d)
         ev4s[d]->wait();
      for (int i=0; i < NumElements; ++i)
-        if (Golden[i] != dst[i]) 
-        { 
+        if (Golden[i] != dst[i])
+        {
             num_errors += 1;
             if (num_errors < 10)
-                cout << "Failed at Element " << i << ": " 
-                     << Golden[i] << " != " << dst[i] << endl; 
+                cout << "Failed at Element " << i << ": "
+                     << Golden[i] << " != " << dst[i] << endl;
         }
      end_time = gettime_ms();
      cout << "Method 1:  " << end_time - start_time << " micro seconds" << endl;
@@ -175,7 +174,7 @@ int main(int argc, char *argv[])
         ocl_event_times(*ev4s[d], "Read BufDst");
      }
      if (num_errors)  cout << "Fail with " << num_errors << " errors!" << endl;
-     else             cout << "Success!" << endl; 
+     else             cout << "Success!" << endl;
 
      free(srcA);
      free(srcB);
@@ -196,7 +195,7 @@ int main(int argc, char *argv[])
 
   /* Method 2: Use MapBuffer/UnmapMemObject APIs */
   {
-     cout << "\n\n=== Method 2: Using MapBuffer/UnmapBuffer APIs ===" << endl; 
+     cout << "\n\n=== Method 2: Using MapBuffer/UnmapBuffer APIs ===" << endl;
      cl_short *h_bufA, *h_bufB;
      cl_short *mGolden = (cl_short *) malloc(bufsize);
      cl_short **h_dst = (cl_short **) malloc(num_devices * sizeof(cl_short *));
@@ -205,7 +204,7 @@ int main(int argc, char *argv[])
         cout << "Unable to allocate memory for data! (MapBuffer API)" << endl;
         exit(-1);
      }
-     
+
      start_time = gettime_ms();
      std::vector<Buffer*> mbufAs, mbufBs, mbufDs;
      std::vector<CommandQueue*> mQs;
@@ -227,10 +226,10 @@ int main(int argc, char *argv[])
      }
      for (d = 0; d < num_devices; ++d)
      {
-        cl_short *h_bufA = (cl_short *) mQs[d]->enqueueMapBuffer(*mbufAs[d], 
-                         CL_FALSE, CL_MAP_WRITE, 0, d_bufsize, NULL, mev1s[d]);
-        cl_short *h_bufB = (cl_short *) mQs[d]->enqueueMapBuffer(*mbufBs[d], 
-                         CL_FALSE, CL_MAP_WRITE, 0, d_bufsize, NULL, mev2s[d]);
+        h_bufA = (cl_short *) mQs[d]->enqueueMapBuffer(*mbufAs[d],
+                  CL_FALSE, CL_MAP_WRITE, 0, d_bufsize, NULL, mev1s[d]);
+        h_bufB = (cl_short *) mQs[d]->enqueueMapBuffer(*mbufBs[d],
+                  CL_FALSE, CL_MAP_WRITE, 0, d_bufsize, NULL, mev2s[d]);
         mev1s[d]->wait();
         for (int i = 0; i < d_Elements; i++)
           h_bufA[i] = (d * d_Elements + i)<<2;
@@ -259,11 +258,11 @@ int main(int argc, char *argv[])
      {
         mev6s[d]->wait();
         for (int i = 0; i < d_Elements; ++i)
-          if (mGolden[d*d_Elements + i] != h_dst[d][i]) 
-          { 
+          if (mGolden[d*d_Elements + i] != h_dst[d][i])
+          {
             num_errors += 1;
             if (num_errors < 10)
-                cout << "Failed at Element " << i << ": " 
+                cout << "Failed at Element " << i << ": "
                  << mGolden[d*d_Elements + i] << " != " << h_dst[d][i] << endl;
           }
         mQs[d]->enqueueUnmapMemObject(*mbufDs[d], h_dst[d], NULL, mev7s[d]);
@@ -286,7 +285,7 @@ int main(int argc, char *argv[])
         ocl_event_times(*mev7s[d], "Unmap BufDst");
      }
      if (num_errors)  cout << "Fail with " << num_errors << " errors!" << endl;
-     else             cout << "Success!" << endl; 
+     else             cout << "Success!" << endl;
 
      free(mGolden);
      free(h_dst);
@@ -307,6 +306,6 @@ int main(int argc, char *argv[])
   }  /* end Mehtod 2 */
 
    }
-   catch (Error err) 
+   catch (Error& err)
    { cerr << "ERROR: " << err.what() << "(" << err.err() << ")" << endl; }
 }

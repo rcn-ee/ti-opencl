@@ -88,18 +88,11 @@ const Kernel::DeviceDependent& Kernel::deviceDependent(DeviceInterface* device) 
 
         if (!device)
         {
-            if (p_device_dependent.size() == 1) return rs;
+            if (p_device_dependent.size() == 1)
+                return rs;
         }
-        else if (Coal::DSPDevice* dsp = dynamic_cast<Coal::DSPDevice*>(device))
-        {
-            const DSPDevice* root_device = dsp->GetRootDSPDevice();
-            const DeviceInterface* iroot_device = dynamic_cast<const DeviceInterface*>(root_device);
-            if (rs.device == iroot_device) return rs;
-        }
-        else
-        {
-            if (rs.device == device) return rs;
-        }
+        else if (rs.device == device || rs.device == device->GetRootDevice())
+            return rs;
     }
 
     return null_dep;
@@ -107,36 +100,83 @@ const Kernel::DeviceDependent& Kernel::deviceDependent(DeviceInterface* device) 
 
 Kernel::DeviceDependent& Kernel::deviceDependent(DeviceInterface* device)
 {
-    for (size_t i = 0; i < p_device_dependent.size(); ++i)
-    {
-        DeviceDependent& rs = p_device_dependent[i];
+    // Avoid code duplication by casting const away for the non-const method
+    const Kernel& K = *this;
+    return const_cast<Kernel::DeviceDependent&>(K.deviceDependent(device));
+}
 
-        if (!device)
+/*******************************************************************************
+* void Kernel::CreateMDNameMap(llvm::MDNode *fnode,
+*                              std::map<std::string, llvm::MDNode*>& mdname_map)
+*******************************************************************************/
+void Kernel::CreateMDNameMap(llvm::MDNode *fnode,
+                             std::map<std::string, llvm::MDNode*>& mdname_map)
+{
+    /*-------------------------------------------------------------------------
+    * Index 0 is the llvm::Function, Metadata nodes start from index 1
+    *------------------------------------------------------------------------*/
+    for (unsigned int i = 1, num_operands = fnode->getNumOperands();
+         i != num_operands;
+         ++i)
+    {
+        const llvm::MDOperand &op = fnode->getOperand(i);
+        llvm::MDNode *op_node = llvm::dyn_cast_or_null<llvm::MDNode>(op);
+        if(op_node)
         {
-            if (p_device_dependent.size() == 1) return rs;
+            const llvm::MDOperand &md_name = op_node->getOperand(0);
+            if (llvm::isa<llvm::MDString>(md_name))
+            {
+                const std::string& md_key = llvm::cast<llvm::MDString>(md_name)
+                                            ->getString().str();
+                mdname_map[md_key] = op_node;
+            }
         }
-        else if (Coal::DSPDevice* dsp = dynamic_cast<Coal::DSPDevice*>(device))
+    }
+}
+
+/******************************************************************************
+ * std::string Kernel::GetMDValueStr(std::map<std::string,
+ *                                            llvm::MDNode*>& mdname_map,
+ *                                   std::string mdname_key,
+ *                                   unsigned int index)
+******************************************************************************/
+std::string Kernel::GetMDValueStr(std::map<std::string,
+                                           llvm::MDNode*>& mdname_map,
+                                  const std::string& mdname_key,
+                                  unsigned int index)
+{
+    std::string mdop_str;
+
+    if (mdname_map.find(mdname_key) != mdname_map.end())
+    {
+        const llvm::MDOperand& mdop = mdname_map[mdname_key]->getOperand(index);
+        if (llvm::isa<llvm::MDString>(mdop))
         {
-            const DSPDevice* root_device = dsp->GetRootDSPDevice();
-            const DeviceInterface* iroot_device = dynamic_cast<const DeviceInterface*>(root_device);
-            if (rs.device == iroot_device) return rs;
-        }
-        else
-        {
-            if (rs.device == device) return rs;
+            mdop_str = llvm::cast<llvm::MDString>(mdop)->getString().str();
         }
     }
 
-    return null_dep;
+    return mdop_str;
 }
-
 
 /******************************************************************************
 * cl_int Kernel::addFunction
 ******************************************************************************/
-cl_int Kernel::addFunction(DeviceInterface *device, llvm::Function *function,
-                           llvm::Module *module)
+cl_int Kernel::addFunction(DeviceInterface *device,
+                           llvm::MDNode    *fnode,
+                           llvm::Module    *module)
 {
+    /* Get llvm::Function from its MDNode */
+    llvm::ValueAsMetadata *fnode_md_value =
+        llvm::dyn_cast_or_null<llvm::ValueAsMetadata>(fnode->getOperand(0));
+    if (!fnode_md_value) return CL_INVALID_KERNEL_DEFINITION;
+
+    llvm::Value     *value    = fnode_md_value->getValue();
+    if (!llvm::isa<llvm::Function>(value)) return CL_INVALID_KERNEL_DEFINITION;
+
+    llvm::Function  *function = llvm::dyn_cast_or_null<llvm::Function>(value);
+    if (!function) return CL_INVALID_KERNEL_DEFINITION;
+
     p_name = function->getName().str();
 
     // Get wi_alloca_size, to be used for computing wg_alloca_size
@@ -155,6 +195,12 @@ cl_int Kernel::addFunction(DeviceInterface *device, llvm::Function *function,
     dep.device   = device;
     dep.function = function;
     dep.module   = module;
+
+    /*-------------------------------------------------------------------------
+    * Create a map with arg metadata names pointing to their MDNodes
+    *------------------------------------------------------------------------*/
+    std::map<std::string, llvm::MDNode*> mdname_map;
+    CreateMDNameMap(fnode, mdname_map);
 
     /*-------------------------------------------------------------------------
     * Build the arg list of the kernel (or verify it if a previous function
@@ -181,7 +227,6 @@ cl_int Kernel::addFunction(DeviceInterface *device, llvm::Function *function,
 
             file = (Arg::File)p_type->getAddressSpace();
             arg_type = p_type->getElementType();
-
             // If it's a __local argument, we'll have to allocate memory at run time
             if (file == Arg::Local)
                 p_has_locals = true;
@@ -232,7 +277,7 @@ cl_int Kernel::addFunction(DeviceInterface *device, llvm::Function *function,
                 llvm::IntegerType *i_type = llvm::cast<llvm::IntegerType>(arg_type);
 
                 /*-------------------------------------------------------------
-                * We offset the arg index by 1, because element 0 is the return 
+                * We offset the arg index by 1, because element 0 is the return
                 * type.
                 *------------------------------------------------------------*/
                 is_subword_int_uns = function->getAttributes().
@@ -264,6 +309,42 @@ cl_int Kernel::addFunction(DeviceInterface *device, llvm::Function *function,
 
         // Create arg
         Arg a(vec_dim, file, kind, is_subword_int_uns);
+
+        /*----------------------------------------------------------------------
+        * Process Arg Metadata
+        *---------------------------------------------------------------------*/
+        std::string mstr;
+        /* kernel_arg_access_qual */
+        mstr = GetMDValueStr(mdname_map, "kernel_arg_access_qual", i+1);
+        cl_kernel_arg_access_qualifier aq;
+        if      (mstr == "read_only")  aq = CL_KERNEL_ARG_ACCESS_READ_ONLY;
+        else if (mstr == "write_only") aq = CL_KERNEL_ARG_ACCESS_WRITE_ONLY;
+        else if (mstr == "read_write") aq = CL_KERNEL_ARG_ACCESS_READ_WRITE;
+        else                           aq = CL_KERNEL_ARG_ACCESS_NONE;
+        a.SetAccessQualifier(aq);
+
+        /* kernel_arg_type_qual*/
+        mstr = GetMDValueStr(mdname_map, "kernel_arg_type_qual", i+1);
+        cl_kernel_arg_type_qualifier tq = CL_KERNEL_ARG_TYPE_NONE;
+        if (mstr.find("const")    != std::string::npos)
+            tq |= (cl_kernel_arg_type_qualifier) CL_KERNEL_ARG_TYPE_CONST;
+        if (mstr.find("restrict") != std::string::npos)
+            tq |= (cl_kernel_arg_type_qualifier) CL_KERNEL_ARG_TYPE_RESTRICT;
+        if (mstr.find("volatile") != std::string::npos)
+            tq |= (cl_kernel_arg_type_qualifier) CL_KERNEL_ARG_TYPE_VOLATILE;
+        a.SetTypeQualifier(tq);
+
+        /* kernel_arg_name */
+        mstr = GetMDValueStr(mdname_map, "kernel_arg_name", i+1);
+        a.SetName(mstr);
+
+        /* kernel_arg_type */
+        mstr = GetMDValueStr(mdname_map, "kernel_arg_type", i+1);
+        a.SetTypeName(mstr);
+
+        /* kernel_arg_base_type */
+        mstr = GetMDValueStr(mdname_map, "kernel_arg_base_type", i+1);
+        a.SetBaseType(mstr);
 
         // If we also have a function registered, check for signature compliance
         if (!append && a != p_args[i])
@@ -457,6 +538,88 @@ cl_int Kernel::info(cl_kernel_info param_name,
     return CL_SUCCESS;
 }
 
+cl_int Kernel::ArgInfo(cl_uint arg_indx,
+                       cl_kernel_arg_info param_name,
+                       size_t param_value_size,
+                       void *param_value,
+                       size_t *param_value_size_ret) const
+{
+    void *value = 0;
+    size_t value_length = 0;
+    const Arg&         p_arg                       = arg(arg_indx);
+    const std::string& p_arg_name                  = p_arg.GetName();
+    const std::string& p_arg_type_name             = p_arg.GetTypeName();
+    const cl_kernel_arg_access_qualifier& p_arg_aq = p_arg.GetAccessQualifier();
+    const cl_kernel_arg_type_qualifier&   p_arg_tq = p_arg.GetTypeQualifier();
+
+    union {
+        cl_kernel_arg_address_qualifier cl_kernel_arg_address_qualifier_var;
+        cl_kernel_arg_access_qualifier  cl_kernel_arg_access_qualifier_var;
+        cl_kernel_arg_type_qualifier    cl_kernel_arg_type_qualifier_var;
+    };
+
+    switch (param_name)
+    {
+        case CL_KERNEL_ARG_ADDRESS_QUALIFIER:
+            {
+                Kernel::Arg::File p_file = p_arg.file();
+                cl_kernel_arg_address_qualifier addr_qualifier;
+                switch (p_file)
+                {
+                    case Kernel::Arg::File::Private:
+                        addr_qualifier = CL_KERNEL_ARG_ADDRESS_PRIVATE;
+                        break;
+                    case Kernel::Arg::File::Global:
+                        addr_qualifier = CL_KERNEL_ARG_ADDRESS_GLOBAL;
+                        break;
+                    case Kernel::Arg::File::Constant:
+                        addr_qualifier = CL_KERNEL_ARG_ADDRESS_CONSTANT;
+                        break;
+                    case Kernel::Arg::File::Local:
+                        addr_qualifier = CL_KERNEL_ARG_ADDRESS_LOCAL;
+                        break;
+                    default:
+                        addr_qualifier = CL_KERNEL_ARG_ADDRESS_PRIVATE;
+                }
+                SIMPLE_ASSIGN(cl_kernel_arg_address_qualifier, addr_qualifier);
+            }
+            break;
+
+        case CL_KERNEL_ARG_ACCESS_QUALIFIER:
+            SIMPLE_ASSIGN(cl_kernel_arg_access_qualifier, p_arg_aq);
+            break;
+
+        case CL_KERNEL_ARG_TYPE_NAME:
+            if (p_arg_type_name.empty()) return CL_KERNEL_ARG_INFO_NOT_AVAILABLE;
+            MEM_ASSIGN(p_arg_type_name.size() + 1, p_arg_type_name.c_str());
+            break;
+
+        case CL_KERNEL_ARG_TYPE_QUALIFIER:
+            SIMPLE_ASSIGN(cl_kernel_arg_type_qualifier, p_arg_tq);
+            break;
+
+        case CL_KERNEL_ARG_NAME:
+            if (p_arg_name.empty()) return CL_KERNEL_ARG_INFO_NOT_AVAILABLE;
+            MEM_ASSIGN(p_arg_name.size() + 1, p_arg_name.c_str());
+            break;
+
+        default:
+            return CL_INVALID_VALUE;
+    }
+
+    if (param_value && param_value_size < value_length)
+        return CL_INVALID_VALUE;
+
+    if (param_value_size_ret)
+        *param_value_size_ret = value_length;
+
+    if (param_value)
+        std::memcpy(param_value, value, value_length);
+
+    return CL_SUCCESS;
+}
+
+
 void Kernel::reqdWorkGroupSize(llvm::Module *module, cl_uint dims[3]) const
 {
     llvm::NamedMDNode *kernels = module->getNamedMetadata("opencl.kernels");
@@ -465,7 +628,7 @@ void Kernel::reqdWorkGroupSize(llvm::Module *module, cl_uint dims[3]) const
     dims[0] = dims[1] = dims[2] = 0;
 
     if (!kernels) return;
-   
+
     for (unsigned int i = 0, e = kernels->getNumOperands(); i != e; ++i){
        llvm::MDNode *kernel_iter = kernels->getOperand(i);
 
@@ -474,11 +637,11 @@ void Kernel::reqdWorkGroupSize(llvm::Module *module, cl_uint dims[3]) const
        /*---------------------------------------------------------------------
        * Each node has only one operand : a llvm::Function
        *--------------------------------------------------------------------*/
-       llvm::Function *f = 
+       llvm::Function *f =
           llvm::cast<llvm::Function>(
              llvm::dyn_cast<llvm::ValueAsMetadata>(
                 kernel_iter->getOperand(0))->getValue());
-    
+
        if(f->getName().str() != p_name) continue;
        kernel = kernel_iter;
     }
@@ -494,7 +657,7 @@ void Kernel::reqdWorkGroupSize(llvm::Module *module, cl_uint dims[3]) const
 
         std::string meta_name = llvm::cast<llvm::MDString>(
               meta->getOperand(0))->getString().str();
-        if ((meta->getNumOperands() == 4) && 
+        if ((meta->getNumOperands() == 4) &&
             (meta_name == "reqd_work_group_size"))
         {
 	    dims[0] = (llvm::cast<llvm::ConstantInt>(

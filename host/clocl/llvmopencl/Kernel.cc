@@ -2,7 +2,7 @@
 // 
 // Copyright (c) 2011 Universidad Rey Juan Carlos and
 //               2012-2015 Pekka Jääskeläinen / TUT
-// Copyright (c) 2013-2016, Texas Instruments Incorporated - http://www.ti.com/
+// Copyright (c) 2013-2019, Texas Instruments Incorporated - http://www.ti.com/
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -22,15 +22,21 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "Kernel.h"
-#include "Barrier.h"
 #include <iostream>
 
-#include "config.h"
+#include "CompilerWarnings.h"
+IGNORE_COMPILER_WARNING("-Wunused-parameter")
+
+#include "pocl.h"
+
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/InlineAsm.h"
 
+#include "Kernel.h"
+#include "Barrier.h"
 #include "DebugHelpers.h"
+
+POP_COMPILER_DIAGS
 
 using namespace llvm;
 using namespace pocl;
@@ -40,25 +46,28 @@ static void add_predecessors(SmallVectorImpl<BasicBlock *> &v,
 static bool verify_no_barriers(const BasicBlock *B);
 
 void
-Kernel::getExitBlocks(SmallVectorImpl<BarrierBlock *> &B) 
+Kernel::getExitBlocks(SmallVectorImpl<llvm::BasicBlock *> &B)
 {
   for (iterator i = begin(), e = end(); i != e; ++i) {
     const TerminatorInst *t = i->getTerminator();
     if (t->getNumSuccessors() == 0) {
       // All exits must be barrier blocks.
-      B.push_back(cast<BarrierBlock>(i));
+      llvm::BasicBlock *BB = cast<BasicBlock>(i);
+      if (!Barrier::hasBarrier(BB))
+        Barrier::Create(BB->getTerminator());
+      B.push_back(BB);
     }
   }
 }
 
 ParallelRegion *
-Kernel::createParallelRegionBefore(BarrierBlock *B) 
+Kernel::createParallelRegionBefore(llvm::BasicBlock *B)
 {
   SmallVector<BasicBlock *, 4> pending_blocks;
   SmallPtrSet<BasicBlock *, 8> blocks_in_region;
-  BarrierBlock *region_entry_barrier = NULL;
-  llvm::BasicBlock *entry = NULL;
-  llvm::BasicBlock *exit = B->getSinglePredecessor();
+  BasicBlock *region_entry_barrier = NULL;
+  BasicBlock *entry = NULL;
+  BasicBlock *exit = B->getSinglePredecessor();
   add_predecessors(pending_blocks, B);
 
 #ifdef DEBUG_PR_CREATION
@@ -84,9 +93,9 @@ Kernel::createParallelRegionBefore(BarrierBlock *B)
     
     // If we reach another barrier this must be the
     // parallel region entry.
-    if (isa<BarrierBlock>(current)) {
+    if (Barrier::hasOnlyBarrier(current)) {
       if (region_entry_barrier == NULL)
-        region_entry_barrier = cast<BarrierBlock>(current);
+        region_entry_barrier = current;
 #ifdef DEBUG_PR_CREATION
       std::cerr << "### it's a barrier!" << std::endl;        
 #endif     
@@ -161,18 +170,18 @@ Kernel::getParallelRegions(llvm::LoopInfo *LI) {
   ParallelRegion::ParallelRegionVector *parallel_regions =
     new ParallelRegion::ParallelRegionVector;
 
-  SmallVector<BarrierBlock *, 4> exit_blocks;
+  SmallVector<BasicBlock *, 4> exit_blocks;
   getExitBlocks(exit_blocks);
 
   // We need to keep track of traversed barriers to detect back edges.
-  SmallPtrSet<BarrierBlock *, 8> found_barriers;
+  SmallPtrSet<BasicBlock *, 8> found_barriers;
 
   // First find all the ParallelRegions in the Function.
   while (!exit_blocks.empty()) {
     
     // We start on an exit block and process the parallel regions upwards
     // (finding an execution trace).
-    BarrierBlock *exit = exit_blocks.back();
+    BasicBlock *exit = exit_blocks.back();
     exit_blocks.pop_back();
 
     while (ParallelRegion *PR = createParallelRegionBefore(exit)) {
@@ -184,10 +193,10 @@ Kernel::getParallelRegions(llvm::LoopInfo *LI) {
       parallel_regions->push_back(PR);
       BasicBlock *entry = PR->entryBB();
       int found_predecessors = 0;
-      BarrierBlock *loop_barrier = NULL;
+      BasicBlock *loop_barrier = NULL;
       for (pred_iterator i = pred_begin(entry), e = pred_end(entry);
            i != e; ++i) {
-        BarrierBlock *barrier = cast<BarrierBlock> (*i);
+        BasicBlock *barrier = (*i);
         if (!found_barriers.count(barrier)) {
           /* If this is a loop header block we might have edges from two 
              unprocessed barriers. The one inside the loop (coming from a 
@@ -271,26 +280,38 @@ Kernel::addLocalSizeInitCode(size_t LocalSizeX, size_t LocalSizeY, size_t LocalS
   llvm::Module* M = getParent();
 
   int size_t_width = 32;
+#ifdef LLVM_OLDER_THAN_3_7
+  // This breaks (?) if _local_size_x is not stored in AS0,
+  // but it always will be as it's just a pseudo variable that
+  // will be scalarized.
   if (M->getDataLayout()->getPointerSize(0) == 8)
+#else
+  if (M->getDataLayout().getPointerSize(0) == 8)
+#endif
     size_t_width = 64;
 
-  FunctionType *ft = FunctionType::get
-        (/*Result=*/   IntegerType::get(M->getContext(), 32),
-         /*Params=*/   IntegerType::get(M->getContext(), 32),
-         /*isVarArg=*/ false);
-  Function *localsize =
-        cast<Function>(M->getOrInsertFunction("get_local_size", ft));
+#ifndef TI_POCL
   gv = M->getGlobalVariable("_local_size_x");
-  builder.CreateStore(builder.CreateCall(localsize, 
-        ConstantInt::get(IntegerType::get(M->getContext(), size_t_width), 0)),
-                      gv);
+  if (gv != NULL)
+    builder.CreateStore
+      (ConstantInt::get
+       (IntegerType::get(M->getContext(), size_t_width),
+        LocalSizeX), gv);
   gv = M->getGlobalVariable("_local_size_y");
-  builder.CreateStore(builder.CreateCall(localsize, 
-        ConstantInt::get(IntegerType::get(M->getContext(), size_t_width), 1)),
-                      gv);
+
+  if (gv != NULL)
+    builder.CreateStore
+      (ConstantInt::get
+       (IntegerType::get(M->getContext(), size_t_width),
+        LocalSizeY), gv);
   gv = M->getGlobalVariable("_local_size_z");
-  builder.CreateStore(builder.CreateCall(localsize, 
-        ConstantInt::get(IntegerType::get(M->getContext(), size_t_width), 2)),
-                      gv);
+
+  if (gv != NULL)
+    builder.CreateStore
+      (ConstantInt::get
+       (IntegerType::get(M->getContext(), size_t_width),
+        LocalSizeZ), gv);
+#endif
+
 }
 

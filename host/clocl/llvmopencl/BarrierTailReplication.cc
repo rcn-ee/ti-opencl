@@ -2,6 +2,7 @@
 // 
 // Copyright (c) 2011 Universidad Rey Juan Carlos and
 //               2012 Pekka Jääskeläinen / TUT
+// Copyright (c) 2019, Texas Instruments Incorporated - http://www.ti.com/
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -21,20 +22,28 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "config.h"
-#include "BarrierTailReplication.h"
-#include "Barrier.h"
-#include "Workgroup.h"
+#include <iostream>
+#include <algorithm>
+
+#include "CompilerWarnings.h"
+IGNORE_COMPILER_WARNING("-Wunused-parameter")
+
+#include "pocl.h"
+
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include "llvm/Transforms/Utils/Cloning.h"
 #include "llvm/IR/InstrTypes.h"
 #include "llvm/IR/Instructions.h"
+#ifdef TI_POCL
 #include "../llvm_util.h"
+#endif
 
+#include "BarrierTailReplication.h"
+#include "Barrier.h"
+#include "Workgroup.h"
 #include "VariableUniformityAnalysis.h"
 
-#include <iostream>
-#include <algorithm>
+POP_COMPILER_DIAGS
 
 using namespace llvm;
 using namespace pocl;
@@ -56,8 +65,14 @@ BarrierTailReplication::getAnalysisUsage(AnalysisUsage &AU) const
 {
   AU.addRequired<DominatorTreeWrapperPass>();
   AU.addPreserved<DominatorTreeWrapperPass>();
+#ifdef LLVM_OLDER_THAN_3_7
   AU.addRequired<LoopInfo>();
   AU.addPreserved<LoopInfo>();
+#else
+  AU.addRequired<LoopInfoWrapperPass>();
+  AU.addPreserved<LoopInfoWrapperPass>();
+#endif
+
   AU.addPreserved<VariableUniformityAnalysis>();
 }
 
@@ -67,7 +82,9 @@ BarrierTailReplication::runOnFunction(Function &F)
   if (!Workgroup::isKernelToProcess(F))
     return false;
 
+#ifdef TI_POCL
   if (isReqdWGSize111(F))  return false;
+#endif
   
 #ifdef DEBUG_BARRIER_REPL
   std::cerr << "### BTR on " << F.getName().str() << std::endl;
@@ -75,13 +92,22 @@ BarrierTailReplication::runOnFunction(Function &F)
 
   DTP = &getAnalysis<DominatorTreeWrapperPass>();
   DT = &DTP->getDomTree();
+
+#ifdef LLVM_OLDER_THAN_3_7
   LI = &getAnalysis<LoopInfo>();
+#else
+  LI = &getAnalysis<LoopInfoWrapperPass>();
+#endif
 
   bool changed = ProcessFunction(F);
 
-  DT->verifyDomTree();
-  LI->verifyAnalysis();
 
+  // In LLVM 7+, it is replaced by some assert(verify()) in LLVM itself
+#ifdef LLVM_OLDER_THAN_7_0
+  DT->verifyDomTree();
+#endif
+
+  LI->verifyAnalysis();
   /* The created tails might contain PHI nodes with operands 
      referring to the non-predecessor (split point) BB. 
      These must be cleaned to avoid breakage later on.
@@ -89,7 +115,7 @@ BarrierTailReplication::runOnFunction(Function &F)
   for (Function::iterator i = F.begin(), e = F.end();
        i != e; ++i)
     {
-      llvm::BasicBlock *bb = i;
+      llvm::BasicBlock *bb = &*i;
       changed |= CleanupPHIs(bb);
     }      
 
@@ -206,6 +232,7 @@ BarrierTailReplication::ReplicateJoinedSubgraphs(BasicBlock *dominator,
         // We have modified the function. Possibly created new loops.
         // Update analysis passes.
         DTP->runOnFunction(*f);
+
         LI->runOnFunction(*f);
       }
   }
@@ -341,7 +368,7 @@ BarrierTailReplication::ReplicateBasicBlocks(BasicBlockVector &new_graph,
     for (BasicBlock::iterator i2 = b->begin(), e2 = b->end();
 	 i2 != e2; ++i2) {
       Instruction *i = i2->clone();
-      reference_map.insert(std::make_pair(i2, i));
+      reference_map.insert(std::make_pair(&*i2, i));
       new_b->getInstList().push_back(i);
     }
 
@@ -360,7 +387,9 @@ BarrierTailReplication::ReplicateBasicBlocks(BasicBlockVector &new_graph,
           
           // Get value for original incoming edge and add new predicate.
           Value *v = phi->getIncomingValueForBlock(b);
-          Value *new_v = reference_map[v];
+          Value *new_v = reference_map.find(v) == reference_map.end() ?
+            NULL : reference_map[v];
+
           if (new_v == NULL) {
             /* This case can happen at least when replicating a latch 
                block in a b-loop. The value produced might be from a common
@@ -397,9 +426,14 @@ BarrierTailReplication::UpdateReferences(const BasicBlockVector &graph,
     BasicBlock *b = *i;
     for (BasicBlock::iterator i2 = b->begin(), e2 = b->end();
          i2 != e2; ++i2) {
-      Instruction *i = i2;
+      Instruction *i = &*i2;
+#ifdef LLVM_OLDER_THAN_3_9
       RemapInstruction(i, reference_map,
                        RF_IgnoreMissingEntries | RF_NoModuleLevelChanges);
+#else
+      RemapInstruction(i, reference_map,
+                       RF_IgnoreMissingLocals | RF_NoModuleLevelChanges);
+#endif
     }
   }
 }

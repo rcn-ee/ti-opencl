@@ -31,6 +31,7 @@
 #include <fstream>
 #include <cstdlib>
 #include <cassert>
+#include <functional>
 #include <signal.h>
 #include <time.h>
 #include "ocl_util.h"
@@ -46,8 +47,14 @@ using namespace std;
 const int size   = 1 << 23;
 const int wgsize = 1 << 20;
 
-void run_kernel_wait(KernelFunctor&, Buffer&, int, const char*);
-void run_task_nowait(KernelFunctor&, Buffer&, int, int, const char*);
+typedef make_kernel<Buffer&, int> 	   KernelWait;
+typedef make_kernel<Buffer&, int, int> KernelTimeout;
+
+typedef function<KernelWait::type_>    KernelWaitFn;
+typedef function<KernelTimeout::type_> KernelTimeoutFn;
+
+void run_kernel_wait(KernelWaitFn&,    EnqueueArgs&, Buffer&, int, const char*);
+void run_task_nowait(KernelTimeoutFn&, EnqueueArgs&, Buffer&, int, int, const char*);
 
 #ifdef _TI_RTOS
 void ocl_main(UArg arg0, UArg arg1)
@@ -97,53 +104,56 @@ int main(int argc, char *argv[])
     }
 
     Kernel        K (program, "devset");
+    function<KernelWait::type_> devset = KernelWait(K);
     Kernel        T (program, "devset_t");
-    KernelFunctor k_io = K.bind(IOQ, NDRange(size), NDRange(wgsize));
-    KernelFunctor k_oo = K.bind(OOQ, NDRange(size), NDRange(wgsize));
-    KernelFunctor t_io = T.bind(IOQ, NDRange(1), NDRange(1));
-    KernelFunctor t_oo = T.bind(OOQ, NDRange(1), NDRange(1));
+    function<KernelTimeout::type_> devset_t = KernelTimeout(T);
+
+    EnqueueArgs k_io_args(IOQ, NDRange(size), NDRange(wgsize));
+    EnqueueArgs k_oo_args(OOQ, NDRange(size), NDRange(wgsize));
+    EnqueueArgs t_io_args(IOQ, NDRange(1), NDRange(1));
+    EnqueueArgs t_oo_args(OOQ, NDRange(1), NDRange(1));
 
     printf ("# k_io w/o timeout:\n");
-    run_kernel_wait(k_io, buf, -1, "  # k_io w/o timeout:");
+    run_kernel_wait(devset, k_io_args, buf, -1, "  # k_io w/o timeout:");
     printf ("# k_oo w/o timeout:\n");
-    run_kernel_wait(k_oo, buf, -1, "  # k_oo w/o timeout:");
+    run_kernel_wait(devset, k_oo_args, buf, -1, "  # k_oo w/o timeout:");
     if (tIOQ != NULL && tOOQ != NULL)
     {
       __ti_set_kernel_timeout_ms(K(), 100);
-      KernelFunctor k_io_t = K.bind(*tIOQ, NDRange(size), NDRange(wgsize));
-      KernelFunctor k_oo_t = K.bind(*tOOQ, NDRange(size), NDRange(wgsize));
+      EnqueueArgs k_io_t_args(*tIOQ, NDRange(size), NDRange(wgsize));
+      EnqueueArgs k_oo_t_args(*tOOQ, NDRange(size), NDRange(wgsize));
       printf ("# k_io w   timeout:\n");
-      run_kernel_wait(k_io_t, buf, 70, "  # k_io w   timeout:");
+      run_kernel_wait(devset, k_io_t_args, buf, 70, "  # k_io w   timeout:");
       printf ("# k_oo w   timeout:\n");
-      run_kernel_wait(k_oo_t, buf, 70, "  # k_oo w   timeout:");
+      run_kernel_wait(devset, k_oo_t_args, buf, 70, "  # k_oo w   timeout:");
     }
 
     printf ("# t_io w/o timeout:\n");
-    run_task_nowait(t_io, buf, size, -1, "  # t_io w/o timeout:");
+    run_task_nowait(devset_t, t_io_args, buf, size, -1, "  # t_io w/o timeout:");
     printf ("# t_oo w/o timeout:\n");
-    run_task_nowait(t_oo, buf, size, -1, "  # t_oo w/o timeout:");
+    run_task_nowait(devset_t, t_oo_args, buf, size, -1, "  # t_oo w/o timeout:");
     if (tIOQ != NULL && tOOQ != NULL)
     {
       __ti_set_kernel_timeout_ms(T(), 100);
-      KernelFunctor t_io_t = T.bind(*tIOQ, NDRange(1), NDRange(1));
-      KernelFunctor t_oo_t = T.bind(*tOOQ, NDRange(1), NDRange(1));
+      EnqueueArgs t_io_t_args(*tIOQ, NDRange(1), NDRange(1));
+      EnqueueArgs t_oo_t_args(*tOOQ, NDRange(1), NDRange(1));
       printf ("# t_io w   timeout:\n");
-      run_task_nowait(t_io_t, buf, size, 70, "  # t_io w   timeout:");
+      run_task_nowait(devset_t, t_io_t_args, buf, size, 70, "  # t_io w   timeout:");
       printf ("# t_oo w   timeout:\n");
-      run_task_nowait(t_oo_t, buf, size, 70, "  # t_oo w   timeout:");
+      run_task_nowait(devset_t, t_oo_t_args, buf, size, 70, "  # t_oo w   timeout:");
       tIOQ->finish();
       tOOQ->finish();
     }
 
     IOQ.finish();
     OOQ.finish();
-    run_kernel_wait(k_io, buf, -1, "# final k_io w/o timeout:");
+    run_kernel_wait(devset, k_io_args, buf, -1, "# final k_io w/o timeout:");
     IOQ.enqueueReadBuffer(buf, CL_TRUE, 0, size, ary);
 
     delete tIOQ;
     delete tOOQ;
   }
-  catch (Error err)
+  catch (Error& err)
   {
     cerr << "ERROR: " << err.what() << "(" << err.err() << ", "
          << ocl_decode_error(err.err()) << ")" << endl;
@@ -185,14 +195,17 @@ void ev_complete_func(cl_event e, cl_int status, void *data)
   }
 }
 
-void run_kernel_wait(KernelFunctor& k, Buffer& buf, int timeout_flag,
+void run_kernel_wait(KernelWaitFn &k,
+                     EnqueueArgs &eargs,
+                     Buffer &buf,
+                     int timeout_flag,
                      const char *name)
 {
   Event ev;
   int expect_timeout = (timeout_flag <= 0) ? 0 : 1;
   try
   {
-    ev = k(buf, timeout_flag);
+    ev = k(eargs, buf, timeout_flag);
     ev.wait();
     cout << name << " finished" << endl;
     if (expect_timeout)
@@ -201,7 +214,7 @@ void run_kernel_wait(KernelFunctor& k, Buffer& buf, int timeout_flag,
       exit(-1);
     }
   }
-  catch (Error err)
+  catch (Error& err)
   {
     cl_int status;
     ev.getInfo(CL_EVENT_COMMAND_EXECUTION_STATUS, &status);
@@ -219,7 +232,11 @@ void run_kernel_wait(KernelFunctor& k, Buffer& buf, int timeout_flag,
   }
 }
 
-void run_task_nowait(KernelFunctor& k, Buffer& buf, int size, int timeout_flag,
+void run_task_nowait(KernelTimeoutFn &k,
+                     EnqueueArgs &eargs,
+                     Buffer &buf,
+                     int size,
+                     int timeout_flag,
                      const char *name)
 {
   Event ev;
@@ -232,10 +249,10 @@ void run_task_nowait(KernelFunctor& k, Buffer& buf, int size, int timeout_flag,
         data->expect_timeout = (timeout_flag <= 0) ? 0 : 1;
         snprintf(data->kernel_name, KERNELNAMELEN, "%s", name);
     }
-    ev = k(buf, size, timeout_flag);
+    ev = k(eargs, buf, size, timeout_flag);
     ev.setCallback(CL_COMPLETE, ev_complete_func, data);
   }
-  catch (Error err)
+  catch (Error& err)
   {
     cl_int status;
     ev.getInfo(CL_EVENT_COMMAND_EXECUTION_STATUS, &status);

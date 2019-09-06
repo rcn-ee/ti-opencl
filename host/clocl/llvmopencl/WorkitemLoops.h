@@ -1,7 +1,7 @@
 // Header for WorkitemLoops function pass.
 // 
 // Copyright (c) 2012 Pekka Jääskeläinen / TUT
-// Copyright (c) 2013-2016, Texas Instruments Incorporated - http://www.ti.com/
+// Copyright (c) 2013-2019, Texas Instruments Incorporated - http://www.ti.com/
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -24,22 +24,35 @@
 #ifndef _POCL_WORKITEM_LOOPS_H
 #define _POCL_WORKITEM_LOOPS_H
 
-#include "llvm/ADT/Twine.h"
-#include "llvm/IR/Dominators.h"
-#include "llvm/Analysis/LoopInfo.h"
-#include "llvm/Transforms/Utils/ValueMapper.h"
 #include <map>
 #include <vector>
+#include <set>
+
+#include "pocl.h"
+
+#include "llvm/ADT/Twine.h"
+#include "llvm/Analysis/LoopInfo.h"
+#include "llvm/Transforms/Utils/ValueMapper.h"
+#include "llvm/IR/IRBuilder.h"
+
 #include "WorkitemHandler.h"
 #include "ParallelRegion.h"
-#include "VariableUniformityAnalysis.h"
+
+#ifdef TI_POCL
+#include "llvm/IR/Dominators.h"
 #include <llvm/IR/DebugInfo.h>
-#include <llvm/IR/IRBuilder.h>
+#include "VariableUniformityAnalysis.h"
+
 
 #define MAX_DIMENSIONS 3u
+#endif
 
 namespace llvm {
+#ifdef LLVM_OLDER_THAN_3_9
   struct PostDominatorTree;
+#else
+  struct PostDominatorTreeWrapperPass;
+#endif
 }
 
 namespace pocl {
@@ -50,7 +63,8 @@ namespace pocl {
   public:
     static char ID;
 
-  WorkitemLoops() : pocl::WorkitemHandler(ID) {}
+  WorkitemLoops() : pocl::WorkitemHandler(ID),
+                    original_parallel_regions(nullptr) {}
 
     virtual void getAnalysisUsage(llvm::AnalysisUsage &AU) const;
     virtual bool runOnFunction(llvm::Function &F);
@@ -63,10 +77,19 @@ namespace pocl {
     typedef std::map<std::string, llvm::Instruction*> StrInstructionMap;
 
     llvm::DominatorTree *DT;
+#ifdef LLVM_OLDER_THAN_3_7
     llvm::LoopInfo *LI;
+#else
+    llvm::LoopInfoWrapperPass *LI;
+#endif
+
+#ifdef LLVM_OLDER_THAN_3_9
     llvm::PostDominatorTree *PDT;
+#else
+    llvm::PostDominatorTreeWrapperPass *PDT;
+#endif
+
     llvm::DominatorTreeWrapperPass *DTP;
-    VariableUniformityAnalysis *VUA;
 
     ParallelRegion::ParallelRegionVector *original_parallel_regions;
 
@@ -76,8 +99,12 @@ namespace pocl {
 
     void FixMultiRegionVariables(ParallelRegion *region);
     void AddContextSaveRestore(llvm::Instruction *instruction);
+    void releaseParallelRegions();
 
-    llvm::Instruction *AddContextSave(llvm::Instruction *instruction, llvm::Instruction *alloca);
+    llvm::Value *GetLinearWiIndex(llvm::IRBuilder<> &builder, llvm::Module *M,
+                                  ParallelRegion *region);
+    llvm::Instruction *AddContextSave(llvm::Instruction *instruction,
+                                      llvm::Instruction *alloca);
     llvm::Instruction *AddContextRestore
         (llvm::Value *val, llvm::Instruction *alloca, 
          llvm::Instruction *before=NULL, 
@@ -88,9 +115,7 @@ namespace pocl {
     CreateLoopAround
         (ParallelRegion &region, llvm::BasicBlock *entryBB, llvm::BasicBlock *exitBB, 
          bool peeledFirst, llvm::Value *localIdVar, size_t LocalSizeForDim,
-         int dim, bool regLocals,
-         bool addIncBlock=true, llvm::Value *lsizeDim=NULL);
-    void FindKernelDim(llvm::Function &F);
+         bool addIncBlock=true, llvm::Value *DynamicLocalSize=NULL);
 
     llvm::BasicBlock *
       AppendIncBlock
@@ -101,6 +126,8 @@ namespace pocl {
 
     bool ShouldNotBeContextSaved(llvm::Instruction *instr);
 
+#ifdef TI_POCL
+    void FindKernelDim(llvm::Function &F);
     bool removeBarrierCalls(llvm::Function *F);
     void localizeGetLocalId(llvm::Function *F);
     void replaceGetLocalIdWithPhi(ParallelRegion *region, llvm::Value *phis[3]);
@@ -110,6 +137,7 @@ namespace pocl {
     void findIntraRegionAllocas(llvm::Function *F);
     bool isWGInvariant(llvm::Value *v);
     void hoistWGInvariantInstrToEntry(llvm::Function *F);
+#endif
 
     std::map<llvm::Instruction*, unsigned> tempInstructionIds;
     size_t tempInstructionIndex;
@@ -118,16 +146,20 @@ namespace pocl {
     // to skip the 0, 0, 0 iteration in the loops.
     llvm::Value *localIdXFirstVar;
 
-    unsigned int       maxDim;
+#ifdef TI_POCL
+    unsigned int       currDim, maxDim;
     int                wgsizes[3];
     llvm::Value       *lsizeX, *lsizeY, *lsizeZ;
     llvm::PHINode     *phiXFirst[3];
     llvm::Value       *phiDim[3];
+    bool               regLocals;
+
     InstructionIndex   intraRegionAllocas;
     std::map<llvm::Value*, bool> WGInvariantMap;
-
+    VariableUniformityAnalysis *pVUA;
     llvm::MDNode *di_function;
     unsigned int function_scope_line, region_begin_line, region_end_line;
+#endif
   };
 }
 

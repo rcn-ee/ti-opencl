@@ -210,12 +210,6 @@ static std::string get_ocl_dsp()
     if (ocl_install)         stdpath = ocl_install    + stdpath;
     else if (target_rootdir) stdpath = target_rootdir + stdpath;
 
-    #if defined (DSPC868X)
-    // DSPC868x requires TI_OCL_INSTALL to be specified
-    if (ocl_install == nullptr)
-        ReportError(ErrorType::Fatal, ErrorKind::TiOclInstallNotSpecified);
-    #endif
-
     struct stat st;
     stat(stdpath.c_str(), &st);
     if (S_ISDIR(st.st_mode))

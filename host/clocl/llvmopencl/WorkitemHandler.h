@@ -24,11 +24,17 @@
 #ifndef _POCL_WORKITEM_HANDLER_H
 #define _POCL_WORKITEM_HANDLER_H
 
+#include "CompilerWarnings.h"
+IGNORE_COMPILER_WARNING("-Wunused-parameter")
+
 #include "config.h"
+
 #include "llvm/IR/Function.h"
 #include "llvm/IR/Dominators.h"
 #include "llvm/Pass.h"
 #include "llvm/Support/CommandLine.h"
+
+POP_COMPILER_DIAGS
 
 namespace llvm {
   class DominatorTree;
@@ -54,8 +60,6 @@ namespace pocl {
     bool fixUndominatedVariableUses(llvm::DominatorTreeWrapperPass *DT, llvm::Function &F);
     bool dominatesUse(llvm::DominatorTreeWrapperPass *DT, llvm::Instruction &I, unsigned i);
 
-    int LocalSizeX, LocalSizeY, LocalSizeZ;
-
     unsigned size_t_width;
 
     /* The global variables that store the current local id. */
@@ -64,6 +68,12 @@ namespace pocl {
   };
 
   extern llvm::cl::opt<bool> AddWIMetadata;
+  extern llvm::cl::opt<int> LockStepSIMDWidth;
+
+  extern size_t WGLocalSizeX;
+  extern size_t WGLocalSizeY;
+  extern size_t WGLocalSizeZ;
+  extern bool WGDynamicLocalSize;
 }
 
 #endif

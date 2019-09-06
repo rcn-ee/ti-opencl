@@ -210,7 +210,7 @@ BOOL DLIF_write(void* client_handle, struct DLOAD_MEMORY_REQUEST* req)
 
    DSPProgram *program = static_cast<DSPProgram *>(client_handle);
    DSPDevice  *device = program->GetDevice();
-   DLOAD *dl = dynamic_cast<DLOAD *>(program->GetDynamicLoader());
+   DynamicLoader *dl = program->GetDynamicLoader();
 
    assert (dl != 0);
 
@@ -314,7 +314,7 @@ int DLIF_load_dependent(void* client_handle, const char* so_name)
 {
 #ifndef _SYS_BIOS
    DSPProgram *program = static_cast<DSPProgram *>(client_handle);
-   DLOAD *dl = dynamic_cast<DLOAD *>(program->GetDynamicLoader());
+   DynamicLoader *dl = program->GetDynamicLoader();
 
    assert (dl != 0);
 
@@ -344,7 +344,7 @@ int DLIF_load_dependent(void* client_handle, const char* so_name)
 void DLIF_unload_dependent(void* client_handle, uint32_t file_handle)
 {
    DSPProgram *program = static_cast<DSPProgram *>(client_handle);
-   DLOAD *dl = dynamic_cast<DLOAD *>(program->GetDynamicLoader());
+   DynamicLoader *dl = program->GetDynamicLoader();
 
    assert (dl != 0);
 

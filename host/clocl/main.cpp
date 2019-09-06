@@ -255,8 +255,7 @@ bool llvm_xforms(Module *module, bool optimize)
         manager->add(new llvm::PostDominatorTree());
         manager->add(new pocl::WorkitemHandlerChooser());
         manager->add(new       BreakConstantGEPs());   // from pocl
-        //       add(new       GenerateHeader());      // no need
-        manager->add(new pocl::Flatten());
+        manager->add(    pocl::createFlattenPass());
         manager->add(    llvm::createAlwaysInlinerPass());
         manager->add(    llvm::createGlobalDCEPass());
         manager->add(    llvm::createCFGSimplificationPass());
@@ -271,7 +270,7 @@ bool llvm_xforms(Module *module, bool optimize)
         manager->add(new pocl::BarrierTailReplication());
         manager->add(new pocl::CanonicalizeBarriers());
         manager->add(new pocl::IsolateRegions());
-        manager->add(new pocl::WorkItemAliasAnalysis());
+        manager->add(    pocl::createWorkItemAliasAnalysisPass());
         //       add(new pocl::WorkitemReplication()); // no need
         manager->add(new pocl::WorkitemLoops());
         manager->add(new pocl::AllocasToEntry());
