@@ -251,8 +251,8 @@ _COAL_VECTOR_SET(double)
 #define CL_VERSION_1_0          100
 #define CL_VERSION_1_1          110
 #define CL_VERSION_1_2          120
-#define __OPENCL_VERSION__      120
-#define __OPENCL_C_VERSION__    120
+#define __OPENCL_VERSION__      110
+#define __OPENCL_C_VERSION__    110
 #define __ENDIAN_LITTLE__       1
 #define __kernel_exec(__X, __typen) __kernel __attribute__((work_group_size_hint(__X, 1, 1))) \
                                 __attribute__((vec_type_hint(__typen)))

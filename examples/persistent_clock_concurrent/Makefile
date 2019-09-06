@@ -1,7 +1,7 @@
 EXE        = persistent_clock_concurrent
 CXXFLAGS   = -O3 -I../persistent_common
 CL6XFLAGS  = -o2 -I../persistent_common --mem_model:data=far --mem_model:const=data
-CLOCLFLAGS = 
+CLOCLFLAGS =
 USE_RTOS   = 1
 
 

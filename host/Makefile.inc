@@ -7,11 +7,11 @@ UNAME_M:=$(shell uname -m)
 # will report in this format.  The 'ww' represents the PATCH_VERSION of a
 # particular release.  This number will not be reflected in the library
 # .so name, only in the packaging.
-# NOTE!!!!!! The packaging version numbers need to match what is specified in 
+# NOTE!!!!!! The packaging version numbers need to match what is specified in
 # debian/changelog!!!
 OCL_MAJOR_VER=1
-OCL_MINOR_VER=2
-OCL_RELEASE_VER=00
+OCL_MINOR_VER=1
+OCL_RELEASE_VER=19
 OCL_PATCH_VER=00
 OCL_VER=$(OCL_MAJOR_VER).$(OCL_MINOR_VER).$(OCL_RELEASE_VER)
 OCL_DPKG_NAME=ti-opencl
@@ -27,7 +27,7 @@ endif
 SDOMC_SHARED?=/cgnas
 
 # XDC (not included in CoreSDK)
-XDC_DIR?=$(SDOMC_SHARED)/xdctools_3_51_01_18_core
+XDC_DIR?=$(SDOMC_SHARED)/xdctools_3_55_02_22_core
 
 # TI C6x CGT
 TI_OCL_CGT_INSTALL?=$(SDOMC_SHARED)/ti-cgt-c6000-8.3.2/linux
@@ -64,10 +64,10 @@ endif
 ifeq ($(USE_ION), 1)
 CORESDK_VERSION ?= 05.02.00.10-ion
 else
-CORESDK_VERSION ?= 06.00.00.07-release
+CORESDK_VERSION ?= 06.01.00.04-20190826
 endif
 
-TIDL_VERSION    ?= 05_03_00_02-295-2019-02-27_10-52-08
+TIDL_VERSION    ?= 06_01_00_05-502-2019-09-05_20-51-00
 
 ifeq ($(BUILD_K2H),1)
 	CORE_SDK?=$(SDOMC_SHARED)/ti-processor-sdk-linux-k2hk-evm-$(CORESDK_VERSION)
@@ -98,7 +98,7 @@ endif
 # RTOS packages (BIOS, IPC, FC, EDMA3_LLD etc.)
 RTOS_INSTALL_DIR?=$(LINUX_DEVKIT_ROOT)/usr/share/ti
 
-# OMP 
+# OMP
 OMP_DIR?=$(RTOS_INSTALL_DIR)/ti-omp-tree
 
 # Processor SDK Vision (remove once components are integrated into Processor SDK)

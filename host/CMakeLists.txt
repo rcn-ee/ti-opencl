@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.6)
-#Project needs to be set early or CMAKE_SYSTEM_PROCESSOR doesn't get 
+#Project needs to be set early or CMAKE_SYSTEM_PROCESSOR doesn't get
 #reliably set.
 project(ti-opencl)
 
@@ -113,22 +113,22 @@ SET (INCLUDE_INSTALL_DIR "include" CACHE PATH
 # !!! Note that these variables are used by the child cmake files so these
 # variables must be set before the add_subdirectories() commands below
 # File permissions (664)
-set(OCL_FPERMS PERMISSIONS 
-               OWNER_READ OWNER_WRITE 
-	       GROUP_READ GROUP_WRITE 
+set(OCL_FPERMS PERMISSIONS
+               OWNER_READ OWNER_WRITE
+	       GROUP_READ GROUP_WRITE
 	       WORLD_READ)
 
 # Directory permissions (775). Files within the directories are set as above.
-set(OCL_DPERMS FILE_${OCL_FPERMS} 
-               DIRECTORY_PERMISSIONS 
-	       OWNER_READ OWNER_WRITE OWNER_EXECUTE 
-	       GROUP_READ GROUP_WRITE GROUP_EXECUTE 
+set(OCL_DPERMS FILE_${OCL_FPERMS}
+               DIRECTORY_PERMISSIONS
+	       OWNER_READ OWNER_WRITE OWNER_EXECUTE
+	       GROUP_READ GROUP_WRITE GROUP_EXECUTE
 	       WORLD_READ WORLD_EXECUTE)
 
 # Binary permissions (775)
-set(OCL_BPERMS PERMISSIONS 
-               OWNER_READ OWNER_WRITE OWNER_EXECUTE 
-	       GROUP_READ GROUP_WRITE GROUP_EXECUTE 
+set(OCL_BPERMS PERMISSIONS
+               OWNER_READ OWNER_WRITE OWNER_EXECUTE
+	       GROUP_READ GROUP_WRITE GROUP_EXECUTE
 	       WORLD_READ WORLD_EXECUTE)
 
 

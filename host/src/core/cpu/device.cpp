@@ -570,7 +570,7 @@ cl_int CPUDevice::info(cl_device_info param_name,
             break;
 
         case CL_DEVICE_VERSION:
-            STRING_ASSIGN("OpenCL 1.2");
+            STRING_ASSIGN("OpenCL 1.1 ");
             break;
 
         case CL_DEVICE_EXTENSIONS:
@@ -626,7 +626,7 @@ cl_int CPUDevice::info(cl_device_info param_name,
             break;
 
         case CL_DEVICE_OPENCL_C_VERSION:
-            STRING_ASSIGN("OpenCL C 1.2");
+            STRING_ASSIGN("OpenCL C 1.1 ");
             break;
 
         default:

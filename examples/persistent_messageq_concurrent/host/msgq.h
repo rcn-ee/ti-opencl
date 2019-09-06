@@ -22,7 +22,7 @@ class MsgQ
             if (!Q_) throw std::runtime_error("MessageQ could not be created");
         }
 
-        ~MsgQ()
+        ~MsgQ() noexcept(false)
         {
             MessageQ_unblock(Q_);
 
