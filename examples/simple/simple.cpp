@@ -48,8 +48,8 @@ const int wgsize = 1 << 14;
 #ifdef _TI_RTOS
 void ocl_main(UArg arg0, UArg arg1)
 {
-   int    argc = (int)     arg0;
-   char **argv = (char **) arg1;
+   // int    argc = (int)     arg0;
+   // char **argv = (char **) arg1;
    cl_char *ary = (cl_char *) __malloc_ddr(size);
    assert(ary != nullptr);
 #else
