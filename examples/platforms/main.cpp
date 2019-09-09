@@ -65,8 +65,8 @@ void getDevices(Platform& platform, cl_device_type type, cl_device_type type2);
 #ifdef _TI_RTOS
 void ocl_main(UArg arg0, UArg arg1)
 {
-   int    argc = (int)     arg0;
-   char **argv = (char **) arg1;
+   // int    argc = (int)     arg0;
+   // char **argv = (char **) arg1;
 #else
 #define RETURN(x) return x
 int main(int argc, char *argv[])
@@ -129,15 +129,20 @@ void getDevices(Platform& platform, cl_device_type type, cl_device_type type2)
      Context context(type, properties);
      std::vector<Device> devices = context.getInfo<CL_CONTEXT_DEVICES>();
 
-     // Add exactly type2 (not a superset) to the list
-     Context context2(type2, properties);
-     std::vector<Device> devices2 = context2.getInfo<CL_CONTEXT_DEVICES>();
-     for (auto &dev : devices2)
+     cl_uint num_type2 = 0;
+     clGetDeviceIDs(platform(), type2, 0, NULL, &num_type2);
+     if (num_type2 > 0)
      {
-         cl_device_type type;
-         dev.getInfo(CL_DEVICE_TYPE, &type);
-         if (type == type2)
-             devices.emplace_back(dev);
+         // Add exactly type2 (not a superset) to the list
+         Context context2(type2, properties);
+         std::vector<Device> devices2 = context2.getInfo<CL_CONTEXT_DEVICES>();
+         for (auto &dev : devices2)
+         {
+             cl_device_type type;
+             dev.getInfo(CL_DEVICE_TYPE, &type);
+             if (type == type2)
+                 devices.emplace_back(dev);
+         }
      }
 
      for (unsigned int d = 0; d < devices.size(); d++)

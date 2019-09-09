@@ -50,8 +50,8 @@ cl_uchar dst   [bytes];
 #ifdef _TI_RTOS
 void ocl_main(UArg arg0, UArg arg1)
 {
-   int    argc = (int)     arg0;
-   char **argv = (char **) arg1;
+   // int    argc = (int)     arg0;
+   // char **argv = (char **) arg1;
 #else
 #define RETURN(x) return x
 int main(int argc, char *argv[])

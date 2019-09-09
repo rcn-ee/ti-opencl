@@ -83,8 +83,8 @@ static void   cpu_mat_mpy(const float *A, const float *B, float *C,
 #ifdef _TI_RTOS
 void ocl_main(UArg arg0, UArg arg1)
 {
-   int    argc = (int)     arg0;
-   char **argv = (char **) arg1;
+   // int    argc = (int)     arg0;
+   // char **argv = (char **) arg1;
 #else
 #define RETURN(x) return x
 int main(int argc, char *argv[])
@@ -265,7 +265,9 @@ int main(int argc, char *argv[])
 void cpu_mat_mpy(const float * A, const float * B, float * C, int mat_N,
                  int mat_K, int mat_M)
 {
-#pragma omp parallel for
+#ifndef _TI_RTOS
+    #pragma omp parallel for
+#endif
     for (int col = 0; col < mat_M; ++col)
     {
         float b_col[mat_K];
