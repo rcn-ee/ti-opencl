@@ -115,6 +115,19 @@
 // DDR3, DDR3_FC and SR_0 regions in platforms/am57/Platform.xdc
 #define DSP_MEM_DDR             0xFEB00000
 #define DSP_MEM_DDR_SIZE        (SZ_1M * 6)
+/*
+ * To avoid issues with allocation failures with Linux carveout regions, need
+ * to use the RSC_CARVEOUT entries with power of 2 page sizes and aligned
+ * on the same page size boundary.
+ * The size and the alignment order of entries in the resource table plays a
+ * part in avoiding gaps in allocation
+ */
+#define DSP_MEM_DDR0            0xFEB00000
+#define DSP_MEM_DDR0_SIZE       (SZ_1M * 4)
+#define DSP_MEM_DDR1            0xFEF00000
+#define DSP_MEM_DDR1_SIZE       (SZ_1M * 2)
+
+
 
 // CMEM buffers mapped by MMU to PHYS_MEM_IOBUFS
 // If DSP_MEM_IOBUFS is modified, corresponding changes must be made
@@ -157,7 +170,7 @@
 struct my_resource_table {
     struct resource_table base;
 
-    UInt32 offset[20];  /* Should match 'num' in actual definition */
+    UInt32 offset[21];  /* Should match 'num' in actual definition */
 
     /* rpmsg vdev entry */
     struct fw_rsc_vdev rpmsg_vdev;
@@ -165,7 +178,8 @@ struct my_resource_table {
     struct fw_rsc_vdev_vring rpmsg_vring1;
 
     /* text carveout entry */
-    struct fw_rsc_carveout ddr_cout;
+    struct fw_rsc_carveout ddr0_cout;
+    struct fw_rsc_carveout ddr1_cout;
 
     /* trace entry */
     struct fw_rsc_trace trace;
@@ -224,12 +238,13 @@ extern char ti_trace_SysMin_Module_State_0_outbuf__A;
 
 struct my_resource_table ti_ipc_remoteproc_ResourceTable = {
     1,      /* we're the first version that implements this */
-    20,     /* number of entries in the table */
+    21,     /* number of entries in the table */
     0, 0,   /* reserved, must be zero */
     /* offsets to entries */
     {
         offsetof(struct my_resource_table, rpmsg_vdev),
-        offsetof(struct my_resource_table, ddr_cout),
+        offsetof(struct my_resource_table, ddr0_cout),
+        offsetof(struct my_resource_table, ddr1_cout),
         offsetof(struct my_resource_table, trace),
         offsetof(struct my_resource_table, devmem0),
         offsetof(struct my_resource_table, devmem1),
@@ -262,8 +277,13 @@ struct my_resource_table ti_ipc_remoteproc_ResourceTable = {
 
     {
         TYPE_CARVEOUT,
-        DSP_MEM_DDR, 0,
-        DSP_MEM_DDR_SIZE, 0, 0, "DSP_MEM_DDR",
+        DSP_MEM_DDR0, 0,
+        DSP_MEM_DDR0_SIZE, 0, 0, "DSP_MEM_DDR0",
+    },
+    {
+        TYPE_CARVEOUT,
+        DSP_MEM_DDR1, 0,
+        DSP_MEM_DDR1_SIZE, 0, 0, "DSP_MEM_DDR1",
     },
 
     {

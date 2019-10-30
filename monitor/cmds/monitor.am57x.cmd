@@ -181,11 +181,11 @@ SECTIONS
                 "nullres.ae66"      (.fardata)
                 "nullres.ae66"      (.far)
     } > L2SRAM
-    .localddr: load >> DDR3
-    .ctools_core_private: load >> DDR3
+    .localddr: load >> DDR3_FC
+    .ctools_core_private: load >> DDR3_FC
 
-    .fardata: load >> DDR3
-    .far: load >> DDR3
+    .fardata: load >> DDR3_FC
+    .far: load >> DDR3_FC
     .gdb_server: load = L2SRAM, type = NOLOAD, fill = 0x0
 }
 
