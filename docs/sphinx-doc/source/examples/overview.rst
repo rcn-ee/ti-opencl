@@ -43,6 +43,8 @@ vecadd_mpax        S       ndr             S/E            map                   
 vecadd_openmp      S       iot             S/F            read         event     C, omp
 vecadd_openmp_t    S       iot             S/F            read         event     C, omp
 vecadd_subdevice   S       ndr             S/F            host         host                                vec
+vecadd_compile_link   S    ndr             S/E            host         host                                vec, compile, link, library
+vecadd_compile_link_loadbinary S ndr       B/E            host         host                                vec, compile, link, library, loadbinary
 ================== ======= =============== ============== ============ ========= ========================= ==================
 
 ======= =====================
@@ -115,6 +117,10 @@ async      The async_work_group_copy functions are used to move data between mem
 local      OpenCL Local Buffers are used for performance improvement
 query      OpenCL platforms and/or devices are queried for attributes
 vec        OpenCL C vector data types are used in kernels
+compile    Use of program compile API to create compiled program objects from source program objects
+library    Use of program link API to create a library from compiled program objects
+link       Use of program link API to link compiled program objects and libraries
+loadbinary Creation of program object from linked program binary
 ========== ===========================================================================================
 
 
@@ -262,6 +268,25 @@ The same functionality as the vecadd example, but using sub devices. This
 example illustrates the use of sub devices using the OpenCL C API. It performs
 vecadd on the root device as well as equally partitioned individual sub devices
 and measures the time taken by each of them.
+
+.. _vecadd_compile_link-example:
+
+vecadd_compile_link example
+===========================
+
+The same functionality as the vecadd example, but using separate compile and
+link functionality to build a program. This example also illustrates creation
+of a library from compiled program objects and uses this library to create
+a linked program object which is then used to create the kernel.
+
+.. _vecadd_compile_link_loadbinary-example:
+
+vecadd_compile_link_loadbinary example
+======================================
+
+The same functionality as the vecadd_compile_link example with the additional
+step of creating a new program from a linked program binary. This new program
+is then used to create the kernel.
 
 .. _dsplib_fft-example:
 

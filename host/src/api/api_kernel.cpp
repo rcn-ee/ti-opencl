@@ -60,7 +60,8 @@ clCreateKernel(cl_program      d_program,
         return 0;
     }
 
-    if (program->state() != Coal::Program::Built)
+    if (program->state() != Coal::Program::Built &&
+        program->state() != Coal::Program::Linked)
     {
         *errcode_ret = CL_INVALID_PROGRAM_EXECUTABLE;
         return 0;
@@ -89,7 +90,8 @@ clCreateKernelsInProgram(cl_program     d_program,
     if (!program->isA(Coal::Object::T_Program))
         return CL_INVALID_PROGRAM;
 
-    if (program->state() != Coal::Program::Built)
+    if (program->state() != Coal::Program::Built &&
+        program->state() != Coal::Program::Linked)
         return CL_INVALID_PROGRAM_EXECUTABLE;
 
     std::vector<Coal::Kernel *> ks = program->createKernels(&rs);

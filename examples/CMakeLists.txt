@@ -3,7 +3,7 @@ set(CMAKE_INSTALL_MESSAGE NEVER)
 
 # Clean the examples directory so that the install package is clean.
 # Assuming that opencl_examples directory is present otherwise will get a
-# cmake error. 
+# cmake error.
 # NOTE: SHOULD REMOVE ANY INSTALL PACKAGE PRIOR TO DOING A PRODUCTION INSTALL
 install(CODE "execute_process(COMMAND make clean WORKING_DIRECTORY ${OCL_EXAMPLES_DIR})")
 
@@ -28,7 +28,7 @@ install(FILES make.inc Makefile DESTINATION ${OCL_EXAMPLES_PATH} ${OCL_FPERMS})
 endif()
 
 # Explicitly list the examples to be installed. Note that this approach requires
-# an update to this file as new examples are added. 
+# an update to this file as new examples are added.
 # Initially set this list to the examples that will be installed regardless
 # of the target platform.  Use the target build specific blocks below to add to
 # this list
@@ -43,7 +43,7 @@ else()
         dspheap dsplib_fft edmamgr float_compute
         mandelbrot mandelbrot_native matmpy monte_carlo null
         offline offline_embed ooo platforms sgemm simple timeout
-        vecadd)
+        vecadd vecadd_compile_link vecadd_compile_link_loadbinary)
 
     # Add persistent examples for AM57/Linux
     if (AM57_BUILD)

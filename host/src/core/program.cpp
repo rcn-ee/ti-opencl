@@ -40,6 +40,7 @@
 #include "propertylist.h"
 #include "deviceinterface.h"
 #include "dsp/device.h"
+#include "dsp/program.h"
 #include "util.h"
 
 #include <string>
@@ -51,6 +52,7 @@
 #include <vector>
 #include <set>
 #include <algorithm>
+#include <utility>
 
 #include <llvm/ADT/StringRef.h>
 #include <llvm/ADT/SmallVector.h>
@@ -61,12 +63,20 @@
 #include <llvm/IR/LLVMContext.h>
 
 #ifndef _SYS_BIOS
+#include "llvm/IR/Module.h"
+#include "llvm/IR/Verifier.h"
+#include "llvm/Linker/Linker.h"
+#endif
+
+#ifndef _SYS_BIOS
 #include <runtime/stdlib.c.bc.embed.h>
 
 #include "dsp/genfile_cache.h"
 #endif
 
-
+#ifndef _SYS_BIOS
+#include <elf.h>
+#endif
 /*-----------------------------------------------------------------------------
 * temporary for source file cacheing, remove from product releases
 *----------------------------------------------------------------------------*/
@@ -78,6 +88,10 @@ using namespace Coal;
 static llvm::Module *BitcodeToLLVMModule(const std::string &bitcode,
                                          llvm::LLVMContext &llvmcontext);
 #ifndef _SYS_BIOS
+bool LinkLLVMModules(llvm::Module* linked_module,
+                     const std::vector<llvm::Module*>& modules,
+                     llvm::LLVMContext& llvmcontext);
+
 static bool ReadBinaryIntoString(const std::string &outfile,
                                        std::string &binary_str);
 #endif
@@ -348,6 +362,36 @@ std::vector<Kernel *> Program::createKernels(cl_int *errcode_ret)
     return rs;
 }
 
+void Program::PopulateKernelInfo()
+{
+     /* Populate num_kernels and kernel_names */
+    const DeviceDependent &dep = p_device_dependent[0];
+    const std::vector<llvm::Function *>& kernels = kernelFunctions(dep);
+    unsigned int num_kernels = 0;
+    std::string kernel_names;
+
+    for (size_t i=0; i<kernels.size(); ++i)
+    {
+        llvm::Function *func = kernels[i];
+        /* Only add kernel names if they are not already added */
+        if (p_kernel_names.find(func->getName().str()) == std::string::npos)
+        {
+            kernel_names += func->getName().str();
+            num_kernels += 1;
+            if (i != kernels.size() - 1) kernel_names += ";";
+        }
+    }
+
+    if (num_kernels > 0)
+    {
+        p_num_kernels += kernels.size();
+        if (!p_kernel_names.empty()) p_kernel_names += ";";
+        p_kernel_names += kernel_names;
+    }
+}
+
+
+
 cl_int Program::loadSources(cl_uint count, const char **strings,
                             const size_t *lengths)
 {
@@ -396,6 +440,7 @@ cl_int Program::loadBinaries(const unsigned char **data, const size_t *lengths,
 {
     // Set device infos
     setDevices(num_devices, device_list);
+    p_state = Failed;
 
     // Load the data
     for (cl_uint i=0; i<num_devices; ++i)
@@ -407,19 +452,121 @@ cl_int Program::loadBinaries(const unsigned char **data, const size_t *lengths,
         // Loaded binary is stored in dep.unlinked_binary
         if (dep.unlinked_binary.size() != 0)  continue;
 
-        dep.unlinked_binary = std::string((const char *)data[i], lengths[i]);
-        dep.is_native_binary = true;
-
-        /*--------------------------------------------------------------------
-        * Loaded binary is either native code with LLVM bitcode embedded,
-        *                  or     LLVM bitcode itself
-        *--------------------------------------------------------------------*/
         std::string bitcode;
-        if (!dep.program->ExtractMixedBinary(dep.unlinked_binary, bitcode))
+
+#ifndef _SYS_BIOS
+        if (strncmp((const char*)data[i], ELFMAG, SELFMAG) == 0)
         {
-            bitcode = dep.unlinked_binary;
-            dep.is_native_binary = false;
+#endif
+            /* This is an ELF binary i.e. no BinaryHeader was added to it
+             * i.e. this is a native binary or embedded header binary */
+            dep.unlinked_binary = std::string((const char *)data[i],
+                                              lengths[i]);
+            dep.is_native_binary = true;
+
+            if(!dep.program->ExtractMixedBinary(dep.unlinked_binary, bitcode))
+            {
+#ifndef _SYS_BIOS
+                if (binary_status)
+                    binary_status[i] = CL_INVALID_VALUE;
+                return CL_INVALID_BINARY;
+#else
+                bitcode = dep.unlinked_binary;
+                dep.is_native_binary = false;
+#endif
+            }
+
+#ifndef _SYS_BIOS
+            dep.is_library       = false;
         }
+        else
+        {
+            /* This probably has a BinaryHeader i.e. it was created by
+             * getProgramInfo */
+            BinaryHeader header;
+            size_t pos = 0;
+            std::memcpy(&header, data[i], sizeof(BinaryHeader));
+            pos += sizeof(BinaryHeader);
+            p_type = header.program_type;
+
+            switch(p_type)
+            {
+                case CompiledObject:
+                    {
+                        dep.unlinked_binary =
+                            std::string((const char *)(data[i] + pos),
+                                        header.binary_length);
+                        pos += header.binary_length;
+                        dep.unlinked_bc_binary =
+                            std::string((const char *)(data[i] + pos),
+                                        header.bc_binary_length);
+
+                        if (!dep.program->
+                            ExtractMixedBinary(dep.unlinked_bc_binary, bitcode))
+                        {
+                            if (binary_status)
+                                binary_status[i] = CL_INVALID_VALUE;
+                            return CL_INVALID_BINARY;
+                        }
+
+                        dep.is_native_binary = false;
+                        dep.is_library       = false;
+
+                        break;
+                    }
+                case Library:
+                    {
+                        dep.unlinked_binary =
+                            std::string((const char *)(data[i] + pos),
+                                        header.binary_length);
+                        pos += header.binary_length;
+
+                        bitcode = std::string((const char *)(data[i] + pos),
+                                        header.bc_binary_length);
+
+                        dep.is_native_binary = false;
+                        dep.is_library       = true;
+
+                        break;
+                    }
+                case Binary:
+                    {
+                        dep.unlinked_binary =
+                            std::string((const char *)(data[i] + pos),
+                                        header.binary_length);
+                        pos += header.binary_length;
+
+                        if (header.bc_binary_length != 0)
+                        {
+                            bitcode = std::string((const char *)(data[i] + pos),
+                                                  header.bc_binary_length);
+                        }else
+                        {
+                            if(!dep.program->
+                               ExtractMixedBinary(dep.unlinked_binary, bitcode))
+                            {
+                                if (binary_status)
+                                    binary_status[i] = CL_INVALID_VALUE;
+                                return CL_INVALID_BINARY;
+                            }
+                        }
+
+                        dep.is_native_binary = true;
+                        dep.is_library       = false;
+
+                        break;
+                    }
+                case Source:
+                case Invalid:
+                case BuiltIn:
+                default:
+                    {
+                        if (binary_status) binary_status[i] = CL_INVALID_VALUE;
+                        return CL_INVALID_BINARY;
+                    }
+            }
+        }
+#endif
 
         dep.linked_module = BitcodeToLLVMModule(bitcode, *p_llvmcontext);
 
@@ -432,11 +579,293 @@ cl_int Program::loadBinaries(const unsigned char **data, const size_t *lengths,
         if (binary_status) binary_status[i] = CL_SUCCESS;
     }
 
-    p_type = Binary;
     p_state = Loaded;
+
+    PopulateKernelInfo();
 
     return CL_SUCCESS;
 }
+
+#ifndef _SYS_BIOS
+cl_int Program::compile(const char*                 options,
+                        void (CL_CALLBACK*          pfn_notify)(cl_program program,
+                                              void* user_data),
+                        void*                       user_data,
+                        const std::map<std::string, std::string>& input_header_src,
+                        cl_uint                     num_devices,
+                        const cl_device_id          *device_list)
+{
+    // If this program object was not created with source, return invalid
+    if (p_type != Source) return CL_INVALID_PROGRAM;
+
+    // Source: If we've already compiled this program and are re-compiling
+    // (for example, with different user options) then clear out the
+    // device dependent information in preparation for building again.
+    if (p_state == Compiled || p_state == Built) resetDeviceDependent();
+
+    p_state = InProgress;
+
+    /* Create deviceDependent structures only for the root devices */
+    if (!p_device_dependent.size())
+    {
+        setDevices(num_devices, device_list);
+    }
+
+    for (DeviceDependent& dep : p_device_dependent)
+    {
+        std::string opts(options ? options : "");
+        std::string objfile;
+        std::string bc_objfile;
+
+        if (!dep.compiler->Compile(p_source, input_header_src,
+                                   opts, objfile, bc_objfile))
+        {
+            p_state = Failed;
+            return CL_BUILD_PROGRAM_FAILURE;
+        }
+
+        /* Remove object files if they have been successfully read into
+         * strings */
+        if(!objfile.empty() &&
+           ReadBinaryIntoString(objfile, dep.unlinked_binary))
+        {
+            unlink(objfile.c_str());
+        }
+        else
+        {
+            std::cout << "ERROR: Unable to read object file: "
+                      << objfile << std::endl;
+            p_state = Failed;
+            return CL_COMPILE_PROGRAM_FAILURE;
+        }
+
+        if(!bc_objfile.empty() &&
+           ReadBinaryIntoString(bc_objfile, dep.unlinked_bc_binary))
+        {
+            unlink(bc_objfile.c_str());
+        }
+        else
+        {
+            std::cout << "ERROR: Unable to read object file: "
+                      << bc_objfile << std::endl;
+            p_state = Failed;
+            return CL_COMPILE_PROGRAM_FAILURE;
+        }
+
+        dep.is_native_binary = false;
+
+        // Extract LLVM bitcode from char array
+        std::string bitcode;
+        dep.program->ExtractMixedBinary(dep.unlinked_bc_binary,  bitcode);
+
+        // Parse bitcode into a Module
+        dep.linked_module = BitcodeToLLVMModule(bitcode, *p_llvmcontext);
+
+        if (dep.linked_module == nullptr)
+        {
+            p_state = Failed;
+            return CL_COMPILE_PROGRAM_FAILURE;
+        }
+
+        if (!dep.program->compile(dep.linked_module, dep.unlinked_binary, dep.unlinked_bc_binary))
+        {
+            if (pfn_notify)
+                pfn_notify((cl_program)this, user_data);
+
+            p_state = Failed;
+            return CL_COMPILE_PROGRAM_FAILURE;
+        }
+
+    }
+
+    if (pfn_notify)
+        pfn_notify((cl_program)this, user_data);
+
+    p_state = Compiled;
+    p_type  = CompiledObject;
+
+    PopulateKernelInfo();
+
+    return CL_SUCCESS;
+
+}
+
+cl_int Program::link(const char*                  options,
+                     void (CL_CALLBACK*           pfn_notify)(cl_program program,
+                                           void*  user_data),
+                     void*                        user_data,
+                     const std::vector<Program*>& input_program_list,
+                     cl_uint                      num_devices,
+                     const cl_device_id           *device_list)
+{
+    assert(input_program_list.empty() == false);
+
+    std::vector<std::string>    input_obj_files;
+    std::vector<std::string>    input_libs;
+    std::vector<llvm::Module*>  input_llvm_modules;
+    std::string                 export_symbols;
+    /* Check if each input program is a valid Compiled program or library
+     * and extract the compiled object files or libraries from devicedependents
+     * in the input programs to pass on for linking */
+    for (Program* pr : input_program_list)
+    {
+        if (pr->type() != CompiledObject &&
+            pr->type() != Library)
+            return CL_INVALID_PROGRAM;
+
+        /* The device list is guaranteed to have at least 1 device */
+        const DeviceDependent& dep = pr->deviceDependent(pobj(device_list[0]));
+        if (dep.linked_module != nullptr)
+        {
+            if (verifyModule(*dep.linked_module))
+            {
+                std::cout << ">> ERROR: input_program module is broken " << std::endl;
+                return CL_LINK_PROGRAM_FAILURE;
+            }
+            else
+            {
+                input_llvm_modules.push_back(dep.linked_module);
+            }
+        }
+
+        if (dep.is_library) input_libs.push_back(dep.unlinked_binary);
+        else                input_obj_files.push_back(dep.unlinked_binary);
+
+        if (!pr->KernelNames().empty())
+        {
+            if(!export_symbols.empty()) export_symbols += ";";
+            export_symbols += pr->KernelNames();
+        }
+    }
+
+    p_state = InProgress;
+
+    /* Create deviceDependent structures only for the root devices */
+    if (!p_device_dependent.size())
+    {
+        setDevices(num_devices, device_list);
+    }
+
+    for (DeviceDependent& dep : p_device_dependent)
+    {
+        std::string opts(options ? options : "");
+        std::string outfile;
+
+        if (!dep.compiler->Link(input_obj_files, input_libs, opts,
+                                export_symbols, outfile))
+        {
+            p_state = Failed;
+            return CL_BUILD_PROGRAM_FAILURE;
+        }
+
+        if (!ReadBinaryIntoString(outfile, dep.unlinked_binary))
+        {
+            p_state = Failed;
+            return CL_LINK_PROGRAM_FAILURE;
+        }
+
+        /* If existing module is empty, create a new one in the
+         * program's context */
+        if (dep.linked_module == nullptr && !outfile.empty())
+        {
+            dep.linked_module = new llvm::Module(outfile.c_str(),
+                                                 *p_llvmcontext);
+            if (verifyModule(*dep.linked_module))
+            {
+                p_state = Failed;
+                return CL_LINK_PROGRAM_FAILURE;
+            }
+        }
+
+        /* Link input llvm modules into this dep's module */
+        if(!LinkLLVMModules(dep.linked_module,
+                            input_llvm_modules,
+                            *p_llvmcontext))
+        {
+            p_state = Failed;
+            return CL_LINK_PROGRAM_FAILURE;
+        }
+
+        /* Write out the bitcode in the unlinked_bc_binary for later use */
+        llvm::raw_string_ostream str_ostream(dep.unlinked_bc_binary);
+        llvm::WriteBitcodeToFile(dep.linked_module, str_ostream);
+        str_ostream.flush();
+
+        if (opts.find("-create-library") != std::string::npos)
+        {
+            dep.is_library = true;
+            p_state = Archived;
+            p_type  = Library;
+
+            /* Remove the temporary .a file as it has already been read into
+             * a string in memory */
+            unlink(outfile.c_str());
+
+        }
+        else
+        {
+            dep.is_native_binary = true;
+            dep.native_binary_filename = new char[outfile.size() + 1];
+            strcpy(dep.native_binary_filename, outfile.c_str());
+
+            // Now that the LLVM module is built, build the device-specific
+            // representation
+            if (!dep.program->build(dep.linked_module, &dep.unlinked_binary,
+                                    dep.native_binary_filename))
+            {
+                if (pfn_notify)
+                    pfn_notify((cl_program)this, user_data);
+                p_state = Failed;
+                return CL_LINK_PROGRAM_FAILURE;
+            }
+            p_state = Linked;
+            p_type  = Binary;
+        }
+
+    }
+
+    if (pfn_notify)
+        pfn_notify((cl_program)this, user_data);
+
+    PopulateKernelInfo();
+
+    return CL_SUCCESS;
+}
+
+bool LinkLLVMModules(llvm::Module* linked_module,
+                     const std::vector<llvm::Module*>& modules,
+                     llvm::LLVMContext& llvmcontext)
+{
+    if (modules.empty()) return false;
+
+    for(int i=0; i<modules.size(); i++)
+    {
+        /* Extract the module's bitcode into a string */
+        std::string module_bc;
+        llvm::raw_string_ostream ostream(module_bc);
+        llvm::WriteBitcodeToFile(modules[i], ostream);
+        ostream.str();
+
+        /* Read the module back into current context using its bitcode string */
+        llvm::Module *next_module = BitcodeToLLVMModule(module_bc, llvmcontext);
+
+        /* Link with the base module */
+        if(llvm::Linker::LinkModules(linked_module, next_module))
+        {
+            std::cout << ">> ERROR: link module failed" << std::endl;
+            return false;
+        }
+    }
+
+    if (verifyModule(*linked_module))
+    {
+        std::cout << ">> ERROR: linked_module is broken " << std::endl;
+        return false;
+    }
+
+    return true;
+}
+#endif
 
 cl_int Program::build(const char* options,
                       void (CL_CALLBACK* pfn_notify)(cl_program program,
@@ -444,6 +873,8 @@ cl_int Program::build(const char* options,
                       void* user_data, cl_uint num_devices,
                       const cl_device_id *device_list)
 {
+    if (p_type == Binary && p_state == Linked) return CL_SUCCESS;
+
     // Source: If we've already built this program and are re-building
     // (for example, with different user options) then clear out the
     // device dependent information in preparation for building again.
@@ -461,7 +892,7 @@ cl_int Program::build(const char* options,
         }
     }
 
-    p_state = Failed;
+    p_state = InProgress;
 
     /* Create deviceDependent structures only for the root devices */
     if (!p_device_dependent.size())
@@ -479,7 +910,10 @@ cl_int Program::build(const char* options,
             std::string outfile;
 
             if (!dep.compiler->CompileAndLink(p_source, opts, outfile))
+            {
+                p_state = Failed;
                 return CL_BUILD_PROGRAM_FAILURE;
+            }
 
             ReadBinaryIntoString(outfile, dep.unlinked_binary);
 
@@ -496,7 +930,10 @@ cl_int Program::build(const char* options,
             dep.linked_module = BitcodeToLLVMModule(bitcode, *p_llvmcontext);
 
             if (dep.linked_module == nullptr)
+            {
+                p_state = Failed;
                 return CL_BUILD_PROGRAM_FAILURE;
+            }
         }
 #endif
 
@@ -509,6 +946,7 @@ cl_int Program::build(const char* options,
             if (pfn_notify)
                 pfn_notify((cl_program)this, user_data);
 
+            p_state = Failed;
             return CL_BUILD_PROGRAM_FAILURE;
         }
     }
@@ -518,16 +956,7 @@ cl_int Program::build(const char* options,
 
     p_state = Built;
 
-    /* Populate num_kernels and kernel_names */
-    const DeviceDependent &dep = p_device_dependent[0];
-    const std::vector<llvm::Function *>& kernels = kernelFunctions(dep);
-    p_num_kernels += kernels.size();
-    for (size_t i=0; i<kernels.size(); ++i)
-    {
-        llvm::Function *func = kernels[i];
-        p_kernel_names += func->getName().str();
-        if (i != kernels.size() - 1) p_kernel_names += ";";
-    }
+    PopulateKernelInfo();
 
     return CL_SUCCESS;
 }
@@ -605,7 +1034,22 @@ cl_int Program::info(cl_program_info param_name,
             {
                 const DeviceDependent &dep = deviceDependent(p_device_list[i]);
 
-                binary_sizes.push_back(dep.unlinked_binary.size());
+                size_t binary_size  = 0;
+#ifndef _SYS_BIOS
+                if (p_state != Built)
+                {
+                    binary_size = sizeof(BinaryHeader) +
+                                    dep.unlinked_binary.size() +
+                                    dep.unlinked_bc_binary.size();
+                }
+                else
+                {
+#endif
+                    binary_size = dep.unlinked_binary.size();
+#ifndef _SYS_BIOS
+                }
+#endif
+                binary_sizes.push_back(binary_size);
             }
 
             value = binary_sizes.data();
@@ -627,11 +1071,37 @@ cl_int Program::info(cl_program_info param_name,
                     const DeviceDependent &dep = deviceDependent(p_device_list[i]);
                     unsigned char *dest = binaries[i];
 
-                    if (!dest)
-                        continue;
+                    if (!dest) continue;
 
-                    std::memcpy(dest, dep.unlinked_binary.data(),
+                    size_t pos = 0;
+#ifndef _SYS_BIOS
+                    if (p_state != Built)
+                    {
+                        /* Copy binary header */
+                        BinaryHeader header;
+                        header.program_type     = p_type;
+                        header.program_state    = p_state;
+                        header.binary_length    = dep.unlinked_binary.size();
+                        header.bc_binary_length = dep.unlinked_bc_binary.size();
+
+                        std::memcpy(dest, &header, sizeof(BinaryHeader));
+                        pos += sizeof(BinaryHeader);
+                    }
+#endif
+                    /* Copy unlinked binary */
+                    std::memcpy(dest + pos, dep.unlinked_binary.data(),
                                 dep.unlinked_binary.size());
+#ifndef _SYS_BIOS
+                    if (p_state != Built)
+                    {
+                        /* Copy unlinked bc binary */
+                        pos += dep.unlinked_binary.size();
+                        if (!dep.unlinked_bc_binary.empty())
+                            std::memcpy(dest + pos,
+                                        dep.unlinked_bc_binary.data(),
+                                        dep.unlinked_bc_binary.size());
+                    }
+#endif
                 }
 
             if (param_value_size_ret)
@@ -675,7 +1145,8 @@ cl_int Program::buildInfo(DeviceInterface *device,
     const DeviceDependent &dep = deviceDependent(device);
 
     union {
-        cl_build_status cl_build_status_var;
+        cl_build_status        cl_build_status_var;
+        cl_program_binary_type cl_program_binary_type_var;
     };
 
     switch (param_name)
@@ -687,11 +1158,17 @@ cl_int Program::buildInfo(DeviceInterface *device,
                 case Loaded:
                     SIMPLE_ASSIGN(cl_build_status, CL_BUILD_NONE);
                     break;
+                case Compiled:
+                case Linked:
                 case Built:
+                case Archived:
                     SIMPLE_ASSIGN(cl_build_status, CL_BUILD_SUCCESS);
                     break;
                 case Failed:
                     SIMPLE_ASSIGN(cl_build_status, CL_BUILD_ERROR);
+                    break;
+                case InProgress:
+                    SIMPLE_ASSIGN(cl_build_status, CL_BUILD_IN_PROGRESS);
                     break;
             }
             break;
@@ -708,6 +1185,30 @@ cl_int Program::buildInfo(DeviceInterface *device,
             value = dep.compiler->log().c_str();
             value_length = dep.compiler->log().size() + 1;
 #endif
+            break;
+
+        case CL_PROGRAM_BINARY_TYPE:
+            switch (p_type)
+            {
+                case Invalid:
+                case Source:
+                case BuiltIn:
+                    SIMPLE_ASSIGN(cl_program_binary_type,
+                                  CL_PROGRAM_BINARY_TYPE_NONE);
+                    break;
+                case CompiledObject:
+                    SIMPLE_ASSIGN(cl_program_binary_type,
+                                  CL_PROGRAM_BINARY_TYPE_COMPILED_OBJECT);
+                    break;
+                case Library:
+                    SIMPLE_ASSIGN(cl_program_binary_type,
+                                  CL_PROGRAM_BINARY_TYPE_LIBRARY);
+                    break;
+                case Binary:
+                    SIMPLE_ASSIGN(cl_program_binary_type,
+                                  CL_PROGRAM_BINARY_TYPE_EXECUTABLE);
+                    break;
+            }
             break;
 
         default:
@@ -752,7 +1253,8 @@ static bool ReadBinaryIntoString(const std::string &outfile,
 
         delete [] buffer;
     }
-    catch(...) { success = false; }
+    catch(const std::exception &e)
+    { std::cerr << e.what() << std::endl;  success = false; }
 
     return success;
 }

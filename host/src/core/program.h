@@ -41,6 +41,7 @@
 #include <CL/cl.h>
 #include <string>
 #include <vector>
+#include <map>
 #include <llvm/IR/Metadata.h>
 
 namespace Coal
@@ -93,10 +94,12 @@ class Program : public _cl_program, public Object
          */
         enum Type
         {
-            Invalid, /*!< Invalid or unknown, type of a program not already loaded */
-            Source,  /*!< Program made of sources that must be compiled and linked */
-            Binary,  /*!< Program made of pre-built binaries that only need to be (transformed)/linked */
-            BuiltIn  /*!< Program made of built-in kernels */
+            Invalid,  /*!< Invalid or unknown, type of a program not already loaded */
+            Source,   /*!< Program made of sources that must be compiled and linked */
+            CompiledObject,   /*!< Program made of objects that can be linked */
+            Library,  /*!< Program made of object library that can be linked */
+            Binary,   /*!< Program made of pre-built binaries that only need to be (transformed)/linked */
+            BuiltIn   /*!< Program made of built-in kernels */
         };
 
         /**
@@ -104,10 +107,14 @@ class Program : public _cl_program, public Object
          */
         enum State
         {
-            Empty,   /*!< Just created */
-            Loaded,  /*!< Source or binary loaded */
-            Built,   /*!< Built */
-            Failed,  /*!< Build failed */
+            Empty,      /*!< Just created */
+            Loaded,     /*!< Source or binary loaded */
+            Compiled,   /*!< Compiled */
+            Linked,     /*!< Linked */
+            Archived,   /*!< Archived library */
+            Built,      /*!< TODO: Do we need Built? */
+            InProgress, /*!< Build, Compile or Link In Progress */
+            Failed      /*!< Build failed */
         };
 
         /**
@@ -150,6 +157,59 @@ class Program : public _cl_program, public Object
                             cl_int *binary_status, cl_uint num_devices,
                             const cl_device_id *device_list);
 
+#ifndef _SYS_BIOS
+        /**
+         * \brief Compile the program
+         *
+         * This function compiles the sources, if any, and stores the object
+         * files or libraries in \c Coal::Program
+         *
+         * \param options options to pass to the compiler, see the OpenCL
+         *        specification.
+         * \param pfn_notify callback function called at the end of the build
+         * \param user_data user data given to \p pfn_notify
+         * \param input_header_src Data structure containing input header
+         *                         source file names mapped to the corresponding
+         *                         source code strings
+         * \param num_devices number of devices for which binaries should be
+         *        built. If it's a source-based program, this can be 0.
+         * \param device_list list of devices for which the program should be built.
+         * \return \c CL_SUCCESS if success, an error code otherwise
+         */
+        cl_int compile(const char*                 options,
+                       void (CL_CALLBACK*          pfn_notify)(cl_program program,
+                                             void* user_data),
+                       void*                       user_data,
+                       const std::map<std::string, std::string>& input_header_src,
+                       cl_uint                     num_devices,
+                       const cl_device_id          *device_list);
+
+        /**
+         * \brief Link programs to create executable
+         *
+         * This function links input programs, and creates a new program
+         * object containing resulting binary
+         *
+         * \param options options to pass to the compiler, see the OpenCL
+         *        specification.
+         * \param pfn_notify callback function called at the end of the build
+         * \param user_data user data given to \p pfn_notify
+         * \param input_header_map Data structure containing input header
+         *                         program names mapped to the corresponding
+         *                         program objects
+         * \param num_devices number of devices for which binaries should be
+         *        built. If it's a source-based program, this can be 0.
+         * \param device_list list of devices for which the program should be built.
+         * \return \c CL_SUCCESS if success, an error code otherwise
+         */
+        cl_int link(const char*                  options,
+                    void (CL_CALLBACK*           pfn_notify)(cl_program program,
+                                          void*  user_data),
+                    void*                        user_data,
+                    const std::vector<Program*>& input_program_list,
+                    cl_uint                      num_devices,
+                    const cl_device_id           *device_list);
+#endif
         /**
          * \brief Build the program
          *
@@ -220,6 +280,8 @@ class Program : public _cl_program, public Object
 
          std::string source() { return p_source; }
 
+         const std::string& KernelNames() const { return p_kernel_names; }
+
     protected:
         Type        p_type;
         State       p_state;
@@ -234,7 +296,9 @@ class Program : public _cl_program, public Object
             DeviceInterface * device;
             DeviceProgram   * program;
             std::string       unlinked_binary;
+            std::string       unlinked_bc_binary;
             bool              is_native_binary; // llvm kernel bitcode vs final native binary
+            bool              is_library; // Is it a library archive
             char            * native_binary_filename;  // if file exist already
             llvm::Module    * linked_module;
 #ifndef _SYS_BIOS
@@ -243,9 +307,18 @@ class Program : public _cl_program, public Object
             std::vector<KernelEntry*> loaded_kernel_entries;
         };
 
+        struct BinaryHeader
+        {
+            Type   program_type;
+            State  program_state;
+            size_t binary_length;
+            size_t bc_binary_length;
+        };
+
         std::vector<DeviceDependent> p_device_dependent;
         DeviceDependent              p_null_device_dependent;
 
+        void PopulateKernelInfo();
         void setDevices(cl_uint num_devices, const cl_device_id *devices);
         void resetDeviceDependent();
         DeviceDependent& deviceDependent(DeviceInterface* device);

@@ -38,10 +38,10 @@ namespace Coal
 
 /**
  * \brief Base class of all the Clover objects
- * 
+ *
  * This class implements functions needed by all the Clover objects, like
  * reference counting, the object tree (parents/children), etc.
- * 
+ *
  * It also uses a special list of known objects, used to check that a pointer
  * passed by the user to an OpenCL function actually is an object of the correct
  * type. See \c isA().
@@ -82,26 +82,26 @@ class Object
          * \brief Increments the reference counter
          */
         void reference();
-        
+
         /**
          * \brief Decrements the reference counter
          * \return true if the reference counter has reached 0
          */
         bool dereference();
-        
+
         /**
          * \brief Reference counter
          * \return the number of references of this class currently in use
          */
         unsigned int references() const;
-        
+
         /**
          * \brief Set if the parent object has to be deleted if its reference count reaches 0
-         * 
+         *
          * The destructor of \c Coal::Object dereferences its parent object.
          * This is done in order to correctly free objects when no object has
          * a reference to it anymore.
-         * 
+         *
          * Some objects such as \c Coal::CommandQueue need to do some operations
          * before being deleted. This function tells \c Coal::Object to
          * dereference its parent object, but not to call \b delete on it.

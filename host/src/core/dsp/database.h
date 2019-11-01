@@ -15,7 +15,7 @@
  *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  *   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+ *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  *   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
  *   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
  *   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
@@ -27,23 +27,23 @@
  *****************************************************************************/
 #ifndef __DATABASE_H__
 #define __DATABASE_H__
- 
+
 #include <string>
 #include <vector>
 #include <iostream>
 #include <sqlite3.h>
 
 using namespace std;
- 
+
 class Database
 {
   public:
     Database(const char* filename) : database(NULL) { open(filename); }
     ~Database()                                     { close(); }
 
-    void close()     
-    { 
-        if (database) sqlite3_close(database); 
+    void close()
+    {
+        if (database) sqlite3_close(database);
         database = NULL;
     }
 
@@ -56,13 +56,13 @@ class Database
 
         int rc = sqlite3_prepare_v2(database, query, -1, &statement, 0);
 
-        while ((rc == SQLITE_BUSY || rc == SQLITE_LOCKED) && 
+        while ((rc == SQLITE_BUSY || rc == SQLITE_LOCKED) &&
                 ++retries <= retry_limit)
         {
              sqlite3_finalize(statement);
              usleep(100);
              rc = sqlite3_prepare_v2(database, query, -1, &statement, 0);
-        } 
+        }
 
         if (rc == SQLITE_OK)
         {
@@ -72,7 +72,7 @@ class Database
             while (true)
             {
                result = sqlite3_step(statement);
-                 
+
                if (result == SQLITE_ROW)
                {
                   vector<string> values;
@@ -80,19 +80,19 @@ class Database
                     values.push_back((char*)sqlite3_column_text(statement,col));
                   results.push_back(values);
                }
-               else break;  
+               else break;
             }
-            
+
             sqlite3_finalize(statement);
         }
-         
+
         string error = sqlite3_errmsg(database);
-        if (error != "not an error") 
+        if (error != "not an error")
             std::cout << query << " " << error << std::endl;
-         
-        return results; 
+
+        return results;
     }
-     
+
   private:
     sqlite3 *database;
 

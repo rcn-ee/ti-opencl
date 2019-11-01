@@ -15,7 +15,7 @@
  *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  *   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+ *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  *   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
  *   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
  *   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
@@ -57,8 +57,12 @@ class DSPProgram : public DeviceProgram
 
         bool linkStdLib() const;
         const char* outfile_name() const;
-        bool build(llvm::Module *module, std::string *binary_str, 
+        bool build(llvm::Module *module, std::string *binary_str,
                    char *binary_filename=NULL);
+#ifndef _SYS_BIOS
+        bool compile(llvm::Module *module, std::string& obj_str,
+                    std::string& bc_obj_str);
+#endif
         bool ExtractMixedBinary(const std::string &binary_str,
                                       std::string &bitcode);
         void WriteNativeOut(const std::string &native);
@@ -72,15 +76,19 @@ class DSPProgram : public DeviceProgram
         bool is_loaded() const;
         DSPDevicePtr LoadAddress() const;
 
-        DSPDevice *GetDevice() const { return p_device; }
-        tiocl::DynamicLoader *GetDynamicLoader() const { return p_dl; }
-        bool IsPrintInfoEnabled() const { return p_info; }
+        DSPDevice            *GetDevice()        const {return p_device;     }
+        tiocl::DynamicLoader *GetDynamicLoader() const {return p_dl;         }
+        bool  IsPrintInfoEnabled()               const {return p_info;       }
+        const std::string& GetObjFile()          const {return p_objfile;    }
+        const std::string& GetBcObjFile()        const {return p_bc_objfile; }
 
     private:
         DSPDevice    *p_device;
         Program      *p_program;
         llvm::Module *p_module;
         std::string   p_outfile;
+        std::string   p_objfile;
+        std::string   p_bc_objfile;
         std::string  *p_nativebin;
         bool          p_loaded;
         bool          p_keep_files;

@@ -94,20 +94,21 @@ DSPProgram::DSPProgram(DSPDevice *device, Program *program)
 
 DSPProgram::~DSPProgram()
 {
-    ReportTrace("~DSPProgram()\n");
     unload();
     delete p_dl;
     p_dl = nullptr;
 
 #ifndef _SYS_BIOS
-    if (!p_keep_files && !p_cache_kernels) unlink(p_outfile.c_str());
+    if (!p_keep_files && !p_cache_kernels && !p_outfile.empty())
+    {
+        unlink(p_outfile.c_str());
+    }
 #endif
 }
 
 bool DSPProgram::load()
 {
     if (p_dl == nullptr)  return true;
-
 #ifndef _SYS_BIOS
     if (!p_dl->LoadProgram(p_outfile))
 #else
@@ -180,9 +181,8 @@ DSPDevicePtr DSPProgram::data_page_ptr()
 bool DSPProgram::ExtractMixedBinary(const std::string &binary_str,
                                           std::string &bitcode)
 {
-    if (binary_str.empty())  return false;
-    if (strncmp(&binary_str.at(0), ELFMAG, SELFMAG) != 0)  return false;
-
+    if (binary_str.empty()) return false;
+    if (strncmp(&binary_str.at(0), ELFMAG, SELFMAG) != 0) return false;
     /*-------------------------------------------------------------------------
     * Parse ELF file format, extract ".llvmir" section into bitcode
     * Valid Assumptions: 1. cl6x only creates 32-bit ELF files (for now)
@@ -245,16 +245,34 @@ void DSPProgram::WriteNativeOut(const std::string &native)
 #endif
 }
 
+#ifndef _SYS_BIOS
+bool DSPProgram::compile(llvm::Module *module, std::string& obj_str,
+                         std::string& bc_obj_str)
+{
+    p_module = module;
+
+    // Both Object files have already been created by Compiler::Compile
+    if (!bc_obj_str.empty() && !obj_str.empty())
+    {
+        p_objfile    = obj_str;
+        p_bc_objfile = bc_obj_str;
+        return true;
+    }
+
+    return false;
+}
+#endif
 
 bool DSPProgram::build(llvm::Module *module, std::string *binary_str,
                        char *binary_filename)
 {
     p_module = module;
 
-    // Binary file has already been created by Compile::CompileAndLink
+    /* Binary file has already been created by Compile::CompileAndLink
+       or Compile::Link */
     if (binary_filename != NULL)
     {
-        p_outfile = binary_filename;
+        p_outfile = std::string(binary_filename);
         return true;
     }
 

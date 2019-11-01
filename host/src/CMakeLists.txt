@@ -40,11 +40,11 @@ endif()
 
 # bfd.h has a check to ensure that config.h is included
 # We don't require config.h (autotools) so we bypass this check by defining
-# PACKAGE, and PACKAGE_VERSION 
+# PACKAGE, and PACKAGE_VERSION
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DPACKAGE=${PROJECT_NAME} -DPACKAGE_VERSION=${${PROJECT_NAME}_PKG_VERSION}")
 
 # Toggle below if wanting to build with debug
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -fno-inline -g")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -fno-inline -g -ggdb")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
 
 if (K2X_BUILD)
@@ -238,6 +238,11 @@ set (LIBS
         LLVMBitWriter
         LLVMCore
         LLVMSupport
+        LLVMLinker
+        LLVMTransformUtils
+        LLVMAnalysis
+        LLVMTarget
+        LLVMDebugInfo
         #${LLVM_LIBS_JIT}
 	${PROJECT_BINARY_DIR}/lib/liboclload.a
         pthread
@@ -264,7 +269,7 @@ if(K2X_BUILD OR K2G_BUILD)
    find_library(IPC_TRANS_RPMSG   titransportrpmsg)
 
    LIST (APPEND LIBS ${IPC_LIB} ${IPC_UTIL_LIB} ${IPC_TRANS_RPMSG}
-                     ${MPMTRANSPORT_LIB} 
+                     ${MPMTRANSPORT_LIB}
                      ${MPMCLIENT_LIB} ${RM_LIB} )
 elseif (AM57_BUILD)
   find_library(IPC_LIB           tiipc)

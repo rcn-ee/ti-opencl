@@ -39,7 +39,7 @@
 
 #include <cstdlib>
 #include <set>
-#include <vector>
+#include <map>
 
 /**
  * Helper function to check whether the devices in the context match the
@@ -186,7 +186,7 @@ clCreateProgramWithBuiltInKernels(cl_context                d_context,
         delete program;
         return 0;
     }
-    
+
     return desc(program);
 }
 
@@ -296,17 +296,15 @@ clBuildProgram(cl_program           d_program,
 {
     auto program = pobj(d_program);
 
+    if ((!device_list && num_devices > 0) ||
+        (!num_devices && device_list)     ||
+        (!pfn_notify && user_data)         )
+    {
+        return CL_INVALID_VALUE;
+    }
+
     if (!program->isA(Coal::Object::T_Program))
         return CL_INVALID_PROGRAM;
-
-    if (!device_list && num_devices > 0)
-        return CL_INVALID_VALUE;
-
-    if (!num_devices && device_list)
-        return CL_INVALID_VALUE;
-
-    if (!pfn_notify && user_data)
-        return CL_INVALID_VALUE;
 
     cl_uint context_num_devices = 0;
     cl_device_id *context_devices;
@@ -365,7 +363,8 @@ clBuildProgram(cl_program           d_program,
 
     // We cannot try to build a previously-failed program or a BuiltInProgram
     if (!(program->state() == Coal::Program::Loaded ||
-          program->state() == Coal::Program::Built    ) ||
+          program->state() == Coal::Program::Built  ||
+          program->state() == Coal::Program::Linked) ||
          program->type() == Coal::Program::BuiltIn)
     {
         std::free(context_devices);
@@ -380,6 +379,220 @@ clBuildProgram(cl_program           d_program,
 
     return result;
 }
+
+#ifndef _SYS_BIOS
+cl_int
+clCompileProgram(cl_program           d_program,
+                 cl_uint              num_devices,
+                 const cl_device_id * device_list,
+                 const char *         options,
+                 cl_uint              num_input_headers,
+                 const cl_program *   input_headers,
+                 const char **        header_include_names,
+                 void (*pfn_notify)(cl_program program, void * user_data),
+                 void *               user_data)
+{
+    auto program = pobj(d_program);
+
+    if (!program->isA(Coal::Object::T_Program))
+        return CL_INVALID_PROGRAM;
+
+    if (!device_list && num_devices > 0)
+        return CL_INVALID_VALUE;
+
+    if (!num_devices && device_list)
+        return CL_INVALID_VALUE;
+
+    if (!pfn_notify && user_data)
+        return CL_INVALID_VALUE;
+
+    cl_uint context_num_devices = 0;
+    Coal::Context *context      = (Coal::Context *)program->parent();
+    cl_int result;
+
+    result = context->info(CL_CONTEXT_NUM_DEVICES, sizeof(cl_uint),
+                           &context_num_devices, 0);
+
+    if (result != CL_SUCCESS) return result;
+
+    if (num_devices !=0)
+    {
+        // Check device compliance with context
+        result = checkDeviceComplianceWithContext(context,
+                                                  num_devices,
+                                                  context_num_devices,
+                                                  device_list);
+    }
+
+    if (result != CL_SUCCESS) return result;
+
+    // We cannot try to compile a previously-failed program or a BuiltInProgram
+    if (!(program->state() == Coal::Program::Loaded ||
+          program->state() == Coal::Program::Built  ||
+          program->state() == Coal::Program::Linked ) ||
+         program->type() == Coal::Program::BuiltIn)
+    {
+        return CL_INVALID_OPERATION;
+    }
+
+    // Check errors in input_headers
+    std::map<std::string, std::string> input_header_src;
+    for(cl_uint i=0; i<num_input_headers; i++)
+    {
+        auto ih_program = pobj(input_headers[i]);
+        if (!ih_program->isA(Coal::Object::T_Program))
+            return CL_INVALID_PROGRAM;
+
+        // The input header program must have been created from source
+        if (ih_program->type() != Coal::Program::Source)
+            return CL_INVALID_PROGRAM;
+
+        auto ih_name       = std::string(header_include_names[i]);
+        std::string ih_src = ih_program->source();
+
+        input_header_src[ih_name] = ih_src;
+    }
+
+    /* If device_list is NULL and num_devices is 0, then compile for all
+     * devices in context*/
+    if(device_list == nullptr && num_devices == 0)
+    {
+        cl_device_id* context_devices;
+
+        context_devices =
+        (cl_device_id *)std::malloc(context_num_devices * sizeof(cl_device_id));
+
+        if(!context_devices) return CL_OUT_OF_RESOURCES;
+
+        result = context->info(CL_CONTEXT_DEVICES,
+                               context_num_devices * sizeof(cl_device_id),
+                               context_devices, 0);
+
+        /* Build program */
+        result =  program->compile(options,
+                                   pfn_notify,
+                                   user_data,
+                                   input_header_src,
+                                   context_num_devices,
+                                   context_devices);
+        std::free(context_devices);
+
+    }
+    else
+    {
+        /* Build program */
+        result =  program->compile(options,
+                                   pfn_notify,
+                                   user_data,
+                                   input_header_src,
+                                   num_devices,
+                                   device_list);
+    }
+
+    return result;
+}
+
+cl_program
+clLinkProgram(cl_context           d_context,
+              cl_uint              num_devices,
+              const cl_device_id * device_list,
+              const char *         options,
+              cl_uint              num_input_programs,
+              const cl_program *   input_programs,
+              void (*pfn_notify)(cl_program program, void * user_data),
+              void *               user_data,
+              cl_int *             errcode_ret)
+{
+    cl_uint context_num_devices = 0;
+    auto context = pobj(d_context);
+
+    if ((!device_list && num_devices > 0) ||
+        (!num_devices && device_list)     ||
+        (!pfn_notify && user_data)         )
+    {
+        *errcode_ret = CL_INVALID_VALUE;
+        return 0;
+    }
+
+    if (!context->isA(Coal::Object::T_Context))
+    {
+        *errcode_ret = CL_INVALID_CONTEXT;
+        return 0;
+    }
+
+    // Get number of devices in context
+    *errcode_ret = context->info(CL_CONTEXT_NUM_DEVICES, sizeof(cl_uint),
+                                 &context_num_devices, 0);
+
+    if (*errcode_ret != CL_SUCCESS) return 0;
+
+    // Check devices for compliance with context
+    *errcode_ret = checkDeviceComplianceWithContext(context,
+                                                    num_devices,
+                                                    context_num_devices,
+                                                    device_list);
+    if (*errcode_ret != CL_SUCCESS) return 0;
+
+    // Check errors in input_programs
+    std::vector<Coal::Program*> input_program_list;
+    for(cl_uint i=0; i<num_input_programs; i++)
+    {
+        auto i_program = pobj(input_programs[i]);
+        if (!i_program->isA(Coal::Object::T_Program))
+        {
+            *errcode_ret = CL_INVALID_PROGRAM;
+            return 0;
+        }
+
+        input_program_list.push_back(i_program);
+    }
+
+    Coal::Program *program = new Coal::Program(context);
+
+    /* If device_list is NULL and num_devices is 0, then link for all
+     * devices in context*/
+    if(device_list == nullptr && num_devices == 0)
+    {
+        cl_device_id* context_devices;
+
+        context_devices =
+        (cl_device_id *)std::malloc(context_num_devices * sizeof(cl_device_id));
+
+        if(!context_devices)
+        {
+            *errcode_ret = CL_OUT_OF_RESOURCES;
+            delete program;
+            return 0;
+        }
+
+        *errcode_ret = context->info(CL_CONTEXT_DEVICES,
+                                     context_num_devices * sizeof(cl_device_id),
+                                     context_devices, 0);
+
+        /* Link program */
+        *errcode_ret =  program->link(options, pfn_notify, user_data,
+                                      input_program_list,
+                                      context_num_devices, context_devices);
+
+        std::free(context_devices);
+    }
+    else
+    {
+        /* Link program */
+        *errcode_ret =  program->link(options, pfn_notify, user_data,
+                                      input_program_list,
+                                      num_devices, device_list);
+    }
+
+    if (*errcode_ret != CL_SUCCESS)
+    {
+        delete program;
+        return 0;
+    }
+
+    return desc(program);
+}
+#endif
 
 cl_int
 clUnloadCompiler(void)
