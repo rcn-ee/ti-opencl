@@ -125,6 +125,9 @@ Int main(Int argc, Char* argv[])
         BIOS_start(); /* start scheduler, this never returns */
     }
 
+    /* Make sure we finish EVE attachments before IPC power management */
+    eve_work_count = 1;
+
     Log_print0(Diags_INFO | Diags_USER6, "Creating msg queue...");
     /* Create the M4 proxy queue for EVEs */
     if (!create_mqueue())
@@ -231,6 +234,9 @@ Void smain(UArg arg0, UArg arg1)
     }
     Log_print0(Diags_INFO | Diags_USER6,
                "Done OpenCL runtime initialization. Waiting for messages...");
+
+    /* EVE attachments finished, enable IPU IPC power management */
+    eve_work_count = 0;
 
     /* Loop forever, proxying between host and EVE */
     while (TRUE) {
