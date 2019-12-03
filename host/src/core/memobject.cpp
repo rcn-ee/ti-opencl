@@ -557,9 +557,16 @@ SubBuffer::SubBuffer(class Buffer *parent, size_t offset, size_t size,
                  & (CL_MEM_READ_WRITE | CL_MEM_READ_ONLY | CL_MEM_WRITE_ONLY);
     // parent be READ_WRITE, subBuffer be READ_ONLY/WRITE_ONLY (Spec allows)
     if (! my_rw_flags)  p_flags |= parent_rw_flags;
+
     cl_mem_flags parent_hostptr_flags = parent->flags()
        & (CL_MEM_USE_HOST_PTR | CL_MEM_ALLOC_HOST_PTR | CL_MEM_COPY_HOST_PTR);
     if (parent_hostptr_flags) p_flags |= parent_hostptr_flags;
+
+    cl_mem_flags parent_host_rw_flags = parent->flags()
+     & (CL_MEM_HOST_READ_ONLY | CL_MEM_HOST_WRITE_ONLY | CL_MEM_HOST_NO_ACCESS);
+    cl_mem_flags my_host_rw_flags = p_flags
+     & (CL_MEM_HOST_READ_ONLY | CL_MEM_HOST_WRITE_ONLY | CL_MEM_HOST_NO_ACCESS);
+    if (!my_host_rw_flags) p_flags |= parent_host_rw_flags;
 }
 
 SubBuffer::~SubBuffer()
