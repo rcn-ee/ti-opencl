@@ -67,7 +67,9 @@ DSP1 and leave DSP2 to other purposes.  If you examine
 set, a customized host config file is used.  This customized host config file
 is copied from the default config file ``packages/ti/opencl/Host.cfg`` with
 the modification that changes ``OpenCL.computeUnitList`` from default
-``"0,1"`` to ``"0"``::
+``"0,1"`` to ``"0"``
+
+.. code-block:: diff
 
     @@ -87,6 +90,7 @@
      xdc.global.SR0_cacheEnable = true;

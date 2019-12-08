@@ -4,6 +4,7 @@ v01.02.00.x
 
 New Features
 =============
+* Full OpenCL 1.2 support
 * Support for select OpenCL 1.2 APIs including:
     * clCompileProgram()
     * clLinkProgram()

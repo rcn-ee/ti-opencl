@@ -13,39 +13,42 @@ that example.
 
 The key to the codes in the table are in subsequent tables.
 
-================== ======= =============== ============== ============ ========= ========================= ==================
-Name               Type    Execute Model   Kernel Compile Buffer Model Profiling Extensions                Techniques
-================== ======= =============== ============== ============ ========= ========================= ==================
-abort_exit         S       ndr,iot,oot     B/E            read                   abort,exit
-ccode              S       1wi             S/F            read                   C
-conv1d             P       ndr,1wi         B/E            map          host      C, edma                   async, local, query, vec
-dgemm              P       iot             B/E            host         host      C, omp, msmc, edma, cache
-dspheap            S       1wi             B/F                                   dspheap, msmc             functor
-dsplib_fft         P       ndr,1wi         B/E            host         host      C
-edmamgr            S       1wi             B/E            read                   C, edma
-edmabw             I       iot             B/E            host                   C                         async
-float_compute      S       ndr             B/F            host         host                                local, async, vec
-mandelbrot         S       ndr             S/F            read         host                                nDev
-matmpy             S       1wi             B/F            read         host      C, msmc                   nDev, async, local
-null               I       iot             S/E                         host
-offline            S       ndr             B/F            read         event                               vec
-offline_embed      S       ndr             B/E            read         event                               vec
-ooo                S       oot             S/E            read         host                                event, native
-ooo_callback       S       oot             S/E            read         host                                event, callback
-ooo_map            S       oot             S/E            map          host                                event, native
-platforms          I                                      query
-tidl               P       custom                         host         host
-sgemm              P       1wi             B/E            map          host      C, msmc, edma, cache      local, vec
-Simple             S       ndr             S/E            read                                             functor
-timeout            S       ndr,iot,oot     B/E            read                   timeout
-vecadd             S       ndr             S/E            host                                             vec
-vecadd_mpax        S       ndr             S/E            map                                              extMem, query, vec
-vecadd_openmp      S       iot             S/F            read         event     C, omp
-vecadd_openmp_t    S       iot             S/F            read         event     C, omp
-vecadd_subdevice   S       ndr             S/F            host         host                                vec
-vecadd_compile_link   S    ndr             S/E            host         host                                vec, compile, link, library
-vecadd_compile_link_loadbinary S ndr       B/E            host         host                                vec, compile, link, library, loadbinary
-================== ======= =============== ============== ============ ========= ========================= ==================
+================== ==== =============== ============== ============ ========= ========================= ==================
+Name               Type Execute Model   Kernel Compile Buffer Model Profiling Extensions                Techniques
+================== ==== =============== ============== ============ ========= ========================= ==================
+abort_exit         S    ndr,iot,oot     B/E            read                   abort,exit
+ccode              S    1wi             S/F            read                   C
+conv1d             P    ndr,1wi         B/E            map          host      C, edma                   async, local, query, vec
+dgemm              P    iot             B/E            host         host      C, omp, msmc, edma, cache
+dspheap            S    1wi             B/F                                   dspheap, msmc             functor
+dsplib_fft         P    ndr,1wi         B/E            host         host      C
+edmamgr            S    1wi             B/E            read                   C, edma
+edmabw             I    iot             B/E            host                   C                         async
+float_compute      S    ndr             B/F            host         host                                local, async, vec
+mandelbrot         S    ndr             S/F            read         host                                nDev
+matmpy             S    1wi             B/F            read         host      C, msmc                   nDev, async, local
+null               I    iot             S/E                         host
+offline            S    ndr             B/F            read         event                               vec
+offline_embed      S    ndr             B/E            read         event                               vec
+ooo                S    oot             S/E            read         host                                event, native
+ooo_callback       S    oot             S/E            read         host                                event, callback
+ooo_map            S    oot             S/E            map          host                                event, native
+platforms          I                                   query
+tidl               P    custom                         host         host
+sgemm              P    1wi             B/E            map          host      C, msmc, edma, cache      local, vec
+Simple             S    ndr             S/E            read                                             functor
+timeout            S    ndr,iot,oot     B/E            read                   timeout
+vecadd             S    ndr             S/E            host                                             vec
+vecadd_mpax        S    ndr             S/E            map                                              extMem, query, vec
+vecadd_openmp      S    iot             S/F            read         event     C, omp
+vecadd_openmp_t    S    iot             S/F            read         event     C, omp
+vecadd_subdevice   S    ndr             S/F            host         host                                vec
+|long_name_1|      S    ndr             S/E            host         host                                compile, link, library
+|long_name_2|      S    ndr             B/E            host         host                                compile, link, library, loadbinary
+================== ==== =============== ============== ============ ========= ========================= ==================
+
+.. |long_name_1| replace:: vecadd_compile_link
+.. |long_name_2| replace:: vecadd_compile_link_loadbinary
 
 ======= =====================
 Type

@@ -121,7 +121,8 @@ your use case.
 
  #. Modify the sizes in both cmem_block@0 and corresponding cmem_block_mem
     nodes
-    ::
+
+    .. code-block:: diff
 
       --- k2hk-evm.dts.orig     2017-03-15 15:05:58.779020849 -0500
       +++ k2hk-evm.dts          2017-03-15 15:06:33.083021624 -0500
