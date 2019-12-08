@@ -13,37 +13,42 @@ that example.
 
 The key to the codes in the table are in subsequent tables.
 
-================== ======= =============== ============== ============ ========= ========================= ==================
-Name               Type    Execute Model   Kernel Compile Buffer Model Profiling Extensions                Techniques
-================== ======= =============== ============== ============ ========= ========================= ==================
-abort_exit         S       ndr,iot,oot     B/E            read                   abort,exit
-ccode              S       1wi             S/F            read                   C
-conv1d             P       ndr,1wi         B/E            map          host      C, edma                   async, local, query, vec
-dgemm              P       iot             B/E            host         host      C, omp, msmc, edma, cache
-dspheap            S       1wi             B/F                                   dspheap, msmc             functor
-dsplib_fft         P       ndr,1wi         B/E            host         host      C
-edmamgr            S       1wi             B/E            read                   C, edma
-edmabw             I       iot             B/E            host                   C                         async
-float_compute      S       ndr             B/F            host         host                                local, async, vec
-mandelbrot         S       ndr             S/F            read         host                                nDev
-matmpy             S       1wi             B/F            read         host      C, msmc                   nDev, async, local
-null               I       iot             S/E                         host
-offline            S       ndr             B/F            read         event                               vec
-offline_embed      S       ndr             B/E            read         event                               vec
-ooo                S       oot             S/E            read         host                                event, native
-ooo_callback       S       oot             S/E            read         host                                event, callback
-ooo_map            S       oot             S/E            map          host                                event, native
-platforms          I                                      query
-tidl               P       custom                         host         host
-sgemm              P       1wi             B/E            map          host      C, msmc, edma, cache      local, vec
-Simple             S       ndr             S/E            read                                             functor
-timeout            S       ndr,iot,oot     B/E            read                   timeout
-vecadd             S       ndr             S/E            host                                             vec
-vecadd_mpax        S       ndr             S/E            map                                              extMem, query, vec
-vecadd_openmp      S       iot             S/F            read         event     C, omp
-vecadd_openmp_t    S       iot             S/F            read         event     C, omp
-vecadd_subdevice   S       ndr             S/F            host         host                                vec
-================== ======= =============== ============== ============ ========= ========================= ==================
+================== ==== =============== ============== ============ ========= ========================= ==================
+Name               Type Execute Model   Kernel Compile Buffer Model Profiling Extensions                Techniques
+================== ==== =============== ============== ============ ========= ========================= ==================
+abort_exit         S    ndr,iot,oot     B/E            read                   abort,exit
+ccode              S    1wi             S/F            read                   C
+conv1d             P    ndr,1wi         B/E            map          host      C, edma                   async, local, query, vec
+dgemm              P    iot             B/E            host         host      C, omp, msmc, edma, cache
+dspheap            S    1wi             B/F                                   dspheap, msmc             functor
+dsplib_fft         P    ndr,1wi         B/E            host         host      C
+edmamgr            S    1wi             B/E            read                   C, edma
+edmabw             I    iot             B/E            host                   C                         async
+float_compute      S    ndr             B/F            host         host                                local, async, vec
+mandelbrot         S    ndr             S/F            read         host                                nDev
+matmpy             S    1wi             B/F            read         host      C, msmc                   nDev, async, local
+null               I    iot             S/E                         host
+offline            S    ndr             B/F            read         event                               vec
+offline_embed      S    ndr             B/E            read         event                               vec
+ooo                S    oot             S/E            read         host                                event, native
+ooo_callback       S    oot             S/E            read         host                                event, callback
+ooo_map            S    oot             S/E            map          host                                event, native
+platforms          I                                   query
+tidl               P    custom                         host         host
+sgemm              P    1wi             B/E            map          host      C, msmc, edma, cache      local, vec
+Simple             S    ndr             S/E            read                                             functor
+timeout            S    ndr,iot,oot     B/E            read                   timeout
+vecadd             S    ndr             S/E            host                                             vec
+vecadd_mpax        S    ndr             S/E            map                                              extMem, query, vec
+vecadd_openmp      S    iot             S/F            read         event     C, omp
+vecadd_openmp_t    S    iot             S/F            read         event     C, omp
+vecadd_subdevice   S    ndr             S/F            host         host                                vec
+|long_name_1|      S    ndr             S/E            host         host                                compile, link, library
+|long_name_2|      S    ndr             B/E            host         host                                compile, link, library, loadbinary
+================== ==== =============== ============== ============ ========= ========================= ==================
+
+.. |long_name_1| replace:: vecadd_compile_link
+.. |long_name_2| replace:: vecadd_compile_link_loadbinary
 
 ======= =====================
 Type
@@ -115,6 +120,10 @@ async      The async_work_group_copy functions are used to move data between mem
 local      OpenCL Local Buffers are used for performance improvement
 query      OpenCL platforms and/or devices are queried for attributes
 vec        OpenCL C vector data types are used in kernels
+compile    Use of program compile API to create compiled program objects from source program objects
+library    Use of program link API to create a library from compiled program objects
+link       Use of program link API to link compiled program objects and libraries
+loadbinary Creation of program object from linked program binary
 ========== ===========================================================================================
 
 
@@ -262,6 +271,25 @@ The same functionality as the vecadd example, but using sub devices. This
 example illustrates the use of sub devices using the OpenCL C API. It performs
 vecadd on the root device as well as equally partitioned individual sub devices
 and measures the time taken by each of them.
+
+.. _vecadd_compile_link-example:
+
+vecadd_compile_link example
+===========================
+
+The same functionality as the vecadd example, but using separate compile and
+link functionality to build a program. This example also illustrates creation
+of a library from compiled program objects and uses this library to create
+a linked program object which is then used to create the kernel.
+
+.. _vecadd_compile_link_loadbinary-example:
+
+vecadd_compile_link_loadbinary example
+======================================
+
+The same functionality as the vecadd_compile_link example with the additional
+step of creating a new program from a linked program binary. This new program
+is then used to create the kernel.
 
 .. _dsplib_fft-example:
 

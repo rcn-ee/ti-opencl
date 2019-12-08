@@ -52,7 +52,7 @@ namespace clang
 
 /**
  * \brief Compiler using Clang
- * 
+ *
  * This class builds a Clang instance, runs it and then retains compilation logs
  * and produced data.
  */
@@ -105,10 +105,10 @@ class Compiler
 
         /**
          * \brief Append a string to the log
-         * 
+         *
          * This function can be used to append linking or code-gen logs to the
          * internal compilation log kept by this class
-         * 
+         *
          * \param log log to be appended
          */
         void appendLog(const std::string &log);

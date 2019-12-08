@@ -96,6 +96,8 @@ bool    llvm_xforms    (Module *module, bool optimize);
 bool    cl6x           (string& filename, string &binary_str);
 
 int     run_cl6x       (string filename, string *llvm_bitcode, string options);
+bool    run_cl6x_link  (string& outfile, string& obj_files, string& lib_files);
+bool    run_ar6x       (string& liboutfile, string& obj_files);
 void    write_binary   (string filename, const char *buf, int size);
 void    write_text     (string filename);
 
@@ -124,6 +126,27 @@ void write_bitcode(string bc_file, Module* module)
 int main(int argc, char *argv[])
 {
     process_options(argc, argv);
+
+    /* Process library creation mode */
+    if (!files_a.empty()  &&
+        files_out.empty() &&
+        files_clc.empty() &&
+        files_c.empty()   &&
+        opt_ar_lib)
+    {
+        if (!run_ar6x(files_a, files_other))                           exit(-1);
+        return 0;
+    }
+
+    /* Process link only mode */
+    if (!files_out.empty() &&
+        files_clc.empty()  &&
+        files_c.empty()    &&
+        opt_link)
+    {
+        if (!run_cl6x_link(files_out, files_other, files_a))           exit(-1);
+        return 0;
+    }
 
     if (files_clc.empty()) return 0;
 
@@ -375,10 +398,13 @@ bool cl6x(string& bc_file, string &binary_str)
         fs_remove_file(bitasm_name);
     }
 
-    bitasm_name = fs_stem(bc_file_full);
-    if (opt_tmpdir) bitasm_name = fs_get_tmp_folder() + bitasm_name;
-    bitasm_name += "_bc.obj";
-    fs_remove_file(bitasm_name);
+    if (!opt_lib)
+    {
+        bitasm_name = fs_stem(bc_file_full);
+        if (opt_tmpdir) bitasm_name = fs_get_tmp_folder() + bitasm_name;
+        bitasm_name += "_bc.obj";
+        fs_remove_file(bitasm_name);
+    }
 
     return ret_code;
 }

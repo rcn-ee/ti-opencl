@@ -336,6 +336,22 @@ class DeviceProgram
         { return false; }
 
         /**
+         * \brief Build a device-specific representation of the program
+         *
+         * This function is called by \c Coal::Program::build() when the module
+         * is compiled and linked. It can be used by the device to build a
+         * device-specific representation of the program.
+         *
+         * \param module \c llvm::Module containing the program's LLVM IR
+         * \param binary_str \c std::string containing dep.unlinked_binary
+         * \return true in case of success, false otherwise
+         * \param binary_filename \c char* binary already in file, if not NULL
+         */
+        virtual bool compile(llvm::Module *module, std::string& obj_str,
+                             std::string& bc_obj_filename)
+        { return false; }
+
+        /**
          * \brief Extract binaries from MIXED binary
          *
          * This function is called to extract LLVM bitcode from the native
@@ -348,6 +364,7 @@ class DeviceProgram
         virtual bool ExtractMixedBinary(const std::string &binary_str,
                                               std::string &bitcode)
         {  return false;  }
+
 };
 
 /**

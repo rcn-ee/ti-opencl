@@ -112,11 +112,11 @@ EVE4_SRAM_SIZE              = 1*MB;
 
 /* Allocating virtual addresses for carveouts */
 /* IPU1 code, data, heap,  IPC data: trace buf, exc data, pm data */
-IPU1_CODE_SIZE              = 5*MB;
-IPU1_DATA_SIZE              = 4*MB;
-IPU1_HEAP_SIZE              = 11*MB;
+IPU1_CODE_SIZE              = 1*MB;
+IPU1_DATA_SIZE              = 2*MB;
+IPU1_HEAP_SIZE              = 10*MB;
 
-IPU1_CODE_ADDR              = 0x9D100000;
+IPU1_CODE_ADDR              = 0x9D300000;
 IPU1_DATA_ADDR              = IPU1_CODE_ADDR + IPU1_CODE_SIZE;
 IPU1_HEAP_ADDR              = IPU1_DATA_ADDR + IPU1_DATA_SIZE;
 

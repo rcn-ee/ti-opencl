@@ -135,6 +135,7 @@ DSPDevicePtr  DSPKernel::device_entry_pt()
 
         if (!prog->is_loaded()) ERROR();
         p_device_entry_pt = prog->query_symbol((char*)name);
+        assert(p_device_entry_pt != 0);
         free (name);
     }
     return p_device_entry_pt;

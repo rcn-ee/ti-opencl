@@ -15,7 +15,7 @@
  *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  *   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+ *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  *   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
  *   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
  *   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
@@ -44,6 +44,11 @@ const char* ocl_decode_error(int code)
         case -12: return "Map failure";
         case -13: return "Misaligned sub buffer offset";
         case -14: return "Exec status error for events in wait list";
+        case -15: return "Compile program failure";
+        case -16: return "Linker not available";
+        case -17: return "Link program failure";
+        case -18: return "Device partition failure";
+        case -19: return "Kernel argument info not available";
         case -30: return "Invalid value";
         case -31: return "Invalid device type";
         case -32: return "Invalid platform";

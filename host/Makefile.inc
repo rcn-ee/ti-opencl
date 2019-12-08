@@ -10,9 +10,9 @@ UNAME_M:=$(shell uname -m)
 # NOTE!!!!!! The packaging version numbers need to match what is specified in
 # debian/changelog!!!
 OCL_MAJOR_VER=1
-OCL_MINOR_VER=1
-OCL_RELEASE_VER=19
-OCL_PATCH_VER=02
+OCL_MINOR_VER=2
+OCL_RELEASE_VER=00
+OCL_PATCH_VER=00
 OCL_VER=$(OCL_MAJOR_VER).$(OCL_MINOR_VER).$(OCL_RELEASE_VER)
 OCL_DPKG_NAME=ti-opencl
 OCL_VERSIONED_NAME=$(OCL_DPKG_NAME)_$(OCL_VER)
@@ -64,7 +64,7 @@ endif
 ifeq ($(USE_ION), 1)
 CORESDK_VERSION ?= 05.02.00.10-ion
 else
-CORESDK_VERSION ?= 06.01.00.05-20190914
+CORESDK_VERSION ?= 06.01.00.08-release
 endif
 
 TIDL_VERSION    ?= 06_01_00_06-524-2019-09-28_20-43-37

@@ -34,6 +34,9 @@
 #define __COMPILER_H__
 
 #include <string>
+#include <map>
+#include <vector>
+#include "program.h"
 
 namespace Coal
 {
@@ -60,7 +63,26 @@ class Compiler
                             const std::string &options,
                                   std::string &outfile);
 
-        /**
+#ifndef _SYS_BIOS
+        bool Compile(const std::string &source,
+                     const std::map<std::string,
+                                    std::string> &input_header_src,
+                     const std::string &options,
+                           std::string &objfile,
+                           std::string &bc_objfile);
+
+        bool Link(const std::vector<std::string>& input_obj_files,
+                  const std::vector<std::string>& input_libs,
+                  const std::string& options,
+                  const std::string& export_symbols,
+                        std::string& outfile);
+
+        bool WriteBinaryOut(std::string&       outfile_path,
+                            const std::string& binary_str,
+                            const std::string& outdir,
+                            const std::string& outfile_ext);
+#endif
+       /**
          * \brief Compilation log
          * \note \c appendLog() can also be used to append custom info at the end
          *       of the log, for instance to keep compilation and linking logs
@@ -95,6 +117,21 @@ class Compiler
         bool CompileAndLinkForDSP(const std::string &source,
                                   const std::string &options,
                                         std::string &outfile);
+
+#ifndef _SYS_BIOS
+        bool CompileForDSP(const std::string &source,
+                           const std::map<std::string,
+                                          std::string> &input_headers,
+                           const std::string &options,
+                                 std::string &objfile,
+                                 std::string &bc_objfile);
+
+        bool LinkForDSP(const std::vector<std::string>& input_obj_files,
+                        const std::vector<std::string>& input_libs,
+                        const std::string& options,
+                        const std::string& export_symbols,
+                              std::string& outfile);
+#endif
 
         DeviceInterface *p_device;
         std::string      p_log;

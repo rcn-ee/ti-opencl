@@ -219,7 +219,7 @@ appropriate chunk of global memory and wait for the copy to complete.
 Sample Output
 -------------
 
-::
+.. code-block:: console
 
     ./float_compute
 

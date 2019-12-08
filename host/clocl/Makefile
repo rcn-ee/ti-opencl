@@ -18,19 +18,19 @@ EXE = clocl
 UNAME_M :=$(shell uname -m)
 
 ifneq (,$(findstring 86, $(UNAME_M)))
-   ifeq ($(findstring arm, $(MAKECMDGOALS)), arm) 
+   ifeq ($(findstring arm, $(MAKECMDGOALS)), arm)
         CXX = arm-linux-gnueabihf-g++
         TARGET := arm
         LLVM_DIR = $(ARM_LLVM_DIR)
         LLVM_CONFIG_NAME = llvm-config-host
         HOST_USR_INCLUDE = -idirafter/usr/include
-   else ifeq ($(findstring x86, $(MAKECMDGOALS)), x86) 
+   else ifeq ($(findstring x86, $(MAKECMDGOALS)), x86)
         CXX = $(NATIVE_GXX)
         TARGET := x86
         LLVM_DIR = $(X86_LLVM_DIR)
         LLVM_CONFIG_NAME = llvm-config
 	LLVM_LDFLAGS = -ltinfo
-   else ifeq ($(findstring arm-linux, $(CXX)), arm-linux) 
+   else ifeq ($(findstring arm-linux, $(CXX)), arm-linux)
         TARGET := arm
    endif
 else ifneq (,$(findstring arm, $(UNAME_M)))
@@ -72,14 +72,14 @@ CXXFLAGS := $(LLVM_CXXFLAGS) -I$(POCLDIR) \
             -DTI_POCL \
 	    -DBOOST_SYSTEM_NO_DEPRECATED=1 \
 	    -DBOOST_SYSTEM_NO_LIB=1 \
-            -D_PRODUCT_VERSION=$(_PRODUCT_VERSION) $(CXXFLAGS) 
+            -D_PRODUCT_VERSION=$(_PRODUCT_VERSION) $(CXXFLAGS)
 
 CXXFLAGS += -D_BUILD_ID=$(GIT_SHA)
 LIBS      = $(CLANG_LIBS)  $(LLVM_LIBS)
 LDFLAGS  := $(LLVM_LDFLAGS) $(LDFLAGS)
 STATIC    = -static
 
-.PHONY: .FORCE 
+.PHONY: .FORCE
 
 $(TARGET): $(TARGET)/.touch $(TARGET)/$(EXE)
 
@@ -95,12 +95,12 @@ $(TARGET)/%.o: $(POCLDIR)/%.cpp | $(TARGET)/.touch
 $(TARGET)/%.o: $(POCLDIR)/%.cc | $(TARGET)/.touch
 	$(CXX) $(CXXFLAGS) -c $<  -o $@
 
-$(TARGET)/.touch: 
+$(TARGET)/.touch:
 	mkdir -p $(TARGET); touch $(TARGET)/.touch
 
 $(TARGET)/options.o: .FORCE
 
 .FORCE:
 
-clean: 
+clean:
 	rm -f x86/* arm/*

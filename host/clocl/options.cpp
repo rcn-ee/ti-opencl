@@ -23,33 +23,40 @@ using std::string;
 using std::vector;
 using std::ostream_iterator;
 
-int opt_help    = 0;
-int opt_verbose = 0;
-int opt_keep    = 0;
-int opt_debug   = 0;
-int opt_symbols = 0;
-int opt_lib     = 0;
-int opt_txt     = 0;
-int opt_w       = 0;
-int opt_Werror  = 0;
-int opt_builtin = 0;
-int opt_tmpdir  = 0;
-int opt_version = 0;
-int opt_alias   = 0;
+int opt_help      = 0;
+int opt_verbose   = 0;
+int opt_keep      = 0;
+int opt_debug     = 0;
+int opt_symbols   = 0;
+int opt_lib       = 0;
+int opt_link      = 0;
+int opt_expsyms   = 0;
+int opt_ar_lib    = 0;
+int opt_link_opts = 0;
+int opt_txt       = 0;
+int opt_w         = 0;
+int opt_Werror    = 0;
+int opt_builtin   = 0;
+int opt_tmpdir    = 0;
+int opt_version   = 0;
+int opt_alias     = 0;
 
 string cl_options;
 string cl_incdef;
 string opts_other;
 vector<string> files_clc;
 vector<string> files_c;
+string         files_a;
+string         files_out;
 string         files_other;
+string         file_expsyms;
 
 #define STRINGIZE(x) #x
 #define STRINGIZE2(x) STRINGIZE(x)
 
 void print_version()
 {
-    printf("OpenCL 1.1 TI product version "
+    printf("OpenCL 1.2 TI product version "
            STRINGIZE2(_PRODUCT_VERSION)
            " (" STRINGIZE2(_BUILD_ID) ")\n\n");
 }
@@ -61,14 +68,18 @@ void print_options()
 {
     cout << endl;
 
-    if (opt_keep)    printf ("Option keep   : on\n");
-    if (opt_debug)   printf ("Option debug  : on\n");
-    if (opt_lib)     printf ("Option lib    : on\n");
-    if (opt_txt)     printf ("Option txt    : on\n");
-    if (opt_w)       printf ("Option w      : on\n");
-    if (opt_Werror)  printf ("Option Werror : on\n");
-    if (opt_alias)   printf ("Option alias  : on\n");
-    if (opt_symbols) printf ("Option symbols: on\n");
+    if (opt_keep)      printf ("Option keep       : on\n");
+    if (opt_debug)     printf ("Option debug      : on\n");
+    if (opt_lib)       printf ("Option lib        : on\n");
+    if (opt_link)      printf ("Option link       : on\n");
+    if (opt_expsyms)   printf ("Option Export Syms: on\n");
+    if (opt_ar_lib)    printf ("Option create lib : on\n");
+    if (opt_link_opts) printf ("Option link opts  : on\n");
+    if (opt_txt)       printf ("Option txt        : on\n");
+    if (opt_w)         printf ("Option w          : on\n");
+    if (opt_Werror)    printf ("Option Werror     : on\n");
+    if (opt_alias)     printf ("Option alias      : on\n");
+    if (opt_symbols)   printf ("Option symbols    : on\n");
     //if (opt_builtin) printf ("Option builtin: on\n");
     //if (opt_tmpdir)  printf ("Option tmpdir : on\n");
 
@@ -78,7 +89,9 @@ void print_options()
     cout << "Incls/Defines : " << cl_incdef    << endl;
     if (!files_clc.empty())
         cout << "CL C file     : " << files_clc[0] << endl;
+    cout << "Output File   : " << files_out    << endl;
     cout << "Link Files    : " << files_other  << endl;
+    cout << "Export Symbols File : " << file_expsyms  << endl;
 
     cout << endl;
 
@@ -101,7 +114,7 @@ void print_help()
     cout << endl;
 
     cout << "Options passed to clocl are either options to control" << endl;
-    cout << "clocl behavior or they are documented OpenCL 1.1 build" << endl;
+    cout << "clocl behavior or they are documented OpenCL 1.2 build" << endl;
     cout << "options." << endl;
     cout << endl;
     cout << "The clocl behavior options are: " << endl;
@@ -115,7 +128,7 @@ void print_help()
     cout << "   -a, --alias   : Assume kernel buffers alias each other" << endl;
     cout << "   --version     : Print OpenCL product." << endl;
     cout << endl;
-    cout << "The OpenCL 1.1 build options. Refer to 1.1 spec for desc:" << endl;
+    cout << "The OpenCL 1.2 build options. Refer to 1.2 spec for desc:" << endl;
     cout << "   -D<name>" << endl;
     cout << "   -D<name>=<val>" << endl;
     cout << "   -I<dir>" << endl;
@@ -149,20 +162,22 @@ void process_options(int argc, char **argv)
             /*-----------------------------------------------------------------
             * clocl options
             *----------------------------------------------------------------*/
-            {"help",    no_argument,  &opt_help,    'h' },
-            {"verbose", no_argument,  &opt_verbose, 'v' },
-            {"keep",    no_argument,  &opt_keep,    'k' },
-            {"debug",   no_argument,  &opt_debug,   'g' },
-            {"symbols", no_argument,  &opt_symbols, 's' },
-            {"lib",     no_argument,  &opt_lib,     'l' },
-            {"txt",     no_argument,  &opt_txt,     't' },
-            {"builtin", no_argument,  &opt_builtin, 'b' },
-            {"tmpdir",  no_argument,  &opt_tmpdir,  'd' },
-            {"alias",   no_argument,  &opt_alias,   'a' },
-            {"version", no_argument,  &opt_version,  1  },
+            {"help",        no_argument,        &opt_help,    'h' },
+            {"verbose",     no_argument,        &opt_verbose, 'v' },
+            {"keep",        no_argument,        &opt_keep,    'k' },
+            {"debug",       no_argument,        &opt_debug,   'g' },
+            {"symbols",     no_argument,        &opt_symbols, 's' },
+            {"lib",         no_argument,        &opt_lib,     'l' },
+            {"link",        no_argument,        &opt_link,    'z' },
+            {"txt",         no_argument,        &opt_txt,     't' },
+            {"builtin",     no_argument,        &opt_builtin, 'b' },
+            {"tmpdir",      no_argument,        &opt_tmpdir,  'd' },
+            {"alias",       no_argument,        &opt_alias,   'a' },
+            {"version",     no_argument,        &opt_version,  1  },
+            {"export-syms", required_argument,  &opt_expsyms,  0  },
 
             /*-----------------------------------------------------------------
-            * opencl 1.1 options
+            * opencl 1.2 options
             *----------------------------------------------------------------*/
             {"Werror",                       no_argument, 0,  0  },
             {"cl-std",                       required_argument, 0,  0  },
@@ -175,6 +190,8 @@ void process_options(int argc, char **argv)
             {"cl-finite-math-only",          no_argument, 0, 0 },
             {"cl-fast-relaxed-math",         no_argument, 0, 0 },
             {"cl-kernel-arg-info",           no_argument, 0, 0 },
+            {"create-library",               no_argument, 0, 0 },
+            {"enable-link-options",          no_argument, 0, 0 },
             {0,                              0,           0, 0 }
         };
 
@@ -183,7 +200,7 @@ void process_options(int argc, char **argv)
 
         opterr = 0; // prevent getopt from printing warnings
 
-       c = getopt_long_only(argc, argv, "-tadgwsI:D:", long_options,
+       c = getopt_long_only(argc, argv, "-tadglzvwsI:D:", long_options,
                             &option_index);
        if (c == -1) break;
 
@@ -196,6 +213,7 @@ void process_options(int argc, char **argv)
                 if (name == "help"    || name == "verbose"   ||
                     name == "keep"    || name == "debug"     ||
                     name == "lib"     || name == "txt"       ||
+                    name == "link"    ||
                     name == "builtin" || name == "tmpdir"    ||
                     name == "alias"   || name == "symbols"
                    ) break;
@@ -207,8 +225,18 @@ void process_options(int argc, char **argv)
                     break;
                 }
 
+                if (name == "export-syms")
+                {
+                    file_expsyms += optarg;
+                    opt_expsyms  = 1;
+                    break;
+                }
+
                 if (name == "Werror")         opt_Werror = 1; // fall-through
                 if (name == "cl-opt-disable") opt_debug  = 1; // fall-through
+
+                if (name == "create-library")      opt_ar_lib = 1;
+                if (name == "enable-link-options") opt_link_opts = 1;
 
                 cl_options += " ";
                 cl_options += argv[this_option_optind];
@@ -222,16 +250,21 @@ void process_options(int argc, char **argv)
 
                  if      (ext == ".clc") files_clc.push_back(fname);
                  else if (ext == ".cl")  files_clc.push_back(fname);
+                 else if (ext == ".a")   { files_a += fname; files_a += " ";}
                  else if (ext == ".c")   files_c.push_back(fname);
+                 else if (ext == ".out") files_out = fname;
                  else                    { files_other += fname; files_other += " "; }
 
                  break;
                }
 
-           case 't': opt_txt = 1;    break;
-           case 'd': opt_tmpdir = 1; break;
-           case 'a': opt_alias = 1;  break;
-           case 'g': opt_debug  = 1; break;
+           case 't': opt_txt     = 1; break;
+           case 'd': opt_tmpdir  = 1; break;
+           case 'l': opt_lib     = 1; break;
+           case 'z': opt_link    = 1; break;
+           case 'v': opt_verbose = 1; break;
+           case 'a': opt_alias   = 1; break;
+           case 'g': opt_debug   = 1; break;
            case 's': opt_symbols = 1; break;
            case 'w': opt_w = 1; cl_options += " -w"; break;
 

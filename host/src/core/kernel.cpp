@@ -323,14 +323,28 @@ cl_int Kernel::addFunction(DeviceInterface *device,
         else                           aq = CL_KERNEL_ARG_ACCESS_NONE;
         a.SetAccessQualifier(aq);
 
+        /* kernel_arg_base_type */
+        mstr = GetMDValueStr(mdname_map, "kernel_arg_base_type", i+1);
+        a.SetBaseType(mstr);
+
+        /* Determine if this argument is a pointer type using the
+         * kernel_arg_base_type qualifier value. If the value contains a '*',
+         * then this is a pointer, otherwise it is not. This also holds true
+         * in the case of *const or *volatile arguments which are constant
+         * pointers but not pointers to const or volatile values. See
+         * CL_KERNEL_ARG_TYPE_QUALIFIER entry in table 5.17, page 169 of the 1.2
+         * specification for more information. */
+        bool isPointerType = false;
+        if (mstr.find("*") != std::string::npos) isPointerType = true;
+
         /* kernel_arg_type_qual*/
         mstr = GetMDValueStr(mdname_map, "kernel_arg_type_qual", i+1);
         cl_kernel_arg_type_qualifier tq = CL_KERNEL_ARG_TYPE_NONE;
-        if (mstr.find("const")    != std::string::npos)
+        if (mstr.find("const")    != std::string::npos && isPointerType)
             tq |= (cl_kernel_arg_type_qualifier) CL_KERNEL_ARG_TYPE_CONST;
-        if (mstr.find("restrict") != std::string::npos)
+        if (mstr.find("restrict") != std::string::npos && isPointerType)
             tq |= (cl_kernel_arg_type_qualifier) CL_KERNEL_ARG_TYPE_RESTRICT;
-        if (mstr.find("volatile") != std::string::npos)
+        if (mstr.find("volatile") != std::string::npos && isPointerType)
             tq |= (cl_kernel_arg_type_qualifier) CL_KERNEL_ARG_TYPE_VOLATILE;
         a.SetTypeQualifier(tq);
 
@@ -341,10 +355,6 @@ cl_int Kernel::addFunction(DeviceInterface *device,
         /* kernel_arg_type */
         mstr = GetMDValueStr(mdname_map, "kernel_arg_type", i+1);
         a.SetTypeName(mstr);
-
-        /* kernel_arg_base_type */
-        mstr = GetMDValueStr(mdname_map, "kernel_arg_base_type", i+1);
-        a.SetBaseType(mstr);
 
         // If we also have a function registered, check for signature compliance
         if (!append && a != p_args[i])

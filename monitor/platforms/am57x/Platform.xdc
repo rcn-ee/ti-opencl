@@ -36,20 +36,24 @@ config ti.platforms.generic.Platform.Instance CPU =
 
       /*-----------------------------------------------------------------------
       * DDR Related regions
+      * all text in DDR3, data in DDR3 and DDR3_FC
+      * Remoteproc Carveout memory block are allocated at 1MB boundary by
+      * CMA allocator, however, by power of 2 size and boundary by DMA pool
+      * allocator.  Hence, making blocks of power of 2 sizes to reduce gaps
       *----------------------------------------------------------------------*/
       [ "DDR3",         { name: "DDR3", 
                           base: 0xFEB00000,
-			              len:  0x004f3000,
+                          len:  0x00400000,
                           space: "code/data", 
-			              access: "RWX", } ],
+                          access: "RWX", } ],
 
       /* Each DSP core uses its own framework components data structure
          via remoteproc memory allocation for carveout */
       [ "DDR3_FC",     { name: "DDR3_FC",
-                         base: 0xFEFF3000,
-			             len:  0x0000D000,
+                         base: 0xFEF00000,
+                         len:  0x00100000,
                          space: "code/data",
-			             access: "RWX", } ],
+                         access: "RWX", } ],
 
 
       /* DDR3_NC, DDR3_STACK and DDR3_HEAP placed in the first 32MB of

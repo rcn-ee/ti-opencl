@@ -32,7 +32,9 @@ to debug DSP side kernel.
 4. Hit any key in window 1
 5. Start debugging the kernel in window 2
 
-The following are the sample output of window 1::
+The following are the sample output of window 1:
+
+.. code-block:: bash
 
     root@am57xx-evm:~/oclexamples/vecadd# TI_OCL_DEBUG=gdb ./vecadd
     DEVICE: TI Multicore C66 DSP
@@ -48,7 +50,9 @@ The following are the sample output of window 1::
     
     Success!
 
-and window 2::
+and window 2:
+
+.. code-block:: bash
 
     root@am57xx-evm:~# gdbc6x -q -iex "target remote /dev/gdbtty0" -iex "set confirm off" -iex "symbol-file /usr/share/ti/opencl/dsp.out" -iex "add-symbol-file /tmp/openclXmObdu.out 0x86000000" -iex "b exit" -iex "b VectorAdd" 
     Remote debugging using /dev/gdbtty0
@@ -126,7 +130,8 @@ and window 2::
     debug session, DSP core 0 gets stuck in non-suspendable state.  To resolve
     this, user can either reboot the EVM or use the following script to reload
     DSP firmware.
-    ::
+
+    .. code-block:: bash
 
         $ cat reload_dspfirmware.sh
         #!/bin/sh

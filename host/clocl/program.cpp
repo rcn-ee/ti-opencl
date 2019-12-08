@@ -43,6 +43,7 @@
 #include <sstream>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <vector>
 
 
@@ -128,10 +129,68 @@ std::string get_ocl_dsp()
     exit(EXIT_FAILURE);
 }
 
+
+/******************************************************************************
+* run_cl6x for linking only
+******************************************************************************/
+bool run_cl6x_link(string& outfile, string& obj_files, string& lib_files)
+{
+    string command("cl6x -q ");
+    const char* cgt_install = get_cgt_install();
+
+    command += "-I"; command += cgt_install; command += "/lib ";
+    command += "-I"; command += get_ocl_dsp().c_str(); command += " ";
+    command += "-z ";
+    command += obj_files;
+    if (!lib_files.empty()) command += lib_files;
+    command += "-o ";
+    command += outfile;
+    if (opt_expsyms)
+    {
+        command += " -l";
+        command += file_expsyms;
+    }
+    command += " -ldsp.syms";
+
+    if (opt_verbose) cout << command << endl;
+
+    int x = system(command.c_str());
+    if (x != 0) return false;
+
+    if (!opt_debug && !opt_symbols)
+    {
+        string strip_command("strip6x -p ");
+        strip_command += outfile;
+        if (opt_verbose) cout << strip_command << endl;
+        x = system(strip_command.c_str());
+        if (x != 0) return false;
+    }
+
+    return true;
+}
+
+/******************************************************************************
+* run_ar6x to create a library
+******************************************************************************/
+bool run_ar6x(string& liboutfile, string& obj_files)
+{
+    string command("ar6x aq ");
+    command += liboutfile;
+    command += " ";
+    command += obj_files;
+
+    if (opt_verbose) cout << command << endl;
+
+    int ret_code = system(command.c_str());
+    if (ret_code != 0) return false;
+
+    return true;
+}
+
 /******************************************************************************
 * run_cl6x
 ******************************************************************************/
-int run_cl6x(string filename, string *llvm_bitcode, string addl_files)
+int run_cl6x(string filename, string* llvm_bitcode, string addl_files)
 {
     string command("cl6x --f -q --abi=eabi --use_g3 -mv6600 -mo ");
 
@@ -146,7 +205,7 @@ int run_cl6x(string filename, string *llvm_bitcode, string addl_files)
     if (opt_keep)   command += "-mw -k --z ";
 
     /*-------------------------------------------------------------------------
-    * Worked around the sploop bug in the compiler.                           
+    * Worked around the sploop bug in the compiler.
     *------------------------------------------------------------------------*/
 #if 0
     command += "--disable:sploop ";
@@ -156,11 +215,11 @@ int run_cl6x(string filename, string *llvm_bitcode, string addl_files)
     else if (opt_symbols) command += "-o3 ";
     else                  command += "-o3 --symdebug:none ";
 
-    const char *cgt_install = get_cgt_install();
+    const char* cgt_install = get_cgt_install();
 
-   command += "-I"; command += cgt_install; command += "/include ";
-   command += "-I"; command += cgt_install; command += "/lib ";
-   command += "-I"; command += get_ocl_dsp().c_str(); command += " ";
+    command += "-I"; command += cgt_install; command += "/include ";
+    command += "-I"; command += cgt_install; command += "/lib ";
+    command += "-I"; command += get_ocl_dsp().c_str(); command += " ";
 
     command += "--bc_file="; command += filename; command += " ";
 
@@ -178,9 +237,9 @@ int run_cl6x(string filename, string *llvm_bitcode, string addl_files)
         int nbytes = llvm_bitcode->size();
         for (int i = 0; i < nbytes; i++)
             if (i % 10 == 0)
-               outasmfile << "\n\t.byte " << (int) llvm_bitcode->at(i);
+                outasmfile << "\n\t.byte " << (int) llvm_bitcode->at(i);
             else
-               outasmfile << ", " << (int) llvm_bitcode->at(i);
+                outasmfile << ", " << (int) llvm_bitcode->at(i);
         outasmfile.close();
 
         command += bitasm_name; command += " ";
