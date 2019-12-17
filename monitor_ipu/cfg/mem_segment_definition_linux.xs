@@ -171,9 +171,9 @@ function getMemSegmentDefinition_external(core)
 {
     var memory = new Array();
     var index = 0;
-    memory[index++] = ["IPU1_CODE_MEM", {
+    memory[index++] = ["EXT_CODE", {
             comment : "IPU1_CODE_MEM",
-            name    : "IPU1_CODE_MEM",
+            name    : "EXT_CODE",
             base    : IPU1_CODE_ADDR,
             len     : IPU1_CODE_SIZE
         }];

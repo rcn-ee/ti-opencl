@@ -43,7 +43,7 @@ var memmap = MemSegDefine.getMemSegmentDefinition_external(core)
 
 Build.platformTable["ti.platforms.evmDRA7XX:ipu1"] = {
     externalMemoryMap: memmap,
-    codeMemory: "IPU1_CODE_MEM",
+    codeMemory: "EXT_CODE",
     dataMemory: "IPU1_DATA_MEM",
     stackMemory: "IPU1_DATA_MEM",
 };
