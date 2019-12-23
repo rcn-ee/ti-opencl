@@ -151,11 +151,14 @@ Int32 Utils_eveBoot(Int32 num_eve_devices)
     if (multVal == 0U)
     {
         oppId = SBLLIB_PRCM_DPLL_OPP_HIGH;
+#if 0   /* Now: IPU1 gets early boot before DSP frequency is configured, */
+        /* which happens at the end of u-boot, just before starting kernel. */
         /* if DPLL DSP in OPP_NOM 600MHz, use OPP_NOM for EVE as well */
         dspMultVal = PMHALCMDpllGetMultiplier(PMHAL_PRCM_DPLL_DSP);
         dspDivVal  = PMHALCMDpllGetDivider(PMHAL_PRCM_DPLL_DSP);
         if ((20U * dspMultVal / (dspDivVal + 1U)) <= 600U)  /* 20MHz sys_clk */
             oppId = SBLLIB_PRCM_DPLL_OPP_NOM;
+#endif
 
         retVal = SBLLibGetDpllStructure(PMHAL_PRCM_DPLL_EVE,
                                          sysClkFreq,
