@@ -30,7 +30,7 @@
  * \brief Profiling of events
  */
 
-#include "CL/cl.h"
+#include "CL/TI/cl.h"
 #include <core/commandqueue.h>
 
 // Profiling APIs

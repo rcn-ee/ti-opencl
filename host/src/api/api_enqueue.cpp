@@ -30,7 +30,7 @@
  * \brief Events
  */
 
-#include <CL/cl.h>
+#include <CL/TI/cl.h>
 
 #include <core/events.h>
 #include <core/memobject.h>

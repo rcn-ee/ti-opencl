@@ -31,7 +31,7 @@
  * \brief Memory objects
  */
 
-#include "CL/cl_ext.h"
+#include "CL/TI/cl_ext.h"
 #include "memobject.h"
 #include "context.h"
 #include "deviceinterface.h"

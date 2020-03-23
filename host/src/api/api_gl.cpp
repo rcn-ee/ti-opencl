@@ -34,8 +34,8 @@
 #include "GL/gl.h"
 #include "GL/glext.h"
 
-#include "CL/cl.h"
-#include "CL/cl_gl.h"
+#include "CL/TI/cl.h"
+#include "CL/TI/cl_gl.h"
 
 cl_mem
 clCreateFromGLBuffer(cl_context     context,

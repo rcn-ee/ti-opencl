@@ -29,8 +29,8 @@
 #include <iostream>
 #include <stdlib.h>
 
-#include "CL/cl.h"
-#include "CL/cl_ext.h"
+#include "CL/TI/cl.h"
+#include "CL/TI/cl_ext.h"
 #include "platform.h"
 #include "propertylist.h"
 #include "object.h"

@@ -37,8 +37,8 @@
 #include "object.h"
 #include "icd.h"
 
-#include <CL/cl.h>
-#include <CL/cl_ext.h>
+#include <CL/TI/cl.h>
+#include <CL/TI/cl_ext.h>
 #include "tiocl_thread.h"
 
 #include <map>

@@ -134,13 +134,13 @@ eve_submodule:
 	git submodule update --init
 
 ifeq ($(USE_EXTERNAL_FW_REPO),1)
-FW_REPO=git://git.ti.com/opencl/opencl-firmware.git
+FW_REPO=https://github.com/rcn-ee/opencl-firmware
 else
-FW_REPO=ssh://git@bitbucket.itg.ti.com/mctools/opencl-firmware.git
+FW_REPO=https://github.com/rcn-ee/opencl-firmware
 endif
 
 opencl-firmware:
-	git clone --depth 1 $(FW_REPO)
+	git clone -b 01.01.18.00 --depth 1 $(FW_REPO)
 
 change:
 	git log --pretty=format:"- %s%n%b" $(TAG).. ; \

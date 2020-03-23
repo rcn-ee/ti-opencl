@@ -6,8 +6,8 @@ Which TI OpenCL Version is Installed?
    installed.
 
 2. Executing the command ``ls -l /usr/lib/libOpenCL*`` will display the OpenCL libraries 
-   installed on the device. Follow the soft links from ``/usr/lib/libOpenCL.so`` to a fully 
-   version qualified libOpenCL library like ``/usr/lib/libOpenCL.so.1.1.0``. The version of 
+   installed on the device. Follow the soft links from ``/usr/lib/libTIOpenCL.so`` to a fully 
+   version qualified libOpenCL library like ``/usr/lib/libTIOpenCL.so.1.1.0``. The version of 
    the library will indicate which version of the OpenCL package is installed.
 
 3. If the device is running Ubuntu and ti-opencl was installed using dpkg or apt-get, 
@@ -24,7 +24,7 @@ Which TI OpenCL Version is Installed?
    APIs to query the platform version. The returned string will have a format similar to: 
    ``OpenCL 1.1 TI product version 1.1.1.0``. Sample C++ code to query the version follows::
 
-    #include <CL/cl.hpp>
+    #include <CL/TI/cl.hpp>
     #include <iostream>
      
     std::vector<cl::Platform> platforms;

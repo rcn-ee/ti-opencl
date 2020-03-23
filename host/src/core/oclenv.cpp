@@ -30,7 +30,7 @@
 #include <errno.h>
 #include "oclenv.h"
 
-#include <CL/cl.h>
+#include <CL/TI/cl.h>
 #include "tiocl_thread.h"
 #ifdef _SYS_BIOS
 #include <Singleton.h>

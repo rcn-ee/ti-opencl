@@ -30,7 +30,7 @@
  * \brief Samplers
  */
 
-#include "CL/cl.h"
+#include "CL/TI/cl.h"
 
 #include "core/sampler.h"
 #include "core/context.h"

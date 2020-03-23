@@ -27,7 +27,7 @@
  *****************************************************************************/
 
 #define __CL_ENABLE_EXCEPTIONS
-#include <CL/cl.hpp>
+#include <CL/TI/cl.hpp>
 #include <iostream>
 #include <iomanip>
 #include <cstdlib>

@@ -25,7 +25,7 @@
  *   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  *   THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
-#include "CL/cl.h"
+#include "CL/TI/cl.h"
 #include "platform.h"
 #include "icd.h"
 

@@ -58,7 +58,7 @@
 #endif
 
 #define __CL_ENABLE_EXCEPTIONS
-#include <CL/cl.hpp>
+#include <CL/TI/cl.hpp>
 using namespace cl;
 using namespace std;
 

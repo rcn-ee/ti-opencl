@@ -30,7 +30,7 @@
  * \brief Programs
  */
 
-#include "CL/cl.h"
+#include "CL/TI/cl.h"
 #include <core/program.h>
 #include <core/builtinprogram.h>
 #include <core/context.h>

@@ -17,12 +17,12 @@ meaning that it allows a user of OpenCL to simply include the appropriate
 header file in their source and to link the application against an OpenCL
 library.  For example, if a file program.cpp already exists and is compiled
 with the command :command:`g++ -O3 program.c`, that file could be OpenCL enabled by simply
-adding ``#include <CL/cl.h>`` to the file and compiling with the command :command:`g++
--O3 program.c -lOpenCL`.  The ``CL/cl.h`` header file is used to compile host OpenCL
+adding ``#include <CL/TI/cl.h>`` to the file and compiling with the command :command:`g++
+-O3 program.c -lOpenCL`.  The ``CL/TI/cl.h`` header file is used to compile host OpenCL
 applications using the C API.  If using the C++ bindings instead, then add
-``#include <CL/cl.hpp>`` to your file.  Additionally, if using C++ and you would 
+``#include <CL/TI/cl.hpp>`` to your file.  Additionally, if using C++ and you would 
 like to let the C++ exception handler catch OpenCL API errors, then you
-should also add ``#define __CL_ENABLE_EXCEPTIONS`` before you include ``CL/cl.hpp``. 
+should also add ``#define __CL_ENABLE_EXCEPTIONS`` before you include ``CL/TI/cl.hpp``. 
 
 Compiling OpenCL C Programs
 =======================================================

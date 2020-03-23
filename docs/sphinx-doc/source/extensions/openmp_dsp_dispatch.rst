@@ -182,7 +182,7 @@ for DSP code.
     DSP_INCLUDE  = -I$(TI_OCL_CGT_INSTALL)/include
 
     # linker options and libraries for final executable
-    LIBS  = -L$(TI_OCL_INSTALL)/lib -lOpenCL -locl_util
+    LIBS  = -L$(TI_OCL_INSTALL)/lib -lTIOpenCL -locl_util
 
     # rule for building final executable
     EXE        = vecadd_openmp
