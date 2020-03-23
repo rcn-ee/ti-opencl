@@ -188,9 +188,9 @@ add_subdirectory(runtime)
 
 set(CMAKE_SHARED_LINKER_FLAGS "-Wl,-Bsymbolic")
 if (NOT (${BUILD_OS} MATCHES "SYS_BIOS"))
-add_library(OpenCL SHARED ${COAL_SRC_FILES})
+add_library(TIOpenCL SHARED ${COAL_SRC_FILES})
 else()
-add_library(OpenCL STATIC ${COAL_SRC_FILES})
+add_library(TIOpenCL STATIC ${COAL_SRC_FILES})
 endif()
 
 if (NOT (${BUILD_OS} MATCHES "SYS_BIOS"))
@@ -207,16 +207,16 @@ set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/runtime/stdlib_impl.h
 set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/runtime/stdlib_def.h
                             PROPERTIES GENERATED 1)
 
-add_dependencies(OpenCL generate_stdlib_c)
-add_dependencies(OpenCL generate_builtins)
+add_dependencies(TIOpenCL generate_stdlib_c)
+add_dependencies(TIOpenCL generate_builtins)
 endif()
 
-add_dependencies(OpenCL oclload)
+add_dependencies(TIOpenCL oclload)
 add_subdirectory(core/dsp/tal/ocl_load)
 
 SET(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
 
-SET_TARGET_PROPERTIES(OpenCL PROPERTIES
+SET_TARGET_PROPERTIES(TIOpenCL PROPERTIES
   VERSION ${${PROJECT_NAME}_VERSION}
   SOVERSION ${${PROJECT_NAME}_SOVERSION}
 )
@@ -225,7 +225,7 @@ if (NOT (${BUILD_OS} MATCHES "SYS_BIOS"))
 set_source_files_properties(${COAL_SRC_FILES}
         PROPERTIES COMPILE_FLAGS ${LLVM_COMPILE_FLAGS})
 
-set_target_properties(OpenCL PROPERTIES
+set_target_properties(TIOpenCL PROPERTIES
   LINK_FLAGS "${LLVM_LDFLAGS}"
   LINK_INTERFACE_LIBRARIES "")
 endif()
@@ -283,13 +283,13 @@ if(ENABLE_ULM)
   LIST (APPEND LIBS ${ULM_LIB} )
 endif()
 
-TARGET_LINK_LIBRARIES(OpenCL ${LIBS})
+TARGET_LINK_LIBRARIES(TIOpenCL ${LIBS})
 endif()  # if (NOT (${BUILD_OS} MATCHES "SYS_BIOS"))
 
 if (NOT (${BUILD_OS} MATCHES "SYS_BIOS"))
-  install(TARGETS OpenCL LIBRARY DESTINATION /usr/lib ${OCL_FPERMS})
+  install(TARGETS TIOpenCL LIBRARY DESTINATION /usr/lib ${OCL_FPERMS})
 else()
-  file(WRITE ${PROJECT_BINARY_DIR}/lib/OpenCLAddLib.mri
+  file(WRITE ${PROJECT_BINARY_DIR}/lib/TIOpenCLAddLib.mri
     "OPEN ../lib/libTIOpenCL.a
     ADDLIB ${ARM_LLVM_DIR}/lib/libLLVMBitReader.a
     ADDLIB ${ARM_LLVM_DIR}/lib/libLLVMCore.a
@@ -297,8 +297,8 @@ else()
     ADDLIB ../lib/liboclload.a
     SAVE
     END")
-  add_custom_command (TARGET OpenCL POST_BUILD
-    COMMAND ${CMAKE_AR} -M < ${PROJECT_BINARY_DIR}/lib/OpenCLAddLib.mri)
-  install(TARGETS OpenCL ARCHIVE DESTINATION /usr/lib ${OCL_FPERMS})
+  add_custom_command (TARGET TIOpenCL POST_BUILD
+    COMMAND ${CMAKE_AR} -M < ${PROJECT_BINARY_DIR}/lib/TIOpenCLAddLib.mri)
+  install(TARGETS TIOpenCL ARCHIVE DESTINATION /usr/lib ${OCL_FPERMS})
 endif()
 
