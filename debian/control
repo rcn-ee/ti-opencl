@@ -1,47 +1,52 @@
 Source: ti-opencl
-Section: partner/misc
+Section: misc
+Maintainer: Robert Nelson <robertcnelson@gmail.com>
 Priority: extra
-Maintainer: TI Keystone PPA <ti-keystone-ppa@list.ti.com>
 Build-Depends: debhelper (>= 9),
-         mesa-common-dev (>= 8.0.4),
+         mesa-common-dev,
          binutils-dev,
          libsqlite3-dev,
          libffi-dev,
          zlib1g-dev,
-         libmpmtransport-dev,
-         libmpmclient-dev,
+         ti-ipc-dra7xx-dev,
          cmem-dev,
-         pdk-keystone2 (>= 03.00.04.18),
          pkg-config,
          check,
          libboost-dev,
          cmake,
          python,
          libtiulm-dev,
-         ti-llvm-3.3,
-	 libloki-dev,
-         gdbserver-c6x
-Standards-Version: 3.9.5
+         ti-llvm-3.6,
+         libloki-dev,
+         gdbserver-c6x,
+         firmware-am57xx-opencl-monitor,
+         firmware-am57xx-opencl-tidl,
+         libelf-dev,
+         libjson-c-dev,
+         ti-c6000-cgt-v8.3,
+         git,
+         ocl-icd-opencl-dev,
+Standards-Version: 3.9.6
+Homepage: http://git.ti.com/gitweb/?p=opencl/ti-opencl.git;a=summary
+Vcs-Browser: http://git.ti.com/gitweb/?p=opencl/ti-opencl.git;a=summary
+Vcs-Git: git://git.ti.com/opencl/ti-opencl.git
 
 Package: ti-opencl
 Depends: ${shlibs:Depends},
          ${misc:Depends},
-         libopencl1 (= ${binary:Version}),
-         mesa-common-dev (>= 8.0.4),
-         mpm,
-         cmem-mod-dkms,
-         ti-cgt-c6x
+         libtiopencl1 (= ${binary:Version}),
+         mesa-common-dev,
+         ti-c6000-cgt-v8.3
 Conflicts: opencl-headers
 Architecture: armhf
 Description: OpenCL for TI Keystone
  OpenCL implementation for TI Keystone.
 
-Package: libopencl1
-Section: partner/libs
-Depends: ${shlibs:Depends},
+Package: libtiopencl1
+Section: libs
+Depends: ocl-icd-libopencl1 | libopencl1,
+         ${shlibs:Depends},
          ${misc:Depends}
-Breaks: ti-opencl (<< 0.9.0-0ubuntu1)
-Replaces: ti-opencl (<< 0.9.0-5)
 Architecture: armhf
 Description: OpenCL for TI Keystone - runtime libraries
  OpenCL implementation for TI Keystone.

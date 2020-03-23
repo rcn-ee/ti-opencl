@@ -35,7 +35,7 @@
 #define POCL_H
 
 #ifndef TI_POCL
-#include <CL/opencl.h>
+#include <CL/TI/opencl.h>
 
 #include "pocl_device.h"
 #include "config.h"

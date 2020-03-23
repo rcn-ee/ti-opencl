@@ -34,7 +34,7 @@
 #ifdef __cplusplus
 
 #define __CL_ENABLE_EXCEPTIONS
-#include <CL/cl.hpp>
+#include <CL/TI/cl.hpp>
 
 char *ocl_decode_error  (int code);
 int   ocl_read_binary   (const char *filename, char* &buffer);

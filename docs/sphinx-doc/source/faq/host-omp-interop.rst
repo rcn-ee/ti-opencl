@@ -14,7 +14,7 @@ example also uses the one Q.finish() command outside the parallel region to
 effectively wait_all on the asynchronous hello kernel enqueues.::
 
     #define __CL_ENABLE_EXCEPTIONS
-    #include <CL/cl.hpp>
+    #include <CL/TI/cl.hpp>
     #include <iostream>
     #include <cstdlib>
     #include <cstdio>
@@ -57,7 +57,7 @@ command queue defined in the main thread, one finish() API call to wait on all
 threads is not possible, so a wait is attached to each kernel enqueue command.::
 
     #define __CL_ENABLE_EXCEPTIONS
-    #include <CL/cl.hpp>
+    #include <CL/TI/cl.hpp>
     #include <iostream>
     #include <cstdlib>
     #include <cstdio>

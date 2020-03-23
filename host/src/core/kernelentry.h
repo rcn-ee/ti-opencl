@@ -33,8 +33,8 @@
 #ifndef __KERNELENTRY_H__
 #define __KERNELENTRY_H__
 
-#include <CL/cl.h>
-#include <CL/cl_ext.h>
+#include <CL/TI/cl.h>
+#include <CL/TI/cl_ext.h>
 
 #include <vector>
 #include <string>

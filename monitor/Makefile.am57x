@@ -9,7 +9,7 @@ OMP_ENABLED    ?= 1
 export OMP_ENABLED
 
 ## !Need -O* to inline CACHE_* functions!
-CC= $(TI_OCL_CGT_INSTALL)/bin/cl6x -o3 -mv6600 --abi=eabi --gcc --mem_model:const=data --mem_model:data=far --vectypes=on
+CC= /usr/bin/cl6x -o3 -mv6600 --abi=eabi --gcc --mem_model:const=data --mem_model:data=far --vectypes=on
 
 INCLUDES  = -i. -i $(OPENCL_SRC_DIR)/src/core/dsp
 INCLUDES += -i $(PDK_DIR)/packages -i $(TI_OCL_CGT_INSTALL)/include \

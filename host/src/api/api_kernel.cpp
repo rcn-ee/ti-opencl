@@ -30,7 +30,7 @@
  * \brief Kernels
  */
 
-#include "CL/cl.h"
+#include "CL/TI/cl.h"
 
 #include <core/program.h>
 #include <core/kernel.h>

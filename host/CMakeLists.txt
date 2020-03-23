@@ -202,9 +202,9 @@ if (${BUILD_OUTPUT} STREQUAL "all" OR ${BUILD_OUTPUT} STREQUAL "lib")
                                                                  ${OCL_FPERMS})
   endif()
 
-  install(DIRECTORY DESTINATION /usr/include/CL                  ${OCL_DPERMS})
+  install(DIRECTORY DESTINATION /usr/include/CL/TI                  ${OCL_DPERMS})
   install(FILES     util/ocl_util.h  DESTINATION /usr/include    ${OCL_FPERMS})
-  install(DIRECTORY include/CL       DESTINATION /usr/include    ${OCL_DPERMS})
+  install(DIRECTORY include/CL/TI       DESTINATION /usr/include/CL    ${OCL_DPERMS})
 
   install(DIRECTORY DESTINATION /usr/share/ti/opencl/profiling   ${OCL_DPERMS})
   install(DIRECTORY ../profiling DESTINATION /usr/share/ti/opencl ${OCL_DPERMS})

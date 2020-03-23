@@ -290,7 +290,7 @@ if (NOT (${BUILD_OS} MATCHES "SYS_BIOS"))
   install(TARGETS OpenCL LIBRARY DESTINATION /usr/lib ${OCL_FPERMS})
 else()
   file(WRITE ${PROJECT_BINARY_DIR}/lib/OpenCLAddLib.mri
-    "OPEN ../lib/libOpenCL.a
+    "OPEN ../lib/libTIOpenCL.a
     ADDLIB ${ARM_LLVM_DIR}/lib/libLLVMBitReader.a
     ADDLIB ${ARM_LLVM_DIR}/lib/libLLVMCore.a
     ADDLIB ${ARM_LLVM_DIR}/lib/libLLVMSupport.a

@@ -28,7 +28,7 @@
 #ifndef __PLATFORM_H__
 #define __PLATFORM_H__
 
-#include <CL/cl.h>
+#include <CL/TI/cl.h>
 #include <vector>
 #include <cstring>
 #include <memory>

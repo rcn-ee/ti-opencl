@@ -34,7 +34,7 @@
 #include <cstdlib>
 #include <algorithm>
 #include <limits.h>
-#include "CL/cl_ext.h"
+#include "CL/TI/cl_ext.h"
 
 #include <core/config.h>
 #include "../propertylist.h"

@@ -34,7 +34,7 @@
 #ifdef __APPLE__
 #include <OpenCL/cl_platform.h>
 #else
-#include <CL/cl_platform.h>
+#include <CL/TI/cl_platform.h>
 #endif
 
 #ifdef __cplusplus

@@ -32,7 +32,7 @@
  * \brief Contexts
  */
 
-#include <CL/cl.h>
+#include <CL/TI/cl.h>
 #include <core/context.h>
 #include <core/platform.h>
 #include <stdlib.h>

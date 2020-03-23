@@ -31,7 +31,7 @@
  * \brief Devices
  */
 
-#include "CL/cl.h"
+#include "CL/TI/cl.h"
 #include <core/platform.h>
 #include <core/deviceinterface.h>
 #include <core/dsp/subdevice.h>

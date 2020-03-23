@@ -39,7 +39,7 @@
 #include "dsp/u_concurrent_stack.h"
 #include <list>
 
-#include <CL/cl.h>
+#include <CL/TI/cl.h>
 
 namespace Coal
 {

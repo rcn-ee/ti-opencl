@@ -36,7 +36,7 @@
 #include "object.h"
 #include "icd.h"
 
-#include <CL/cl.h>
+#include <CL/TI/cl.h>
 
 namespace Coal
 {
