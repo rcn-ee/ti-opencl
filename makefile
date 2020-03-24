@@ -141,8 +141,9 @@ else
 FW_REPO=https://github.com/rcn-ee/opencl-firmware
 endif
 
+#https://github.com/rcn-ee/opencl-firmware/branches
 opencl-firmware:
-	git clone -b 01.02.00.02 --depth 1 $(FW_REPO)
+	git clone -b 01.02.00.01 --depth 1 $(FW_REPO)
 
 change:
 	git log --pretty=format:"- %s%n%b" $(TAG).. ; \
