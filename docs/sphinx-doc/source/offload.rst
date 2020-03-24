@@ -94,7 +94,7 @@ The execution of the kernel is asynchronous. The host can perform computations t
 
 Putting it all together
 +++++++++++++++++++++++
-Compile the host program with OpenCL offload using the following command: ``g++  -O3 -std=c++11 matmul_ocl.cpp  -lOpenCL -locl_util -o matmpy``. ``libOpenCL.so`` is TI's OpenCL Runtime library. ``libocl_util.so`` provides utility functions such as ``ocl_code_error``.
+Compile the host program with OpenCL offload using the following command: ``g++  -O3 -std=c++11 matmul_ocl.cpp  -lTIOpenCL -locl_util -o matmpy``. ``libOpenCL.so`` is TI's OpenCL Runtime library. ``libocl_util.so`` provides utility functions such as ``ocl_code_error``.
 
 .. literalinclude:: listings/matmul_ocl.cpp
     :language: cpp

@@ -28,7 +28,7 @@
 
 #pragma once
 
-#include <CL/cl.h>
+#include <CL/TI/cl.h>
 
 #define __ENV_VAR_LIST(__FUNC) \
   __FUNC(TI_OCL_CACHE_KERNELS,                          char *) \

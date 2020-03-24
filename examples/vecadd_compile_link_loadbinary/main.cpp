@@ -26,7 +26,7 @@
  *   THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
 #define __CL_ENABLE_EXCEPTIONS
-#include <CL/cl.hpp>
+#include <CL/TI/cl.hpp>
 #include <iostream>
 #include <cstdlib>
 #include <cassert>

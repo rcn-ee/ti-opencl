@@ -38,7 +38,7 @@
 #include "kernelentry.h"
 #include "builtinprogram.h"
 
-#include <CL/cl.h>
+#include <CL/TI/cl.h>
 
 namespace Coal
 {

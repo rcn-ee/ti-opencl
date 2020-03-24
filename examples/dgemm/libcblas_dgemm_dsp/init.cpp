@@ -1,5 +1,5 @@
 #define __CL_ENABLE_EXCEPTIONS
-#include <CL/cl.hpp>
+#include <CL/TI/cl.hpp>
 #include <stdlib.h>
 #include <assert.h>
 #include <math.h>

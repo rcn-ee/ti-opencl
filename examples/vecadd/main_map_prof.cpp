@@ -31,7 +31,7 @@
  * while vecadd example only computes on the first ACCELERATOR device.
  *****************************************************************************/
 #define __CL_ENABLE_EXCEPTIONS
-#include <CL/cl.hpp>
+#include <CL/TI/cl.hpp>
 #include <fstream>
 #include <iostream>
 #include <cstdlib>

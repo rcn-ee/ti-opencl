@@ -31,8 +31,8 @@
  * \brief Platform
  */
 
-#include "CL/cl.h"
-#include "CL/cl_ext.h"
+#include "CL/TI/cl.h"
+#include "CL/TI/cl_ext.h"
 #include <core/platform.h>
 #include <core/config.h>
 #include <cstring>

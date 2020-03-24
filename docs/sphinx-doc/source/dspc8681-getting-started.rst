@@ -122,7 +122,7 @@ Limitations
   and library.
 
         - Add ``-I$TI_OCL_INSTALL/usr/include`` as a compile options
-        - Add ``-L$TI_OCL_INSTALL/usr/lib -lOpenCL -lbfd`` as link options
+        - Add ``-L$TI_OCL_INSTALL/usr/lib -lTIOpenCL -lbfd`` as link options
 
 - This installation will not allow concurrent Linux processes that contain OpenCL 
   code. A file lock is used to sequentialize OpenCL access to the DSPs

@@ -1,5 +1,7 @@
 [Unit]
 Description=TI MultiCore Tools Daemon
+ConditionPathExists=/sys/devices/platform/44000000.ocp/40800000.dsp/
+After=cmemk-module.service
 
 [Service]
 Type=forking

@@ -34,7 +34,7 @@
 #ifndef __DEVICEINTERFACE_H__
 #define __DEVICEINTERFACE_H__
 
-#include <CL/cl.h>
+#include <CL/TI/cl.h>
 #include <string>
 #include <vector>
 #include "object.h"

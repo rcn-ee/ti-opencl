@@ -30,7 +30,7 @@
  * \brief Special events and event management
  */
 
-#include <CL/cl.h>
+#include <CL/TI/cl.h>
 
 #include <core/commandqueue.h>
 #include <core/events.h>

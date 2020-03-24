@@ -24,7 +24,7 @@ Which TI OpenCL Version is Installed?
    APIs to query the platform version. The returned string will have a format similar to: 
    ``OpenCL 1.1 TI product version 1.1.1.0``. Sample C++ code to query the version follows::
 
-    #include <CL/cl.hpp>
+    #include <CL/TI/cl.hpp>
     #include <iostream>
      
     std::vector<cl::Platform> platforms;
